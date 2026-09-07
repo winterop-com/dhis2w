@@ -9,7 +9,7 @@ recorded in the repository's `BUGS.md`:
 2. **A unique attribute gets no org-unit-scope exemption** (BUGS.md 74). The legacy documentation
    describes a unique value as an instance-wide key; the tracker endpoint scopes it like any other
    filter, so a lookup scoped to the capture unit misses exactly the entities identifier search
-   exists to find. Every search here therefore sends `ouMode=ACCESSIBLE`: as wide as the requesting
+   exists to find. Every search here therefore sends `orgUnitMode=ACCESSIBLE`: as wide as the requesting
    user may see, and no wider.
 3. **An entity-scoped read with a program the entity is not enrolled in answers 404 `E1005`,
    claiming the tracked entity does not exist** (BUGS.md 72). So nothing here ever probes by
@@ -191,7 +191,7 @@ async def list_tracked_entities(
     selected: a page narrowed after DHIS2 counted it would be a short page beside a total describing
     everybody.
 
-    `ouMode=ACCESSIBLE` for the same reason every search here sends it (BUGS.md 74) - the register a
+    `orgUnitMode=ACCESSIBLE` for the same reason every search here sends it (BUGS.md 74) - the register a
     user may see is the register they are shown, and a listing scoped to the capture unit would
     answer a fraction of it without saying so. A type the instance does not hold answers an empty
     page, not a refusal.
@@ -201,7 +201,7 @@ async def list_tracked_entities(
             TRACKED_ENTITIES_PATH,
             params={
                 "trackedEntityType": tracked_entity_type_uid,
-                "ouMode": SEARCH_ORG_UNIT_MODE,
+                "orgUnitMode": SEARCH_ORG_UNIT_MODE,
                 "fields": TRACKED_ENTITY_FIELDS,
                 "page": page,
                 "pageSize": page_size,
@@ -232,7 +232,7 @@ async def count_tracked_entity_pages(
             TRACKED_ENTITIES_PATH,
             params={
                 "trackedEntityType": tracked_entity_type_uid,
-                "ouMode": SEARCH_ORG_UNIT_MODE,
+                "orgUnitMode": SEARCH_ORG_UNIT_MODE,
                 "fields": _COUNT_ONLY_FIELDS,
                 "page": 1,
                 "pageSize": page_size,
@@ -266,7 +266,7 @@ async def count_tracked_entities(
             TRACKED_ENTITIES_PATH,
             params={
                 "trackedEntityType": tracked_entity_type_uid,
-                "ouMode": SEARCH_ORG_UNIT_MODE,
+                "orgUnitMode": SEARCH_ORG_UNIT_MODE,
                 "fields": _COUNT_ONLY_FIELDS,
                 "page": 1,
                 "pageSize": _COUNT_ONLY_PAGE_SIZE,
@@ -299,7 +299,7 @@ async def search_tracked_entities(
             params={
                 "trackedEntityType": tracked_entity_type_uid,
                 "filter": f"{attribute_uid}:eq:{value}",
-                "ouMode": SEARCH_ORG_UNIT_MODE,
+                "orgUnitMode": SEARCH_ORG_UNIT_MODE,
                 "fields": TRACKED_ENTITY_FIELDS,
                 "pageSize": SEARCH_PAGE_SIZE,
             },
@@ -403,7 +403,7 @@ async def poll_tracked_entities(
     """
     params: dict[str, Any] = {
         "trackedEntityType": tracked_entity_type_uid,
-        "ouMode": SEARCH_ORG_UNIT_MODE,
+        "orgUnitMode": SEARCH_ORG_UNIT_MODE,
         "fields": POLLED_TRACKED_ENTITY_FIELDS,
         "order": POLL_ORDER,
         "page": page,
@@ -449,7 +449,7 @@ async def poll_enrollments(
     """
     params: dict[str, Any] = {
         "program": program_uid,
-        "ouMode": SEARCH_ORG_UNIT_MODE,
+        "orgUnitMode": SEARCH_ORG_UNIT_MODE,
         "fields": _TOUCHED_ENROLLMENT_FIELDS,
         "order": ENROLLMENT_POLL_ORDER,
         "page": page,

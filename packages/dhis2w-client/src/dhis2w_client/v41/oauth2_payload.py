@@ -1,10 +1,9 @@
 """OAuth2 client-registration wire payload, v41 shape.
 
 DHIS2 v41 names the client-id property `cid` (renamed to `clientId` on v42
-and v43 — BUGS.md #39). Multi-valued fields strictly require arrays on v41:
-v42 + v43 also accept comma-separated strings and auto-coerce, but v41
-rejects strings with Jackson `MismatchedInputException`. Arrays work
-uniformly across all three majors.
+and v43, BUGS.md #39). Multi-valued fields must be JSON arrays on v41, which
+rejects strings with a Jackson `MismatchedInputException`; v42 and v43 take
+comma-separated strings instead and drop arrays silently (BUGS.md #117).
 """
 
 from __future__ import annotations

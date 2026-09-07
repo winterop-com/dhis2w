@@ -1041,16 +1041,16 @@ async def test_bug_19_live_verifier(local_url: str) -> None:
 async def test_bug_20_live_verifier(local_url: str) -> None:
     """BUGS.md #20 — `DELETE /api/options/{uid}` 200s but leaves the option in place.
 
-    Originally cross-version (v41/v42/v43); DHIS2 fixed it on v43 — DELETE
-    now actually removes the option. Verifier targets v41/v42 only; on v43
-    it skips because the bug doesn't reproduce.
+    Originally cross-version (v41/v42/v43); fixed on v43 and on v42 from
+    2.42.6, where DELETE removes the option. Verifier targets v41 only; on
+    v42 and v43 it skips because the bug doesn't reproduce.
     Creates an OptionSet + Option, DELETEs the option,
     verifies it's still there. Cleans up at the end via the
     OptionSet → remove-member path (the actual working delete route).
     """
     _skip_if_stack_unreachable(local_url)
     async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
-        _skip_unless_version(client, frozenset({"v41", "v42"}))
+        _skip_unless_version(client, frozenset({"v41"}))
         # Create a throwaway OptionSet so we own its lifecycle.
         os_envelope = await client.post_raw(
             "/api/optionSets",
@@ -1090,42 +1090,37 @@ async def test_bug_20_live_verifier(local_url: str) -> None:
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "DHIS2 fixed upstream — `attributeValues.value:eq:X` nested-path filter now returns 200 "
-        "with results instead of E1003. Workaround removal pending: drop the UID-shorthand fallback "
-        "in `dhis2w_client.v{N}.option_sets.OptionSetsAccessor.find_option_by_attribute`. "
-        "See BUGS.md #21."
-    ),
-)
 async def test_bug_21_live_verifier(local_url: str) -> None:
-    """BUGS.md #21 — `filter=attributeValues.value:eq:X` rejects with E1003 `Unknown path property`.
+    """BUGS.md #21 — the nested `attributeValues.value:eq:X` filter splits by major.
 
-    Cross-version bug (v41/v42/v43). The metadata filter DSL doesn't walk
-    into nested `attributeValues` — the only way to filter on attribute
-    values is via the undocumented `<attrUid>:eq:<value>` shorthand. This
-    verifier confirms the nested path still fails with the E1003 error.
+    2.41.9.1 accepts the nested path with 200; 2.42.6 and 2.43.1 refuse it with
+    400 E1003 `Unknown path property`, so the UID shorthand
+    (`<attrUid>:eq:<value>`) in `OptionSetsAccessor.find_option_by_attribute`
+    is still the only cross-major filter. A 200 on v42 or v43 here is the
+    signal to drop the shorthand.
     """
     _skip_if_stack_unreachable(local_url)
     async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
         _skip_unless_version(client, _AnyVersion)
-        response = await client._request(  # noqa: SLF001 — raw probe, expect 400
-            "GET",
-            "/api/options",
-            params={"filter": "attributeValues.value:eq:nonexistent", "fields": "id"},
-        )
-    assert response.status_code == 400, (
-        f"BUGS.md #21: expected 400 on `attributeValues.value` nested-path filter, got "
-        f"{response.status_code}. DHIS2 may have wired up nested attribute-value walking — "
-        f"verify upstream + drop the UID-shorthand workaround in "
-        f"`dhis2w_client.v{{N}}.option_sets.OptionSetsAccessor.find_option_by_attribute`."
-    )
-    body = response.json() if response.content else {}
-    assert body.get("errorCode") == "E1003", (
-        f"BUGS.md #21: expected E1003 (Unknown path property), got {body.get('errorCode')!r}. "
-        f"The endpoint's filter semantics may have shifted."
-    )
+        version_key = client.version_key
+        try:
+            await client.get_raw(
+                "/api/options", params={"filter": "attributeValues.value:eq:nonexistent", "fields": "id"}
+            )
+        except Dhis2ApiError as error:
+            assert version_key != "v41", (
+                f"BUGS.md #21: 2.41.9.1 accepted the nested path in the 2026-09 sweep; now it refuses with "
+                f"{error.status_code}. Re-run the repro and update the entry."
+            )
+            assert error.status_code == 400, f"BUGS.md #21: expected 400 on v42/v43, got {error.status_code}"
+            body = error.body if isinstance(error.body, dict) else {}
+            assert body.get("errorCode") == "E1003", f"BUGS.md #21: expected E1003, got {body.get('errorCode')!r}"
+        else:
+            assert version_key == "v41", (
+                "BUGS.md #21: v42/v43 accepted the nested `attributeValues.value` filter. DHIS2 may have wired up "
+                "nested attribute-value walking — verify upstream + drop the UID-shorthand workaround in "
+                "`dhis2w_client.v{N}.option_sets.OptionSetsAccessor.find_option_by_attribute`."
+            )
 
 
 @pytest.mark.upstream_bug
@@ -1329,39 +1324,34 @@ async def test_bug_30_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_31_live_verifier(local_url: str) -> None:
-    """BUGS.md #31 — predictor parser rejects uppercase aggregators like `AVG()` and `SUM()`.
+    """BUGS.md #31 — `/api/expressions/description` refuses every predictor aggregator, in either case.
 
-    Cross-version bug. The expression parser is case-sensitive only for
-    aggregation functions; everything else in DHIS2's expression DSL is
-    case-insensitive. POSTs both case variants and asserts uppercase
-    fails parse while lowercase succeeds.
+    On 2.41.9.1, 2.42.6 and 2.43.1 the description endpoint answers
+    `status: ERROR "Expression is not well-formed"` for `avg(...)`, `AVG(...)`,
+    `sum(...)` and `SUM(...)` under `context=PREDICTOR_GENERATOR`, while the bare
+    operand validates and the seeded lowercase predictors run. The GET form is the
+    only channel (POST answers 405). A 200 `status: OK` for any aggregator is the
+    signal to re-read the entry.
     """
     _skip_if_stack_unreachable(local_url)
+    operand = "#{s46m5MS0hxu.Prlt0C1RF0s}"
     async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
         _skip_unless_version(client, _AnyVersion)
-        uppercase = await client._request(  # noqa: SLF001
-            "POST",
-            "/api/predictors/expression/description",
-            content=b"AVG(1)",
-            extra_headers={"Content-Type": "text/plain"},
+        control = await client.get_raw(
+            "/api/expressions/description", params={"context": "PREDICTOR_GENERATOR", "expression": operand}
         )
-        lowercase = await client._request(  # noqa: SLF001
-            "POST",
-            "/api/predictors/expression/description",
-            content=b"avg(1)",
-            extra_headers={"Content-Type": "text/plain"},
-        )
-    upper_body = uppercase.json() if uppercase.content else {}
-    lower_body = lowercase.json() if lowercase.content else {}
-    assert upper_body.get("status") != "OK", (
-        f"BUGS.md #31: expected uppercase `AVG(1)` to be rejected as ill-formed (the bug), "
-        f"got status={upper_body.get('status')!r}. DHIS2 may have made the parser "
-        f"case-insensitive — verify upstream + drop the lowercase-only guidance in "
-        f"the predictor docs."
-    )
-    assert lower_body.get("status") == "OK", (
-        f"BUGS.md #31: expected lowercase `avg(1)` to parse OK, got status="
-        f"{lower_body.get('status')!r}. The parser may have changed entirely."
+        if control.get("status") != "OK":
+            pytest.skip("the seeded operand did not validate on this stack; the fixture is missing")
+        verdicts = {}
+        for spelling in ("avg", "AVG", "sum", "SUM"):
+            body = await client.get_raw(
+                "/api/expressions/description",
+                params={"context": "PREDICTOR_GENERATOR", "expression": f"{spelling}({operand})"},
+            )
+            verdicts[spelling] = body.get("status")
+    assert all(status != "OK" for status in verdicts.values()), (
+        f"BUGS.md #31: the description endpoint accepted an aggregator ({verdicts}); the entry's premise moved again, "
+        "re-run its repro and update it."
     )
 
 

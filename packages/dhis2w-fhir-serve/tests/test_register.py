@@ -10,7 +10,7 @@ compiled store plus a live client is a faithful stand-in for a live run and cost
 
 What is asserted about the wire is the empirical contract, not the code's own habits: the
 `trackedEntityType` a search is required to name, the `filter=<uid>:eq:<value>` it filters with, and
-`ouMode=ACCESSIBLE` on every single search - the one BUGS.md 74 says an identifier lookup cannot do
+`orgUnitMode=ACCESSIBLE` on every single search - the one BUGS.md 74 says an identifier lookup cannot do
 without.
 """
 
@@ -215,7 +215,7 @@ async def test_a_system_qualified_identifier_searches_the_attribute_it_names(
     request_url = search.calls[0].request.url
     assert request_url.params["trackedEntityType"] == REGISTRATION_TRACKED_ENTITY_TYPE_UID
     assert request_url.params["filter"] == f"{REGISTRATION_UNIQUE_ATTRIBUTE}:eq:{_NATIONAL_ID}"
-    assert request_url.params["ouMode"] == "ACCESSIBLE"
+    assert request_url.params["orgUnitMode"] == "ACCESSIBLE"
 
 
 async def test_a_bare_identifier_value_tries_the_uid_and_every_search_key_that_could_hold_it(
@@ -244,7 +244,7 @@ async def test_a_bare_identifier_value_tries_the_uid_and_every_search_key_that_c
         f"{SPECIMEN_UNIQUE_ATTRIBUTE}:eq:{_NATIONAL_ID}",
         f"{REGISTRATION_GENERATED_ATTRIBUTE}:eq:{_NATIONAL_ID}",
     ]
-    assert all(call.request.url.params["ouMode"] == "ACCESSIBLE" for call in search.calls)
+    assert all(call.request.url.params["orgUnitMode"] == "ACCESSIBLE" for call in search.calls)
 
 
 async def test_a_key_whose_value_type_could_hold_the_value_is_asked(live_client: httpx.AsyncClient) -> None:

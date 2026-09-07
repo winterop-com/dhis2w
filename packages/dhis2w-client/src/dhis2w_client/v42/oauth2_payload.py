@@ -1,9 +1,10 @@
 """OAuth2 client-registration wire payload, v42 shape.
 
-DHIS2 v42 renamed the client-id property to `clientId` (v41 still uses
-`cid` — see BUGS.md #39). Multi-valued fields ship as arrays; v42 + v43
-also accept comma-separated strings and auto-coerce, but arrays work
-uniformly across all three majors.
+DHIS2 v42 names the client-id property `clientId` (v41 still uses `cid`,
+BUGS.md #39). Multi-valued fields ship as comma-separated strings: 2.42.6
+and 2.43.1 answer 201 to JSON arrays and store nothing for those fields,
+after which the authorization server answers 500 for the client
+(BUGS.md #117). v41 is the tree that needs arrays.
 """
 
 from __future__ import annotations
@@ -26,10 +27,10 @@ def build_register_payload(
         "name": display_name or client_id,
         "clientId": client_id,
         "clientSecret": client_secret_hash,
-        "clientAuthenticationMethods": ["client_secret_basic", "client_secret_post"],
-        "authorizationGrantTypes": ["authorization_code", "refresh_token"],
-        "redirectUris": [redirect_uri],
-        "scopes": [scope],
+        "clientAuthenticationMethods": "client_secret_basic,client_secret_post",
+        "authorizationGrantTypes": "authorization_code,refresh_token",
+        "redirectUris": redirect_uri,
+        "scopes": scope,
         "clientSettings": client_settings_json,
         "tokenSettings": token_settings_json,
     }

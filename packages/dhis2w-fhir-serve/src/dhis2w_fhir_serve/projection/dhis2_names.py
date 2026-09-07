@@ -2,7 +2,7 @@
 
 IT IMPROVES NOTHING, AND THAT IS THE POINT. `find` runs exactly the search a live register has always
 run - `filter=<attribute>:eq:<value>` against `/api/tracker/trackedEntities`, one query per key per
-tracked entity type, `ouMode=ACCESSIBLE` on every one of them - so it is exactly as weak as an exact
+tracked entity type, `orgUnitMode=ACCESSIBLE` on every one of them - so it is exactly as weak as an exact
 match is, and it carries exactly today's authorization properties. Its whole value is that once a
 lookup is the only path a register search takes, swapping in a real index is a config line rather
 than a refactor. `docs/fhir/design/projection.md` section 7.2 is the design, and R5 is the reason

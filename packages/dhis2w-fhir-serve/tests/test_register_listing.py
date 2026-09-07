@@ -173,7 +173,7 @@ async def test_the_first_page_is_the_first_people_of_the_first_type(listing_clie
     assert [entry["search"]["mode"] for entry in body["entry"]] == ["match", "match"]
     parameters = route.calls[0].request.url.params
     assert parameters["trackedEntityType"] == REGISTRATION_TRACKED_ENTITY_TYPE_UID
-    assert parameters["ouMode"] == "ACCESSIBLE"
+    assert parameters["orgUnitMode"] == "ACCESSIBLE"
     assert parameters["page"] == "1"
     assert parameters["pageSize"] == "20"
     assert parameters["totalPages"] == "true"

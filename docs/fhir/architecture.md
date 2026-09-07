@@ -531,7 +531,7 @@ Five modules:
   `tracked_entity_types` and `search_attributes` are taken verbatim when
   stated, and the published sets are the default.
 - `wire.py` is the DHIS2 read against `/api/tracker/trackedEntities`, always
-  `ouMode=ACCESSIBLE`, folding "does not exist" into an empty answer.
+  `orgUnitMode=ACCESSIBLE`, folding "does not exist" into an empty answer.
 - `listing.py` is a stateless paging cursor - a base64url token opaque to
   clients, and a page never mixes tracked entity types.
 - `projection.py` builds the served resource: the UID as `id` and as the first
