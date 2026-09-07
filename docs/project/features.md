@@ -1887,7 +1887,7 @@ reads that table.
   directly - a UID is not an attribute, and a value that is not UID-shaped is
   never spent on a read DHIS2 answers 400 to.
 - **A token under `{base}/tracked-entity-attribute/<uid>`** filters
-  `GET /api/tracker/trackedEntities?trackedEntityType=<published TET>&filter=<uid>:eq:<value>&ouMode=ACCESSIBLE`.
+  `GET /api/tracker/trackedEntities?trackedEntityType=<published TET>&filter=<uid>:eq:<value>&orgUnitMode=ACCESSIBLE`.
   `ACCESSIBLE` always, because a unique attribute gets no organisation-unit
   scope exemption on the tracker endpoint (BUGS.md 74), so a capture-unit scope
   would miss exactly the people identifier search exists to find.

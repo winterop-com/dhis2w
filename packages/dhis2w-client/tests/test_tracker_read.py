@@ -54,9 +54,10 @@ async def test_tracked_entities_builds_repeated_params_and_returns_envelope(
     params = route.calls.last.request.url.params
     assert params["program"] == "progUid0001"
     assert params["trackedEntityType"] == "tetUidAAA01"
-    assert params.get_list("orgUnit") == ["ouUidAAA001", "ouUidBBB002"]
-    assert params["ouMode"] == "DESCENDANTS"
-    assert "orgUnitMode" not in params
+    assert params.get_list("orgUnits") == ["ouUidAAA001", "ouUidBBB002"]
+    assert params["orgUnitMode"] == "DESCENDANTS"
+    assert "ouMode" not in params
+    assert "orgUnit" not in params
     assert params.get_list("trackedEntity") == ["teUid000001"]
     assert params["programStatus"] == "ACTIVE"
     assert params["fields"] == "trackedEntity,attributes[attribute,value]"
@@ -92,7 +93,8 @@ async def test_enrollments_maps_status_and_repeats_ids(
 
     params = route.calls.last.request.url.params
     assert params["program"] == "progUid0001"
-    assert params["orgUnit"] == "ouUidAAA001"
+    assert params["orgUnits"] == "ouUidAAA001"
+    assert "orgUnit" not in params
     assert params.get_list("trackedEntity") == ["teUid000001", "teUid000002"]
     assert params.get_list("enrollment") == ["enrUid00001"]
     assert params["programStatus"] == "COMPLETED"

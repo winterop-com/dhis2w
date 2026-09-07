@@ -6,7 +6,7 @@ What is asserted here is the seam rather than a feature, because step 1 of
 `docs/fhir/design/projection.md` improves nothing on purpose. Three claims carry it. The backend
 satisfies the Protocol at runtime, so the register can hold any implementation of it. `find` puts
 exactly the query section 2 of that paper measured on the wire - `filter=<attribute>:eq:<value>`,
-`ouMode=ACCESSIBLE`, one query per key per tracked entity type - so this backend is exactly as weak
+`orgUnitMode=ACCESSIBLE`, one query per key per tracked entity type - so this backend is exactly as weak
 as an exact match is, and its weakness is characterized rather than assumed. And a match carries a
 tracked entity UID and a score and nothing else, which is what makes R9's authorization-by-
 construction a property of the shape rather than a promise: there is no field on `NameMatch` for a
@@ -156,7 +156,7 @@ async def test_finding_puts_the_exact_match_filter_on_the_wire(index: Dhis2NameS
         _TYPE_UID,
         _OTHER_TYPE_UID,
     ]
-    assert all(params["ouMode"] == "ACCESSIBLE" for params in sent)
+    assert all(params["orgUnitMode"] == "ACCESSIBLE" for params in sent)
 
 
 async def test_finding_answers_identifiers_and_keeps_none_of_what_it_read(index: Dhis2NameSearchIndex) -> None:
