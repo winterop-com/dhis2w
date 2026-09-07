@@ -14,7 +14,14 @@ FROM postgis/postgis:17-3.5
 # exits 100 on 404s for libperl5.32, tzdata and xz-utils. Installing exactly
 # the two packages the stack needs keeps the build reproducible on a machine
 # with no cached image layers.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && \
+#
+# The `bullseye-security` suite is dropped before the update: bullseye left
+# security support in 2026 and the mirror now serves an `InRelease` whose
+# `Valid-Until` has passed, which makes `apt-get update` exit 100 on every
+# build. Neither package below comes from that suite (wal2json is pgdg,
+# python3-bcrypt is bullseye main).
+RUN sed -i '/bullseye-security/d' /etc/apt/sources.list && \
+    DEBIAN_FRONTEND=noninteractive apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         postgresql-17-wal2json \
         python3-bcrypt && \
