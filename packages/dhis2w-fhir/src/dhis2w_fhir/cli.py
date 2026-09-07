@@ -2705,6 +2705,13 @@ def _render_sync_report(report: SyncReport, generation: GenerationProfile) -> No
     if report.dry_run:
         _line(_SYNC_DRY_RUN_BANNER)
     _hint("ok", report.counts_line())
+    if not report.tombstones_visible:
+        _hint(
+            "note",
+            "this DHIS2 instance refuses the tracked entity read that includes deleted entities "
+            "(BUGS.md #116); a person removed since the last run stays in the projection until an "
+            "enrollment of theirs moves or the projection is rebuilt",
+        )
     if report.cursor.updated_at is None:
         _hint(
             "note",

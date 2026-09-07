@@ -163,6 +163,11 @@ class SyncReport(BaseModel):
     admits no other scope (BUGS.md 102)."""
 
     pages_read: int = 0
+    tombstones_visible: bool = True
+    """False when the instance refused the tracked entity poll with `includeDeleted=true` and the
+    pages were read without it (DHIS2 2.42.6, BUGS.md #116): this run did not learn of an entity
+    removed since the last one unless an enrollment of it moved."""
+
     counts: tuple[SyncResourceCounts, ...] = ()
     cursors: tuple[SyncCursorMove, ...] = ()
     cursor: ProjectionCursor = Field(default_factory=ProjectionCursor)
@@ -224,7 +229,8 @@ async def run_sync(
 
     run = _Run(reader=reader, surface=surface, store=store, dry_run=dry_run)
     entities_mark = await run.materialize(served, since=_since(before.tracked_entities, overlap))
-    _narrate(narrator, 2, "tracked entities", run.counts_line())
+    tombstones_note = "" if run.tombstones_visible else "; tombstones not visible on this instance (BUGS.md #116)"
+    _narrate(narrator, 2, "tracked entities", run.counts_line() + tombstones_note)
     enrollments_mark = await run.refresh_from_enrollments(
         served,
         programs,
@@ -245,6 +251,7 @@ async def run_sync(
         tracked_entity_types=tuple(uid for uid, _ in served),
         programs=programs,
         pages_read=run.pages,
+        tombstones_visible=run.tombstones_visible,
         counts=run.counts(),
         cursors=(
             SyncCursorMove(
@@ -293,6 +300,7 @@ class _Run:
         self._materialized: set[str] = set()
         self.pages = 0
         self.touched = 0
+        self.tombstones_visible = True
 
     async def materialize(self, served: tuple[tuple[str, str], ...], *, since: datetime | None) -> datetime | None:
         """Walk each tracked entity type in scope, writing every page, and answer the watermark reached.
@@ -313,6 +321,8 @@ class _Run:
                     page_size=POLL_PAGE_SIZE,
                 )
                 self.pages += 1
+                if not read.tombstones_visible:
+                    self.tombstones_visible = False
                 if not read.trackedEntities:
                     break
                 reached = _later(reached, await self._write_entities(read.trackedEntities, resource_type))

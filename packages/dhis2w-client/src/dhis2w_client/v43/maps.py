@@ -18,8 +18,18 @@ Most day-to-day authoring only touches the thematic case: one data
 element × one period × one org-unit level → a choropleth of Sierra
 Leone's districts coloured by immunization coverage, say.
 `MapLayerSpec` + `MapSpec` cover that case with sensible defaults;
-drop to the generated `Map` / `MapView` models when you need the
-full knob set.
+drop to the `Map` / `MapView` models when you need the full knob set.
+
+## Why `MapView` is hand-written here
+
+`Map` is the generated model. `MapView` and the three enums it carries
+(`ThematicMapType`, `OrganisationUnitSelectionMode`,
+`MapViewRenderingStrategy`) are defined in this module because DHIS2
+2.41.9.x no longer lists `mapView` on `/api/schemas`, so the generated
+tree for that release carries no `MapView` at all (BUGS.md #43). The
+wire shape nested under `Map.mapViews[]` is unchanged on every major,
+so one hand-written model serves all three trees. `extra="allow"`
+keeps every field the Maps app writes that this model does not name.
 
 ## Why always POST through `/api/metadata`
 
@@ -33,15 +43,15 @@ at render time. `MapsAccessor.create_from_spec` takes that path.
 
 from __future__ import annotations
 
+from datetime import datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dhis2w_client.generated.v43.enums import (
-    OrganisationUnitSelectionMode,
-    ThematicMapType,
-)
-from dhis2w_client.generated.v43.schemas import Map, MapView
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import AggregationType
+from dhis2w_client.generated.v43.schemas import Map
 from dhis2w_client.v43._collection import parse_collection
 from dhis2w_client.v43.envelopes import WebMessageResponse
 from dhis2w_client.v43.uids import generate_uid
@@ -61,6 +71,81 @@ _MAP_FIELDS: str = (
 
 
 LayerKind = Literal["thematic", "boundary", "facility"]
+
+
+class ThematicMapType(StrEnum):
+    """How a thematic layer renders a value per organisation unit (BUGS.md #43)."""
+
+    CHOROPLETH = "CHOROPLETH"
+    BUBBLE = "BUBBLE"
+
+
+class OrganisationUnitSelectionMode(StrEnum):
+    """How a layer expands its selected organisation units (BUGS.md #43)."""
+
+    SELECTED = "SELECTED"
+    CHILDREN = "CHILDREN"
+    DESCENDANTS = "DESCENDANTS"
+    ACCESSIBLE = "ACCESSIBLE"
+    CAPTURE = "CAPTURE"
+    ALL = "ALL"
+
+
+class MapViewRenderingStrategy(StrEnum):
+    """How a layer spreads its periods across the map (BUGS.md #43)."""
+
+    SINGLE = "SINGLE"
+    SPLIT_BY_PERIOD = "SPLIT_BY_PERIOD"
+    TIMELINE = "TIMELINE"
+
+
+class MapView(BaseModel):
+    """One layer of a DHIS2 `Map`, as nested under `Map.mapViews[]` (BUGS.md #43).
+
+    Names the fields the authoring helpers read and write; every other
+    field the Maps app stores rides along through `extra="allow"`.
+    """
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    id: str | None = None
+    name: str | None = None
+    code: str | None = None
+    description: str | None = None
+    layer: str | None = None
+    thematicMapType: ThematicMapType | None = None
+    classes: int | None = None
+    colorLow: str | None = None
+    colorHigh: str | None = None
+    colorScale: str | None = None
+    opacity: float | None = None
+    aggregationType: AggregationType | None = None
+    renderingStrategy: MapViewRenderingStrategy | None = None
+    organisationUnitSelectionMode: OrganisationUnitSelectionMode | None = None
+    organisationUnits: list[Any] | None = None
+    organisationUnitLevels: list[Any] | None = None
+    dataDimensionItems: list[Any] | None = None
+    rawPeriods: list[Any] | None = None
+    periods: list[Any] | None = None
+    legendSet: Reference | None = None
+    program: Reference | None = None
+    programStage: Reference | None = None
+    eventClustering: bool | None = None
+    eventPointColor: str | None = None
+    eventPointRadius: int | None = None
+    labels: bool | None = None
+    hidden: bool | None = None
+    sortOrder: int | None = None
+    rowDimensions: list[Any] | None = None
+    columnDimensions: list[Any] | None = None
+    filterDimensions: list[Any] | None = None
+    rows: list[Any] | None = None
+    columns: list[Any] | None = None
+    filters: list[Any] | None = None
+    created: datetime | None = None
+    lastUpdated: datetime | None = None
+    createdBy: Reference | None = None
+    lastUpdatedBy: Reference | None = None
 
 
 class MapLayerSpec(BaseModel):
@@ -269,5 +354,9 @@ __all__ = [
     "LayerKind",
     "MapLayerSpec",
     "MapSpec",
+    "MapView",
+    "MapViewRenderingStrategy",
     "MapsAccessor",
+    "OrganisationUnitSelectionMode",
+    "ThematicMapType",
 ]

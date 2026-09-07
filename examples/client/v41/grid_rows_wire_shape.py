@@ -32,7 +32,10 @@ async def main() -> None:
     async with open_client(profile_from_env()) as client:
         # Pick the first available DataElement + a recent monthly period so
         # the response actually has rows on a seeded fixture.
-        de_envelope = await client.get_raw("/api/dataElements", params={"fields": "id", "pageSize": "1"})
+        de_envelope = await client.get_raw(
+            "/api/dataElements",
+            params={"fields": "id", "pageSize": "1", "filter": "domainType:eq:AGGREGATE"},
+        )
         de_rows = de_envelope.get("dataElements") or []
         if not de_rows:
             print("no DataElements on this instance — analytics query would be empty")

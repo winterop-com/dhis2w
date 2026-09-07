@@ -23,7 +23,7 @@ Local DHIS2 development stack: **PostgreSQL + DHIS2 + Glowroot APM + pgAdmin**, 
 
 - **Docker Desktop** with **at least 12 GB** memory allocated (16 GB recommended). DHIS2 needs ~5 GB just for the analytics populate phase, and starving the Docker Desktop VM will get the JVM SIGKILL'd mid-populate.
 - **`make`, `curl`, `bash`** on the host (standard on macOS and most Linux distros).
-- A **DHIS2 database dump** at `./$(DHIS2_VERSION)/dump.sql.gz` (gzipped `pg_dump` output). The repo ships a seeded `v42/dump.sql.gz` and an empty placeholder at `v43/dump.sql.gz`; build a fresh dump for any version with `make build-e2e-dump DHIS2_VERSION=vN`.
+- A **DHIS2 database dump** at `./$(DHIS2_VERSION)/dump.sql.gz` (gzipped `pg_dump` output). The repo ships a seeded dump for each supported major (`v41/`, `v42/`, `v43/`); rebuild one with `make build-e2e-dump DHIS2_VERSION=vN`.
 
 ## Quick start
 
@@ -158,8 +158,9 @@ compose.yml               # base stack: postgres, glowroot-installer, dhis2, ana
 compose.pgadmin.yml       # pgadmin4 overlay (always included by Makefile targets)
 Dockerfile                # postgis/postgis:17-3.5 + wal2json + python3-bcrypt
 initdb.sh                 # one-shot init: loads dump, resets passwords, enables accounts
-v42/dump.sql.gz           # committed e2e dump for DHIS2 42 (Sierra Leone immunization seed)
-v43/dump.sql.gz           # placeholder empty dump for v43 — build a real one with `make build-e2e-dump DHIS2_VERSION=v43`
+v41/dump.sql.gz           # committed e2e dump for DHIS2 41 (Sierra Leone immunization seed)
+v42/dump.sql.gz           # committed e2e dump for DHIS2 42
+v43/dump.sql.gz           # committed e2e dump for DHIS2 43
 v{N}/dump.sql.gz          # add a per-version subdir + dump for any other DHIS2 major
 
 glowroot/admin.json       # committed seed for glowroot auth config

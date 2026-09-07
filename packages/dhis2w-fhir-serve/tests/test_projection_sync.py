@@ -180,11 +180,44 @@ async def test_every_poll_carries_include_deleted_and_a_stable_order(
 
         await _sync(capture_project, store, reader)
 
-    for route in (entities, enrollments):
+    # Enrollments page by `enrolledAt`: 2.41.9.x and 2.42.6 answer 409 to `order=createdAt` on that
+    # read (BUGS.md #115). Tracked entities keep creation order.
+    for route, order in ((entities, "createdAt:asc"), (enrollments, "enrolledAt:asc")):
         assert route.calls
         for call in route.calls:
             assert call.request.url.params["includeDeleted"] == "true"
-            assert call.request.url.params["order"] == "createdAt:asc"
+            assert call.request.url.params["order"] == order
+
+
+async def test_a_refused_tombstone_read_is_retried_without_the_flag_and_reported(
+    capture_project: FhirProject, store: SqliteProjectionStore, reader: _Reader
+) -> None:
+    """BUGS.md #116 - 2.42.6 refuses the type-scoped read with `includeDeleted=true`; the poll retries and says so."""
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("includeDeleted") == "true":
+            return httpx.Response(
+                409,
+                json={
+                    "httpStatus": "Conflict",
+                    "httpStatusCode": 409,
+                    "status": "ERROR",
+                    "message": "Query failed because of a syntax error (SqlState: 42601)",
+                    "devMessage": 'ERROR: trailing junk after numeric literal at or near "1903ORDER"\n  Position: 956',
+                },
+            )
+        return httpx.Response(200, json=_page(_entity()))
+
+    with respx.mock:
+        entities = respx.get(_TRACKER_PATH).mock(side_effect=answer)
+        enrollments = respx.get(_ENROLLMENTS_PATH).mock(return_value=httpx.Response(200, json=_enrollment_page()))
+
+        report = await _sync(capture_project, store, reader)
+
+    assert report.tombstones_visible is False
+    assert [call.request.url.params.get("includeDeleted") for call in entities.calls] == ["true", None]
+    assert all(call.request.url.params["includeDeleted"] == "true" for call in enrollments.calls)
+    assert [(row.resource_type, row.created) for row in report.counts] == [("Patient", 1)]
 
 
 async def test_the_enrollment_poll_is_scoped_by_program_because_the_endpoint_admits_nothing_else(

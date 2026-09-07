@@ -93,6 +93,13 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         "cli/map_screenshot.sh",
         "cli/visualization_screenshot.sh",
         "client/oidc_playwright_login.py",
+        # --- Data the seed does not carry --------------------------------
+        # The committed d2ql library (examples/d2ql/*.d2ql) reads the Sierra
+        # Leone demo's ANC data elements (fbfJHSPpUQD, cYeuwXTCPkU, ...),
+        # which no seed dump holds; every analytics program answers
+        # E7124 "no valid dimension options: dx" against the local stack.
+        # Run it against the play demo instance.
+        "cli/query_run.sh",
         # --- External network / non-deterministic -----------------------
         # Hits httpbin.org over the public internet.
         "cli/route_register_and_run.sh",
@@ -160,6 +167,15 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
 # Per-version skip overrides for examples that only fail on one major.
 # Keyed by `v{N}` -> example paths relative to `examples/`.
 SKIP_BY_VERSION: dict[str, frozenset[str]] = {
+    "v41": frozenset(
+        {
+            # BUGS.md #114 — 2.41.9.x cannot persist a map layer with its
+            # references through the API; `MapsAccessor.create_from_spec`
+            # refuses on v41, so the two map-authoring examples cannot run.
+            "client/map_create_choropleth.py",
+            "cli/maps.sh",
+        }
+    ),
     "v43": frozenset(
         {
             # BUGS.md #36 — v43's full `POST /api/resourceTables/analytics`
@@ -176,11 +192,11 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
             "client/analytics_event_query.py",
             "mcp/analytics_events_enrollments.py",
             # Same BUGS.md #36 one step downstream: the aborted analytics job
-            # leaves the tables empty, so every analytics query answers
-            # 409 "Dimension is present in query without any valid dimension
-            # options: dx". Green on v41 and v42, where the refresh completes.
+            # leaves the tables empty, so the analytics line of this example
+            # answers 409 "Dimension is present in query without any valid
+            # dimension options: dx". Green on v41 and v42, where the refresh
+            # completes.
             "cli/query_eval.sh",
-            "cli/query_run.sh",
         }
     ),
 }

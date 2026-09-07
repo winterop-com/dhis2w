@@ -45,7 +45,6 @@ from .event_report import EventReport
 from .event_visualization import EventVisualization
 from .expression import Expression
 from .expression_dimension_item import ExpressionDimensionItem
-from .external_file_resource import ExternalFileResource
 from .external_map_layer import ExternalMapLayer
 from .file_resource import FileResource
 from .icon import Icon
@@ -166,7 +165,6 @@ __all__ = [
     "EventVisualization",
     "Expression",
     "ExpressionDimensionItem",
-    "ExternalFileResource",
     "ExternalMapLayer",
     "FileResource",
     "Icon",

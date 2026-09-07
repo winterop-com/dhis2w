@@ -1,6 +1,6 @@
 # Schema diff: v41 -> v42 -> v43
 
-Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.8.1`, v42 = `2.42.4.1`, v43 = `2.43.0.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
+Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.9.1`, v42 = `2.42.6.0`, v43 = `2.43.1.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
 
 - **`/api/schemas`** drives `dhis2w_client.generated.v{N}.schemas` (and the `client.resources.X` accessors). Run `d2w dev codegen diff v41 v42` or `d2w dev codegen diff v42 v43` to regenerate the schema-side diff.
 - **`/api/openapi.json`** drives `dhis2w_client.generated.v{N}.oas` (the request/response shapes used by tracker, auth schemes, data-value imports, etc.). Diff is a plain `ls` comparison of the per-version `oas/` trees — there is no dedicated CLI command for it yet.
@@ -13,15 +13,15 @@ If you only care about the workable patterns ("how do I read this v43 field"), j
 
 | Source | Added | Removed | Changed |
 | --- | ---: | ---: | ---: |
-| `/api/schemas` (resource models) | 3 | 9 | 86 |
+| `/api/schemas` (resource models) | 4 | 9 | 83 |
 
-v42 is a meaningful jump: the OAuth2 metadata stack (oauth2Authorization, oauth2AuthorizationConsent, oauth2Client) lands as first-class resources, several deprecated v41 resources are dropped, and many surfaces gain `displayDescription` / `displayShortName` fields. The v41 -> v42 detail section covers each of those.
+v42 is a meaningful jump: the OAuth2 metadata stack (oauth2Authorization, oauth2AuthorizationConsent, oauth2Client) lands as first-class resources, `mapView` returns as a top-level schema (the `2.41.9.x` releases list no `mapView` at all, see BUGS.md #43), several deprecated v41 resources are dropped, and many surfaces gain `displayDescription` / `displayShortName` fields. The v41 -> v42 detail section covers each of those.
 
 ### v42 -> v43
 
 | Source | Added | Removed | Changed |
 | --- | ---: | ---: | ---: |
-| `/api/schemas` (resource models) | 0 | 3 | 40 |
+| `/api/schemas` (resource models) | 0 | 2 | 36 |
 | `/api/openapi.json` (OAS payload models) | 20 | 23 | n/a |
 
 Smaller surface change than v41 -> v42 but with concrete breaking-shape items (DashboardItem.user -> users, TrackedEntityAttribute.favorite -> favorites, Section.user removed, Program.favorite removed). The OAS side reorganises around `DataValueChangelog*` and the `TrackerSingleEvent` / `TrackerTrackerEvent` split. Detail in the v42 -> v43 section below.
@@ -30,10 +30,11 @@ Smaller surface change than v41 -> v42 but with concrete breaking-shape items (D
 
 ### Added schemas
 
-Three new top-level resources land in v42, all from the OAuth2 server-side metadata stack:
+Four top-level resources are present in v42 and absent from the v41 release this repo pins. Three are the OAuth2 server-side metadata stack; the fourth is `mapView`, which `2.41.9.x` dropped from `/api/schemas` (BUGS.md #43):
 
 | Schema | Class | Role |
 | --- | --- | --- |
+| `mapView` | `org.hisp.dhis.mapping.MapView` | One layer of a `map`. Listed on v42 and v43; absent on `2.41.9.1`, so `dhis2w_client.v{N}.maps` carries `MapView` by hand. |
 | `oauth2Authorization` | `org.hisp.dhis.security.oauth2.authorization.Dhis2OAuth2Authorization` | Persisted OAuth2 authorization grants — the server-side store backing `/oauth2/authorize`. |
 | `oauth2AuthorizationConsent` | `org.hisp.dhis.security.oauth2.consent.Dhis2OAuth2AuthorizationConsent` | Per-user-per-client consent records. |
 | `oauth2Client` | `org.hisp.dhis.security.oauth2.client.Dhis2OAuth2Client` | Registered OAuth2 client metadata (replaces the older `oAuth2Client` resource). |
@@ -72,12 +73,12 @@ The OAS "removals" are mostly internal `*Params` DTOs that v43 collapsed; the OA
 
 ### Schemas-side: removed resources
 
-These three resources are gone in v43. Anyone calling the matching `client.resources.X` accessor on a v43 instance will get `AttributeError`.
+These resources are gone in v43 (`externalFileResource` is gone from the current v41 and v42 releases as well). Anyone calling the matching `client.resources.X` accessor on a v43 instance will get `AttributeError`.
 
 | Schema | Class on the server | Notes |
 | --- | --- | --- |
 | `dataInputPeriods` | `org.hisp.dhis.dataset.DataInputPeriod` | Folded into `dataSet.dataInputPeriods` inline; no top-level resource. |
-| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Use the `externalAccess` field on `fileResource` directly. |
+| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.9.1`, `2.42.6.0`, `2.43.1.0`); use the `externalAccess` field on `fileResource` directly. |
 | `pushanalysis` | `org.hisp.dhis.pushanalysis.PushAnalysis` | Push-analysis is removed in v43. |
 
 ### Schemas-side: breaking shape changes
@@ -126,7 +127,7 @@ Fields removed in v43, beyond the breaking-shape and resource removals above. Mo
 
 | Schema | Removed fields |
 | --- | --- |
-| `access` | `externalize` |
+| `access` | `externalize` (also gone on `2.41.9.1` and `2.42.6.0`) |
 | `categoryCombo` | `favorite` |
 | `categoryOption` | `aggregationType`, `dimensionItem`, `dimensionItemType`, `favorite`, `legendSet`, `legendSets` |
 | `dashboard` | `displayFormName`, `displayShortName`, `formName`, `shortName` |
@@ -429,37 +430,36 @@ Raw output of `d2w dev codegen diff v42 v43`. Reproduced verbatim so the field-b
 
 ```text
 Schema diff: v42 -> v43
-  added schemas: 0   removed schemas: 3   changed schemas: 40
+  added schemas: 0   removed schemas: 2   changed schemas: 36
 
 ## Removed (only in v42)
   - dataInputPeriods  (3 props, klass=org.hisp.dhis.dataset.DataInputPeriod)
-  - externalFileResource  (19 props, klass=org.hisp.dhis.fileresource.ExternalFileResource)
   - pushanalysis  (20 props, klass=org.hisp.dhis.pushanalysis.PushAnalysis)
 
 ## Changed
-  ~ access
-      - externalize  (BOOLEAN)
   ~ attribute
-      ~ valueType:
+      ~ valueType: 
   ~ category
-      ~ valueType:
+      ~ dimensionType: 
+      ~ valueType: 
   ~ categoryCombo
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
   ~ categoryOption
-      - aggregationType  (CONSTANT)
-      - dimensionItem  (TEXT)
-      - dimensionItemType  (CONSTANT)
-      - favorite  (BOOLEAN)
+      + totalAggregationType  (CONSTANT)
+      - favorite  (COLLECTION collection of String)
       - legendSet  (REFERENCE)
       - legendSets  (COLLECTION collection of LegendSet)
+      ~ aggregationType: propertyType: 'CONSTANT' -> 'BOOLEAN', klass: 'org.hisp.dhis.analytics.AggregationType' -> 'java.lang.Boolean', writable: True -> False
       ~ description: min: 1.0 -> 0.0, max: 2147483647.0 -> 255.0
+      ~ dimensionItemType: writable: True -> False
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ shortName: min: 1.0 -> 0.0
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
   ~ categoryOptionGroupSet
-      ~ valueType:
+      ~ dimensionType: 
+      ~ valueType: 
   ~ dashboard
       - displayFormName  (TEXT)
       - displayShortName  (TEXT)
@@ -470,7 +470,7 @@ Schema diff: v42 -> v43
   ~ dashboardItem
       + displayText  (TEXT)
       - displayName  (TEXT)
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       ~ code: propertyType: 'IDENTIFIER' -> 'TEXT', unique: True -> False, max: 50.0 -> 255.0
       ~ created: required: False -> True
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
@@ -478,44 +478,45 @@ Schema diff: v42 -> v43
       ~ lastUpdated: required: False -> True
       ~ name: min: 1.0 -> 0.0
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
-      ~ user: propertyType: 'REFERENCE' -> 'COLLECTION', klass: 'org.hisp.dhis.user.User' -> 'java.util.List', itemKlass: None -> 'org.hisp.dhis.user.User', itemPropertyType: None -> 'REFERENCE', collection: False -> True, owner: False -> True, persisted: False -> True, min: None -> 0.0, max: None -> 1.7976931348623157e+308, fieldName: 'user' -> 'users'
   ~ dataApprovalLevel
       + translations  (COLLECTION collection of Translation)
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       - translation  (COLLECTION collection of Translation)
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ name: min: 1.0 -> 0.0
       ~ orgUnitLevel: min: 0.0 -> -2147483648.0
   ~ dataApprovalWorkflow
       + translations  (COLLECTION collection of Translation)
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       - translation  (COLLECTION collection of Translation)
       ~ code: propertyType: 'IDENTIFIER' -> 'TEXT'
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ name: min: 1.0 -> 0.0
   ~ dataElement
-      ~ valueType:
+      ~ valueType: 
   ~ dataElementGroupSet
-      ~ valueType:
+      ~ dimensionType: 
+      ~ valueType: 
   ~ eventChart
       + fixColumnHeaders  (BOOLEAN)
       + fixRowHeaders  (BOOLEAN)
       + hideEmptyColumns  (BOOLEAN)
       ~ period: itemPropertyType: 'REFERENCE' -> 'COMPLEX', fieldName: 'periods' -> 'persistedPeriods'
+      ~ program: required: True -> False
   ~ eventReport
       + fixColumnHeaders  (BOOLEAN)
       + fixRowHeaders  (BOOLEAN)
       + hideEmptyColumns  (BOOLEAN)
       ~ period: itemPropertyType: 'REFERENCE' -> 'COMPLEX', fieldName: 'periods' -> 'persistedPeriods'
+      ~ program: required: True -> False
   ~ eventVisualization
       + fixColumnHeaders  (BOOLEAN)
       + fixRowHeaders  (BOOLEAN)
       + hideEmptyColumns  (BOOLEAN)
       ~ period: itemPropertyType: 'REFERENCE' -> 'COMPLEX', fieldName: 'periods' -> 'persistedPeriods'
-  ~ identifiableObject
-      ~ domain:
+      ~ program: required: True -> False
   ~ indicatorGroup
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       ~ description: max: 2147483647.0 -> 255.0
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ name: unique: False -> True
@@ -523,39 +524,15 @@ Schema diff: v42 -> v43
   ~ indicatorGroupSet
       + displayDescription  (TEXT)
       + displayShortName  (TEXT)
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       ~ description: max: 2147483647.0 -> 255.0
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
   ~ interpretation
       ~ period: propertyType: 'REFERENCE' -> 'COMPLEX', min: None -> 0.0, max: None -> 255.0
-  ~ legend
-      + set  (REFERENCE)
-      + showKey  (BOOLEAN)
-      + strategy  (CONSTANT)
-      + style  (CONSTANT)
-      - access  (COMPLEX)
-      - attributeValues  (COMPLEX)
-      - code  (IDENTIFIER)
-      - color  (TEXT)
-      - created  (DATE)
-      - createdBy  (REFERENCE)
-      - displayName  (TEXT)
-      - endValue  (NUMBER)
-      - favorite  (BOOLEAN)
-      - href  (URL)
-      - id  (IDENTIFIER)
-      - image  (TEXT)
-      - lastUpdated  (DATE)
-      - lastUpdatedBy  (REFERENCE)
-      - name  (TEXT)
-      - sharing  (COMPLEX)
-      - startValue  (NUMBER)
-      - translation  (COLLECTION collection of Translation)
-      - user  (REFERENCE)
   ~ legendSet
       + translations  (COLLECTION collection of Translation)
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       - translation  (COLLECTION collection of Translation)
       ~ code: propertyType: 'IDENTIFIER' -> 'TEXT', unique: True -> False
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
@@ -566,16 +543,18 @@ Schema diff: v42 -> v43
       + eventCoordinateFieldFallback  (TEXT)
       ~ period: itemPropertyType: 'REFERENCE' -> 'COMPLEX', fieldName: 'periods' -> 'persistedPeriods'
   ~ optionGroupSet
-      ~ valueType:
+      ~ dimensionType: 
+      ~ valueType: 
   ~ optionSet
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       ~ description: max: 2147483647.0 -> 255.0
       ~ href: propertyType: 'URL' -> 'TEXT', max: 1.7976931348623157e+308 -> 2147483647.0
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
-      ~ valueType:
+      ~ valueType: 
       ~ version: required: False -> True
   ~ organisationUnitGroupSet
-      ~ valueType:
+      ~ dimensionType: 
+      ~ valueType: 
   ~ program
       + displayEnrollmentsLabel  (TEXT)
       + displayEventsLabel  (TEXT)
@@ -602,22 +581,22 @@ Schema diff: v42 -> v43
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
       ~ userRole: owner: False -> True
   ~ programDataElement
-      ~ valueType:
+      ~ valueType: 
   ~ programRuleAction
       + legendSet  (REFERENCE)
       + priority  (INTEGER)
-      ~ programRuleActionType:
+      ~ programRuleActionType: 
   ~ programRuleVariable
-      ~ valueType:
+      ~ valueType: 
   ~ programStage
       + displayEventsLabel  (TEXT)
       + eventsLabel  (TEXT)
       ~ description: min: 2.0 -> 1.0
   ~ programTrackedEntityAttribute
       - skipIndividualAnalytics  (BOOLEAN)
-      ~ valueType:
+      ~ valueType: 
   ~ section
-      - favorite  (BOOLEAN)
+      - favorite  (COLLECTION collection of String)
       - user  (REFERENCE)
       ~ code: propertyType: 'IDENTIFIER' -> 'TEXT', min: 0.0 -> 1.0
       ~ description: max: 2147483647.0 -> 255.0
@@ -625,8 +604,6 @@ Schema diff: v42 -> v43
       ~ showColumnTotals: required: False -> True
       ~ showRowTotals: required: False -> True
       ~ translation: max: 255.0 -> 1.7976931348623157e+308
-  ~ sharing
-      - external  (BOOLEAN)
   ~ trackedEntityAttribute
       + blockedSearchOperators  (COLLECTION collection of QueryOperator)
       + minCharactersToSearch  (INTEGER)
@@ -634,14 +611,13 @@ Schema diff: v42 -> v43
       + skipAnalytics  (BOOLEAN)
       + trigramIndexable  (BOOLEAN)
       + trigramIndexed  (BOOLEAN)
-      ~ favorite: propertyType: 'BOOLEAN' -> 'COLLECTION', klass: 'java.lang.Boolean' -> 'java.util.Set', itemKlass: None -> 'java.lang.String', itemPropertyType: None -> 'TEXT', collection: False -> True, writable: False -> True, min: None -> 0.0, max: None -> 1.7976931348623157e+308, fieldName: 'favorite' -> 'favorites'
-      ~ valueType:
+      ~ valueType: 
   ~ trackedEntityType
       + displayTrackedEntityTypesLabel  (TEXT)
       + enableChangeLog  (BOOLEAN)
       + trackedEntityTypesLabel  (TEXT)
   ~ trackedEntityTypeAttribute
-      ~ valueType:
+      ~ valueType: 
   ~ userGroup
       + description  (TEXT)
   ~ validationResult
@@ -657,10 +633,11 @@ Raw output of `d2w dev codegen diff v41 v42`. Reproduced verbatim so the field-b
 
 ```text
 Schema diff: v41 -> v42
-  added schemas: 3   removed schemas: 9   changed schemas: 86
+  added schemas: 4   removed schemas: 9   changed schemas: 83
 
 ## Added in v42
-  + oauth2Authorization  (49 props, klass=org.hisp.dhis.security.oauth2.authorization.Dhis2OAuth2Authorization)
+  + mapView  (122 props, klass=org.hisp.dhis.mapping.MapView)
+  + oauth2Authorization  (34 props, klass=org.hisp.dhis.security.oauth2.authorization.Dhis2OAuth2Authorization)
   + oauth2AuthorizationConsent  (19 props, klass=org.hisp.dhis.security.oauth2.consent.Dhis2OAuth2AuthorizationConsent)
   + oauth2Client  (27 props, klass=org.hisp.dhis.security.oauth2.client.Dhis2OAuth2Client)
 
@@ -766,6 +743,7 @@ Schema diff: v41 -> v42
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
+      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ eventFilter
       + attributeValues  (COMPLEX)
@@ -775,20 +753,19 @@ Schema diff: v41 -> v42
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
+      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ eventVisualization
       + attributeValues  (COMPLEX)
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
+      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ expressionDimensionItem
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ dimensionItemType: 
-  ~ externalFileResource
-      + attributeValues  (COMPLEX)
-      - attributeValue  (COLLECTION collection of AttributeValue)
   ~ externalMapLayer
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
@@ -814,22 +791,12 @@ Schema diff: v41 -> v42
   ~ interpretationComment
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
-  ~ legend
-      + attributeValues  (COMPLEX)
-      - attributeValue  (COLLECTION collection of AttributeValue)
   ~ legendSet
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
   ~ map
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
-      ~ shortName: max: 2147483647.0 -> 50.0
-  ~ mapView
-      + attributeValues  (COMPLEX)
-      + metaData  (COMPLEX)
-      - attributeValue  (COLLECTION collection of AttributeValue)
-      ~ name: owner: False -> True, persisted: False -> True, min: 0.0 -> 1.0, max: 2147483647.0 -> 230.0
-      ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ messageConversation
       + attributeValues  (COMPLEX)
@@ -977,10 +944,10 @@ Schema diff: v41 -> v42
       - attributeValue  (COLLECTION collection of AttributeValue)
       - twoFactorEnabled  (BOOLEAN)
       - userCredentials  (COMPLEX)
-      ~ firstName: required: False -> True, min: 1.0 -> 2.0
+      ~ firstName: required: False -> True
       ~ name: owner: False -> True, writable: True -> False, persisted: False -> True, max: 2147483647.0 -> 321.0
       ~ settings: klass: 'org.hisp.dhis.user.UserSettings' -> 'java.util.Map'
-      ~ surname: required: False -> True, min: 1.0 -> 2.0
+      ~ surname: required: False -> True
   ~ userGroup
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
@@ -991,7 +958,6 @@ Schema diff: v41 -> v42
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ dimensionItemType: 
-      ~ shortName: max: 2147483647.0 -> 50.0
   ~ validationRuleGroup
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
@@ -999,6 +965,6 @@ Schema diff: v41 -> v42
       + attributeValues  (COMPLEX)
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
+      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
-
 ```

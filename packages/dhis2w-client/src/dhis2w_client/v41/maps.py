@@ -18,8 +18,18 @@ Most day-to-day authoring only touches the thematic case: one data
 element × one period × one org-unit level → a choropleth of Sierra
 Leone's districts coloured by immunization coverage, say.
 `MapLayerSpec` + `MapSpec` cover that case with sensible defaults;
-drop to the generated `Map` / `MapView` models when you need the
-full knob set.
+drop to the `Map` / `MapView` models when you need the full knob set.
+
+## Why `MapView` is hand-written here
+
+`Map` is the generated model. `MapView` and the three enums it carries
+(`ThematicMapType`, `OrganisationUnitSelectionMode`,
+`MapViewRenderingStrategy`) are defined in this module because DHIS2
+2.41.9.x no longer lists `mapView` on `/api/schemas`, so the generated
+tree for that release carries no `MapView` at all (BUGS.md #43). The
+wire shape nested under `Map.mapViews[]` is unchanged on every major,
+so one hand-written model serves all three trees. `extra="allow"`
+keeps every field the Maps app writes that this model does not name.
 
 ## Why always POST through `/api/metadata`
 
@@ -33,15 +43,16 @@ at render time. `MapsAccessor.create_from_spec` takes that path.
 
 from __future__ import annotations
 
+from datetime import datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from dhis2w_client.generated.v41.enums import (
-    OrganisationUnitSelectionMode,
-    ThematicMapType,
-)
-from dhis2w_client.generated.v41.schemas import Map, MapView
+from dhis2w_client.errors import Dhis2ClientError
+from dhis2w_client.generated.v41.common import Reference
+from dhis2w_client.generated.v41.enums import AggregationType
+from dhis2w_client.generated.v41.schemas import Map
 from dhis2w_client.v41._collection import parse_collection
 from dhis2w_client.v41.envelopes import WebMessageResponse
 from dhis2w_client.v41.uids import generate_uid
@@ -61,6 +72,81 @@ _MAP_FIELDS: str = (
 
 
 LayerKind = Literal["thematic", "boundary", "facility"]
+
+
+class ThematicMapType(StrEnum):
+    """How a thematic layer renders a value per organisation unit (BUGS.md #43)."""
+
+    CHOROPLETH = "CHOROPLETH"
+    BUBBLE = "BUBBLE"
+
+
+class OrganisationUnitSelectionMode(StrEnum):
+    """How a layer expands its selected organisation units (BUGS.md #43)."""
+
+    SELECTED = "SELECTED"
+    CHILDREN = "CHILDREN"
+    DESCENDANTS = "DESCENDANTS"
+    ACCESSIBLE = "ACCESSIBLE"
+    CAPTURE = "CAPTURE"
+    ALL = "ALL"
+
+
+class MapViewRenderingStrategy(StrEnum):
+    """How a layer spreads its periods across the map (BUGS.md #43)."""
+
+    SINGLE = "SINGLE"
+    SPLIT_BY_PERIOD = "SPLIT_BY_PERIOD"
+    TIMELINE = "TIMELINE"
+
+
+class MapView(BaseModel):
+    """One layer of a DHIS2 `Map`, as nested under `Map.mapViews[]` (BUGS.md #43).
+
+    Names the fields the authoring helpers read and write; every other
+    field the Maps app stores rides along through `extra="allow"`.
+    """
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    id: str | None = None
+    name: str | None = None
+    code: str | None = None
+    description: str | None = None
+    layer: str | None = None
+    thematicMapType: ThematicMapType | None = None
+    classes: int | None = None
+    colorLow: str | None = None
+    colorHigh: str | None = None
+    colorScale: str | None = None
+    opacity: float | None = None
+    aggregationType: AggregationType | None = None
+    renderingStrategy: MapViewRenderingStrategy | None = None
+    organisationUnitSelectionMode: OrganisationUnitSelectionMode | None = None
+    organisationUnits: list[Any] | None = None
+    organisationUnitLevels: list[Any] | None = None
+    dataDimensionItems: list[Any] | None = None
+    rawPeriods: list[Any] | None = None
+    periods: list[Any] | None = None
+    legendSet: Reference | None = None
+    program: Reference | None = None
+    programStage: Reference | None = None
+    eventClustering: bool | None = None
+    eventPointColor: str | None = None
+    eventPointRadius: int | None = None
+    labels: bool | None = None
+    hidden: bool | None = None
+    sortOrder: int | None = None
+    rowDimensions: list[Any] | None = None
+    columnDimensions: list[Any] | None = None
+    filterDimensions: list[Any] | None = None
+    rows: list[Any] | None = None
+    columns: list[Any] | None = None
+    filters: list[Any] | None = None
+    created: datetime | None = None
+    lastUpdated: datetime | None = None
+    createdBy: Reference | None = None
+    lastUpdatedBy: Reference | None = None
 
 
 class MapLayerSpec(BaseModel):
@@ -159,6 +245,14 @@ class MapSpec(BaseModel):
         )
 
 
+_LAYER_WRITE_REFUSED = (
+    "DHIS2 2.41.9.x cannot save a map layer through the API: the metadata importer answers 409 for a "
+    "layer that names an organisation unit or a data element and `POST /api/maps` discards those "
+    "references (BUGS.md #114). Map {name!r} was not written. Author it on a v42+ instance, or "
+    "in the Maps app."
+)
+
+
 class MapsAccessor:
     """`Dhis2Client.maps` — workflow helpers over `/api/maps`."""
 
@@ -180,23 +274,16 @@ class MapsAccessor:
         return Map.model_validate(raw)
 
     async def create_from_spec(self, spec: MapSpec) -> Map:
-        """Build a Map from a spec and POST via `/api/metadata`.
+        """Refuse: DHIS2 2.41.9.x cannot persist a map layer with its references (BUGS.md #114).
 
-        Route through the metadata importer so derived axes populate.
-        A direct `PUT /api/maps/{uid}` with nested `mapViews` silently
-        drops `rows` / `columns` / `filters` — don't take that shortcut.
+        `/api/metadata` answers 409 (`TransientObjectException`) for any
+        `mapViews[]` entry that names an organisation unit or a data
+        element, and `POST /api/maps` answers 201 while discarding every
+        reference. Neither path yields the layer the spec describes, so
+        the v41 tree raises before touching the wire instead of writing
+        a map that renders nothing.
         """
-        m = spec.to_map()
-        if m.id is None:
-            raise ValueError("MapSpec did not assign a UID — check to_map()")
-        body = {"maps": [m.model_dump(by_alias=True, exclude_none=True, mode="json")]}
-        await self._client.post(
-            "/api/metadata",
-            body,
-            params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
-            model=WebMessageResponse,
-        )
-        return await self.get(m.id)
+        raise Dhis2ClientError(_LAYER_WRITE_REFUSED.format(name=spec.name))
 
     async def clone(
         self,
@@ -215,6 +302,8 @@ class MapsAccessor:
         the importer.
         """
         source = await self.get(source_uid)
+        if source.mapViews:
+            raise Dhis2ClientError(_LAYER_WRITE_REFUSED.format(name=new_name))
         target_uid = new_uid or generate_uid()
         payload = source.model_dump(by_alias=True, exclude_none=True, mode="json")
         for owned in (
@@ -269,5 +358,9 @@ __all__ = [
     "LayerKind",
     "MapLayerSpec",
     "MapSpec",
+    "MapView",
+    "MapViewRenderingStrategy",
     "MapsAccessor",
+    "OrganisationUnitSelectionMode",
+    "ThematicMapType",
 ]

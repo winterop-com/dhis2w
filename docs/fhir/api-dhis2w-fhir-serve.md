@@ -474,7 +474,8 @@ selected together by `[serve.projection] store = "sqlite"` and `[serve.search] b
 `SqliteProjectionStore` is the reference implementation of `ProjectionStore` and the Embedded
 posture's whole backend: SQLAlchemy over aiosqlite, one file, no service. `run_sync` is what fills
 it - the initial materialization, the incremental `updatedAfter` poll with `includeDeleted=true` as a
-constant, and the full rebuild - and `SyncReport` is what it answers with. `SqliteNameSearchIndex` is
+constant (read again without it where DHIS2 2.42.6 refuses the flag, which `SyncReport.tombstones_visible`
+reports; BUGS.md #116), and the full rebuild - and `SyncReport` is what it answers with. `SqliteNameSearchIndex` is
 the search over its keys, and `projection.serving` is how an answer served from it states the instant
 it is as of.
 

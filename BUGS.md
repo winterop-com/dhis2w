@@ -26,7 +26,7 @@ below.
 
 ## Index
 
-113 entries grouped by area. **Status tags** carry the result of the most
+116 entries grouped by area. **Status tags** carry the result of the most
 recent re-verification against `dhis2/core` docker images (2026-05-12 sweep,
 updated by the 2026-06-09 sweep): **[FIXED v43]** on v43 only (still present
 on older majors), **[PARTIAL]** where the wire accepts the new shape but
@@ -145,6 +145,8 @@ filing.
 - [#111](#111-metadata-name-fields-hold-pre-escaped-html-entities) — metadata `name` fields hold pre-escaped HTML entities (`&lt;`, `&gt;`) as stored text
 - [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike) — `atomicMode` on `POST /api/dataValueSets` has no effect: a partly invalid import commits the valid rows under `ALL` and `OBJECT` alike
 - [#113](#113-apitrackerevents-reads-the-organisation-unit-mode-from-orgunitmode-while-apitrackertrackedentities-and-apitrackerenrollments-read-it-from-oumode-and-each-ignores-the-other-key) — `/api/tracker/events` reads the organisation unit mode from `orgUnitMode` while the two sibling reads read `ouMode`, and each ignores the other key
+- [#115](#115-get-apitrackerenrollments-ordered-by-createdat-or-updatedat-answers-409-column-reference-created-is-ambiguous-on-2419x-and-2426) — `GET /api/tracker/enrollments` ordered by `createdAt` or `updatedAt` answers 409 `column reference "created" is ambiguous` on `2.41.9.x` and `2.42.6`
+- [#116](#116-2426-get-apitrackertrackedentitiestrackedentitytypeincludedeletedtrue-fails-inside-dhis2s-sql-trailing-junk-after-numeric-literal) — `2.42.6`: `GET /api/tracker/trackedEntities?trackedEntityType=...&includeDeleted=true` fails inside DHIS2's SQL (`trailing junk after numeric literal`)
 
 ### v43-specific
 
@@ -164,6 +166,7 @@ filing.
 - [#39](#39-v41-oauth2-client-wire-shape--cid-not-clientid--strict-array-typed-multi-valued-fields) — OAuth2 client wire: `cid` not `clientId`, strict arrays
 - [#45](#45-v41-get-apiauthorities-returns-500) — v41 `GET /api/authorities` returns 500
 - [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field): v41 serves `passwordLastUpdated` flat AND nested; v42/v43 only flat
+- [#114](#114-v41-24191-a-map-layer-cannot-be-saved-with-its-references-through-the-api) — `2.41.9.1`: a map layer cannot be saved with its references through the API (`/api/metadata` 409, `POST /api/maps` discards them)
 
 ## Retest log
 
@@ -341,6 +344,150 @@ curl -s -o /dev/null -w '%{http_code}' -u admin:district \
 **Workaround:** none in this repo yet — no code reads `/api/authorities` today.
 If a live taxonomy-validation test lands (proposed in the PR #369 review), skip
 it on v41 and cite this entry.
+
+---
+
+### 114. v41 `2.41.9.1`: a map layer cannot be saved with its references through the API
+
+A `Map` carries its layers inline as `mapViews[]`. On `2.41.9.1` the metadata
+importer refuses any layer that names an organisation unit or a data element,
+and the direct `/api/maps` route accepts the map while discarding every
+reference inside the layer. There is no third path: `POST /api/mapViews` is
+`405`. The release also lists no `mapView` schema (#43), which is what the
+importer's preheat walks to resolve nested references, so the two facts are
+one change.
+
+**Observed on:** `dhis2/core:2.41.9.1` (rev `7a50918`, build `2026-08-10T14:20:53Z`), local stack, admin/district, Sierra Leone seed. `GET /api/schemas/mapView.json` is `404` there. `play.im.dhis2.org/dev-2-41` (`2.41.11-SNAPSHOT`) lists `mapView` again; its write path was not exercised (play is read-only for this repo).
+
+**Repro:**
+
+```bash
+U=http://localhost:8080; H='Content-Type: application/json'
+
+# 1. A boundary layer naming one organisation unit, through the metadata importer.
+curl -g -s -u admin:district -H "$H" -w ' HTTP %{http_code}\n' \
+  "$U/api/metadata?importStrategy=CREATE_AND_UPDATE&atomicMode=ALL" \
+  -d '{"maps":[{"id":"W4cMapProb1","name":"probe","longitude":-11.8,"latitude":8.5,"zoom":7,"basemap":"openStreetMap",
+       "mapViews":[{"layer":"boundary","opacity":1,"organisationUnits":[{"id":"ImspTQPwCqd"}],"organisationUnitLevels":[2],"organisationUnitSelectionMode":"SELECTED"}]}]}'
+# -> HTTP 409 {"message":"org.hibernate.TransientObjectException: object references an unsaved transient instance
+#     - save the transient instance before flushing: org.hisp.dhis.organisationunit.OrganisationUnit"}
+# A thematic layer fails the same way on its data element:
+#     "org.hibernate.TransientPropertyValueException: ... org.hisp.dhis.common.DataDimensionItem.dataElement -> org.hisp.dhis.dataelement.DataElement"
+# `preheatMode=ALL` changes nothing. A map with no `mapViews`, or a layer with no references, imports with 200.
+
+# 2. The same map through the direct route.
+curl -g -s -u admin:district -H "$H" -w ' HTTP %{http_code}\n' "$U/api/maps" \
+  -d '{"id":"W4cMapProb4","name":"probe","longitude":-11.8,"latitude":8.5,"zoom":7,"basemap":"openStreetMap",
+       "mapViews":[{"layer":"boundary","opacity":1,"organisationUnits":[{"id":"ImspTQPwCqd"}],"organisationUnitLevels":[2],"organisationUnitSelectionMode":"SELECTED"}]}'
+# -> HTTP 201
+curl -g -s -u admin:district "$U/api/maps/W4cMapProb4?fields=mapViews[layer,organisationUnits,organisationUnitLevels]"
+# -> {"mapViews":[{"organisationUnits":[],"organisationUnitLevels":[],"layer":"boundary"}]}
+# A thematic layer loses `dataDimensionItems` and `organisationUnitLevels` the same way; `rawPeriods` survives.
+# `PUT /api/maps/{uid}` behaves like the POST.
+
+# 3. No standalone route for a layer.
+curl -s -o /dev/null -w '%{http_code}\n' -u admin:district -H "$H" -X POST "$U/api/mapViews" -d '{"layer":"boundary"}'
+# -> 405
+```
+
+**Expected:** the importer resolves the nested layer's `organisationUnits[]` and `dataDimensionItems[].dataElement` the way it does on `2.41.8.x`, `2.42.6.0` and `2.43.1.0`, and answers 200 with the references kept.
+
+**Actual:** the importer answers 409 with a Hibernate transient-instance error for any referenced object inside a layer; the direct route keeps the map and empties the layer's references, so the only maps `2.41.9.1` can author through the API are ones that render nothing.
+
+**Impact:** every map-authoring path on v41: `MapsAccessor.create_from_spec` / `clone`, `d2w metadata maps create` / `clone`, the seed's dashboard maps, and `examples/client/map_create_choropleth.py` + `examples/cli/maps.sh`.
+
+**Workaround in this repo:** `dhis2w_client.v41.maps.MapsAccessor.create_from_spec` and `clone` (when the source carries layers) raise `Dhis2ClientError` citing this entry before touching the wire, so a caller learns the map was not written instead of finding an empty layer later. `infra/scripts/seed/maps.py` creates the dashboard maps without layers on v41 so every dashboard item still resolves. `infra/scripts/verify_examples.py` skips the two map-authoring examples on v41 (`SKIP_BY_VERSION`).
+
+**Verifier:** `packages/dhis2w-client/tests/test_v41_divergence.py::test_v41_maps_accessor_refuses_layer_writes` (the refusal), `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_114_*` (mocked wire shape).
+
+**How to know it's fixed:** a `2.41.x` release answers `200` for repro step 1 and reads the layer back with `organisationUnits` populated. Restore the v41 `create_from_spec` / `clone` bodies from the v42 tree and drop the seed and verifier branches.
+
+---
+
+### 115. `GET /api/tracker/enrollments` ordered by `createdAt` or `updatedAt` answers 409 `column reference "created" is ambiguous` on `2.41.9.x` and `2.42.6`
+
+The enrollment read accepts `order=createdAt` and `order=updatedAt` (they are in
+the list the 400 for an unknown field names) and then fails inside its own SQL.
+The sibling tracked entity read orders by `createdAt` without trouble, and so does
+the event read. `2.43.1` answers 200 to all of them.
+
+**Observed on:** `dhis2/core:2.41.9.1` (rev `7a50918`), local stack, Sierra Leone seed; `play.im.dhis2.org/stable-2-41-9-1` (`2.41.9.1`), `/dev-2-41` (`2.41.11-SNAPSHOT` rev `476e0b6`), `/stable-2-42-6` (`2.42.6` rev `dd8bdbb`), `/dev-2-42` (`2.42.7-SNAPSHOT` rev `18f7b70`). Not on `/stable-2-43-1` (`2.43.1` rev `9cbfbf3`).
+
+**Repro:**
+
+```bash
+U=https://play.im.dhis2.org/stable-2-42-6
+curl -g -s -u admin:district -w '\nHTTP %{http_code}\n' \
+  "$U/api/tracker/enrollments?program=IpHINAT79UW&orgUnit=ImspTQPwCqd&ouMode=DESCENDANTS&order=createdAt:asc&pageSize=1"
+# -> HTTP 409 {"message":"ERROR: column reference \"created\" is ambiguous\n  Position: 1370"}
+# `order=updatedAt:asc` fails the same way; `enrolledAt`, `createdAtClient`, `completedAt` answer 200.
+# The scope does not matter: `trackedEntity=<uid>` alone, or `program=` alone, answers the same 409.
+
+curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
+  "$U/api/tracker/trackedEntities?program=IpHINAT79UW&orgUnits=ImspTQPwCqd&ouMode=DESCENDANTS&order=createdAt:asc&pageSize=1"
+# -> 200 (the sibling read is fine)
+
+curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
+  "https://play.im.dhis2.org/stable-2-43-1/api/tracker/enrollments?program=IpHINAT79UW&orgUnit=ImspTQPwCqd&ouMode=DESCENDANTS&order=createdAt:asc&pageSize=1"
+# -> 200
+```
+
+**Expected:** 200 with the page ordered by the enrollment's creation time, as `2.43.1` answers.
+
+**Actual:** 409 with a PostgreSQL error from the query DHIS2 built: the enrollment query joins a table that also carries a `created` column and orders by the bare name.
+
+**Impact:** any enrollment poll that pages in creation order. `d2w fhir serve` walks a program's enrollments to find tracked entities whose projection is stale, and `d2w fhir sync` runs the same walk.
+
+**Workaround in this repo:** `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` orders the enrollment poll by `enrolledAt:asc`, the field every release accepts; the tracked entity poll keeps `createdAt:asc` (`POLL_ORDER`). The enrollment UID is not an order field on any major, so a total immutable order is not available for this read.
+
+**Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py` asserts the enrollment poll's `order`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_115_*` carries the mocked wire shape and the order constants.
+
+**How to know it's fixed:** the first repro answers 200 on a `2.41.x` and a `2.42.x` release; then the enrollment poll may order by `createdAt` again.
+
+---
+
+### 116. `2.42.6`: `GET /api/tracker/trackedEntities?trackedEntityType=...&includeDeleted=true` fails inside DHIS2's SQL (`trailing junk after numeric literal`)
+
+A type-scoped tracked entity read that asks for its tombstones fails in the SQL
+DHIS2 builds: the type's numeric id is concatenated straight onto the `ORDER`
+keyword. The same read scoped by `program=` works, the same read without
+`includeDeleted` works, and the item read by UID with the flag works. v41 and
+v43 answer 200 to all of them.
+
+**Observed on:** `dhis2/core:2.42.6.0` (rev `dd8bdbb`), local stack, Sierra Leone seed; `play.im.dhis2.org/stable-2-42-6` (`2.42.6`) and `/dev-2-42` (`2.42.7-SNAPSHOT` rev `18f7b70`). Not on `/stable-2-41-9-1`, `/dev-2-41`, `/stable-2-43-1`, `/dev-2-43`.
+
+**Repro:**
+
+```bash
+U=https://play.im.dhis2.org/stable-2-42-6
+curl -g -s -u admin:district -w '\nHTTP %{http_code}\n' \
+  "$U/api/tracker/trackedEntities?trackedEntityType=nEenWmSyUEp&ouMode=ACCESSIBLE&includeDeleted=true&pageSize=1&fields=trackedEntity"
+# -> HTTP 409 {"message":"Query failed because of a syntax error (SqlState: 42601)",
+#              "devMessage":"ERROR: trailing junk after numeric literal at or near \"1903ORDER\"\n  Position: 956"}
+# `1903` is the type's internal id; `order=` makes no difference, `ouMode=DESCENDANTS` with `orgUnits=` neither.
+
+curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
+  "$U/api/tracker/trackedEntities?trackedEntityType=nEenWmSyUEp&ouMode=ACCESSIBLE&pageSize=1&fields=trackedEntity"
+# -> 200 (same read, no includeDeleted)
+curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
+  "$U/api/tracker/trackedEntities?program=IpHINAT79UW&ouMode=ACCESSIBLE&includeDeleted=true&pageSize=1&fields=trackedEntity"
+# -> 200 (program scope with the flag)
+curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
+  "https://play.im.dhis2.org/stable-2-43-1/api/tracker/trackedEntities?trackedEntityType=nEenWmSyUEp&ouMode=ACCESSIBLE&includeDeleted=true&pageSize=1&fields=trackedEntity"
+# -> 200
+```
+
+**Expected:** 200 with deleted entities of the type present as `"deleted": true` rows, as v41 and v43 answer.
+
+**Actual:** 409 with a PostgreSQL syntax error; the flag that makes removals visible to a cursor poll is unusable for a type-scoped read on this release.
+
+**Impact:** `d2w fhir sync` and the served projection: the tracked entity poll walks each served type with `includeDeleted=true` so a removed person leaves the projection (`docs/fhir/design/projection.md`). On 2.42.6 that read is refused outright.
+
+**Workaround in this repo:** `dhis2w_fhir_serve.register.wire.poll_tracked_entities` recognises this refusal, reads the page again without `includeDeleted`, and marks the page `tombstones_visible=False`; `run_sync` carries that onto `SyncReport.tombstones_visible` and `d2w fhir sync` prints a note, because a removal is then learned only when an enrollment of the person moves (the enrollment poll still carries the flag and answers 200) or when the projection is rebuilt.
+
+**Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py::test_a_refused_tombstone_read_is_retried_without_the_flag_and_reported`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_116_*`.
+
+**How to know it's fixed:** the first repro answers 200 on a `2.42.x` release; then the retry branch and the report field come out.
 
 ---
 
@@ -3288,7 +3435,7 @@ curl -sf -u admin:district 'https://play.im.dhis2.org/dev-2-42/api/schemas/mapVi
 
 **Impact:** Hand-written `dhis2w_client.v{N}.maps` imports `MapView` + `OrganisationUnitSelectionMode` from the generated tree (the `MapViewLayer` builder + its `organisation_unit_selection_mode` default). Bumping a major's pin past the removal boundary deletes those generated symbols and breaks `import dhis2w_client` for that tree.
 
-**Workaround in this repo:** v42 pin **held at `2.42.4.1`** (last pre-removal v42 release) in `infra/versions.env`; v41/v43 pins are already pre-removal. The clean fix when bumping past the boundary: define `MapView` + `OrganisationUnitSelectionMode` as hand-written models in `dhis2w_client.v{N}.maps` (still valid wire shapes nested under `Map.mapViews[]`, just no longer enumerated by `/api/schemas`) and drop the generated imports. Needed per-tree as each major's next patch releases.
+**Workaround in this repo:** `MapView` and the enums only it carried (`ThematicMapType`, `OrganisationUnitSelectionMode`, `MapViewRenderingStrategy`) are hand-written in `dhis2w_client.v{41,42,43}.maps` (still valid wire shapes nested under `Map.mapViews[]`, just no longer enumerated by `/api/schemas` on every release), so no pin is held for this entry and `import dhis2w_client` survives whichever release drops the schema.
 
 **How to know it's resolved:** DHIS2 restores `mapView` to `/api/schemas`, or `dhis2w_client.v{N}.maps` no longer imports those two symbols from the generated tree.
 
@@ -3314,9 +3461,9 @@ ApiTokenController.postJsonObject
 
 **Impact:** any 2.42.5 instance with the L2 cache enabled (the default) cannot create personal access tokens through `/api/apiToken`. In this repo it breaks PAT seeding (`seed_auth.py`), so `make dhis2-run DHIS2_VERSION=v42` can't write the `local_basic` profile and live verify-examples / e2e can't run on 2.42.5.
 
-**Workaround in this repo:** v42 pin **held at `2.42.4.1`** in `infra/versions.env` (PAT creation works there). This also parks the `2.42.5` mapView bump (#43): the mapView hand-write was implemented + verified green (lint + unit tests) on a branch, then reverted, because 2.42.5 can't seed. Re-apply both once DHIS2 fixes the serialization (a later 2.42 patch).
+**Workaround in this repo:** none needed on the pinned image. `infra/versions.env` pins v42 at `2.42.6.0`, where `infra/scripts/seed_auth.py` creates every PAT with `201` and the server log carries no `NotSerializableException` (local stack, 2026-09-07). The entry stays for anyone running a `2.42.5.x` release.
 
-**FIXED in `2.42.6-SNAPSHOT` (dev, verified 2026-06-09):** `make dhis2-run` against `dhis2/core-dev:2.42` seeds PATs successfully — `POST /api/apiToken` no longer 500s. A released `2.42.6` will resolve this and unblock the v42 mapView bump (#43). Still present on the released `2.42.5.0`.
+**FIXED on `2.42.6.0` (released; verified 2026-09-07 on the local stack) and on `2.42.6-SNAPSHOT` (dev, 2026-06-09).** Present only on `2.42.5.0` through `2.42.5.2`.
 
 **How to know it's fixed:** `POST /api/apiToken` returns `201` on a `2.42.5+` instance with no `NotSerializableException` in the server log.
 

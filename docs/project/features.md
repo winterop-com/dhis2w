@@ -62,7 +62,9 @@ Two codegen pipelines feed typed models into the client:
   response envelopes, auth scheme discriminators)
 
 Each DHIS2 version (v41, v42, v43) has its own generated tree under
-`dhis2w_client.generated.v{N}/`.
+`dhis2w_client.generated.v{N}/`. One wire shape is hand-written beside the
+generated tree: `MapView` and its three enums live in `dhis2w_client.v{N}.maps`,
+because DHIS2 2.41.9.x lists no `mapView` schema (BUGS.md #43).
 
 ### Resource Accessors
 
@@ -91,6 +93,7 @@ await client.resources.data_elements.delete(uid)
 | **Files** | `documents()`, `file_resources()`, `upload()`, `download()` |
 | **Messaging** | `conversations()`, `send()`, `reply()`, `mark_read()` |
 | **Customization** | `logo_front()`, `logo_banner()`, `style()`, `system_setting()` |
+| **Maps** | `maps.list_all()`, `get()`, `create_from_spec()` from a `MapSpec` of `MapLayerSpec` layers, `clone()`, `delete()`; the v41 tree refuses `create_from_spec()` and `clone()` because 2.41.9.x cannot save a layer's references (BUGS.md #114) |
 
 ### Bulk Operations
 
@@ -2310,7 +2313,9 @@ no operator, no second command, and no schedule, and that stays the product.
   absence is silent - a sync without it never learns that anybody left and does
   not error. A tombstone removes the row rather than archiving a last state,
   because DHIS2 answers 404 to a read of a deleted entity, so there is no final
-  state to archive.
+  state to archive. DHIS2 2.42.6 refuses the type-scoped read that carries the
+  flag (BUGS.md #116); the poll then reads without it, the report says
+  `tombstones_visible: false`, and `d2w fhir sync` prints a note.
 - **The watermark is the instance's own clock and is per collection.** Tracked
   entities and enrollments carry one each - a person's `lastUpdated` does not move
   when one of their enrollments does, and an enrollment carries programme-level

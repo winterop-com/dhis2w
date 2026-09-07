@@ -1,6 +1,6 @@
 # Maps
 
-`MapsAccessor` on `Dhis2Client.maps` covers the authoring surface over `/api/maps`: `list_all`, `get`, `create_from_spec`, `clone`, `delete`. `MapSpec` is a typed builder that captures the viewport (longitude / latitude / zoom / basemap) plus an ordered list of `MapLayerSpec` layers and produces a full `Map` that DHIS2's metadata importer accepts. `MapLayerSpec` covers the most common layer type — thematic choropleth — with sensible defaults; drop to the generated `Map` / `MapView` models for the full knob set (event layers, earth-engine, custom rendering strategies).
+`MapsAccessor` on `Dhis2Client.maps` covers the authoring surface over `/api/maps`: `list_all`, `get`, `create_from_spec`, `clone`, `delete`. `MapSpec` is a typed builder that captures the viewport (longitude / latitude / zoom / basemap) plus an ordered list of `MapLayerSpec` layers and produces a full `Map` that DHIS2's metadata importer accepts. `MapLayerSpec` covers the most common layer type — thematic choropleth — with sensible defaults; drop to the `Map` / `MapView` models for the full knob set (event layers, earth-engine, custom rendering strategies).
 
 ## Layer types
 
@@ -15,9 +15,9 @@ A DHIS2 Map holds one or more `MapView` layers rendered bottom-up:
 
 Thematic + boundary layers rely on `OrganisationUnit.geometry` being a GeoJSON-compatible polygon / multipolygon / point. Without it the Maps app falls back to a default viewport and you see a choropleth floating over a blank / wrong-continent basemap. The seed's Sierra Leonean districts carry rough bounding polygons so the demos render in the right place.
 
-## `MapSpec` + `MapLayerSpec` — builders over the generated models
+## `MapSpec` + `MapLayerSpec` — builders over the wire models
 
-`Map` and `MapView` are the **generated models** — pydantic emitted from DHIS2's OpenAPI schema with every viewport, basemap, rendering-strategy, and axis-placement knob the Maps app exposes, plus DHIS2 bookkeeping. Authoring a choropleth by populating those fields directly for each map is tedious + error-prone.
+`Map` is the **generated model** — pydantic emitted from DHIS2's schema with every viewport, basemap and bookkeeping knob the Maps app exposes. `MapView` is **hand-written** in `dhis2w_client.v{N}.maps` together with the three enums it carries (`ThematicMapType`, `OrganisationUnitSelectionMode`, `MapViewRenderingStrategy`): DHIS2 2.41.9.x no longer lists `mapView` on `/api/schemas`, so the generated v41 tree has nothing to import, while the wire shape nested under `Map.mapViews[]` is the same on every major (BUGS.md #43). The model names the fields the builders read and write and keeps everything else through `extra="allow"`. Authoring a choropleth by populating those fields directly for each map is tedious + error-prone.
 
 `MapSpec` + `MapLayerSpec` are the **authoring shapes** — frozen pydantic models whose fields cover the common-case knobs: viewport (`longitude`, `latitude`, `zoom`, `basemap`), ordered layers, and per-layer `(data_elements / indicators, periods, organisation_units, legend_set, thematic_map_type, classes, color_low, color_high, opacity)`. `MapsAccessor.create_from_spec` materialises the spec into a full typed `Map` with every derived `MapView` row populated.
 
