@@ -59,19 +59,19 @@ async def main() -> None:
         envelope = after.structured_content or after.data or {}
         print(f"after:  {len(envelope.get('dataValues', []))} data values for 202603")
 
-        await client.call_tool(
-            "data_aggregate_delete",
-            {"data_element": "fClA2Erf6IO", "period": "202603", "org_unit": "DiszpKrYNg8"},
-        )
-        print("delete  fClA2Erf6IO / 202603 / DiszpKrYNg8")
-
-        # Set then clear the follow-up flag on a value (self-cleaning).
+        # Set then clear the follow-up flag on that value (a deleted value cannot be flagged).
         for flag in (True, False):
             await client.call_tool(
                 "data_aggregate_followup",
                 {"data_element": "fClA2Erf6IO", "period": "202603", "org_unit": "DiszpKrYNg8", "followup": flag},
             )
         print("followup set then cleared  fClA2Erf6IO / 202603 / DiszpKrYNg8")
+
+        await client.call_tool(
+            "data_aggregate_delete",
+            {"data_element": "fClA2Erf6IO", "period": "202603", "org_unit": "DiszpKrYNg8"},
+        )
+        print("delete  fClA2Erf6IO / 202603 / DiszpKrYNg8")
 
 
 if __name__ == "__main__":

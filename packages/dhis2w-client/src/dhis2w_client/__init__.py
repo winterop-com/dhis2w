@@ -361,6 +361,18 @@ if TYPE_CHECKING:
     from dhis2w_client.v42.maps import (
         MapSpec as MapSpec,
     )
+    from dhis2w_client.v42.maps import (
+        MapView as MapView,
+    )
+    from dhis2w_client.v42.maps import (
+        MapViewRenderingStrategy as MapViewRenderingStrategy,
+    )
+    from dhis2w_client.v42.maps import (
+        OrganisationUnitSelectionMode as OrganisationUnitSelectionMode,
+    )
+    from dhis2w_client.v42.maps import (
+        ThematicMapType as ThematicMapType,
+    )
     from dhis2w_client.v42.messaging import (
         MessageConversation as MessageConversation,
     )
@@ -755,7 +767,11 @@ __all__ = [
     "MaintenanceAccessor",
     "MapLayerSpec",
     "MapSpec",
+    "MapView",
+    "MapViewRenderingStrategy",
     "MapsAccessor",
+    "OrganisationUnitSelectionMode",
+    "ThematicMapType",
     "Me",
     "MessageConversation",
     "MessagingAccessor",
@@ -988,7 +1004,11 @@ _LAZY_EXPORTS: dict[str, str] = {
     "MaintenanceAccessor": "dhis2w_client.v42.maintenance",
     "MapLayerSpec": "dhis2w_client.v42.maps",
     "MapSpec": "dhis2w_client.v42.maps",
+    "MapView": "dhis2w_client.v42.maps",
+    "MapViewRenderingStrategy": "dhis2w_client.v42.maps",
     "MapsAccessor": "dhis2w_client.v42.maps",
+    "OrganisationUnitSelectionMode": "dhis2w_client.v42.maps",
+    "ThematicMapType": "dhis2w_client.v42.maps",
     "Me": "dhis2w_client.v42.system",
     "MessageConversation": "dhis2w_client.v42.messaging",
     "MessagingAccessor": "dhis2w_client.v42.messaging",

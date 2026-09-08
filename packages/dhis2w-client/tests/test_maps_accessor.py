@@ -7,8 +7,8 @@ from collections.abc import Callable
 import httpx
 import pytest
 import respx
-from dhis2w_client import BasicAuth, Dhis2Client, MapLayerSpec, MapSpec
-from dhis2w_client.generated.v42.enums import ThematicMapType
+from dhis2w_client import BasicAuth, Dhis2Client, MapLayerSpec, MapSpec, ThematicMapType
+from dhis2w_client.errors import Dhis2ClientError
 
 
 def _auth() -> BasicAuth:
@@ -31,17 +31,13 @@ def test_thematic_layer_populates_dimension_selectors() -> None:
         color_high="#f00",
     )
     view = layer.to_map_view()
-    # Most fields live on the typed MapView; rowDimensions isn't on the
-    # generated model (MapView doesn't declare it), so it rides via
-    # model_extra.
     assert view.layer == "thematic"
     assert view.thematicMapType == ThematicMapType.CHOROPLETH
     assert view.columnDimensions == ["dx"]
     assert view.filterDimensions == ["pe"]
     assert view.classes == 4
     assert view.colorLow == "#aaa"
-    extras = view.model_extra or {}
-    assert extras.get("rowDimensions") == ["ou"]
+    assert view.rowDimensions == ["ou"]
 
 
 def test_thematic_layer_accepts_indicators_and_legend_set() -> None:
@@ -210,6 +206,12 @@ async def test_create_from_spec_posts_through_api_metadata(
     client = Dhis2Client("https://dhis2.example", auth=_auth())
     try:
         await client.connect()
+        if client.version_key == "v41":
+            # BUGS.md #114: 2.41.9.x cannot persist a layer's references; the v41 tree refuses before the wire.
+            with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
+                await client.maps.create_from_spec(spec)
+            assert metadata_route.call_count == 0
+            return
         created = await client.maps.create_from_spec(spec)
     finally:
         await client.close()
@@ -251,6 +253,12 @@ async def test_clone_strips_server_owned_and_nested_view_uids(
     client = Dhis2Client("https://dhis2.example", auth=_auth())
     try:
         await client.connect()
+        if client.version_key == "v41":
+            # BUGS.md #114: the source carries a layer, so the v41 tree refuses to clone it.
+            with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
+                await client.maps.clone("SRC00000001", new_name="clone", new_uid="NEW00000001")
+            assert metadata_route.call_count == 0
+            return
         cloned = await client.maps.clone("SRC00000001", new_name="clone", new_uid="NEW00000001")
     finally:
         await client.close()

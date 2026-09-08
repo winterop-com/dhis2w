@@ -111,6 +111,10 @@ class TrackedEntitiesPage(BaseModel):
 
     trackedEntities: list[TrackerTrackedEntity] = []
     pager: TrackedEntitiesPager | None = None
+    tombstones_visible: bool = True
+    """False when the instance refused the read with `includeDeleted=true` and the page was read
+    without it (DHIS2 2.42.6, BUGS.md #116): a deleted entity is then absent from this page rather
+    than present as a tombstone."""
 
 
 def upstream_refusal_text(error: Exception) -> str:
@@ -138,6 +142,22 @@ def _filter_parameter(filters: Sequence[str]) -> dict[str, Any]:
     out byte for byte as it always did.
     """
     return {"filter": list(filters)} if filters else {}
+
+
+def _is_tombstone_read_syntax_refusal(error: Dhis2ApiError) -> bool:
+    """Whether DHIS2 failed inside its own SQL because a type-scoped read carried `includeDeleted=true`.
+
+    DHIS2 2.42.6 and 2.42.7-SNAPSHOT answer `409 Query failed because of a syntax error` with the
+    detail `trailing junk after numeric literal at or near "<id>ORDER"` to
+    `/api/tracker/trackedEntities?trackedEntityType=<uid>&includeDeleted=true` (BUGS.md #116). The
+    program-scoped read with the same flag, and every other major, answer 200.
+    """
+    if error.status_code != 409:
+        return False
+    body = error.body if isinstance(error.body, dict) else {}
+    message = str(body.get("message", ""))
+    detail = str(body.get("devMessage", ""))
+    return "syntax error" in message and "trailing junk after numeric literal" in detail
 
 
 def _is_unknown_type_refusal(error: Dhis2ApiError) -> bool:
@@ -319,6 +339,14 @@ UPDATED_AFTER_PARAMETER = "updatedAfter"
 #: the `updatedAfter` filter's job rather than the sort's.
 POLL_ORDER = "createdAt:asc"
 
+#: The order an enrollment poll pages in.
+#:
+#: `enrolledAt` rather than `createdAt`: DHIS2 2.41.9.x and 2.42.6 answer `409 column reference
+#: "created" is ambiguous` to `/api/tracker/enrollments` ordered by `createdAt` or `updatedAt`
+#: (BUGS.md #115), and the enrollment UID is not an order field. `enrolledAt` is the field every
+#: release accepts; it is set once at registration and moves only when a user edits the date.
+ENROLLMENT_POLL_ORDER = "enrolledAt:asc"
+
 #: How many rows one poll page carries. The paper's section 3.2 measured 200 as the size where the
 #: page count stops being what the walk costs (0.595 s for 800 people over five pages).
 POLL_PAGE_SIZE = 200
@@ -390,7 +418,13 @@ async def poll_tracked_entities(
     except Dhis2ApiError as error:
         if _is_unknown_type_refusal(error):
             return TrackedEntitiesPage()
-        raise
+        if not _is_tombstone_read_syntax_refusal(error):
+            raise
+        # BUGS.md #116: the instance cannot read a type with its tombstones. Read the page without
+        # them and say so on the page, so the run reports that removals were not learned.
+        without_tombstones = {key: value for key, value in params.items() if key != INCLUDE_DELETED_PARAMETER}
+        raw = await reader.get_raw(TRACKED_ENTITIES_PATH, params=without_tombstones)
+        return TrackedEntitiesPage.model_validate(raw).model_copy(update={"tombstones_visible": False})
     return TrackedEntitiesPage.model_validate(raw)
 
 
@@ -417,7 +451,7 @@ async def poll_enrollments(
         "program": program_uid,
         "ouMode": SEARCH_ORG_UNIT_MODE,
         "fields": _TOUCHED_ENROLLMENT_FIELDS,
-        "order": POLL_ORDER,
+        "order": ENROLLMENT_POLL_ORDER,
         "page": page,
         "pageSize": page_size,
         INCLUDE_DELETED_PARAMETER: "true",

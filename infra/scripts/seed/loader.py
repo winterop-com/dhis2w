@@ -1226,17 +1226,17 @@ async def seed_play(client: Dhis2Client) -> None:
     variation_count = await seed_fhir_variations(client)
     print(f"    variation objects: {variation_count}", flush=True)
 
-    _log(">>> Seeding FHIR form translations (Lao + French on the play-bundle forms)")
-    from .fhir_variations import seed_form_translations  # noqa: PLC0415
-
-    translated_count = await seed_form_translations(client)
-    print(f"    objects translated: {translated_count}", flush=True)
-
     _log(">>> Seeding ANC follow-up tracker program (repeatable visit stage)")
     from .anc_program import seed_anc_program  # noqa: PLC0415
 
     anc_event_count = await seed_anc_program(client)
     print(f"    ANC visit events: {anc_event_count}", flush=True)
+
+    _log(">>> Seeding FHIR form translations (Lao + French on the play-bundle forms and the ANC program)")
+    from .fhir_variations import seed_form_translations  # noqa: PLC0415
+
+    translated_count = await seed_form_translations(client)
+    print(f"    objects translated: {translated_count}", flush=True)
 
     _log(">>> Building supervision-visit event program")
     from .event_program import build_event_program  # noqa: PLC0415

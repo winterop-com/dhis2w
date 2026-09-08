@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Docker Desktop (or `docker compose` on Linux)
-- `infra/v{version}/dump.sql.gz` — a PostgreSQL dump of DHIS2 metadata + data for the targeted version. The repo ships `infra/v42/dump.sql.gz` (Sierra Leone tree + seeded data + tracker + analytics) and an empty placeholder at `infra/v43/dump.sql.gz`. Point `DHIS2_VERSION` at another value and drop a matching dump at `infra/{DHIS2_VERSION}/dump.sql.gz`. Without one, Postgres starts empty and DHIS2 bootstraps its own schema via Flyway.
+- `infra/v{version}/dump.sql.gz` — a PostgreSQL dump of DHIS2 metadata + data for the targeted version. The repo ships one for each supported major (`infra/v41/`, `infra/v42/`, `infra/v43/`: Sierra Leone tree + seeded data + tracker + analytics). Point `DHIS2_VERSION` at another value and drop a matching dump at `infra/{DHIS2_VERSION}/dump.sql.gz`. Without one, Postgres starts empty and DHIS2 bootstraps its own schema via Flyway.
 - Workspace installed: `make install`
 
 ## Quick start

@@ -182,6 +182,7 @@ from dhis2w_fhir_serve.register.listing import (
 from dhis2w_fhir_serve.register.projection import PERSON_RESOURCE_TYPES, registered_entity_for
 from dhis2w_fhir_serve.register.surface import RegisterSurface, ServedRegister
 from dhis2w_fhir_serve.register.wire import (
+    ENROLLMENT_POLL_ORDER,
     INCLUDE_DELETED_PARAMETER,
     POLL_ORDER,
     POLL_PAGE_SIZE,
@@ -480,6 +481,7 @@ __all__ = [
     "page_of",
     "PAGE_PARAMETER",
     "PassThroughUnavailableError",
+    "ENROLLMENT_POLL_ORDER",
     "PERSON_RESOURCE_TYPES",
     "poll_enrollments",
     "POLL_ORDER",

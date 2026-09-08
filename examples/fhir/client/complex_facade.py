@@ -80,10 +80,11 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
 #: What the demo reports: a facility Child Health is assigned to, a period nothing else reports on,
-#: and two cells. The far-future period is what makes the demo's own values the only ones there, so
-#: deleting them at the end takes nothing else with them.
+#: and two cells. A period before the seed's data window is what makes the demo's own values the
+#: only ones there, so deleting them at the end takes nothing else with them; a far-future period
+#: would not do, because the data set opens only ten future periods (E7641).
 ORGANISATION_UNIT_UID = "y77LiPqLMoq"
-REPORTED_PERIOD_ISO = "209901"
+REPORTED_PERIOD_ISO = "202311"
 REPORTED_NUMBERS = {"s46m5MS0hxu.Prlt0C1RF0s": 12, "s46m5MS0hxu.psbwp3CQEhs": 8}
 
 #: How long the drain waits between passes over the queue.

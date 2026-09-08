@@ -83,10 +83,11 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
 #: What the demo reports: a facility both the data set and the program are assigned to, a period
-#: nothing else reports on, and two cells. The far-future period keeps the demo's own values the
-#: only ones there, so deleting them at the end takes nothing else with them.
+#: nothing else reports on, and two cells. A period before the seed's data window keeps the demo's
+#: own values the only ones there, so deleting them at the end takes nothing else with them; a
+#: far-future period would not do, because the data set opens only ten future periods (E7641).
 ORGANISATION_UNIT_UID = "y77LiPqLMoq"
-REPORTED_PERIOD_ISO = "209902"
+REPORTED_PERIOD_ISO = "202312"
 REPORTED_NUMBERS = {"s46m5MS0hxu.Prlt0C1RF0s": 12, "s46m5MS0hxu.psbwp3CQEhs": 8}
 
 #: The same two cells, reported again with different numbers. This is what the drain names as values

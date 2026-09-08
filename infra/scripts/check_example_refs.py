@@ -72,17 +72,22 @@ async def _live_tools() -> set[str]:
     return {tool.name for tool in await build_server().list_tools()}
 
 
+def _example_files(pattern: str) -> list[Path]:
+    """Every example source matching `pattern`, skipping the virtual environments example projects create."""
+    return [p for p in ROOT.rglob(pattern) if ".venv" not in p.parts and "node_modules" not in p.parts]
+
+
 def main() -> int:
     """Validate every example's CLI commands + MCP tool calls; exit 1 on any broken reference."""
     root = _command_tree()
     tools = asyncio.run(_live_tools())
     problems: list[str] = []
 
-    for path in sorted(ROOT.rglob("*.sh")):
+    for path in sorted(_example_files("*.sh")):
         for ref in sorted(_bad_cli_refs(path.read_text(), root)):
             problems.append(f"{path.relative_to(ROOT.parent)}: unknown command `{ref}`")
 
-    for path in sorted(ROOT.rglob("*.py")):
+    for path in sorted(_example_files("*.py")):
         for name in sorted(set(re.findall(r'call_tool\(\s*"([a-z0-9_]+)"', _strip_comments(path.read_text())))):
             if name not in tools:
                 problems.append(f"{path.relative_to(ROOT.parent)}: unknown MCP tool `{name}`")

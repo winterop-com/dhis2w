@@ -1526,3 +1526,180 @@ async def test_bug_42_live_system_settings_lowercase_display_property(local_url:
         with pytest.raises(ValidationError) as exc_info:
             SystemSettings.model_validate(raw)
         assert _BUG_42_FIELD in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# BUGS.md #114 — 2.41.9.x cannot save a map layer with its references.
+# ---------------------------------------------------------------------------
+
+
+def _mock_v41_connect() -> None:
+    """Mock the v41 server connect probes (canonical URL + /api/system/info)."""
+    respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
+    respx.get("https://dhis2.example/api/system/info").mock(
+        return_value=httpx.Response(200, json={"version": "2.41.9.1"}),
+    )
+
+
+@pytest.mark.upstream_bug
+@respx.mock
+async def test_bug_114_v41_metadata_import_of_a_layer_answers_409() -> None:
+    """BUGS.md #114 — bug-still-present: the importer answers 409 for a layer naming an organisation unit."""
+    _mock_v41_connect()
+    respx.post("https://dhis2.example/api/metadata").mock(
+        return_value=httpx.Response(
+            409,
+            json={
+                "httpStatus": "Conflict",
+                "httpStatusCode": 409,
+                "status": "ERROR",
+                "message": (
+                    "org.hibernate.TransientObjectException: object references an unsaved transient instance"
+                    " - save the transient instance before flushing: org.hisp.dhis.organisationunit.OrganisationUnit"
+                ),
+            },
+        ),
+    )
+    body = {
+        "maps": [
+            {
+                "id": "W4cMapProb1",
+                "name": "probe",
+                "mapViews": [{"layer": "boundary", "organisationUnits": [{"id": "ImspTQPwCqd"}]}],
+            }
+        ]
+    }
+    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
+        with pytest.raises(Dhis2ApiError) as excinfo:
+            await client.post_raw("/api/metadata", body=body)
+    assert excinfo.value.status_code == 409
+    error_body = excinfo.value.body
+    assert isinstance(error_body, dict)
+    assert "TransientObjectException" in str(error_body.get("message")), (
+        "BUGS.md #114: a 2.41.9.x importer should still refuse a referenced layer with a Hibernate transient error. "
+        "If this changes, re-run the repro in BUGS.md #114 and restore the v41 map builder from the v42 tree."
+    )
+
+
+@pytest.mark.upstream_bug
+@respx.mock
+async def test_bug_114_workaround_v41_builder_refuses_before_the_wire() -> None:
+    """BUGS.md #114 — workaround-works: the v41 tree never sends the layer; it raises with the entry reference."""
+    from dhis2w_client import MapLayerSpec, MapSpec
+    from dhis2w_client.errors import Dhis2ClientError
+
+    _mock_v41_connect()
+    import_route = respx.post("https://dhis2.example/api/metadata").mock(return_value=httpx.Response(200, json={}))
+    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
+        assert client.version_key == "v41"
+        with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
+            await client.maps.create_from_spec(MapSpec(name="probe", layers=[MapLayerSpec(data_elements=["DE1"])]))
+    assert not import_route.called
+
+
+# ---------------------------------------------------------------------------
+# BUGS.md #115 — enrollments ordered by createdAt answer 409 on 2.41.9.x / 2.42.6.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.upstream_bug
+@respx.mock
+async def test_bug_115_enrollments_ordered_by_created_at_answer_409() -> None:
+    """BUGS.md #115 — bug-still-present: the enrollment read fails inside its SQL when ordered by `createdAt`."""
+    _mock_v41_connect()
+    respx.get(url__regex=r"https://dhis2\.example/api/tracker/enrollments.*").mock(
+        return_value=httpx.Response(
+            409,
+            json={
+                "httpStatus": "Conflict",
+                "httpStatusCode": 409,
+                "status": "ERROR",
+                "message": 'ERROR: column reference "created" is ambiguous\n  Position: 1370',
+            },
+        ),
+    )
+    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
+        with pytest.raises(Dhis2ApiError) as excinfo:
+            await client.get_raw(
+                "/api/tracker/enrollments", params={"program": "IpHINAT79UW", "order": "createdAt:asc"}
+            )
+    error_body = excinfo.value.body
+    assert isinstance(error_body, dict)
+    assert 'column reference "created" is ambiguous' in str(error_body.get("message")), (
+        "BUGS.md #115: a 2.41.9.x / 2.42.6 enrollment read ordered by createdAt should still answer the "
+        "ambiguous-column 409. If this changes, re-run the repro in BUGS.md #115 and let the enrollment poll "
+        "order by createdAt again."
+    )
+
+
+@pytest.mark.upstream_bug
+def test_bug_115_workaround_enrollment_poll_orders_by_enrolled_at() -> None:
+    """BUGS.md #115 — workaround-works: the fhir-serve enrollment poll orders by `enrolledAt`, never `createdAt`."""
+    pytest.importorskip("dhis2w_fhir_serve")
+    from dhis2w_fhir_serve.register.wire import ENROLLMENT_POLL_ORDER, POLL_ORDER
+
+    assert ENROLLMENT_POLL_ORDER == "enrolledAt:asc"
+    assert POLL_ORDER == "createdAt:asc", "the tracked entity poll keeps creation order; only enrollments diverge"
+
+
+# ---------------------------------------------------------------------------
+# BUGS.md #116 — 2.42.6 refuses a type-scoped tracked entity read with includeDeleted=true.
+# ---------------------------------------------------------------------------
+
+
+def _mock_v42_connect() -> None:
+    """Mock the v42 server connect probes (canonical URL + /api/system/info)."""
+    respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
+    respx.get("https://dhis2.example/api/system/info").mock(
+        return_value=httpx.Response(200, json={"version": "2.42.6"}),
+    )
+
+
+@pytest.mark.upstream_bug
+@respx.mock
+async def test_bug_116_v42_type_scoped_tombstone_read_answers_409() -> None:
+    """BUGS.md #116 — bug-still-present: the type-scoped read with `includeDeleted=true` fails in DHIS2's SQL."""
+    _mock_v42_connect()
+    respx.get(url__regex=r"https://dhis2\.example/api/tracker/trackedEntities.*").mock(
+        return_value=httpx.Response(
+            409,
+            json={
+                "httpStatus": "Conflict",
+                "httpStatusCode": 409,
+                "status": "ERROR",
+                "message": "Query failed because of a syntax error (SqlState: 42601)",
+                "devMessage": 'ERROR: trailing junk after numeric literal at or near "1903ORDER"\n  Position: 956',
+            },
+        ),
+    )
+    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
+        with pytest.raises(Dhis2ApiError) as excinfo:
+            await client.get_raw(
+                "/api/tracker/trackedEntities",
+                params={"trackedEntityType": "nEenWmSyUEp", "ouMode": "ACCESSIBLE", "includeDeleted": "true"},
+            )
+    error_body = excinfo.value.body
+    assert isinstance(error_body, dict)
+    assert "trailing junk after numeric literal" in str(error_body.get("devMessage")), (
+        "BUGS.md #116: a 2.42.6 type-scoped read with includeDeleted=true should still fail inside DHIS2's SQL. "
+        "If this changes, re-run the repro in BUGS.md #116 and drop the retry branch in fhir-serve's poll."
+    )
+
+
+@pytest.mark.upstream_bug
+def test_bug_116_workaround_poll_recognises_the_refusal() -> None:
+    """BUGS.md #116 — workaround-works: the fhir-serve poll recognises exactly this refusal and no other 409."""
+    pytest.importorskip("dhis2w_fhir_serve")
+    from dhis2w_fhir_serve.register.wire import _is_tombstone_read_syntax_refusal
+
+    refused = Dhis2ApiError(
+        status_code=409,
+        message="",
+        body={
+            "message": "Query failed because of a syntax error (SqlState: 42601)",
+            "devMessage": 'ERROR: trailing junk after numeric literal at or near "1903ORDER"',
+        },
+    )
+    other = Dhis2ApiError(status_code=409, message="", body={"message": "Data value not found or not accessible"})
+    assert _is_tombstone_read_syntax_refusal(refused)
+    assert not _is_tombstone_read_syntax_refusal(other)

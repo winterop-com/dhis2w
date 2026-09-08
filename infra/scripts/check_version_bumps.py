@@ -1,7 +1,7 @@
 """Detect newer DHIS2 patch releases on Docker Hub for the pinned minors.
 
 Reads `infra/versions.env` (`DHIS2_V<minor>=<tag>`; a line with an inline
-`# held` comment is skipped — see the v42 mapView hold, BUGS.md #43), queries
+`# held` comment is skipped so a deliberate hold survives the weekly check), queries
 the `dhis2/core` Docker Hub tag list for the latest stable patch in each
 non-held minor, and reports which pins are behind. In GitHub Actions (when
 `GITHUB_OUTPUT` is set) it also emits a `bumps` JSON array so the bump workflow
