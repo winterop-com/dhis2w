@@ -83,9 +83,9 @@ async def upsert_oauth2_client(client: Dhis2Client) -> None:
     # `clientSettings` and `tokenSettings`, after which the authorization
     # server answers 500 for it (BUGS.md #96).
     for item in items:
-        uid = item["id"]
-        await client.delete_raw(f"/api/oAuth2Clients/{uid}")
-        print(f"    removed existing client {uid}")
+        await client.delete_raw(f"/api/oAuth2Clients/{item['id']}")
+    if items:
+        print(f"    removed {len(items)} existing client(s)")
     await client.post_raw("/api/oAuth2Clients", payload)
     print("    created client")
 
