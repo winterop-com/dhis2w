@@ -152,7 +152,7 @@ async def list_tracked_entities(
     `tracked_entities` (comma-separated UIDs). `program` must point at a
     tracker program (programType=WITH_REGISTRATION).
     """
-    params: dict[str, Any] = {"ouMode": ou_mode, "pageSize": page_size}
+    params: dict[str, Any] = {"orgUnitMode": ou_mode, "pageSize": page_size}
     if program is not None:
         params["program"] = program
     if tracked_entity_type is not None:
@@ -160,7 +160,7 @@ async def list_tracked_entities(
     if tracked_entities is not None:
         params["trackedEntities"] = tracked_entities
     if org_unit is not None:
-        params["orgUnit"] = org_unit
+        params["orgUnits"] = org_unit
     if fields is not None:
         params["fields"] = fields
     if filter is not None:
@@ -207,11 +207,11 @@ async def list_enrollments(
     updated_after: str | None = None,
 ) -> list[TrackerEnrollment]:
     """List enrollments via GET /api/tracker/enrollments (tracker programs only)."""
-    params: dict[str, Any] = {"ouMode": ou_mode, "pageSize": page_size}
+    params: dict[str, Any] = {"orgUnitMode": ou_mode, "pageSize": page_size}
     if program is not None:
         params["program"] = program
     if org_unit is not None:
-        params["orgUnit"] = org_unit
+        params["orgUnits"] = org_unit
     if tracked_entity is not None:
         params["trackedEntity"] = tracked_entity
     if status is not None:
@@ -250,9 +250,9 @@ async def list_events(
     spells its two entity filters inconsistently: `trackedEntity` is singular and
     `enrollments` is plural, and the other spelling of each is accepted and silently
     dropped, so a wrong one returns the whole program (BUGS.md #91). The
-    organisation unit mode rides `orgUnitMode`: on DHIS2 2.42 and 2.43 this
-    endpoint reads only that key, where the tracked entity and enrollment reads
-    only read `ouMode` (BUGS.md #113).
+    organisation units ride the singular `orgUnit` and the mode `orgUnitMode`:
+    DHIS2 2.42.6 and 2.43.1 refuse `orgUnits` on this read and drop `ouMode`,
+    while the tracked entity and enrollment reads take `orgUnits` (BUGS.md #113).
     """
     params: dict[str, Any] = {"orgUnitMode": ou_mode, "pageSize": page_size}
     for key, value in (

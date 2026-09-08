@@ -153,7 +153,7 @@ against that cohort. Repro:
 # Bulk: the shape examples/fhir/engine/e2e_measure_from_dhis2.py uses, paged out.
 FIELDS='trackedEntity,orgUnit,attributes[attribute,value],enrollments[enrollment,program,enrolledAt,status,events[event,programStage,occurredAt,status,dataValues[dataElement,value]]]'
 time curl -s -g -u admin:district \
-  "http://localhost:8080/api/tracker/trackedEntities?program=IpHINAT79UW&ouMode=ACCESSIBLE&fields=$FIELDS&pageSize=200&page=1&order=createdAt:asc" \
+  "http://localhost:8080/api/tracker/trackedEntities?program=IpHINAT79UW&orgUnitMode=ACCESSIBLE&fields=$FIELDS&pageSize=200&page=1&order=createdAt:asc" \
   > /dev/null
 
 # Per patient, nested: one read per patient, the shape a DataSource makes natural.
@@ -228,7 +228,7 @@ curl -s -u admin:district -H 'Content-Type: application/json' \
 
 # Probe (URL-encode the value; --data-urlencode does it):
 curl -s -G -u admin:district "http://localhost:8080/api/tracker/trackedEntities" \
-  --data-urlencode 'program=IpHINAT79UW' --data-urlencode 'ouMode=ACCESSIBLE' \
+  --data-urlencode 'program=IpHINAT79UW' --data-urlencode 'orgUnitMode=ACCESSIBLE' \
   --data-urlencode 'filter=w75KJ2mc4zz:like:ສົມ' --data-urlencode 'fields=trackedEntity'
 ```
 
@@ -299,7 +299,7 @@ curl -s -u admin:district -H 'Content-Type: application/json' \
 
 # The poll a syncer would run:
 curl -s -g -u admin:district \
-  "http://localhost:8080/api/tracker/trackedEntities?program=IpHINAT79UW&ouMode=ACCESSIBLE&updatedAfter=$CURSOR&includeDeleted=true&fields=trackedEntity,deleted,updatedAt"
+  "http://localhost:8080/api/tracker/trackedEntities?program=IpHINAT79UW&orgUnitMode=ACCESSIBLE&updatedAfter=$CURSOR&includeDeleted=true&fields=trackedEntity,deleted,updatedAt"
 ```
 
 **Measurements.**
@@ -500,7 +500,7 @@ and it is the reason section 9 recommends starting narrow.
 carrying the operator's credentials and every register read is a DHIS2 request. So
 DHIS2's sharing ACLs, organisation unit scopes, and tracker ownership rules
 enforce themselves, in DHIS2, on every read - the facade never implements them
-because it never has to. (`wire.py` uses `ouMode=ACCESSIBLE` precisely to let
+because it never has to. (`wire.py` uses `orgUnitMode=ACCESSIBLE` precisely to let
 DHIS2 decide.) **A projection takes DHIS2 out of the request path, and that
 enforcement goes with it.** A synced server that serves a person's record has, by
 construction, already decided that the caller may see it.

@@ -45,14 +45,21 @@ def test_v43_payload_uses_client_id_not_cid() -> None:
     assert "cid" not in payload
 
 
-def test_all_versions_emit_arrays_not_strings_for_multivalued_fields() -> None:
-    """v41 strictly rejects strings on multi-valued fields; all three must use arrays."""
-    for builder in (build_v41, build_v42, build_v43):
+def test_v41_emits_arrays_for_multivalued_fields() -> None:
+    """v41 rejects strings on multi-valued fields with a Jackson error; it needs arrays (BUGS.md #39)."""
+    payload = build_v41(**_common_kwargs())  # type: ignore[arg-type]
+    for field in ("clientAuthenticationMethods", "authorizationGrantTypes", "redirectUris", "scopes"):
+        assert isinstance(payload[field], list)
+
+
+def test_v42_and_v43_emit_comma_separated_strings_for_multivalued_fields() -> None:
+    """2.42.6 and 2.43.1 answer 201 to arrays and store nothing for them (BUGS.md #117); strings persist."""
+    for builder in (build_v42, build_v43):
         payload = builder(**_common_kwargs())  # type: ignore[arg-type]
-        assert isinstance(payload["clientAuthenticationMethods"], list)
-        assert isinstance(payload["authorizationGrantTypes"], list)
-        assert isinstance(payload["redirectUris"], list)
-        assert isinstance(payload["scopes"], list)
+        assert payload["authorizationGrantTypes"] == "authorization_code,refresh_token"
+        assert payload["clientAuthenticationMethods"] == "client_secret_basic,client_secret_post"
+        assert payload["redirectUris"] == "http://localhost:8765"
+        assert payload["scopes"] == "ALL"
 
 
 @respx.mock

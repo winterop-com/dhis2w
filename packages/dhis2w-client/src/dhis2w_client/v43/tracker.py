@@ -359,6 +359,7 @@ class TrackerAccessor:
             tracked_entity_type=tracked_entity_type,
             org_unit=org_unit,
             ou_mode=ou_mode,
+            org_unit_param="orgUnits",
             tracked_entity=tracked_entity,
             status=status,
             status_param="programStatus",
@@ -406,6 +407,7 @@ class TrackerAccessor:
             program=program,
             org_unit=org_unit,
             ou_mode=ou_mode,
+            org_unit_param="orgUnits",
             tracked_entity=tracked_entity,
             enrollment=enrollment,
             status=status,
@@ -444,9 +446,10 @@ class TrackerAccessor:
         `org_unit`, `tracked_entity`, `enrollment`, and `filter` each accept a
         single id or a sequence, repeating as the matching query param.
         `status` filters by event status (`ACTIVE` / `COMPLETED` /
-        `SCHEDULE` / `SKIPPED` / `VISITED`) via `status`. `ou_mode` rides the
-        `orgUnitMode` key, the only one this endpoint reads on DHIS2 2.42 and
-        2.43, where the two sibling reads only read `ouMode` (BUGS.md #113).
+        `SCHEDULE` / `SKIPPED` / `VISITED`) via `status`. `org_unit` rides the
+        singular `orgUnit` key and `ou_mode` the `orgUnitMode` key: DHIS2
+        2.42.6 and 2.43.1 refuse `orgUnits` on this read and drop `ouMode`,
+        while the two sibling reads take `orgUnits` (BUGS.md #113).
         `updated_after` and `occurred_after` accept an ISO string, `date`, or
         `datetime`.
         `extra_params` covers the rest (`order`, `occurredBefore`,
@@ -507,8 +510,9 @@ def _read_params(
     program_stage: str | None = None,
     tracked_entity_type: str | None = None,
     org_unit: str | Sequence[str] | None = None,
+    org_unit_param: str = "orgUnit",
     ou_mode: str | None = None,
-    ou_mode_param: str = "ouMode",
+    ou_mode_param: str = "orgUnitMode",
     tracked_entity: str | Sequence[str] | None = None,
     enrollment: str | Sequence[str] | None = None,
     status: str | None = None,
@@ -527,10 +531,12 @@ def _read_params(
     `filter`) repeat; scalars pass straight through; `None` is dropped so
     unset params never reach the wire. `status_param` names the wire key the
     `status` value rides — `programStatus` for tracked entities / enrollments,
-    `status` for events. `ou_mode_param` names the key the mode rides —
-    `ouMode` for tracked entities / enrollments, `orgUnitMode` for events,
-    because DHIS2 2.42 and 2.43 read a different key on each and ignore the
-    other (BUGS.md #113). Date args normalise to ISO via `_to_iso`.
+    `status` for events. `org_unit_param` names the key the organisation
+    units ride: `orgUnits` for tracked entities / enrollments, `orgUnit` for
+    events, because DHIS2 2.42.6 and 2.43.1 drop the other spelling on the
+    first two (the read comes back unscoped) and refuse it on events. The
+    mode rides `orgUnitMode` on every read; `ouMode` is dropped on those
+    releases (BUGS.md #113). Date args normalise to ISO via `_to_iso`.
     """
     params: dict[str, Any] = {}
     if program is not None:
@@ -539,7 +545,7 @@ def _read_params(
         params["programStage"] = program_stage
     if tracked_entity_type is not None:
         params["trackedEntityType"] = tracked_entity_type
-    _repeat(params, "orgUnit", org_unit)
+    _repeat(params, org_unit_param, org_unit)
     if ou_mode is not None:
         params[ou_mode_param] = ou_mode
     _repeat(params, "trackedEntity", tracked_entity)

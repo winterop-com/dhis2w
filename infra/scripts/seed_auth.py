@@ -61,7 +61,7 @@ async def create_pat(client: Dhis2Client, payload: dict[str, Any]) -> str:
 
 
 async def upsert_oauth2_client(client: Dhis2Client) -> None:
-    """Create or update the standard OAuth2 client by clientId.
+    """Create the standard OAuth2 client by clientId, replacing any existing one.
 
     v41's `/api/schemas/oAuth2Client` doesn't expose `clientId` as a
     filterable property — `?filter=clientId:eq:X` returns 400 E1003
@@ -78,14 +78,16 @@ async def upsert_oauth2_client(client: Dhis2Client) -> None:
         for item in (listed.get("oAuth2Clients") or [])
         if isinstance(item, dict) and (item.get("cid") == OAUTH2_CLIENT_ID or item.get("clientId") == OAUTH2_CLIENT_ID)
     ]
-    payload = oauth2_payload()
+    payload = oauth2_payload(client.version_key)
+    # Delete and recreate rather than PUT: on 2.43.1 a PUT drops the client's
+    # `clientSettings` and `tokenSettings`, after which the authorization
+    # server answers 500 for it (BUGS.md #96).
+    for item in items:
+        await client.delete_raw(f"/api/oAuth2Clients/{item['id']}")
     if items:
-        uid = items[0]["id"]
-        await client.put_raw(f"/api/oAuth2Clients/{uid}", payload)
-        print(f"    updated existing client {uid}")
-    else:
-        await client.post_raw("/api/oAuth2Clients", payload)
-        print("    created new client")
+        print(f"    removed {len(items)} existing client(s)")
+    await client.post_raw("/api/oAuth2Clients", payload)
+    print("    created client")
 
 
 async def ensure_user_openid_mapping(client: Dhis2Client, username: str) -> None:
