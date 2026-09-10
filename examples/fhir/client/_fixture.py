@@ -304,9 +304,17 @@ def _scaffolded_project() -> Path:
         try:
             staging.replace(directory)
         except OSError:
-            # Another example's process finished its own scaffold first. Theirs is built from the
-            # same inputs - that is what the digest in the directory name means - so theirs wins.
-            shutil.rmtree(staging, ignore_errors=True)
+            if (directory / _PROJECT_MARKER_FILENAME).is_file():
+                # Another example's process finished its own scaffold first. Theirs is built from
+                # the same inputs - that is what the digest in the directory name means - so
+                # theirs wins.
+                shutil.rmtree(staging, ignore_errors=True)
+            else:
+                # The directory holds the leftovers of a scaffold that never completed - a facade
+                # log, a `.serve` spool - and no marker. Nothing in it is a project, so it makes
+                # way for the one just built.
+                shutil.rmtree(directory, ignore_errors=True)
+                staging.replace(directory)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
