@@ -135,7 +135,7 @@ def upstream_refusal_text(error: Exception) -> str:
 def _filter_parameter(filters: Sequence[str]) -> dict[str, Any]:
     """The `filter=` parameters one query carries, or none at all where the request narrowed nothing.
 
-    A list value, so httpx writes one `filter=` parameter per expression and the endpoint ANDs them.
+    A list value, so httpx2 writes one `filter=` parameter per expression and the endpoint ANDs them.
     Verified against 2.42 and 2.43: two repeated filters narrow to the entities holding both, which
     the comma-joined spelling also does - and the repeated one is the spelling whose values may
     contain a comma. An empty sequence puts no key on the query at all, so an unfiltered listing goes

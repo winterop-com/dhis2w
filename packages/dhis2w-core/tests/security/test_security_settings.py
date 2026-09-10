@@ -13,7 +13,7 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client.errors import Dhis2ApiError
 from dhis2w_core.security_core import (
@@ -317,7 +317,7 @@ async def test_run_settings_degrades_cors_on_network_timeout(tree: str) -> None:
     audit = _audit_module(tree)
     settings_type = _settings_type(tree)
     settings = settings_type(minPasswordLength=4)
-    client = _mock_client(settings=settings, cors_raw=httpx.ConnectError("timeout"))
+    client = _mock_client(settings=settings, cors_raw=httpx2.ConnectError("timeout"))
 
     result = await audit._run_settings(client)
 

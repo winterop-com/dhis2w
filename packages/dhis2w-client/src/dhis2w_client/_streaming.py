@@ -9,7 +9,7 @@ memory. `sink` is anything a chunk of bytes can be handed to:
   coroutine is awaited).
 - a plain callable `chunk -> None` / `chunk -> Awaitable[None]` (async is awaited).
 
-The logic carries no version-specific behaviour — it is pure httpx + auth
+The logic carries no version-specific behaviour — it is pure httpx2 + auth
 plumbing over the duck-typed client — so it lives in one shared module rather
 than being copied per version, exactly like `errors.py` and `_dispatch.py`.
 `AnalyticsAccessor.stream_to` (Path-only) delegates here; callers that need an
@@ -23,7 +23,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
-import httpx
+import httpx2
 
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError, format_unauthorized_message
 
@@ -60,7 +60,7 @@ async def stream_to_sink(
 ) -> int:
     """Stream `method path` through the client's pool into `sink`; return bytes written.
 
-    Uses the client's shared httpx pool and fresh auth headers, so retry /
+    Uses the client's shared httpx2 pool and fresh auth headers, so retry /
     pool-tuning / TLS config all still apply. The response body is written to
     `sink` chunk by chunk and never fully buffered.
 
@@ -75,9 +75,9 @@ async def stream_to_sink(
     headers = dict(await client._auth.headers())  # noqa: SLF001
     if extra_headers:
         headers.update(extra_headers)
-    # httpx.stream accepts a wider union than StreamParams — cast at the boundary
+    # httpx2.stream accepts a wider union than StreamParams — cast at the boundary
     # rather than re-expressing DHIS2's repeated-key shape.
-    query_params = cast("httpx._types.QueryParamTypes | None", params)
+    query_params = cast("httpx2._types.QueryParamTypes | None", params)
 
     bytes_written = 0
     async with http.stream(method, path, params=query_params, headers=headers) as response:

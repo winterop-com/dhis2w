@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject, load_fhir_config
 from dhis2w_fhir_serve.capability import EVALUATE_OPERATION_DEFINITION
@@ -46,7 +46,7 @@ OPERATION_DEFINITION: dict[str, Any] = {
 }
 
 
-async def test_a_profile_is_read_at_its_own_address(client: httpx.AsyncClient) -> None:
+async def test_a_profile_is_read_at_its_own_address(client: httpx2.AsyncClient) -> None:
     response = await client.get("/StructureDefinition/d2-aggregate-response")
 
     assert response.status_code == 200
@@ -54,7 +54,7 @@ async def test_a_profile_is_read_at_its_own_address(client: httpx.AsyncClient) -
     assert response.json()["url"] == PROFILE_CANONICAL
 
 
-async def test_the_guide_resource_is_read_at_its_own_address(client: httpx.AsyncClient) -> None:
+async def test_the_guide_resource_is_read_at_its_own_address(client: httpx2.AsyncClient) -> None:
     response = await client.get("/ImplementationGuide/dhis2.fhir.example")
 
     assert response.status_code == 200
@@ -69,7 +69,7 @@ async def test_the_guide_resource_is_read_at_its_own_address(client: httpx.Async
     ],
 )
 async def test_a_canonical_found_on_a_resource_is_resolved_by_searching_url(
-    client: httpx.AsyncClient, path: str, canonical: str
+    client: httpx2.AsyncClient, path: str, canonical: str
 ) -> None:
     """The search a client actually runs: it holds a canonical it read off a response, and no id."""
     response = await client.get(path, params={"url": canonical})
@@ -82,7 +82,7 @@ async def test_a_canonical_found_on_a_resource_is_resolved_by_searching_url(
     assert body["link"][0]["url"] == f"http://serve.test{path}?{urlencode({'url': canonical})}"
 
 
-async def test_a_canonical_this_guide_never_published_matches_nothing(client: httpx.AsyncClient) -> None:
+async def test_a_canonical_this_guide_never_published_matches_nothing(client: httpx2.AsyncClient) -> None:
     response = await client.get("/StructureDefinition", params={"url": f"{CANONICAL}/StructureDefinition/d2-nothing"})
 
     assert response.status_code == 200
@@ -92,7 +92,7 @@ async def test_a_canonical_this_guide_never_published_matches_nothing(client: ht
 
 
 async def test_a_search_naming_no_parameter_answers_every_profile_the_guide_holds(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     response = await client.get("/StructureDefinition")
 
@@ -101,7 +101,7 @@ async def test_a_search_naming_no_parameter_answers_every_profile_the_guide_hold
     assert body["entry"][0]["fullUrl"] == "http://serve.test/StructureDefinition/d2-aggregate-response"
 
 
-async def test_a_profile_id_the_guide_never_published_is_not_found(client: httpx.AsyncClient) -> None:
+async def test_a_profile_id_the_guide_never_published_is_not_found(client: httpx2.AsyncClient) -> None:
     """Not-found rather than not-supported: the type is served, and this id is not one of its resources."""
     response = await client.get("/StructureDefinition/d2-nothing")
 
@@ -122,7 +122,7 @@ async def test_a_profile_id_the_guide_never_published_is_not_found(client: httpx
     ],
 )
 async def test_format_overrides_a_header_naming_no_json_on_the_new_reads_too(
-    client: httpx.AsyncClient, path: str
+    client: httpx2.AsyncClient, path: str
 ) -> None:
     """The conformance reads ride the same router as every other read, so they negotiate identically."""
     separator = "&" if "?" in path else "?"
@@ -135,7 +135,7 @@ async def test_format_overrides_a_header_naming_no_json_on_the_new_reads_too(
 
 @pytest.mark.parametrize("path", ["/StructureDefinition/d2-aggregate-response", "/StructureDefinition"])
 async def test_a_format_this_server_does_not_serve_is_refused_on_the_new_reads_too(
-    client: httpx.AsyncClient, path: str
+    client: httpx2.AsyncClient, path: str
 ) -> None:
     separator = "&" if "?" in path else "?"
 
@@ -213,7 +213,7 @@ def test_attach_appends_without_touching_the_guide() -> None:
     assert [entry.resource_id for entry in attached.entries] == ["serve-evaluate"]
 
 
-async def test_the_evaluate_definition_reads_and_searches_by_canonical(client: httpx.AsyncClient) -> None:
+async def test_the_evaluate_definition_reads_and_searches_by_canonical(client: httpx2.AsyncClient) -> None:
     """GET by id answers the definition, and `url` resolves the canonical /metadata names."""
     read = await client.get("/OperationDefinition/serve-evaluate", headers={"Accept": FHIR_JSON})
     assert read.status_code == 200

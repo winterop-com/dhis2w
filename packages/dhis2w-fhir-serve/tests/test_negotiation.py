@@ -6,7 +6,7 @@ overrides the header, which is what makes a FHIR query a URL a browser can open.
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir_serve.routes.negotiation import accepts_json, format_asks_for_json
 
@@ -44,7 +44,7 @@ def test_a_header_that_admits_no_json_is_not(accept: str) -> None:
 
 
 @pytest.mark.parametrize("path", FHIR_PATHS)
-async def test_a_request_accepting_no_json_is_refused(client: httpx.AsyncClient, path: str) -> None:
+async def test_a_request_accepting_no_json_is_refused(client: httpx2.AsyncClient, path: str) -> None:
     """Every FHIR interaction answers `application/fhir+json`, and says so rather than sending it anyway."""
     response = await client.get(path, headers={"Accept": FHIR_XML})
 
@@ -60,14 +60,14 @@ async def test_a_request_accepting_no_json_is_refused(client: httpx.AsyncClient,
 
 @pytest.mark.parametrize("path", FHIR_PATHS)
 @pytest.mark.parametrize("accept", [None, "*/*", FHIR_JSON])
-async def test_a_request_that_takes_json_is_answered(client: httpx.AsyncClient, path: str, accept: str | None) -> None:
+async def test_a_request_that_takes_json_is_answered(client: httpx2.AsyncClient, path: str, accept: str | None) -> None:
     """Absent, wildcard, and explicit are all unchanged - the negotiation never falls on a plain client."""
     response = await client.get(path, headers=None if accept is None else {"Accept": accept})
 
     assert response.status_code == 200
 
 
-async def test_the_capture_endpoint_negotiates_too(client: httpx.AsyncClient) -> None:
+async def test_the_capture_endpoint_negotiates_too(client: httpx2.AsyncClient) -> None:
     """A capture answers an OperationOutcome whatever it decides, and that is JSON like everything else."""
     response = await client.post(
         "/QuestionnaireResponse",
@@ -78,7 +78,7 @@ async def test_the_capture_endpoint_negotiates_too(client: httpx.AsyncClient) ->
     assert response.status_code == 406
 
 
-async def test_the_service_base_refusal_negotiates_too(client: httpx.AsyncClient) -> None:
+async def test_the_service_base_refusal_negotiates_too(client: httpx2.AsyncClient) -> None:
     """The batch refusal is an OperationOutcome, so a client that cannot read one is told first."""
     response = await client.post("/", headers={"Accept": FHIR_XML}, json={"resourceType": "Bundle"})
 
@@ -86,7 +86,7 @@ async def test_the_service_base_refusal_negotiates_too(client: httpx.AsyncClient
 
 
 @pytest.mark.parametrize("path", ["/facade/spool", "/facade/uiconfig"])
-async def test_the_non_fhir_endpoints_do_not_negotiate(client: httpx.AsyncClient, path: str) -> None:
+async def test_the_non_fhir_endpoints_do_not_negotiate(client: httpx2.AsyncClient, path: str) -> None:
     """These answer plain JSON about this facade rather than resources out of it, so there is nothing to refuse."""
     response = await client.get(path, headers={"Accept": FHIR_XML})
 
@@ -108,7 +108,7 @@ def test_a_format_this_server_does_not_serve_is_not(stated_format: str) -> None:
 @pytest.mark.parametrize("path", FHIR_PATHS)
 @pytest.mark.parametrize("stated_format", JSON_FORMATS)
 async def test_a_format_naming_json_wins_over_a_header_that_does_not(
-    client: httpx.AsyncClient, path: str, stated_format: str
+    client: httpx2.AsyncClient, path: str, stated_format: str
 ) -> None:
     """The case the parameter exists for: a link opened where the client's header rules JSON out."""
     separator = "&" if "?" in path else "?"
@@ -120,7 +120,7 @@ async def test_a_format_naming_json_wins_over_a_header_that_does_not(
 
 @pytest.mark.parametrize("path", FHIR_PATHS)
 async def test_a_format_this_server_does_not_serve_is_refused_however_welcoming_the_header(
-    client: httpx.AsyncClient, path: str
+    client: httpx2.AsyncClient, path: str
 ) -> None:
     """`_format` is the client's own word about what it wants, so it is answered rather than read past."""
     separator = "&" if "?" in path else "?"
@@ -136,14 +136,14 @@ async def test_a_format_this_server_does_not_serve_is_refused_however_welcoming_
     )
 
 
-async def test_the_media_type_spelled_with_a_plus_is_read_as_written(client: httpx.AsyncClient) -> None:
+async def test_the_media_type_spelled_with_a_plus_is_read_as_written(client: httpx2.AsyncClient) -> None:
     """A query string decodes an unescaped `+` to a space, and that is how the media type gets typed."""
     response = await client.get("/metadata?_format=application/fhir+json", headers={"Accept": HOSTILE_ACCEPT})
 
     assert response.status_code == 200
 
 
-async def test_a_blank_format_leaves_the_header_to_decide(client: httpx.AsyncClient) -> None:
+async def test_a_blank_format_leaves_the_header_to_decide(client: httpx2.AsyncClient) -> None:
     """`_format=` names nothing, so it is the absent case and the header still rules JSON out."""
     response = await client.get("/Questionnaire?_format=", headers={"Accept": FHIR_XML})
 
@@ -152,7 +152,7 @@ async def test_a_blank_format_leaves_the_header_to_decide(client: httpx.AsyncCli
 
 
 @pytest.mark.parametrize("path", ["/Questionnaire", "/QuestionnaireResponse", "/CodeSystem", "/ValueSet"])
-async def test_a_format_narrows_no_search(client: httpx.AsyncClient, path: str) -> None:
+async def test_a_format_narrows_no_search(client: httpx2.AsyncClient, path: str) -> None:
     """It names the format the answer comes back in, so the answer is the same set either way."""
     plain = await client.get(path)
     formatted = await client.get(f"{path}?_format=json")

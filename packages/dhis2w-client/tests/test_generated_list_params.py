@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import parse_qsl, urlparse
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client
@@ -24,7 +25,7 @@ def _sent_query(route: respx.Route) -> list[tuple[str, str]]:
 async def _make_client() -> Dhis2Client:
     generated = load(_GENERATED[-1])
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
     return client
 

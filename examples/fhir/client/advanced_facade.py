@@ -43,7 +43,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, conversion_context, event_form_id, form_canonical
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError, Dhis2Client, Dhis2ClientError, Profile
@@ -304,7 +304,7 @@ async def drain_forever(runtime: FacadeRuntime, settings: FacadeSettings) -> Non
     while True:
         try:
             await drain_once(runtime, settings)
-        except (Dhis2ClientError, httpx.HTTPError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError) as error:
             # Nothing is lost and nothing is filed: every receipt this pass did not reach is still
             # in `received/`, which is exactly what the next pass reads.
             logger.warning("DHIS2 did not answer (%s); the queue keeps its receipts and the next pass retries", error)
@@ -484,7 +484,7 @@ def event_capture(context: ConversionContext, canonical: str) -> QuestionnaireRe
     )
 
 
-async def post_capture(caller: httpx.AsyncClient, response: QuestionnaireResponse, label: str) -> ReceiptReport:
+async def post_capture(caller: httpx2.AsyncClient, response: QuestionnaireResponse, label: str) -> ReceiptReport:
     """Post one capture, then poll its receipt until a drain has filed it - what a client with an id does."""
     answer = await caller.post(
         "/QuestionnaireResponse", json=response.model_dump(mode="json", by_alias=True, exclude_none=True)
@@ -535,7 +535,7 @@ async def remove_from_dhis2(
 async def main() -> None:
     """Capture an aggregate report, a correction of it, and an event - and read the surface back."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(name)s: %(message)s")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpx2").setLevel(logging.WARNING)
     context = conversion_context()
     # A scratch spool, because this demo's receipts are the demo's. A deployment points the facade
     # at the directory its receipts belong to: `d2w fhir serve` writes `.serve/responses` inside the
@@ -548,7 +548,7 @@ async def main() -> None:
     try:
         async with (
             app.router.lifespan_context(app),
-            httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://facade") as caller,
+            httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://facade") as caller,
         ):
             published = FacadeMetadata.model_validate((await caller.get("/metadata")).json())
             print(f"GET /metadata: {published.capture_route}, {published.coded_answers} coded answers")

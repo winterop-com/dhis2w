@@ -8,6 +8,7 @@ import time
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.v42.auth.basic import BasicAuth
@@ -277,10 +278,10 @@ async def test_oauth2_refresh_on_near_expiry() -> None:
 
 @respx.mock
 async def test_oauth2_exchange_400_raises_oauth2_flow_error() -> None:
-    """Bad-credential authorization-code exchange surfaces a clean OAuth2FlowError, not a raw httpx error.
+    """Bad-credential authorization-code exchange surfaces a clean OAuth2FlowError, not a raw httpx2 error.
 
     Authorization-code exchange used to call response.raise_for_status() which
-    leaked a raw httpx.HTTPStatusError up. The wrapped message should include
+    leaked a raw httpx2.HTTPStatusError up. The wrapped message should include
     the HTTP status, the RFC 6749 `error` / `error_description` fields when
     DHIS2 returns them, and a hint about common causes.
     """
@@ -319,7 +320,7 @@ async def test_oauth2_refresh_400_raises_oauth2_flow_error() -> None:
     """When DHIS2 rejects the cached refresh_token (e.g. client rotated), surface a clean OAuth2FlowError.
 
     The error message must point at `d2w profile login <name>` so the
-    user knows the recovery path. Raw httpx.HTTPStatusError tracebacks are
+    user knows the recovery path. Raw httpx2.HTTPStatusError tracebacks are
     not acceptable — this is a known recoverable failure mode and we
     own the UX.
     """
@@ -533,15 +534,15 @@ async def test_oauth2_concurrent_first_time_requests_run_one_interactive_flow() 
 
 @respx.mock
 async def test_oauth2_verify_threads_into_token_endpoint_calls(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`verify=False` reaches the httpx client used for `/oauth2/token` — self-signed refresh works."""
+    """`verify=False` reaches the httpx2 client used for `/oauth2/token` — self-signed refresh works."""
     recorded_verify: list[Any] = []
 
-    class _RecordingAsyncClient(httpx.AsyncClient):
+    class _RecordingAsyncClient(httpx2.AsyncClient):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             recorded_verify.append(kwargs.get("verify", True))
             super().__init__(*args, **kwargs)
 
-    monkeypatch.setattr(httpx, "AsyncClient", _RecordingAsyncClient)
+    monkeypatch.setattr(httpx2, "AsyncClient", _RecordingAsyncClient)
 
     token_store = _InMemoryTokenStore()
     expiring = OAuth2Token(

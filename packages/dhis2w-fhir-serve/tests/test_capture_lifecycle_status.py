@@ -17,7 +17,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve.app import create_app
@@ -58,17 +58,17 @@ def _dial_project(project: FhirProject, table: str) -> FhirProject:
     return project
 
 
-async def _client(project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def _client(project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over one project, with the lifespan run around the caller."""
     app: FastAPI = create_app(ServeSettings(project_dir=project.project_root))
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
 @pytest.fixture
-async def dialled_client(capture_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def dialled_client(capture_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """A facade over a project that receives both corrections and withdrawals."""
     async for http in _client(_dial_project(capture_project, BOTH_DIALS_ON)):
         yield http
@@ -94,7 +94,7 @@ def _diagnostics(body: dict[str, Any]) -> str:
     ],
 )
 async def test_a_marked_submission_is_refused_with_the_key_that_would_receive_it(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     event_response: dict[str, Any],
     status: str,
     config_key: str,
@@ -119,7 +119,7 @@ async def test_a_marked_submission_is_refused_with_the_key_that_would_receive_it
 
 @pytest.mark.parametrize("status", [AMENDED_STATUS, ENTERED_IN_ERROR_STATUS])
 async def test_nothing_is_spooled_when_the_dial_is_off(
-    capture_client: httpx.AsyncClient, capture_project: FhirProject, event_response: dict[str, Any], status: str
+    capture_client: httpx2.AsyncClient, capture_project: FhirProject, event_response: dict[str, Any], status: str
 ) -> None:
     """A refusal writes no receipt: the queue holds what will be forwarded, not what was turned away."""
     await capture_client.post(
@@ -136,7 +136,7 @@ async def test_nothing_is_spooled_when_the_dial_is_off(
 
 @pytest.mark.parametrize("status", [AMENDED_STATUS, ENTERED_IN_ERROR_STATUS])
 async def test_a_marked_submission_is_stored_with_its_status_where_the_dial_is_on(
-    dialled_client: httpx.AsyncClient, capture_project: FhirProject, event_response: dict[str, Any], status: str
+    dialled_client: httpx2.AsyncClient, capture_project: FhirProject, event_response: dict[str, Any], status: str
 ) -> None:
     """201, and the stored receipt is the submission as it arrived - the status included."""
     posted = await dialled_client.post(
@@ -155,7 +155,7 @@ async def test_a_marked_submission_is_stored_with_its_status_where_the_dial_is_o
 
 @pytest.mark.parametrize("status", [AMENDED_STATUS, ENTERED_IN_ERROR_STATUS])
 async def test_a_stored_marked_submission_is_a_queued_receipt_like_any_other(
-    dialled_client: httpx.AsyncClient, event_response: dict[str, Any], status: str
+    dialled_client: httpx2.AsyncClient, event_response: dict[str, Any], status: str
 ) -> None:
     """The spool row states the status and nothing else about it: what a drain does with it is a later slice."""
     await dialled_client.post(
@@ -220,7 +220,7 @@ async def test_an_amended_aggregate_response_is_still_refused_by_its_own_profile
 
 
 async def test_an_unmarked_submission_is_untouched_by_either_dial(
-    capture_client: httpx.AsyncClient, event_response: dict[str, Any]
+    capture_client: httpx2.AsyncClient, event_response: dict[str, Any]
 ) -> None:
     """The dials govern a marked submission; an ordinary `completed` capture is received as it always was."""
     posted = await capture_client.post(
@@ -234,7 +234,7 @@ async def test_an_unmarked_submission_is_untouched_by_either_dial(
 
 
 async def test_the_refusal_is_the_only_thing_said_about_a_correction(
-    capture_client: httpx.AsyncClient, event_response: dict[str, Any]
+    capture_client: httpx2.AsyncClient, event_response: dict[str, Any]
 ) -> None:
     """A submission this project does not receive is answered with that, not with the form's own rules.
 

@@ -43,7 +43,7 @@ The tiering rules are at docs/fhir/401-identifiers-and-extensions.md#program-rul
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import example_project, served_facade
 from _runner import run_example
 from dhis2w_fhir import FoundationNaming, load_project
@@ -145,7 +145,7 @@ async def main() -> None:
     naming = FoundationNaming.from_naming(project.config.generate.naming)
     program_rule_url = f"{project.config.ig.canonical}/StructureDefinition/{naming.program_rule_extension_id}"
 
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         bundle = (await client.get("/Questionnaire", params={"_count": 100})).raise_for_status().json()
 
     for entry in bundle.get("entry", []):

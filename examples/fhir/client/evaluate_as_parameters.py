@@ -34,7 +34,7 @@ import os
 import sys
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import served_facade
 from _runner import run_example
 
@@ -64,7 +64,7 @@ define Unmapped: Message('x', true, 'no-mapping', 'Error', 'nothing maps this qu
 async def main() -> None:
     """Run one CQL library and one FHIRPath expression through `$evaluate`, and read the answers."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
-    async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, timeout=30.0) as client:
         print(f"evaluating against {base_url}")
 
         # The operation is declared in the conformance document, at the server-level slot: its URL is
@@ -135,7 +135,7 @@ def refused(parameter: dict[str, Any]) -> str | None:
     return None
 
 
-async def evaluate(client: httpx.AsyncClient, body: dict[str, Any]) -> dict[str, Any]:
+async def evaluate(client: httpx2.AsyncClient, body: dict[str, Any]) -> dict[str, Any]:
     """One `POST /$evaluate`, raising only when the facade refused the request itself.
 
     A bad expression is not a refusal: it answers 200 with an `outcome` parameter carrying the line

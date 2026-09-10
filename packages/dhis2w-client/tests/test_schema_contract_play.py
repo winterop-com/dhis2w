@@ -30,7 +30,7 @@ import warnings
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client import BasicAuth, Dhis2Client
 from dhis2w_client.errors import Dhis2ApiError
@@ -44,7 +44,7 @@ class DroppedConnectionRetryWarning(UserWarning):
     """A live call was re-attempted once because the connection dropped mid-request."""
 
 
-_DROPPED_CONNECTION_ERRORS = (httpx.RemoteProtocolError, httpx.ConnectError)
+_DROPPED_CONNECTION_ERRORS = (httpx2.RemoteProtocolError, httpx2.ConnectError)
 """What play's nightly redeploy looks like from here: a socket that closes before the response starts."""
 
 _RETRY_DELAY_SECONDS = 2.0
@@ -126,7 +126,7 @@ async def _make_client(url: str) -> AsyncIterator[Dhis2Client]:
     try:
         try:
             await _once_more_if_the_connection_drops(f"connect {url}", client.connect)
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             pytest.skip(f"play instance {url} unreachable: {exc}")
         except Dhis2ApiError as exc:
             if exc.status_code in _OUTAGE_STATUS_CODES:
@@ -276,11 +276,11 @@ async def test_retry_helper_stops_after_one_re_attempt(monkeypatch: pytest.Monke
 
     async def call() -> str:
         attempts.append(1)
-        raise httpx.RemoteProtocolError("Server disconnected without sending a response")
+        raise httpx2.RemoteProtocolError("Server disconnected without sending a response")
 
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("always")
-        with pytest.raises(httpx.RemoteProtocolError):
+        with pytest.raises(httpx2.RemoteProtocolError):
             await _once_more_if_the_connection_drops("list dataElements", call)
     assert len(attempts) == 2
 

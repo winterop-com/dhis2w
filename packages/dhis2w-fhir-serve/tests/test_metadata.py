@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 
 CANONICAL = "http://example.org/fhir"
 FHIR_JSON = "application/fhir+json"
 
 
-async def _metadata(client: httpx.AsyncClient) -> dict[str, Any]:
+async def _metadata(client: httpx2.AsyncClient) -> dict[str, Any]:
     response = await client.get("/metadata")
     assert response.status_code == 200
     assert response.headers["content-type"] == FHIR_JSON
@@ -30,7 +30,7 @@ def _resource_types(body: dict[str, Any]) -> list[str]:
     return [resource["type"] for resource in body["rest"][0]["resource"]]
 
 
-async def test_metadata_describes_this_instance(client: httpx.AsyncClient) -> None:
+async def test_metadata_describes_this_instance(client: httpx2.AsyncClient) -> None:
     body = await _metadata(client)
 
     assert body["resourceType"] == "CapabilityStatement"
@@ -40,13 +40,13 @@ async def test_metadata_describes_this_instance(client: httpx.AsyncClient) -> No
     assert body["format"] == ["json"]
 
 
-async def test_metadata_instantiates_the_ig_capture_server(client: httpx.AsyncClient) -> None:
+async def test_metadata_instantiates_the_ig_capture_server(client: httpx2.AsyncClient) -> None:
     body = await _metadata(client)
 
     assert body["instantiates"] == [f"{CANONICAL}/CapabilityStatement/d2-capture-server"]
 
 
-async def test_metadata_names_the_software_and_the_compiled_store(client: httpx.AsyncClient) -> None:
+async def test_metadata_names_the_software_and_the_compiled_store(client: httpx2.AsyncClient) -> None:
     body = await _metadata(client)
 
     assert body["software"]["name"] == "d2w fhir serve"
@@ -55,7 +55,7 @@ async def test_metadata_names_the_software_and_the_compiled_store(client: httpx.
     )
 
 
-async def test_metadata_says_stored_responses_are_receipts_not_live_data(client: httpx.AsyncClient) -> None:
+async def test_metadata_says_stored_responses_are_receipts_not_live_data(client: httpx2.AsyncClient) -> None:
     body = await _metadata(client)
 
     assert "receipts of submissions as they arrived" in body["implementation"]["description"]
@@ -65,7 +65,7 @@ async def test_metadata_says_stored_responses_are_receipts_not_live_data(client:
     )
 
 
-async def test_metadata_declares_capture_against_every_captured_response_profile(client: httpx.AsyncClient) -> None:
+async def test_metadata_declares_capture_against_every_captured_response_profile(client: httpx2.AsyncClient) -> None:
     response_resource = _resource(await _metadata(client), "QuestionnaireResponse")
 
     interactions = response_resource["interaction"]
@@ -79,7 +79,7 @@ async def test_metadata_declares_capture_against_every_captured_response_profile
     ]
 
 
-async def test_metadata_lists_only_the_read_types_the_store_holds(client: httpx.AsyncClient) -> None:
+async def test_metadata_lists_only_the_read_types_the_store_holds(client: httpx2.AsyncClient) -> None:
     types = _resource_types(await _metadata(client))
 
     assert types == [
@@ -97,7 +97,7 @@ async def test_metadata_lists_only_the_read_types_the_store_holds(client: httpx.
 
 
 async def test_metadata_declares_the_conformance_resources_the_guide_publishes(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """A served project hosts its own guide, and the statement says so where a client will read it."""
     body = await _metadata(client)
@@ -111,7 +111,7 @@ async def test_metadata_declares_the_conformance_resources_the_guide_publishes(
 
 
 async def test_metadata_declares_no_conformance_type_the_store_does_not_hold(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """A conformance type nothing holds is not declared - SearchParameter, which no run publishes.
 
@@ -123,7 +123,7 @@ async def test_metadata_declares_no_conformance_type_the_store_does_not_hold(
     assert "SearchParameter" not in types
 
 
-async def test_the_questionnaire_search_parameter_states_how_it_matches(client: httpx.AsyncClient) -> None:
+async def test_the_questionnaire_search_parameter_states_how_it_matches(client: httpx2.AsyncClient) -> None:
     """A reference search parameter usually implies more than this one does, so the entry says what it is."""
     response = _resource(await _metadata(client), "QuestionnaireResponse")
 
@@ -133,7 +133,7 @@ async def test_the_questionnaire_search_parameter_states_how_it_matches(client: 
     assert "no version suffix is stripped" in questionnaire["documentation"]
 
 
-async def test_read_types_declare_the_three_search_parameters(client: httpx.AsyncClient) -> None:
+async def test_read_types_declare_the_three_search_parameters(client: httpx2.AsyncClient) -> None:
     questionnaire = _resource(await _metadata(client), "Questionnaire")
 
     parameters = questionnaire["searchParam"]

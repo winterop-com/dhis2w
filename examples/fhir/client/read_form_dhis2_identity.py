@@ -33,7 +33,7 @@ first asks data elements and disaggregated cells, the second asks tracked entity
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, registration_form_id, served_facade
 from _runner import run_example
 from dhis2w_fhir.r4 import CodeSystem, Coding, Questionnaire, QuestionnaireItem
@@ -63,7 +63,7 @@ def _object_kind(system: str) -> str:
     return kind or system
 
 
-async def _dictionary_title(client: httpx.AsyncClient, system: str) -> str:
+async def _dictionary_title(client: httpx2.AsyncClient, system: str) -> str:
     """The title of the published data dictionary one concept was drawn from, found by its canonical."""
     # A concept's `system` is a canonical URL, not an address on this server - so it is searched
     # for rather than fetched, which is what resolves a concept against any server holding the guide.
@@ -72,7 +72,7 @@ async def _dictionary_title(client: httpx.AsyncClient, system: str) -> str:
     return CodeSystem.model_validate(entries[0]["resource"]).title or system if entries else f"{system} (not served)"
 
 
-async def _report_form(client: httpx.AsyncClient, form_id: str) -> None:
+async def _report_form(client: httpx2.AsyncClient, form_id: str) -> None:
     """Print one form's own DHIS2 identity, then the DHIS2 object behind each of its first questions."""
     body = (await client.get(f"/Questionnaire/{form_id}")).raise_for_status().json()
     form = Questionnaire.model_validate(body)
@@ -104,7 +104,7 @@ async def _report_form(client: httpx.AsyncClient, form_id: str) -> None:
 
 async def main() -> None:
     """Resolve two published forms and every question on them back to DHIS2, by identifier alone."""
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         await _report_form(client, aggregate_form_id())
         await _report_form(client, registration_form_id())
 

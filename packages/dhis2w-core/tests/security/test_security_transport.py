@@ -12,7 +12,7 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client.errors import Dhis2ApiError
 from dhis2w_core.security_core import (
@@ -574,7 +574,7 @@ def _mock_client(*, base_url: str, headers: dict[str, str]) -> MagicMock:
     """A client whose base_url and get_response (one /api/system/info hit) return the given fixtures."""
     client = MagicMock()
     client.base_url = base_url
-    client.get_response = AsyncMock(return_value=httpx.Response(200, headers=headers))
+    client.get_response = AsyncMock(return_value=httpx2.Response(200, headers=headers))
     return client
 
 
@@ -623,7 +623,7 @@ async def test_run_transport_degrades_on_transport_error(tree: str) -> None:
     """A transport error fetching /api/system/info degrades the check with a note rather than a false pass."""
     client = MagicMock()
     client.base_url = "https://mock.example"
-    client.get_response = AsyncMock(side_effect=httpx.ConnectError("boom"))
+    client.get_response = AsyncMock(side_effect=httpx2.ConnectError("boom"))
 
     result = await _audit_module(tree)._run_transport(client)
 

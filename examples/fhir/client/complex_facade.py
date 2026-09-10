@@ -44,7 +44,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, conversion_context, form_canonical
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError, Dhis2Client, Dhis2ClientError, Profile
@@ -254,7 +254,7 @@ async def drain_forever(runtime: FacadeRuntime, settings: FacadeSettings) -> Non
     while True:
         try:
             await drain_once(runtime, settings)
-        except (Dhis2ClientError, httpx.HTTPError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError) as error:
             # Nothing is lost and nothing is filed: every receipt this pass did not reach is still
             # in `received/`, which is exactly what the next pass reads.
             logger.warning("DHIS2 did not answer (%s); the queue keeps its receipts and the next pass retries", error)
@@ -351,7 +351,7 @@ def aggregate_capture(context: ConversionContext, canonical: str) -> Questionnai
     )
 
 
-async def wait_for_drain(caller: httpx.AsyncClient, receipt_id: str) -> ReceiptReport:
+async def wait_for_drain(caller: httpx2.AsyncClient, receipt_id: str) -> ReceiptReport:
     """Poll one receipt until a drain has filed it, which is what a client holding an id does."""
     for _ in range(POLL_ATTEMPTS):
         answer = await caller.get(f"/receipts/{receipt_id}")
@@ -376,7 +376,7 @@ async def remove_imported_values(settings: FacadeSettings, context: ConversionCo
 async def main() -> None:
     """Post one capture, watch it travel from received to forwarded, and read its journey back."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(name)s: %(message)s")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpx2").setLevel(logging.WARNING)
     context = conversion_context()
     # A scratch spool, because this demo's receipts are the demo's. A deployment points the facade
     # at the directory its receipts belong to: `d2w fhir serve` writes `.serve/responses` inside the
@@ -388,7 +388,7 @@ async def main() -> None:
     try:
         async with (
             app.router.lifespan_context(app),
-            httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://facade") as caller,
+            httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://facade") as caller,
         ):
             answer = await caller.post(
                 "/QuestionnaireResponse", json=capture.model_dump(mode="json", by_alias=True, exclude_none=True)

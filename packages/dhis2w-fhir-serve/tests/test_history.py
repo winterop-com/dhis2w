@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -135,7 +136,7 @@ async def record_client(
     capture_project: FhirProject,
     record_profile: Profile,
     tracked_entities: TrackedEntitiesConfig,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the capture guide, holding a DHIS2 client against the mocked host."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
@@ -147,18 +148,18 @@ async def record_client(
             open_client(record_profile) as dhis2,
         ):
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 @pytest.fixture
-async def compiled_client(compiled_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def compiled_client(compiled_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """The same facade with no instance behind it, which is what a compiled run is."""
     app: FastAPI = create_app(ServeSettings(project_dir=compiled_project.project_root))
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
             yield http
 
 
@@ -177,7 +178,7 @@ def _matches(bundle: dict[str, Any]) -> list[dict[str, Any]]:
     return [entry["resource"] for entry in bundle.get("entry", []) if entry["search"]["mode"] == "match"]
 
 
-async def test_the_record_is_one_entity_scoped_read_naming_no_program(record_client: httpx.AsyncClient) -> None:
+async def test_the_record_is_one_entity_scoped_read_naming_no_program(record_client: httpx2.AsyncClient) -> None:
     """The events come off the tracked entity, with the events named in `fields` and no `program` sent.
 
     Both halves are the contract: `/api/tracker/events` demands a `program` on 2.43 (BUGS.md 91) and
@@ -197,7 +198,7 @@ async def test_the_record_is_one_entity_scoped_read_naming_no_program(record_cli
 
 
 async def test_one_event_is_served_as_the_response_its_stage_form_describes(
-    record_client: httpx.AsyncClient,
+    record_client: httpx2.AsyncClient,
 ) -> None:
     """The document is the capture contract's own: the stage's questionnaire, the person, the values."""
     _record_route(_event("EvAncVis001"))
@@ -225,7 +226,7 @@ async def test_one_event_is_served_as_the_response_its_stage_form_describes(
 
 
 async def test_the_document_carries_the_enrollment_and_the_reporting_unit(
-    record_client: httpx.AsyncClient,
+    record_client: httpx2.AsyncClient,
 ) -> None:
     """The two facts a stage response's own profile requires beside the person, as its extensions."""
     _record_route(_event("EvAncVis001"))
@@ -242,7 +243,7 @@ async def test_the_document_carries_the_enrollment_and_the_reporting_unit(
 
 
 async def test_the_record_is_newest_first_whatever_order_the_instance_answered_in(
-    record_client: httpx.AsyncClient,
+    record_client: httpx2.AsyncClient,
 ) -> None:
     """DHIS2 nests the events unordered, so the record states the order rather than passing one on."""
     _record_route(
@@ -256,7 +257,7 @@ async def test_the_record_is_newest_first_whatever_order_the_instance_answered_i
     assert [response["id"] for response in _matches(body)] == ["EvAncVis001", "EvAncVis003", "EvAncVis002"]
 
 
-async def test_a_page_is_a_slice_of_the_record_and_the_links_walk_it(record_client: httpx.AsyncClient) -> None:
+async def test_a_page_is_a_slice_of_the_record_and_the_links_walk_it(record_client: httpx2.AsyncClient) -> None:
     """`_count` and `page` walk the ordered record, and `total` stays the whole of it on every page."""
     _record_route(
         _event("EvAncVis001", occurred_at="2026-07-25T09:00:00.000"),
@@ -276,7 +277,7 @@ async def test_a_page_is_a_slice_of_the_record_and_the_links_walk_it(record_clie
     assert _link(second, "next") is None
 
 
-async def test_count_zero_asks_how_long_the_record_is(record_client: httpx.AsyncClient) -> None:
+async def test_count_zero_asks_how_long_the_record_is(record_client: httpx2.AsyncClient) -> None:
     """R4's request for the total alone: how many events the entity holds, and none of them."""
     _record_route(_event("EvAncVis001"), _event("EvAncVis002"))
 
@@ -286,7 +287,7 @@ async def test_count_zero_asks_how_long_the_record_is(record_client: httpx.Async
     assert "entry" not in body
 
 
-async def test_a_count_above_the_limit_is_served_the_limit(record_client: httpx.AsyncClient) -> None:
+async def test_a_count_above_the_limit_is_served_the_limit(record_client: httpx2.AsyncClient) -> None:
     """A page is bounded by `[serve.tracked_entities] page_size_limit`, clamped rather than refused."""
     _record_route(*[_event(f"EvAncVis{index:03d}") for index in range(1, 4)])
 
@@ -296,7 +297,7 @@ async def test_a_count_above_the_limit_is_served_the_limit(record_client: httpx.
     assert _parameters(_link(body, "self") or "")["_count"] == "100"
 
 
-async def test_a_parameter_this_surface_cannot_apply_is_refused(record_client: httpx.AsyncClient) -> None:
+async def test_a_parameter_this_surface_cannot_apply_is_refused(record_client: httpx2.AsyncClient) -> None:
     """Ignoring one would answer a narrower question with the whole record."""
     _record_route(_event("EvAncVis001"))
 
@@ -308,7 +309,7 @@ async def test_a_parameter_this_surface_cannot_apply_is_refused(record_client: h
 
 
 async def test_an_event_of_an_unpublished_stage_is_stated_rather_than_dropped(
-    record_client: httpx.AsyncClient,
+    record_client: httpx2.AsyncClient,
 ) -> None:
     """It counts in the total, carries no document, and the searchset says which stage it was of."""
     _record_route(_event("EvOther0001", stage_uid="PsUnknown01"), _event("EvAncVis001"))
@@ -322,7 +323,7 @@ async def test_an_event_of_an_unpublished_stage_is_stated_rather_than_dropped(
     assert "PsUnknown01" in outcomes[0]["issue"][0]["diagnostics"]
 
 
-async def test_an_event_missing_a_required_fact_claims_no_profile(record_client: httpx.AsyncClient) -> None:
+async def test_an_event_missing_a_required_fact_claims_no_profile(record_client: httpx2.AsyncClient) -> None:
     """An event the instance dates nothing is served as it is, without claiming to conform.
 
     A stage response's own profile requires the instant it was authored at, so a document carrying
@@ -340,7 +341,7 @@ async def test_an_event_missing_a_required_fact_claims_no_profile(record_client:
     assert "authored" not in undated
 
 
-async def test_one_event_is_read_under_the_entity_whose_record_it_is(record_client: httpx.AsyncClient) -> None:
+async def test_one_event_is_read_under_the_entity_whose_record_it_is(record_client: httpx2.AsyncClient) -> None:
     """The URL a page's entry names answers that one document, and an event of nobody here is a 404."""
     _record_route(_event("EvAncVis001"))
 
@@ -355,7 +356,7 @@ async def test_one_event_is_read_under_the_entity_whose_record_it_is(record_clie
     assert missing.status_code == 404
 
 
-async def test_a_tracked_entity_the_instance_does_not_hold_is_a_404(record_client: httpx.AsyncClient) -> None:
+async def test_a_tracked_entity_the_instance_does_not_hold_is_a_404(record_client: httpx2.AsyncClient) -> None:
     """The refusal names what was not found - the person - rather than the surface it was asked of."""
     respx.get(_TRACKED_ENTITY_URL).mock(return_value=httpx.Response(404, json={"message": "not found"}))
 
@@ -367,7 +368,7 @@ async def test_a_tracked_entity_the_instance_does_not_hold_is_a_404(record_clien
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(events=False)])
 async def test_a_project_serving_identity_alone_refuses_the_record_and_names_the_key(
-    record_client: httpx.AsyncClient,
+    record_client: httpx2.AsyncClient,
 ) -> None:
     """`[serve.tracked_entities] events = false` is a decision the refusal states in the operator's words."""
     read = _record_route(_event("EvAncVis001"))
@@ -381,7 +382,7 @@ async def test_a_project_serving_identity_alone_refuses_the_record_and_names_the
 
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(enabled=False)])
-async def test_a_project_serving_no_register_serves_no_record_either(record_client: httpx.AsyncClient) -> None:
+async def test_a_project_serving_no_register_serves_no_record_either(record_client: httpx2.AsyncClient) -> None:
     """One line takes the register away, and the record is part of the register."""
     response = await record_client.get(f"/facade/tracked-entities/{_PERSON_UID}/events")
 
@@ -389,7 +390,7 @@ async def test_a_project_serving_no_register_serves_no_record_either(record_clie
     assert "`[serve.tracked_entities] enabled`" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_compiled_run_answers_that_it_has_no_instance_to_read(compiled_client: httpx.AsyncClient) -> None:
+async def test_a_compiled_run_answers_that_it_has_no_instance_to_read(compiled_client: httpx2.AsyncClient) -> None:
     """A compiled guide has nothing to answer about, and says so rather than answering an empty record."""
     response = await compiled_client.get(f"/facade/tracked-entities/{_PERSON_UID}/events")
 

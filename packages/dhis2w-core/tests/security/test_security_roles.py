@@ -6,7 +6,7 @@ from importlib import import_module
 from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_core.security_core import (
     CheckStatus,
@@ -123,10 +123,10 @@ async def test_run_roles_degrades_on_unexpected_payload(tree: str) -> None:
 
 @pytest.mark.parametrize("tree", TREES)
 async def test_run_roles_degrades_on_transient_transport_error(tree: str) -> None:
-    """A transient httpx transport error on the narrow-catch roles read degrades the check, never errors."""
+    """A transient httpx2 transport error on the narrow-catch roles read degrades the check, never errors."""
     audit = _audit_module(tree)
     client = MagicMock()
-    client.get_raw = AsyncMock(side_effect=httpx.ConnectError("connection reset"))
+    client.get_raw = AsyncMock(side_effect=httpx2.ConnectError("connection reset"))
 
     result = await audit._run_roles(client)
 

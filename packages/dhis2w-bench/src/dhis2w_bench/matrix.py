@@ -25,7 +25,7 @@ import shlex
 import time
 from pathlib import Path
 
-import httpx
+import httpx2
 import typer.main
 from dhis2w_cli.main import build_app
 from fastmcp import Client
@@ -175,7 +175,7 @@ def _tool_specs(mcp_tools: object) -> list[dict[str, object]]:
 
 
 async def _run_cell(
-    client: Client, http: httpx.AsyncClient, tools: list[dict[str, object]], model: str, leaf: Leaf
+    client: Client, http: httpx2.AsyncClient, tools: list[dict[str, object]], model: str, leaf: Leaf
 ) -> Cell:
     """Drive one model against one command; score whether it formed the target command path."""
     messages: list[dict[str, object]] = [
@@ -192,7 +192,7 @@ async def _run_cell(
         try:
             resp = await http.post(LM, json=body, timeout=300.0)
             resp.raise_for_status()
-        except httpx.HTTPError:
+        except httpx2.HTTPError:
             break
         message = _Chat.model_validate(resp.json()).choices[0].message
         if not message.tool_calls:
@@ -297,7 +297,7 @@ async def _benchmark(models: list[str], leaves: list[Leaf], results_path: Path) 
             _load_model(model)
             async with Client(_bridge_config()) as client:
                 tools = _tool_specs(await client.list_tools())
-                async with httpx.AsyncClient() as http:
+                async with httpx2.AsyncClient() as http:
                     for index, leaf in enumerate(pending, 1):
                         cell = await _run_cell(client, http, tools, model, leaf)
                         handle.write(cell.model_dump_json() + "\n")

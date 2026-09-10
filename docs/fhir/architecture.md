@@ -12,7 +12,7 @@ either side of the boundary.
 
 | Package | Holds | Needs |
 | --- | --- | --- |
-| `dhis2w-fhir` | The plugin: scaffold, generate, validate, forward, doctor, and the conversion layer | httpx, pydantic, jinja2 |
+| `dhis2w-fhir` | The plugin: scaffold, generate, validate, forward, doctor, and the conversion layer | httpx2, pydantic, jinja2 |
 | `dhis2w-fhir-serve` | The facade behind `d2w fhir serve` | FastAPI, uvicorn |
 
 The split is the dependency: a generator writes a file tree and needs no web

@@ -25,7 +25,7 @@ what a valid capture is ([The capture contract](401-capture-contract.md)).
 
 **The runnable version of this page** is
 [`examples/fhir/client/consume_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/consume_facade.py) -
-plain httpx against a served project, walking discovery, search, `$generate`, a
+plain httpx2 against a served project, walking discovery, search, `$generate`, a
 capture, the receipt, and `/facade/spool` end to end. Point it at your own facade with
 `uv run python examples/fhir/client/consume_facade.py http://localhost:8123`.
 The rest of that directory is the library path: `generate_ig.py` builds a guide

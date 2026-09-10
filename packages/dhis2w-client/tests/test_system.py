@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import httpx2
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, DhisCalendar
 
@@ -17,7 +18,7 @@ async def test_system_info_parses_model() -> None:
         ),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         info = await client.system.info()
     finally:
@@ -42,7 +43,7 @@ async def test_me_parses_model() -> None:
         ),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         me = await client.system.me()
     finally:
@@ -74,7 +75,7 @@ async def test_me_coerces_bare_uid_strings_to_display_refs() -> None:
         ),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         me = await client.system.me()
     finally:
@@ -96,7 +97,7 @@ async def test_calendar_returns_value_from_setting() -> None:
         return_value=httpx.Response(200, json={"keyCalendar": "ethiopian"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         value = await client.system.calendar()
     finally:
@@ -111,7 +112,7 @@ async def test_calendar_falls_back_to_iso8601_when_unset() -> None:
         return_value=httpx.Response(404, json={}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         value = await client.system.calendar()
     finally:
@@ -126,7 +127,7 @@ async def test_set_calendar_posts_text_plain_body() -> None:
         return_value=httpx.Response(200, json={"httpStatus": "OK", "status": "OK"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         await client.system.set_calendar(DhisCalendar.NEPALI)
     finally:

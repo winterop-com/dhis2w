@@ -46,7 +46,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-import httpx
+import httpx2
 from dhis2w_client.errors import Dhis2ClientError
 from dhis2w_core.client_context import open_client
 from pydantic import BaseModel, ConfigDict
@@ -210,7 +210,7 @@ _DOCKER_PROBE_TIMEOUT_SECONDS = 30
 _ORACLE_BATCH_SIZE = 100
 
 #: The base URL the in-process capture client addresses the ASGI app under. Nothing binds a socket -
-#: httpx needs an absolute base for relative paths and this is the name it uses for one.
+#: httpx2 needs an absolute base for relative paths and this is the name it uses for one.
 _IN_PROCESS_BASE_URL = "http://fhir-doctor.invalid"
 
 #: The read-set every capture server has to hold. `List` is left out: a project publishes one only
@@ -851,7 +851,7 @@ class _DoctorRun:
             client = (
                 given if given is not None else await stack.enter_async_context(open_client(self._generation.profile))
             )
-        except (Dhis2ClientError, httpx.HTTPError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError) as error:
             self._record(
                 DoctorPhase.CONNECT,
                 DoctorOutcome.FAILED,
@@ -908,7 +908,7 @@ class _DoctorRun:
         project = self._require_project()
         try:
             report = await service.generate_full(self._generation.profile, project, client=self._client)
-        except (Dhis2ClientError, httpx.HTTPError, LookupError, ValueError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError, LookupError, ValueError) as error:
             self._record(DoctorPhase.GENERATE, DoctorOutcome.FAILED, str(error), started)
             return False
         # The distinct-notes view: a note several targets share becomes one finding, not three.
@@ -985,7 +985,7 @@ class _DoctorRun:
             report = await service.validate_codes(
                 self._generation.profile, project.config.generate, client=self._client
             )
-        except (Dhis2ClientError, httpx.HTTPError, LookupError, ValueError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError, LookupError, ValueError) as error:
             self._record(DoctorPhase.VALIDATE, DoctorOutcome.FAILED, str(error), started)
             return
         findings = _capped_findings(
@@ -1052,7 +1052,7 @@ class _DoctorRun:
             await stack.enter_async_context(application.router.lifespan_context(application))
         except (
             Dhis2ClientError,
-            httpx.HTTPError,
+            httpx2.HTTPError,
             LookupError,
             ValueError,
             OSError,
@@ -1111,9 +1111,9 @@ class _DoctorRun:
                 reason="the served store publishes no form to generate a response to",
             )
             return
-        transport = httpx.ASGITransport(app=self._app)
+        transport = httpx2.ASGITransport(app=self._app)
         http = await stack.enter_async_context(
-            httpx.AsyncClient(transport=transport, base_url=_IN_PROCESS_BASE_URL, timeout=60.0)
+            httpx2.AsyncClient(transport=transport, base_url=_IN_PROCESS_BASE_URL, timeout=60.0)
         )
         captured: list[CaptureOutcome] = []
         for index, form in enumerate(forms):
@@ -1139,7 +1139,7 @@ class _DoctorRun:
             report = await service.forward_responses(
                 self._generation.profile, project, import_responses=False, client=self._client
             )
-        except (Dhis2ClientError, httpx.HTTPError, LookupError, ValueError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError, LookupError, ValueError) as error:
             self._record(DoctorPhase.FORWARD, DoctorOutcome.FAILED, str(error), started)
             return
         self._record_graded(DoctorPhase.FORWARD, grade_forward(report), started)
@@ -1205,7 +1205,7 @@ class _DoctorRun:
             return
         except (
             Dhis2ClientError,
-            httpx.HTTPError,
+            httpx2.HTTPError,
             CompiledArtifactReadError,
             LookupError,
             ValueError,
@@ -1281,7 +1281,7 @@ def _resolve_workspace(options: DoctorOptions) -> Path:
 
 def _connection_failure(error: Exception) -> str:
     """One line saying why the instance never answered, in the words the CLI's error funnel uses."""
-    if isinstance(error, httpx.HTTPError):
+    if isinstance(error, httpx2.HTTPError):
         return f"cannot reach the DHIS2 instance: {error or type(error).__name__}"
     return str(error) or type(error).__name__
 
@@ -1630,7 +1630,7 @@ def _capture_order(forms: Sequence[_ServedResource]) -> list[_ServedResource]:
     )
 
 
-async def _capture_one(http: httpx.AsyncClient, form: _ServedResource, index: int) -> CaptureOutcome:
+async def _capture_one(http: httpx2.AsyncClient, form: _ServedResource, index: int) -> CaptureOutcome:
     """Generate one response to one served form and post it back, grading whatever the endpoint answered."""
     subject = f"Questionnaire/{form.resource_id}"
     seed = (CAPTURE_SEED_BASE + index) % _CAPTURE_SEED_MODULUS
@@ -1672,7 +1672,7 @@ async def _capture_one(http: httpx.AsyncClient, form: _ServedResource, index: in
     return CaptureOutcome(generated=True, accepted=True)
 
 
-def _outcome_diagnostics(response: httpx.Response) -> str:
+def _outcome_diagnostics(response: httpx2.Response) -> str:
     """What an OperationOutcome said, or the body as it arrived when it is not one."""
     try:
         body: Any = response.json()

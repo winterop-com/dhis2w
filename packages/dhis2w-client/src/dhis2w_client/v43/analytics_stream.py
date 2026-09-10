@@ -111,7 +111,7 @@ class AnalyticsAccessor:
 
         `endpoint` is the full path including extension + sub-resource
         (`/api/analytics.csv`, `/api/analytics/rawData.json`, ...).
-        `client.system.info()` uses the same httpx pool, so auth + retry +
+        `client.system.info()` uses the same httpx2 pool, so auth + retry +
         pool-tuning all still apply.
 
         Raises `Dhis2ApiError` on 4xx / 5xx (the error body is buffered —

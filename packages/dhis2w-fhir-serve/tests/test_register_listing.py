@@ -20,6 +20,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -108,7 +109,7 @@ async def listing_client(
     capture_project: FhirProject,
     listing_profile: Profile,
     tracked_entities: TrackedEntitiesConfig,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the capture guide, holding a DHIS2 client against the mocked host.
 
     The compiled store plus a client on `app.state.live_client` is the same stand-in for a live run
@@ -127,8 +128,8 @@ async def listing_client(
             open_client(listing_profile) as dhis2,
         ):
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
@@ -160,7 +161,7 @@ def _cursor(url: str) -> ListingCursor:
     return ListingCursor.from_token(_parameters(url)["page"])
 
 
-async def test_the_first_page_is_the_first_people_of_the_first_type(listing_client: httpx.AsyncClient) -> None:
+async def test_the_first_page_is_the_first_people_of_the_first_type(listing_client: httpx2.AsyncClient) -> None:
     """A request naming no identifier is the register, one page of it, in DHIS2's own order."""
     route = respx.get(_TRACKER_URL).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), _person("PerBbb00002"), total=2))
@@ -180,7 +181,7 @@ async def test_the_first_page_is_the_first_people_of_the_first_type(listing_clie
     assert "filter" not in parameters
 
 
-async def test_the_second_page_is_reached_by_following_the_next_link(listing_client: httpx.AsyncClient) -> None:
+async def test_the_second_page_is_reached_by_following_the_next_link(listing_client: httpx2.AsyncClient) -> None:
     """The two-page walk: `next` leads to page two, whose `previous` leads back to page one."""
     respx.get(_TRACKER_URL, params__contains={"page": "1"}).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=2))
@@ -202,7 +203,7 @@ async def test_the_second_page_is_reached_by_following_the_next_link(listing_cli
     assert _cursor(_link(second, "self") or "") == ListingCursor(type_index=0, upstream_page=2)
 
 
-async def test_every_link_names_the_page_and_the_count_it_leads_to(listing_client: httpx.AsyncClient) -> None:
+async def test_every_link_names_the_page_and_the_count_it_leads_to(listing_client: httpx2.AsyncClient) -> None:
     """A link a client follows carries the whole query, so following it twice answers the same page."""
     respx.get(_TRACKER_URL).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=3))
@@ -218,7 +219,7 @@ async def test_every_link_names_the_page_and_the_count_it_leads_to(listing_clien
     assert (_link(body, "self") or "").startswith(f"{_BASE_URL}/Patient?")
 
 
-async def test_a_count_above_the_projects_limit_is_served_the_limit(listing_client: httpx.AsyncClient) -> None:
+async def test_a_count_above_the_projects_limit_is_served_the_limit(listing_client: httpx2.AsyncClient) -> None:
     """R4 lets a server answer with fewer than were asked for, so an over-large `_count` is clamped."""
     route = respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 
@@ -228,7 +229,7 @@ async def test_a_count_above_the_projects_limit_is_served_the_limit(listing_clie
     assert _parameters(_link(body, "self") or "")["_count"] == "100"
 
 
-async def test_a_count_that_is_not_a_number_of_people_is_refused(listing_client: httpx.AsyncClient) -> None:
+async def test_a_count_that_is_not_a_number_of_people_is_refused(listing_client: httpx2.AsyncClient) -> None:
     """An ambitious `_count` is served what it can have; a malformed one is a malformed query."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 
@@ -241,7 +242,7 @@ async def test_a_count_that_is_not_a_number_of_people_is_refused(listing_client:
     assert negative.json()["issue"][0]["code"] == "invalid"
 
 
-async def test_a_count_of_zero_answers_how_large_the_register_is(listing_client: httpx.AsyncClient) -> None:
+async def test_a_count_of_zero_answers_how_large_the_register_is(listing_client: httpx2.AsyncClient) -> None:
     """`_count=0` asks how many people the instance holds, and is answered with that and nobody."""
     counted = respx.get(_TRACKER_URL).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=137))
@@ -259,7 +260,7 @@ async def test_a_count_of_zero_answers_how_large_the_register_is(listing_client:
     assert counted.calls[0].request.url.params["pageSize"] == "1"
 
 
-async def test_a_listing_parameter_this_server_cannot_answer_is_refused(listing_client: httpx.AsyncClient) -> None:
+async def test_a_listing_parameter_this_server_cannot_answer_is_refused(listing_client: httpx2.AsyncClient) -> None:
     """The listing takes `_count` and `page` and nothing else - a filter it cannot apply is refused."""
     tracker = respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 
@@ -273,7 +274,7 @@ async def test_a_listing_parameter_this_server_cannot_answer_is_refused(listing_
     assert not tracker.called
 
 
-async def test_a_bare_listing_is_untouched_by_the_refusal(listing_client: httpx.AsyncClient) -> None:
+async def test_a_bare_listing_is_untouched_by_the_refusal(listing_client: httpx2.AsyncClient) -> None:
     """A request naming no parameter at all is the listing, exactly as it was."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), total=1)))
 
@@ -283,7 +284,7 @@ async def test_a_bare_listing_is_untouched_by_the_refusal(listing_client: httpx.
     assert [entry["resource"]["id"] for entry in response.json()["entry"]] == ["PerAaa00001"]
 
 
-async def test_a_page_token_this_server_did_not_mint_is_refused(listing_client: httpx.AsyncClient) -> None:
+async def test_a_page_token_this_server_did_not_mint_is_refused(listing_client: httpx2.AsyncClient) -> None:
     """`page` is a link to follow, not a number to compose, and a hand-written one says so."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 
@@ -293,7 +294,7 @@ async def test_a_page_token_this_server_did_not_mint_is_refused(listing_client: 
     assert "next" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_the_total_is_the_one_the_instance_stated(listing_client: httpx.AsyncClient) -> None:
+async def test_the_total_is_the_one_the_instance_stated(listing_client: httpx2.AsyncClient) -> None:
     """One type in scope, so the type's total is the searchset's, and the Bundle carries it."""
     respx.get(_TRACKER_URL).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=643))
@@ -307,7 +308,7 @@ async def test_the_total_is_the_one_the_instance_stated(listing_client: httpx.As
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, _HOUSEHOLD_TYPE_UID])],
 )
 async def test_the_cursor_crosses_from_one_tracked_entity_type_to_the_next(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """Two types are two pagings walked in the declared order, and a client sees one listing."""
     person = respx.get(_TRACKER_URL, params__contains={"trackedEntityType": REGISTRATION_TRACKED_ENTITY_TYPE_UID}).mock(
@@ -337,7 +338,7 @@ async def test_the_cursor_crosses_from_one_tracked_entity_type_to_the_next(
     "tracked_entities",
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, _HOUSEHOLD_TYPE_UID])],
 )
-async def test_a_searchset_over_several_types_sums_the_total_of_each(listing_client: httpx.AsyncClient) -> None:
+async def test_a_searchset_over_several_types_sums_the_total_of_each(listing_client: httpx2.AsyncClient) -> None:
     """DHIS2 counts one type at a time, so the searchset's total is asked for once per type and summed."""
     person = respx.get(_TRACKER_URL, params__contains={"trackedEntityType": REGISTRATION_TRACKED_ENTITY_TYPE_UID}).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=643))
@@ -359,7 +360,7 @@ async def test_a_searchset_over_several_types_sums_the_total_of_each(listing_cli
     "tracked_entities",
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, _HOUSEHOLD_TYPE_UID])],
 )
-async def test_a_deeper_page_reuses_the_total_the_first_page_counted(listing_client: httpx.AsyncClient) -> None:
+async def test_a_deeper_page_reuses_the_total_the_first_page_counted(listing_client: httpx2.AsyncClient) -> None:
     """The count is spent once per walk: the page token carries the figure the links hand forward."""
     respx.get(_TRACKER_URL, params__contains={"trackedEntityType": REGISTRATION_TRACKED_ENTITY_TYPE_UID}).mock(
         return_value=httpx.Response(200, json=_tracker_page(_person("PerAaa00001"), page=1, page_size=1, total=1))
@@ -388,7 +389,7 @@ async def test_a_deeper_page_reuses_the_total_the_first_page_counted(listing_cli
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, _HOUSEHOLD_TYPE_UID])],
 )
 async def test_a_type_the_instance_states_no_total_for_leaves_the_searchset_stating_none(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """A sum missing one of its terms is not a total, and a partial number would be worse than none."""
     respx.get(_TRACKER_URL, params__contains={"trackedEntityType": REGISTRATION_TRACKED_ENTITY_TYPE_UID}).mock(
@@ -408,7 +409,7 @@ async def test_a_type_the_instance_states_no_total_for_leaves_the_searchset_stat
     [TrackedEntitiesConfig(tracked_entity_types=[_HOUSEHOLD_TYPE_UID, REGISTRATION_TRACKED_ENTITY_TYPE_UID])],
 )
 async def test_a_configured_type_holding_nobody_is_skipped_rather_than_served_empty(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """A `next` link never lands on an empty page while people remain further down the type list."""
     respx.get(_TRACKER_URL, params__contains={"trackedEntityType": _HOUSEHOLD_TYPE_UID}).mock(
@@ -425,7 +426,7 @@ async def test_a_configured_type_holding_nobody_is_skipped_rather_than_served_em
     assert _link(body, "previous") is None
 
 
-async def test_a_register_holding_nobody_is_an_empty_searchset(listing_client: httpx.AsyncClient) -> None:
+async def test_a_register_holding_nobody_is_an_empty_searchset(listing_client: httpx2.AsyncClient) -> None:
     """Nobody in the instance is an empty Bundle, not a 404 - the endpoint exists either way."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 
@@ -440,7 +441,7 @@ async def test_a_register_holding_nobody_is_an_empty_searchset(listing_client: h
     "tracked_entities",
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, _HOUSEHOLD_TYPE_UID])],
 )
-async def test_an_explicit_type_list_scopes_the_identifier_search_too(listing_client: httpx.AsyncClient) -> None:
+async def test_an_explicit_type_list_scopes_the_identifier_search_too(listing_client: httpx2.AsyncClient) -> None:
     """The table restricts what this server answers about, and a search answers about no more than it."""
     respx.get(f"{_TRACKER_URL}/NOBODY00001").mock(return_value=httpx.Response(404, json={"status": "ERROR"}))
     search = respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json={"trackedEntities": []}))
@@ -459,7 +460,7 @@ async def test_an_explicit_type_list_scopes_the_identifier_search_too(listing_cl
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(search_attributes=[REGISTRATION_DATE_ATTRIBUTE])])
 async def test_named_search_attributes_are_the_identifier_keys_unique_or_not(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """The operator naming an attribute has said it names a person here, whatever DHIS2 enforces."""
     respx.get(f"{_TRACKER_URL}/1994-03-02").mock(return_value=httpx.Response(404, json={"status": "ERROR"}))
@@ -478,7 +479,7 @@ async def test_named_search_attributes_are_the_identifier_keys_unique_or_not(
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(listing=False)])
 async def test_listing_off_refuses_the_bare_search_and_leaves_identifier_search_alone(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """The one request `listing = false` refuses is the one that means everybody."""
     respx.get(f"{_TRACKER_URL}/NOBODY00001").mock(return_value=httpx.Response(404, json={"status": "ERROR"}))
@@ -498,7 +499,7 @@ async def test_listing_off_refuses_the_bare_search_and_leaves_identifier_search_
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(enabled=False)])
 async def test_the_surface_switched_off_refuses_every_route_it_covers(
-    listing_client: httpx.AsyncClient,
+    listing_client: httpx2.AsyncClient,
 ) -> None:
     """`enabled = false` is the whole register, the enrollment listing beside the FHIR routes."""
     tracker = respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json={"trackedEntities": []}))
@@ -569,7 +570,7 @@ def _unknown_type_refusal() -> httpx.Response:
 
 
 @pytest.mark.parametrize("tracked_entities", [TrackedEntitiesConfig(tracked_entity_types=["Zz9QqWwEe11"])])
-async def test_a_configured_type_the_instance_does_not_hold_lists_nobody(listing_client: httpx.AsyncClient) -> None:
+async def test_a_configured_type_the_instance_does_not_hold_lists_nobody(listing_client: httpx2.AsyncClient) -> None:
     """A mistyped tracked_entity_types uid is a surface that finds nobody, never a dead one."""
     respx.get(_TRACKER_URL).mock(return_value=_unknown_type_refusal())
 
@@ -586,7 +587,7 @@ async def test_a_configured_type_the_instance_does_not_hold_lists_nobody(listing
     "tracked_entities",
     [TrackedEntitiesConfig(tracked_entity_types=[REGISTRATION_TRACKED_ENTITY_TYPE_UID, "Zz9QqWwEe11"])],
 )
-async def test_a_bad_type_late_in_the_list_does_not_kill_the_walk(listing_client: httpx.AsyncClient) -> None:
+async def test_a_bad_type_late_in_the_list_does_not_kill_the_walk(listing_client: httpx2.AsyncClient) -> None:
     """The listing serves the types the instance holds and skips past the one it does not."""
     respx.get(_TRACKER_URL, params__contains={"trackedEntityType": "Zz9QqWwEe11"}).mock(
         return_value=_unknown_type_refusal()

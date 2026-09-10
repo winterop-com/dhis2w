@@ -36,6 +36,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -216,20 +217,20 @@ def probe_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Profile:
 
 
 @pytest.fixture
-async def live_facade(capture_project: FhirProject, probe_profile: Profile) -> AsyncIterator[httpx.AsyncClient]:
+async def live_facade(capture_project: FhirProject, probe_profile: Profile) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the capture guide with the default `[serve.search] backend = "dhis2"`."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
         app: FastAPI = create_app(ServeSettings(project_dir=capture_project.project_root))
         async with app.router.lifespan_context(app), open_client(probe_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 @pytest.fixture
-async def synced_facade(capture_project: FhirProject, probe_profile: Profile) -> AsyncIterator[httpx.AsyncClient]:
+async def synced_facade(capture_project: FhirProject, probe_profile: Profile) -> AsyncIterator[httpx2.AsyncClient]:
     """The same facade under `backend = "projection"`, over a projection holding both people."""
     projection = ProjectionConfig(store=ProjectionBackend.SQLITE, path=".serve/projection.sqlite")
     store = SqliteProjectionStore(capture_project.project_root / projection.path)
@@ -252,13 +253,13 @@ async def synced_facade(capture_project: FhirProject, probe_profile: Profile) ->
         )
         async with app.router.lifespan_context(app), open_client(probe_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
     await store.close()
 
 
-async def test_the_live_register_narrows_to_who_holds_the_value(live_facade: httpx.AsyncClient) -> None:
+async def test_the_live_register_narrows_to_who_holds_the_value(live_facade: httpx2.AsyncClient) -> None:
     """One filter, one tracker query: the whole register asked for the people holding one value."""
     filtered = respx.get(_TRACKER_URL, params__contains={"filter": f"{REGISTRATION_CODED_ATTRIBUTE}:eq:Female"}).mock(
         return_value=httpx.Response(200, json=_tracker_page(_WOMAN, total=1))
@@ -277,7 +278,7 @@ async def test_the_live_register_narrows_to_who_holds_the_value(live_facade: htt
     assert unfiltered.called and filtered.called
 
 
-async def test_the_projection_narrows_to_who_holds_the_value(synced_facade: httpx.AsyncClient) -> None:
+async def test_the_projection_narrows_to_who_holds_the_value(synced_facade: httpx2.AsyncClient) -> None:
     """The same question of the store: the value index the sync wrote answers it, one query."""
     _read_route(_WOMAN)
     _read_route(_MAN)
@@ -291,7 +292,7 @@ async def test_the_projection_narrows_to_who_holds_the_value(synced_facade: http
     assert not collection.calls, "the membership came from the projection, so no tracker search went out"
 
 
-async def test_two_filters_are_the_people_holding_both(live_facade: httpx.AsyncClient) -> None:
+async def test_two_filters_are_the_people_holding_both(live_facade: httpx2.AsyncClient) -> None:
     """Occurrences narrow: both expressions ride one tracker query, which is where they are ANDed."""
     route = respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(_WOMAN, total=1)))
 
@@ -307,7 +308,7 @@ async def test_two_filters_are_the_people_holding_both(live_facade: httpx.AsyncC
     ]
 
 
-async def test_two_filters_narrow_the_projection_to_who_holds_both(synced_facade: httpx.AsyncClient) -> None:
+async def test_two_filters_narrow_the_projection_to_who_holds_both(synced_facade: httpx2.AsyncClient) -> None:
     """The same narrowing in the store: a person holding one value and not the other is not a match."""
     _read_route(_WOMAN)
     _read_route(_MAN)
@@ -324,7 +325,7 @@ async def test_two_filters_narrow_the_projection_to_who_holds_both(synced_facade
     assert _ids(contradictory.json()) == [], "nobody is both, because two occurrences narrow rather than widen"
 
 
-async def test_the_filter_composes_with_a_type_and_an_identifier(synced_facade: httpx.AsyncClient) -> None:
+async def test_the_filter_composes_with_a_type_and_an_identifier(synced_facade: httpx2.AsyncClient) -> None:
     """`_tag` chooses the type, `identifier` chooses the person, and the filter still has to hold."""
     _read_route(_WOMAN)
     _read_route(_MAN)
@@ -346,7 +347,7 @@ async def test_the_filter_composes_with_a_type_and_an_identifier(synced_facade: 
     assert _ids(contradicted.json()) == [], "the woman is named by the identifier and excluded by the filter"
 
 
-async def test_a_live_identifier_search_still_answers_the_filter(live_facade: httpx.AsyncClient) -> None:
+async def test_a_live_identifier_search_still_answers_the_filter(live_facade: httpx2.AsyncClient) -> None:
     """Live, the filter is read off the record the search already carried back rather than asked again."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(_WOMAN)))
     _read_route(_WOMAN)
@@ -363,7 +364,7 @@ async def test_a_live_identifier_search_still_answers_the_filter(live_facade: ht
     assert _ids(missed.json()) == []
 
 
-async def test_the_filter_rides_the_paging_links_and_the_count(live_facade: httpx.AsyncClient) -> None:
+async def test_the_filter_rides_the_paging_links_and_the_count(live_facade: httpx2.AsyncClient) -> None:
     """A walk stays inside the filter it started in, and `_count=0` counts the filtered register."""
     counted = respx.get(_TRACKER_URL, params__contains={"fields": "trackedEntity"}).mock(
         return_value=httpx.Response(200, json=_tracker_page(page=1, page_size=1, total=2))
@@ -387,7 +388,7 @@ async def test_the_filter_rides_the_paging_links_and_the_count(live_facade: http
 
 
 async def test_the_filter_matches_a_whole_value_and_forgives_only_its_case(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """Equality is all it answers - a prefix finds nobody - and case is all it forgives (BUGS.md 109)."""
     _read_route(_WOMAN)
@@ -401,7 +402,7 @@ async def test_the_filter_matches_a_whole_value_and_forgives_only_its_case(
 
 
 async def test_an_attribute_this_register_does_not_filter_on_is_refused_by_name(
-    live_facade: httpx.AsyncClient,
+    live_facade: httpx2.AsyncClient,
 ) -> None:
     """The refusal names the declared set, because an empty searchset would read as "nobody holds it"."""
     tracker = respx.get(_TRACKER_URL)
@@ -416,7 +417,7 @@ async def test_an_attribute_this_register_does_not_filter_on_is_refused_by_name(
     assert not tracker.called, "an unanswerable question is refused before the instance is asked anything"
 
 
-async def test_a_filter_naming_no_attribute_is_refused(live_facade: httpx.AsyncClient) -> None:
+async def test_a_filter_naming_no_attribute_is_refused(live_facade: httpx2.AsyncClient) -> None:
     """A bare value names no attribute, and looking for it everywhere would match the wrong thing."""
     response = await live_facade.get("/Patient?d2-attribute=Female")
 
@@ -424,7 +425,7 @@ async def test_a_filter_naming_no_attribute_is_refused(live_facade: httpx.AsyncC
     assert "matches that value exactly" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_each_register_filters_on_its_own_types_attributes(live_facade: httpx.AsyncClient) -> None:
+async def test_each_register_filters_on_its_own_types_attributes(live_facade: httpx2.AsyncClient) -> None:
     """A sample is filtered by what a sample's form asks, and a person's attribute is refused there."""
     respx.get(_TRACKER_URL).mock(return_value=httpx.Response(200, json=_tracker_page(total=0)))
 

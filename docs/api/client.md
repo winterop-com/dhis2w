@@ -1,6 +1,6 @@
 # Client + lifecycle
 
-The async `Dhis2Client` is the entry point for every DHIS2 call. It owns the httpx connection pool, performs the version handshake on connect, binds the matching generated accessors, and exposes raw HTTP escape hatches for endpoints that don't have a typed wrapper yet.
+The async `Dhis2Client` is the entry point for every DHIS2 call. It owns the httpx2 connection pool, performs the version handshake on connect, binds the matching generated accessors, and exposes raw HTTP escape hatches for endpoints that don't have a typed wrapper yet.
 
 ## When to reach for it
 
@@ -14,7 +14,7 @@ The async `Dhis2Client` is the entry point for every DHIS2 call. It owns the htt
 import asyncio
 from dhis2w_client import BasicAuth, Dhis2Client, RetryPolicy
 
-import httpx
+import httpx2
 
 
 async def main() -> None:
@@ -23,7 +23,7 @@ async def main() -> None:
         base_url="https://play.im.dhis2.org/dev-2-43",
         auth=BasicAuth("admin", "district"),
         retry_policy=RetryPolicy(),  # 429/5xx + connection errors
-        http_limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        http_limits=httpx2.Limits(max_connections=20, max_keepalive_connections=10),
     ) as client:
         print(f"version_key  = {client.version_key}")  # 'v42' / 'v43' / 'v41'
         print(f"raw_version  = {client.raw_version}")  # '2.43.0' etc.
@@ -57,7 +57,7 @@ When an endpoint doesn't have a typed wrapper yet (or you want the literal wire 
 - `await client.patch_raw(path, body=...)` -> `dict[str, Any]`
 - `await client.delete_raw(path)` -> `dict[str, Any]`
 - `await client.get(path, model=MyBaseModel)` -> typed via your own pydantic model
-- `await client.get_response(path, params=..., extra_headers=...)` -> `httpx.Response` (no raise on 4xx/5xx)
+- `await client.get_response(path, params=..., extra_headers=...)` -> `httpx2.Response` (no raise on 4xx/5xx)
 - `await client.stream(method, path, sink, params=...)` -> bytes written; the body goes chunk by chunk to a `Path`, a `.write(bytes)` object, or a chunk callable, never into memory
 
 Keep the use of raw helpers narrow — every typed accessor `client.X.Y()` is preferable for production code (the typed return is what makes the rest of the codebase work). The architecture page [Client library](../architecture/client.md) covers the lifecycle states (`unconnected -> connecting -> connected -> closed`) and how `connect()` binds the version-specific accessors.
@@ -68,7 +68,7 @@ Keep the use of raw helpers narrow — every typed accessor `client.X.Y()` is pr
 
 The defaults (`verify=True`, full version probe on `connect()`, raise on 4xx/5xx) suit typed-accessor flows. Three opt-in kwargs unlock other shapes:
 
-- `verify: bool | str = True` — TLS certificate verification. Threaded through the main httpx pool plus the canonical-URL and DHIS2-shape probes. Pass `False` for self-signed staging boxes or a path to a custom CA bundle.
+- `verify: bool | str = True` — TLS certificate verification. Threaded through the main httpx2 pool plus the canonical-URL and DHIS2-shape probes. Pass `False` for self-signed staging boxes, or the path to a custom CA bundle — a string path becomes an `ssl.SSLContext` (via `dhis2w_client._tls`) before it reaches httpx2. With `True`, verification reads the operating system trust store, and `SSL_CERT_FILE` / `SSL_CERT_DIR` are honoured first when set.
 - `skip_version_probe: bool = False` — when `True`, `connect()` opens the HTTP pool without the canonical-URL probe or the `/api/system/info` round-trip and returns. `version_key`, `raw_version`, and `resources` raise on access (the generated tree never binds), so only the raw-path methods (`get_raw`, `post_raw`, `get_response`, etc.) are usable. Suits health-checkers that want to *report* on those endpoints, very-low-privilege PATs that can't read `/api/system/info`, and tests injecting a mock transport.
 
 See `examples/client/health_check.py` for the full health-checker pattern.

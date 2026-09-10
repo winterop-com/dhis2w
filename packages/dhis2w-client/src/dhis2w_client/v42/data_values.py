@@ -9,7 +9,7 @@ whole body in Python memory before the POST is the thing to avoid:
   request.
 - The same payload on CSV is ~8 MB; XML is in between.
 
-`client.data_values.stream(source, content_type)` feeds httpx's chunked
+`client.data_values.stream(source, content_type)` feeds httpx2's chunked
 transfer encoding directly, so the payload never sits fully in memory
 on the client side. The server consumes it as it arrives.
 
@@ -263,7 +263,7 @@ class DataValuesAccessor:
 def _coerce_stream_source(source: StreamSource, *, chunk_size: int) -> bytes | AsyncIterable[bytes]:
     """Map `StreamSource` to an httpx-compatible `content=` shape.
 
-    `httpx.AsyncClient` requires streamed bodies to be `AsyncIterable[bytes]`
+    `httpx2.AsyncClient` requires streamed bodies to be `AsyncIterable[bytes]`
     (sync iterables are rejected). Every non-bytes source normalises to an
     async iterator that yields chunks; single-shot bytes pass through
     unchanged for the common "already have the body" case.
@@ -287,7 +287,7 @@ async def _async_file_chunks(path: Path, *, chunk_size: int) -> AsyncIterator[by
     """Yield `chunk_size` bytes at a time from `path` via an async iterator.
 
     File IO itself is synchronous (Python's stdlib can't do true async file
-    reads without `aiofiles`); the async iterator surface is what httpx's
+    reads without `aiofiles`); the async iterator surface is what httpx2's
     streamed-upload path requires.
     """
     with path.open("rb") as handle:
@@ -299,7 +299,7 @@ async def _async_file_chunks(path: Path, *, chunk_size: int) -> AsyncIterator[by
 
 
 def _sync_to_async(source: Iterable[bytes]) -> AsyncIterator[bytes]:
-    """Wrap a sync iterable as async — needed for httpx.AsyncClient streaming."""
+    """Wrap a sync iterable as async — needed for httpx2.AsyncClient streaming."""
 
     async def _generator() -> AsyncIterator[bytes]:
         for chunk in source:
@@ -309,7 +309,7 @@ def _sync_to_async(source: Iterable[bytes]) -> AsyncIterator[bytes]:
 
 
 async def _passthrough_async(source: AsyncIterable[bytes]) -> AsyncIterator[bytes]:
-    """Adapt an async iterable into one that httpx consumes."""
+    """Adapt an async iterable into one that httpx2 consumes."""
     async for chunk in source:
         yield bytes(chunk)
 

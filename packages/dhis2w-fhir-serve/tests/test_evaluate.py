@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir_serve.evaluation import EvaluationLanguage, evaluate_source, json_safe
 
@@ -57,7 +57,7 @@ def one_define(source: str, name: str) -> str:
     return f"library Probe version '1.0'\nusing FHIR version '4.0.1'\ndefine {name}: {source}"
 
 
-async def test_a_fhirpath_expression_answers_the_collection_it_matched(client: httpx.AsyncClient) -> None:
+async def test_a_fhirpath_expression_answers_the_collection_it_matched(client: httpx2.AsyncClient) -> None:
     """The whole point: an expression over a posted resource, answered as JSON a browser can render."""
     answered = await client.post(
         "/facade/evaluate",
@@ -74,7 +74,7 @@ async def test_a_fhirpath_expression_answers_the_collection_it_matched(client: h
     assert body["diagnostics"] == []
 
 
-async def test_an_expression_that_matches_nothing_answers_an_empty_collection(client: httpx.AsyncClient) -> None:
+async def test_an_expression_that_matches_nothing_answers_an_empty_collection(client: httpx2.AsyncClient) -> None:
     """Empty is an answer and is not a refusal - the two states stay apart all the way to the wire."""
     answered = await client.post(
         "/facade/evaluate",
@@ -88,7 +88,7 @@ async def test_an_expression_that_matches_nothing_answers_an_empty_collection(cl
     assert answered.json()["results"] == [{"name": "expression", "values": [], "refusal": None}]
 
 
-async def test_an_expression_that_will_not_parse_answers_where_it_stopped(client: httpx.AsyncClient) -> None:
+async def test_an_expression_that_will_not_parse_answers_where_it_stopped(client: httpx2.AsyncClient) -> None:
     """A parse failure is 200 with a position, because the request was well formed and this is its answer."""
     answered = await client.post(
         "/facade/evaluate",
@@ -109,7 +109,7 @@ async def test_an_expression_that_will_not_parse_answers_where_it_stopped(client
 
 
 async def test_a_parse_message_names_the_problem_without_listing_every_legal_token(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """An unclosed call is "mismatched input '<EOF>'" and nothing else - not ANTLR's whole token set."""
     answered = await client.post(
@@ -129,7 +129,7 @@ async def test_a_parse_message_names_the_problem_without_listing_every_legal_tok
     assert "IDENTIFIER" not in diagnostic["message"]
 
 
-async def test_a_cql_library_answers_one_row_per_define(client: httpx.AsyncClient) -> None:
+async def test_a_cql_library_answers_one_row_per_define(client: httpx2.AsyncClient) -> None:
     """Every define the library declares, in declaration order, with the retrieves read off the Bundle."""
     answered = await client.post(
         "/facade/evaluate",
@@ -144,7 +144,7 @@ async def test_a_cql_library_answers_one_row_per_define(client: httpx.AsyncClien
     assert named["People"][0]["id"] == "ada"
 
 
-async def test_one_define_can_be_asked_for_by_name(client: httpx.AsyncClient) -> None:
+async def test_one_define_can_be_asked_for_by_name(client: httpx2.AsyncClient) -> None:
     """`expression_name` narrows the answer to the one define a caller wanted."""
     answered = await client.post(
         "/facade/evaluate",
@@ -159,7 +159,7 @@ async def test_one_define_can_be_asked_for_by_name(client: httpx.AsyncClient) ->
     assert answered.json()["results"] == [{"name": "Greeting", "values": ["hello"], "refusal": None}]
 
 
-async def test_a_define_the_library_does_not_declare_is_said_so(client: httpx.AsyncClient) -> None:
+async def test_a_define_the_library_does_not_declare_is_said_so(client: httpx2.AsyncClient) -> None:
     """A name nothing answers is a diagnostic, not an empty row that reads as a define answering nothing."""
     answered = await client.post(
         "/facade/evaluate",
@@ -177,7 +177,7 @@ async def test_a_define_the_library_does_not_declare_is_said_so(client: httpx.As
     assert "declares no define" in diagnostic["message"]
 
 
-async def test_a_single_resource_context_is_still_retrievable(client: httpx.AsyncClient) -> None:
+async def test_a_single_resource_context_is_still_retrievable(client: httpx2.AsyncClient) -> None:
     """`[Patient]` finds a Patient that was handed in on its own, rather than answering an empty list."""
     answered = await client.post(
         "/facade/evaluate",
@@ -192,7 +192,7 @@ async def test_a_single_resource_context_is_still_retrievable(client: httpx.Asyn
 
 
 async def test_a_bundle_is_data_rather_than_a_context_so_a_retrieve_reads_it_whole(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """A Bundle names no context resource, so `[Condition]` answers every Condition it carries."""
     other = {"resourceType": "Condition", "id": "c2", "subject": {"reference": "Patient/someone-else"}}
@@ -211,7 +211,7 @@ async def test_a_bundle_is_data_rather_than_a_context_so_a_retrieve_reads_it_who
     assert [row["id"] for row in answered.json()["results"][0]["values"]] == ["c1", "c2"]
 
 
-async def test_a_non_patient_context_with_an_id_answers_the_context_resource(client: httpx.AsyncClient) -> None:
+async def test_a_non_patient_context_with_an_id_answers_the_context_resource(client: httpx2.AsyncClient) -> None:
     """The three-call proof, second call: an Observation carrying an id is retrievable under itself."""
     answered = await client.post(
         "/facade/evaluate",
@@ -226,7 +226,7 @@ async def test_a_non_patient_context_with_an_id_answers_the_context_resource(cli
 
 
 async def test_the_same_context_resource_answers_the_same_with_its_id_taken_off(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """The three-call proof, third call: an id on the context resource changes no answer."""
     without_id = {key: value for key, value in OBSERVATION.items() if key != "id"}
@@ -242,7 +242,7 @@ async def test_the_same_context_resource_answers_the_same_with_its_id_taken_off(
     assert answered.json()["results"] == [{"name": "Any", "values": [True], "refusal": None}]
 
 
-async def test_a_stored_questionnaire_is_retrievable_under_its_own_context(client: httpx.AsyncClient) -> None:
+async def test_a_stored_questionnaire_is_retrievable_under_its_own_context(client: httpx2.AsyncClient) -> None:
     """What the guide's own CQL examples ask: a retrieve for the stored resource the context names."""
     answered = await client.post(
         "/facade/evaluate",
@@ -256,7 +256,7 @@ async def test_a_stored_questionnaire_is_retrievable_under_its_own_context(clien
     assert [row["id"] for row in answered.json()["results"][0]["values"]] == ["d2-pr-anc-visit-q"]
 
 
-async def test_an_elm_library_runs_from_the_json_it_arrived_as(client: httpx.AsyncClient) -> None:
+async def test_an_elm_library_runs_from_the_json_it_arrived_as(client: httpx2.AsyncClient) -> None:
     """ELM is parsed here rather than by the engine, which is what keeps a file path out of the source."""
     answered = await client.post(
         "/facade/evaluate",
@@ -274,7 +274,7 @@ async def test_an_elm_library_runs_from_the_json_it_arrived_as(client: httpx.Asy
     assert answered.json()["results"] == [{"name": "Sum", "values": [3], "refusal": None}]
 
 
-async def test_an_elm_source_naming_a_file_is_json_that_will_not_parse(client: httpx.AsyncClient) -> None:
+async def test_an_elm_source_naming_a_file_is_json_that_will_not_parse(client: httpx2.AsyncClient) -> None:
     """The sandbox, asserted: a path where a library should be is a parse failure, never a file that opens."""
     answered = await client.post("/facade/evaluate", json={"language": "elm", "source": "/etc/passwd"})
 
@@ -283,7 +283,7 @@ async def test_an_elm_source_naming_a_file_is_json_that_will_not_parse(client: h
     assert answered.json()["results"] == []
 
 
-async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx.AsyncClient) -> None:
+async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx2.AsyncClient) -> None:
     """The context a guide's own author reaches for: a published resource, named the way a read names it."""
     answered = await client.post(
         "/facade/evaluate",
@@ -298,7 +298,7 @@ async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx.A
 
 
 async def test_a_stored_resource_this_server_does_not_hold_is_an_operation_outcome(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """A request this facade cannot serve is a refusal in FHIR's own words, unlike a bad expression."""
     answered = await client.post(
@@ -314,7 +314,7 @@ async def test_a_stored_resource_this_server_does_not_hold_is_an_operation_outco
     assert answered.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_a_register_context_says_this_process_holds_no_instance(client: httpx.AsyncClient) -> None:
+async def test_a_register_context_says_this_process_holds_no_instance(client: httpx2.AsyncClient) -> None:
     """The register context is live-only, and refuses in the register's own words rather than in a traceback."""
     answered = await client.post(
         "/facade/evaluate",
@@ -330,7 +330,7 @@ async def test_a_register_context_says_this_process_holds_no_instance(client: ht
 
 
 async def test_a_context_this_endpoint_does_not_offer_is_refused_before_anything_runs(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """Three kinds and no fourth: a request naming one that does not exist never reaches the engine."""
     answered = await client.post(

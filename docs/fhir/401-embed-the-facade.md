@@ -47,8 +47,8 @@ from dhis2w_fhir_serve import ServeSettings, create_app
 application = create_app(ServeSettings(project_dir=project_root, live=True))
 
 async with application.router.lifespan_context(application):
-    transport = httpx.ASGITransport(app=application)
-    async with httpx.AsyncClient(transport=transport, base_url="http://embedded") as client:
+    transport = httpx2.ASGITransport(app=application)
+    async with httpx2.AsyncClient(transport=transport, base_url="http://embedded") as client:
         capability = (await client.get("/metadata")).raise_for_status().json()
 ```
 

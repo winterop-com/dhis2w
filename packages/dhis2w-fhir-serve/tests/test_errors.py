@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 
-import httpx
+import httpx2
 import pytest
 from fastapi import FastAPI
 from starlette.responses import Response
@@ -29,15 +29,15 @@ def app(app: FastAPI) -> FastAPI:
 
 
 @pytest.fixture
-async def tolerant_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def tolerant_client(app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """A client that reads the 500 the handler wrote instead of re-raising the route's exception."""
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
-async def test_unknown_resource_type_is_not_supported(client: httpx.AsyncClient) -> None:
+async def test_unknown_resource_type_is_not_supported(client: httpx2.AsyncClient) -> None:
     response = await client.get("/Patient")
 
     assert response.status_code == 404
@@ -45,14 +45,14 @@ async def test_unknown_resource_type_is_not_supported(client: httpx.AsyncClient)
     assert response.json()["issue"][0]["code"] == "not-supported"
 
 
-async def test_unknown_id_is_not_found(client: httpx.AsyncClient) -> None:
+async def test_unknown_id_is_not_found(client: httpx2.AsyncClient) -> None:
     response = await client.get("/Questionnaire/missing")
 
     assert response.status_code == 404
     assert response.json()["issue"][0]["code"] == "not-found"
 
 
-async def test_unroutable_path_is_not_found(client: httpx.AsyncClient) -> None:
+async def test_unroutable_path_is_not_found(client: httpx2.AsyncClient) -> None:
     response = await client.get("/Questionnaire/one/two")
 
     assert response.status_code == 404
@@ -60,7 +60,7 @@ async def test_unroutable_path_is_not_found(client: httpx.AsyncClient) -> None:
     assert response.json()["issue"][0]["code"] == "not-found"
 
 
-async def test_an_unreadable_search_parameter_is_invalid(client: httpx.AsyncClient) -> None:
+async def test_an_unreadable_search_parameter_is_invalid(client: httpx2.AsyncClient) -> None:
     response = await client.get("/Questionnaire?_id=")
 
     assert response.status_code == 400
@@ -68,14 +68,14 @@ async def test_an_unreadable_search_parameter_is_invalid(client: httpx.AsyncClie
     assert response.json()["issue"][0]["code"] == "invalid"
 
 
-async def test_an_identifier_token_without_a_value_is_invalid(client: httpx.AsyncClient) -> None:
+async def test_an_identifier_token_without_a_value_is_invalid(client: httpx2.AsyncClient) -> None:
     response = await client.get("/Questionnaire", params={"identifier": "http://dhis2.org/fhir/id/program|"})
 
     assert response.status_code == 400
     assert response.json()["issue"][0]["code"] == "invalid"
 
 
-async def test_a_method_the_path_does_not_take_is_not_supported(client: httpx.AsyncClient) -> None:
+async def test_a_method_the_path_does_not_take_is_not_supported(client: httpx2.AsyncClient) -> None:
     response = await client.delete("/Questionnaire/d2-pr-anc-visit-q")
 
     assert response.status_code == 405
@@ -85,7 +85,7 @@ async def test_a_method_the_path_does_not_take_is_not_supported(client: httpx.As
     assert "DELETE" in issue["diagnostics"]
 
 
-async def test_posting_to_the_service_base_says_batch_is_not_supported(client: httpx.AsyncClient) -> None:
+async def test_posting_to_the_service_base_says_batch_is_not_supported(client: httpx2.AsyncClient) -> None:
     """`POST [base]` is FHIR's batch endpoint, and a client that finds it deserves the reason it is not here."""
     response = await client.post("/", json={"resourceType": "Bundle", "type": "batch"})
 
@@ -101,7 +101,7 @@ async def test_posting_to_the_service_base_says_batch_is_not_supported(client: h
 
 @pytest.mark.parametrize("method", ["PUT", "PATCH", "DELETE"])
 async def test_every_other_method_on_the_service_base_refuses_the_same_way(
-    client: httpx.AsyncClient, method: str
+    client: httpx2.AsyncClient, method: str
 ) -> None:
     """FHIR defines none of these at the base, so each is one fact stated about a different verb."""
     response = await client.request(method, "/")
@@ -111,7 +111,7 @@ async def test_every_other_method_on_the_service_base_refuses_the_same_way(
     assert f"`{method} /`" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_reading_the_service_base_without_a_ui_is_still_not_an_endpoint(client: httpx.AsyncClient) -> None:
+async def test_reading_the_service_base_without_a_ui_is_still_not_an_endpoint(client: httpx2.AsyncClient) -> None:
     """Refusing the write does not invent a read: without `--ui` nothing serves the base."""
     response = await client.get("/")
 
@@ -120,7 +120,7 @@ async def test_reading_the_service_base_without_a_ui_is_still_not_an_endpoint(cl
 
 
 async def test_an_unexpected_failure_leaks_nothing(
-    tolerant_client: httpx.AsyncClient, caplog: pytest.LogCaptureFixture
+    tolerant_client: httpx2.AsyncClient, caplog: pytest.LogCaptureFixture
 ) -> None:
     with caplog.at_level(logging.ERROR, logger="dhis2w_fhir_serve"):
         response = await tolerant_client.get("/boom")

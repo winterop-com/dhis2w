@@ -21,7 +21,7 @@ from dhis2w_core.profile import profile_from_env
 
 async with open_client(profile_from_env()) as client:
     # `stream` takes a Path (or any AsyncIterable[bytes]) + a content type.
-    # The body is sent chunked; httpx never materialises the whole file.
+    # The body is sent chunked; httpx2 never materialises the whole file.
     envelope = await client.data_values.stream(
         Path("./monthly-coverage-2026.csv"),
         content_type="application/csv",

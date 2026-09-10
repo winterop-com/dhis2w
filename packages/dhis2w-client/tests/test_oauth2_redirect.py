@@ -2,7 +2,7 @@
 
 `capture_code` is the asyncio-based receiver shared by `OAuth2Auth`'s
 default capturer and any caller that wants the same handling for a
-custom flow. Each test fires a real httpx request at the running server
+custom flow. Each test fires a real httpx2 request at the running server
 and asserts the resolved code (or the expected `OAuth2FlowError`).
 """
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import socket
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client.errors import OAuth2FlowError
 from dhis2w_client.v42.auth.oauth2 import capture_code
@@ -30,10 +30,10 @@ async def _fire_redirect(url: str, *, max_tries: int = 30) -> None:
     last_err: Exception | None = None
     for _ in range(max_tries):
         try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
+            async with httpx2.AsyncClient(timeout=2.0) as client:
                 await client.get(url)
             return
-        except httpx.ConnectError as exc:
+        except httpx2.ConnectError as exc:
             last_err = exc
             await asyncio.sleep(0.05)
     if last_err is not None:
@@ -43,13 +43,13 @@ async def _fire_redirect(url: str, *, max_tries: int = 30) -> None:
 _STUB_AUTH_URL = "http://127.0.0.1:9/oauth2/authorize?fake=1"
 
 
-async def _get_once_up(client: httpx.AsyncClient, url: str, *, max_tries: int = 30) -> httpx.Response:
+async def _get_once_up(client: httpx2.AsyncClient, url: str, *, max_tries: int = 30) -> httpx2.Response:
     """GET `url` as soon as the receiver is listening, returning its response."""
     last_err: Exception | None = None
     for _ in range(max_tries):
         try:
             return await client.get(url)
-        except httpx.ConnectError as exc:
+        except httpx2.ConnectError as exc:
             last_err = exc
             await asyncio.sleep(0.05)
     raise AssertionError(f"receiver never accepted a connection on {url}") from last_err
@@ -79,7 +79,7 @@ async def test_capture_wrong_state_is_ignored_and_flow_survives() -> None:
     redirect_uri = f"http://127.0.0.1:{port}/"
 
     async def fire_wrong_then_right() -> int:
-        async with httpx.AsyncClient(timeout=2.0) as http_client:
+        async with httpx2.AsyncClient(timeout=2.0) as http_client:
             stray = await _get_once_up(http_client, f"{redirect_uri}?code=abc&state=wrong")
             await http_client.get(f"{redirect_uri}?code=survivor&state=right")
         return stray.status_code
@@ -133,14 +133,14 @@ async def test_capture_ignores_requests_without_code() -> None:
     async def fire_strays_then_redirect() -> list[int]:
         statuses: list[int] = []
         stray_paths = ["favicon.ico", "?probe=1", "?state=expected-state", ""]
-        async with httpx.AsyncClient(timeout=2.0) as http_client:
+        async with httpx2.AsyncClient(timeout=2.0) as http_client:
             for stray_path in stray_paths:
                 for _ in range(30):
                     try:
                         response = await http_client.get(f"{redirect_uri}{stray_path}")
                         statuses.append(response.status_code)
                         break
-                    except httpx.ConnectError:
+                    except httpx2.ConnectError:
                         await asyncio.sleep(0.05)
             await http_client.get(f"{redirect_uri}?code=survivor&state=expected-state")
         return statuses
@@ -184,7 +184,7 @@ async def test_capture_wrong_state_error_does_not_end_the_flow() -> None:
     redirect_uri = f"http://127.0.0.1:{port}/"
 
     async def fire_forged_then_real() -> int:
-        async with httpx.AsyncClient(timeout=2.0) as http_client:
+        async with httpx2.AsyncClient(timeout=2.0) as http_client:
             forged = await _get_once_up(http_client, f"{redirect_uri}?error=access_denied&state=wrong")
             await http_client.get(f"{redirect_uri}?code=real-code&state=expected-state")
         return forged.status_code
@@ -212,7 +212,7 @@ async def test_capture_error_description_is_html_escaped() -> None:
     body: dict[str, str] = {}
 
     async def fire_error() -> None:
-        async with httpx.AsyncClient(timeout=2.0) as http_client:
+        async with httpx2.AsyncClient(timeout=2.0) as http_client:
             for _ in range(30):
                 try:
                     response = await http_client.get(
@@ -225,7 +225,7 @@ async def test_capture_error_description_is_html_escaped() -> None:
                     )
                     body["html"] = response.text
                     return
-                except httpx.ConnectError:
+                except httpx2.ConnectError:
                     await asyncio.sleep(0.05)
 
     fire = asyncio.create_task(fire_error())

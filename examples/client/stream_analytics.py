@@ -1,7 +1,7 @@
 """Stream a large analytics response to disk — `client.analytics.stream_to`.
 
 Counterpart to `client.data_values.stream` (the import direction); this
-one handles the export direction. Uses httpx's `stream()` + `aiter_bytes`
+one handles the export direction. Uses httpx2's `stream()` + `aiter_bytes`
 to pipe the body straight to a file without buffering the full response
 in Python memory. Useful for:
 

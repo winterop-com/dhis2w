@@ -48,7 +48,7 @@ to share and the reader keeps nothing between requests. The one cache the `dhis2
 an identity, never a resource.
 
 THE CONNECTION IS POOLED, THE CREDENTIAL IS NOT. Opening a TCP connection and a TLS session per
-register read would make the facade slower than the instance it fronts, so one `httpx.AsyncClient`
+register read would make the facade slower than the instance it fronts, so one `httpx2.AsyncClient`
 is held open for the life of the process, pointed at the instance, WITH NO AUTHENTICATION OF ITS OWN.
 `CallerCredentialReader` is the per-request pairing of that pool with one caller's header, and the
 pool has no credential to fall back to if a request ever arrived without one.
@@ -65,7 +65,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-import httpx
+import httpx2
 from dhis2w_client.errors import Dhis2ApiError, Dhis2ClientError
 from dhis2w_fhir.config import ServeAuth
 from pydantic import BaseModel, ConfigDict, Field
@@ -185,7 +185,7 @@ class CallerCredentialReader(BaseModel):
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
-    connection: httpx.AsyncClient
+    connection: httpx2.AsyncClient
     """The pool this facade holds open against the instance, which carries no credential of its own."""
 
     authorization: str = Field(repr=False)
@@ -210,7 +210,7 @@ class CallerCredentialReader(BaseModel):
         """
         try:
             answer = await self.connection.get(path, params=params, headers=self._headers())
-        except httpx.HTTPError as error:
+        except httpx2.HTTPError as error:
             raise Dhis2ClientError(f"the DHIS2 instance could not be read as the caller ({error})") from error
         issue_code = PASSED_THROUGH_REFUSALS.get(answer.status_code)
         if issue_code is not None:
@@ -229,7 +229,7 @@ class CallerCredentialReader(BaseModel):
 
 
 @asynccontextmanager
-async def open_pass_through_client(base_url: str, *, provenance: str) -> AsyncGenerator[httpx.AsyncClient]:
+async def open_pass_through_client(base_url: str, *, provenance: str) -> AsyncGenerator[httpx2.AsyncClient]:
     """Open the connection pass-through reads share, pointed at the instance and holding no credential.
 
     No `auth=` and no `Authorization` in the default headers, so a request that somehow reached this
@@ -237,7 +237,7 @@ async def open_pass_through_client(base_url: str, *, provenance: str) -> AsyncGe
     the facade. The provenance header is a property of the process rather than of a request, so it
     rides on the pool.
     """
-    async with httpx.AsyncClient(
+    async with httpx2.AsyncClient(
         base_url=base_url,
         timeout=PASS_THROUGH_TIMEOUT_SECONDS,
         headers={FACADE_PROVENANCE_HEADER: provenance},
@@ -309,7 +309,7 @@ async def caller_reader(request: Request) -> CallerCredentialReader:
     )
 
 
-def _error_body(answer: httpx.Response) -> Any:
+def _error_body(answer: httpx2.Response) -> Any:
     """What DHIS2 said about a refusal - its JSON when it sent JSON, its text when it did not.
 
     The same shape `Dhis2Client` puts on a `Dhis2ApiError`, because the callers reading `body` for an
@@ -321,7 +321,7 @@ def _error_body(answer: httpx.Response) -> Any:
         return answer.text
 
 
-def _parsed_body(answer: httpx.Response) -> dict[str, Any]:
+def _parsed_body(answer: httpx2.Response) -> dict[str, Any]:
     """One answered body as parsed JSON, matching what `Dhis2Client.get_raw` hands its callers.
 
     An empty body is an empty object, a JSON value that is not an object rides under `data`, and a

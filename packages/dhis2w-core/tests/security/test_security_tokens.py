@@ -16,7 +16,7 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client.errors import Dhis2ApiError
 from dhis2w_core.security_core import (
@@ -401,7 +401,7 @@ async def test_run_tokens_degrades_on_transport_error(tree: str) -> None:
     async def _get_raw(path: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         if path == "/api/me/authorization":
             return {"data": ["ALL"]}
-        raise httpx.ConnectError("boom")
+        raise httpx2.ConnectError("boom")
 
     client = MagicMock()
     client.base_url = "https://mock.example"

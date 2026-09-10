@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.errors import Dhis2ApiError
@@ -244,7 +245,7 @@ class _Reader(BaseModel):
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
-    connection: httpx.AsyncClient
+    connection: httpx2.AsyncClient
 
     async def get_raw(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Read one DHIS2 path, answering the parsed JSON body and raising on a refusal."""
@@ -284,7 +285,7 @@ async def test_the_synced_body_and_the_live_answer_are_the_same_bytes(
             )
         )
         await run_sync(
-            _Reader(connection=httpx.AsyncClient(base_url=_HOST)),
+            _Reader(connection=httpx2.AsyncClient(base_url=_HOST)),
             surface=surface,
             store=store,
             project_root=nominating_project.project_root,

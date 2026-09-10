@@ -35,7 +35,7 @@ import os
 import sys
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, served_facade
 from _runner import run_example
 from dhis2w_fhir_engine import ELMSerializer
@@ -89,7 +89,7 @@ async def main() -> None:
     """Compile one library to ELM, run source and compiled form over the same stored resource, compare."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
     form_id = aggregate_form_id()
-    async with httpx.AsyncClient(base_url=base_url, timeout=60.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, timeout=60.0) as client:
         print(f"evaluating against {base_url}")
         print(f"both runs read the stored Questionnaire/{form_id} - same resource, same engine, two languages")
 
@@ -142,7 +142,7 @@ async def main() -> None:
             print(f"      CQL said {rendered(said_by_cql)}, ELM said {rendered(said_by_elm)}")
 
 
-async def evaluate(client: httpx.AsyncClient, language: str, source: str, resource_id: str) -> dict[str, Any]:
+async def evaluate(client: httpx2.AsyncClient, language: str, source: str, resource_id: str) -> dict[str, Any]:
     """One library in one language over one resource the served guide already holds."""
     answered_by = await client.post(
         "/facade/evaluate",

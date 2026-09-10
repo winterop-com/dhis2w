@@ -26,6 +26,7 @@ import contextlib
 import os
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2ApiError, Dhis2Client
@@ -47,9 +48,9 @@ def _live_auth() -> BasicAuth:
 def _skip_if_stack_unreachable(url: str) -> None:
     """Skip the test when the local docker stack isn't responding to root probes."""
     try:
-        with httpx.Client(timeout=2.0) as probe:
+        with httpx2.Client(timeout=2.0) as probe:
             probe.get(f"{url}/dhis-web-login/")
-    except (httpx.RequestError, httpx.HTTPError) as exc:
+    except (httpx2.RequestError, httpx2.HTTPError) as exc:
         pytest.skip(f"local DHIS2 stack not reachable at {url} ({exc}). Run `make dhis2-run DHIS2_VERSION=<N>` first.")
 
 
@@ -623,7 +624,7 @@ async def test_bug_6_live_verifier(local_url: str) -> None:
     Cross-version bug. Sends a dryRun POST with one value pointing at
     nonexistent DE/OU UIDs (guaranteed to be rejected). DHIS2 surfaces
     that as 409 with a `conflicts[]` body instead of 200/WARNING — so
-    naive httpx callers raise before inspecting the rich body. Dry-run
+    naive httpx2 callers raise before inspecting the rich body. Dry-run
     means there's nothing to clean up.
     """
     _skip_if_stack_unreachable(local_url)

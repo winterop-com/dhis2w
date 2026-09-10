@@ -4,7 +4,7 @@ DHIS2 routes proxy `/api/routes/{id}/run/<path>` through to an upstream
 target URL declared on the Route metadata object. Users typically know
 the Route by `code` (a short slug), not by its UID — `client.routes.run`
 resolves the code once, caches the UID, and returns the raw
-`httpx.Response` so callers can do their own status-based handling
+`httpx2.Response` so callers can do their own status-based handling
 (a 502 from the proxy means "DHIS2 reached, downstream didn't"; 200
 means the upstream replied; 404 means the cached UID is stale and the
 Route was probably renamed or deleted).

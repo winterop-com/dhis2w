@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -188,7 +189,7 @@ async def synced_facade(
     probe_profile: Profile,
     projection_config: ProjectionConfig,
     filled_projection: SqliteProjectionStore,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over that project with `[serve.search] backend = "projection"` and a live client."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
@@ -201,13 +202,13 @@ async def synced_facade(
         )
         async with app.router.lifespan_context(app), open_client(probe_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 async def test_an_identifier_search_is_answered_from_the_projection_and_resolved_from_the_instance(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """One indexed query decides the membership; one live read per match decides the disclosure."""
     read = _read_route(_entity())
@@ -224,7 +225,7 @@ async def test_an_identifier_search_is_answered_from_the_projection_and_resolved
 
 
 async def test_a_projection_served_searchset_states_the_instant_it_is_as_of(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """R3, twice over: an `outcome` entry the data model carries, and a header beside it."""
     _read_route(_entity())
@@ -240,7 +241,7 @@ async def test_a_projection_served_searchset_states_the_instant_it_is_as_of(
     assert _AS_OF.isoformat() in issue["diagnostics"]
 
 
-async def test_a_projection_served_searchset_states_no_total(synced_facade: httpx.AsyncClient) -> None:
+async def test_a_projection_served_searchset_states_no_total(synced_facade: httpx2.AsyncClient) -> None:
     """The projection counted under the identity the sync ran as, and this caller's count is DHIS2's to say."""
     _read_route(_entity())
 
@@ -250,7 +251,7 @@ async def test_a_projection_served_searchset_states_no_total(synced_facade: http
 
 
 async def test_a_person_the_instance_will_not_disclose_is_on_nobodys_page(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """R9 in one assertion: the projection holds them, DHIS2 answers 404, and the searchset carries nobody."""
     read = _read_route(None)
@@ -263,7 +264,7 @@ async def test_a_person_the_instance_will_not_disclose_is_on_nobodys_page(
 
 
 async def test_a_content_search_finds_a_person_by_a_value_no_exact_match_could_find(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """The thing the live backend cannot do at all: a substring of a name, folded, over the index."""
     _read_route(_entity())
@@ -274,7 +275,7 @@ async def test_a_content_search_finds_a_person_by_a_value_no_exact_match_could_f
     assert [entry["resource"]["id"] for entry in matches] == [_PERSON_UID]
 
 
-async def test_two_search_parameters_are_conditions_that_both_hold(synced_facade: httpx.AsyncClient) -> None:
+async def test_two_search_parameters_are_conditions_that_both_hold(synced_facade: httpx2.AsyncClient) -> None:
     """R4's own rule: values within one parameter widen, and two parameters narrow."""
     _read_route(_entity())
     _read_route(_entity(_OTHER_PERSON_UID, national_id="SCEN-B-0002"), _OTHER_PERSON_UID)
@@ -289,7 +290,7 @@ async def test_two_search_parameters_are_conditions_that_both_hold(synced_facade
 
 
 async def test_the_listing_pages_the_projection_and_links_the_next_page(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """The same `_count` and opaque `page` pair every other page of this listing uses - D6 keeps the shape."""
     _read_route(_entity())
@@ -329,8 +330,8 @@ async def test_a_search_reads_back_no_more_matches_than_a_page_may_carry(
             app.state.live_client = dhis2
             first = _read_route(_entity())
             second = _read_route(_entity(_OTHER_PERSON_UID, national_id="SCEN-B-0002"), _OTHER_PERSON_UID)
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 body = (await http.get("/Patient?_content=somsack,ສົມພອນ&_count=50")).json()
 
     matches = [entry for entry in body["entry"] if entry.get("search", {}).get("mode") == "match"]
@@ -339,7 +340,7 @@ async def test_a_search_reads_back_no_more_matches_than_a_page_may_carry(
 
 
 async def test_a_count_of_zero_is_answered_with_the_cursor_and_no_walk_to_follow(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """The one question this posture cannot answer is "how many", and a page of nothing leads nowhere."""
     body = (await synced_facade.get("/Patient?_count=0")).json()
@@ -350,7 +351,7 @@ async def test_a_count_of_zero_is_answered_with_the_cursor_and_no_walk_to_follow
 
 
 async def test_a_read_of_one_entity_by_its_id_is_answered_from_the_instance(
-    synced_facade: httpx.AsyncClient,
+    synced_facade: httpx2.AsyncClient,
 ) -> None:
     """A person-level read stays live whatever the search backend says, and states no cursor."""
     read = _read_route(_entity())
@@ -372,8 +373,8 @@ async def test_the_content_parameter_is_refused_where_no_projection_answers_it(
         app: FastAPI = create_app(ServeSettings(project_dir=capture_project.project_root))
         async with app.router.lifespan_context(app), open_client(probe_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 answered = await http.get("/Patient?_content=somsack")
 
     assert answered.status_code == 400
@@ -437,8 +438,8 @@ async def test_a_projection_nobody_synced_says_so_rather_than_answering_an_empty
         )
         async with app.router.lifespan_context(app), open_client(probe_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 answered = await http.get(query)
 
     assert answered.status_code == 404

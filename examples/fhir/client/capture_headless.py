@@ -29,7 +29,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, example_project
 from _runner import run_example
 from dhis2w_fhir import load_project, service
@@ -52,8 +52,8 @@ async def main() -> None:
 
     application = create_app(ServeSettings(project_dir=directory, live=True))
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(
             transport=transport, base_url=EMBEDDED_BASE_URL, headers={"Accept": FHIR_JSON}, timeout=60.0
         ) as client:
             draft = (

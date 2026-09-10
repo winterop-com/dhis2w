@@ -17,7 +17,7 @@ import re
 import sys
 from pathlib import Path
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict
 
 _ENDPOINT = "https://hub.docker.com/v2/repositories/dhis2/core/tags"
@@ -69,7 +69,7 @@ def fetch_latest_per_minor() -> dict[int, str]:
     latest: dict[int, tuple[tuple[int, ...], str]] = {}
     url: str | None = _ENDPOINT
     page = 0
-    with httpx.Client(timeout=20.0) as client:
+    with httpx2.Client(timeout=20.0) as client:
         while url is not None and page < _MAX_PAGES:
             response = client.get(url, params={"page_size": 100} if page == 0 else None)
             response.raise_for_status()
@@ -127,7 +127,7 @@ def main() -> int:
     pins = read_pins(versions_env)
     try:
         latest = fetch_latest_per_minor()
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         print(f"!!! Failed to reach Docker Hub: {exc}", file=sys.stderr)
         return 1
 

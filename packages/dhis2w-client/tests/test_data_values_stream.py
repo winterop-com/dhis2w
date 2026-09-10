@@ -85,7 +85,7 @@ async def test_stream_from_path_reads_and_uploads_file(
     finally:
         await client.close()
 
-    # Body should be the full file contents — httpx stitches the chunks back together.
+    # Body should be the full file contents — httpx2 stitches the chunks back together.
     assert route.calls.last.request.content == file_path.read_bytes()
     assert route.calls.last.request.headers["content-type"] == "application/csv"
 
@@ -121,7 +121,7 @@ async def test_stream_from_sync_iterable_passes_through(
 async def test_stream_from_async_iterable_passes_through(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """Async generator source is consumed by httpx's chunked upload."""
+    """Async generator source is consumed by httpx2's chunked upload."""
     mock_system_info(server_version)
     route = respx.post("https://dhis2.example/api/dataValueSets").mock(
         return_value=_success_envelope(),

@@ -130,9 +130,9 @@ def _strip_host(endpoint: str | None) -> str | None:
 async def _system_info_without_version_gate(client: Dhis2Client) -> dict[str, Any]:
     """Open the HTTP pool and fetch /api/system/info, bypassing version dispatch."""
     if client._http is None:  # noqa: SLF001 — intentional reach into client internals for codegen
-        import httpx
+        import httpx2
 
-        client._http = httpx.AsyncClient(base_url=client.base_url, timeout=httpx.Timeout(30.0, connect=60.0))  # noqa: SLF001
+        client._http = httpx2.AsyncClient(base_url=client.base_url, timeout=httpx2.Timeout(30.0, connect=60.0))  # noqa: SLF001
     return await client.get_raw("/api/system/info")
 
 

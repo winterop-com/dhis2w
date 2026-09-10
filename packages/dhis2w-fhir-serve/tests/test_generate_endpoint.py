@@ -20,7 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.period import parse_period
@@ -158,12 +158,12 @@ def _generate_path(resource_id: str) -> str:
     return f"/Questionnaire/{resource_id}/$generate"
 
 
-async def _generate(client: httpx.AsyncClient, resource_id: str, **params: str | int) -> httpx.Response:
+async def _generate(client: httpx2.AsyncClient, resource_id: str, **params: str | int) -> httpx2.Response:
     """Invoke `$generate` on one served form."""
     return await client.get(_generate_path(resource_id), params=params)
 
 
-async def _post_back(client: httpx.AsyncClient, generated: httpx.Response) -> httpx.Response:
+async def _post_back(client: httpx2.AsyncClient, generated: httpx2.Response) -> httpx2.Response:
     """Post a generated response back at the server that generated it, byte for byte."""
     return await client.post("/QuestionnaireResponse", content=generated.content, headers=FHIR_JSON)
 
@@ -187,7 +187,7 @@ def _answers(response: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 @pytest.mark.parametrize("resource_id", EVERY_FORM_ID)
-async def test_a_generated_response_posts_back_201(capture_client: httpx.AsyncClient, resource_id: str) -> None:
+async def test_a_generated_response_posts_back_201(capture_client: httpx2.AsyncClient, resource_id: str) -> None:
     """The invariant: whatever kind of form it fills, `$generate` output is accepted by this same server."""
     generated = await _generate(capture_client, resource_id, seed=7)
     assert generated.status_code == 200
@@ -201,7 +201,7 @@ async def test_a_generated_response_posts_back_201(capture_client: httpx.AsyncCl
 
 @pytest.mark.parametrize("resource_id", EVERY_FORM_ID)
 async def test_a_seedless_generated_response_posts_back_201(
-    capture_client: httpx.AsyncClient, resource_id: str
+    capture_client: httpx2.AsyncClient, resource_id: str
 ) -> None:
     """Naming no seed is not a lesser mode: the server draws one and the response is just as valid."""
     generated = await _generate(capture_client, resource_id)
@@ -215,7 +215,7 @@ async def test_a_seedless_generated_response_posts_back_201(
 @pytest.mark.parametrize("strict_codes", [True])
 @pytest.mark.parametrize("resource_id", EVERY_FORM_ID)
 async def test_a_generated_response_posts_back_201_under_strict_codes(
-    capture_client: httpx.AsyncClient, resource_id: str
+    capture_client: httpx2.AsyncClient, resource_id: str
 ) -> None:
     """A generated coding is the exact concept code the contract asks for, so strict mode accepts it too."""
     generated = await _generate(capture_client, resource_id, seed=11)
@@ -226,7 +226,7 @@ async def test_a_generated_response_posts_back_201_under_strict_codes(
     assert not [issue for issue in posted.json()["issue"] if issue["severity"] == "warning"]
 
 
-async def test_the_same_seed_generates_the_same_response(capture_client: httpx.AsyncClient) -> None:
+async def test_the_same_seed_generates_the_same_response(capture_client: httpx2.AsyncClient) -> None:
     """Determinism is the point of the seed: same form, same seed, same bytes."""
     first = await _generate(capture_client, TRACKER_EVENT_ID, seed=1234)
     second = await _generate(capture_client, TRACKER_EVENT_ID, seed=1234)
@@ -234,7 +234,7 @@ async def test_the_same_seed_generates_the_same_response(capture_client: httpx.A
     assert first.content == second.content
 
 
-async def test_a_different_seed_generates_a_different_response(capture_client: httpx.AsyncClient) -> None:
+async def test_a_different_seed_generates_a_different_response(capture_client: httpx2.AsyncClient) -> None:
     """A seed is a handle on the values, not a formality - changing it changes what comes back."""
     first = await _generate(capture_client, AGGREGATE_ID, seed=1)
     second = await _generate(capture_client, AGGREGATE_ID, seed=2)
@@ -242,7 +242,7 @@ async def test_a_different_seed_generates_a_different_response(capture_client: h
     assert _answers(first.json()) != _answers(second.json())
 
 
-async def test_the_seed_is_stated_on_the_generated_response(capture_client: httpx.AsyncClient) -> None:
+async def test_the_seed_is_stated_on_the_generated_response(capture_client: httpx2.AsyncClient) -> None:
     """The seed rides back as the response's business identifier, so it survives the post into the receipt."""
     generated = await _generate(capture_client, EVENT_ID, seed=99)
 
@@ -251,7 +251,7 @@ async def test_the_seed_is_stated_on_the_generated_response(capture_client: http
     assert identifier == {"system": f"{CANONICAL}/{GENERATE_SEED_IDENTIFIER_SEGMENT}", "value": "99"}
 
 
-async def test_a_drawn_seed_is_stated_too_and_reproduces_the_response(capture_client: httpx.AsyncClient) -> None:
+async def test_a_drawn_seed_is_stated_too_and_reproduces_the_response(capture_client: httpx2.AsyncClient) -> None:
     """A seedless call is still reproducible: the drawn seed is stated, and naming it back replays the answer."""
     drawn = await _generate(capture_client, EVENT_ID)
     seed = int(drawn.json()["identifier"]["value"])
@@ -280,8 +280,8 @@ async def test_an_aggregate_response_reports_for_the_period_type_its_form_declar
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, _PERIOD_TYPE_ID, seed=3)
             posted = await _post_back(client, generated)
 
@@ -307,8 +307,8 @@ async def test_an_aggregate_form_declaring_no_period_type_reports_monthly(
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, _PERIOD_TYPE_ID, seed=3)
             posted = await _post_back(client, generated)
 
@@ -320,7 +320,7 @@ async def test_an_aggregate_form_declaring_no_period_type_reports_monthly(
     assert posted.status_code == 201
 
 
-async def test_the_golden_aggregate_form_reports_the_type_it_publishes(capture_client: httpx.AsyncClient) -> None:
+async def test_the_golden_aggregate_form_reports_the_type_it_publishes(capture_client: httpx2.AsyncClient) -> None:
     """The goldens declare `Monthly`, and the response reports the newest completed month of it."""
     generated = await _generate(capture_client, AGGREGATE_ID, seed=3)
 
@@ -331,7 +331,7 @@ async def test_the_golden_aggregate_form_reports_the_type_it_publishes(capture_c
     assert parse_period(declared["iso"]["valueString"]).period_type == "Monthly"
 
 
-async def test_an_aggregate_response_reports_for_a_served_location(capture_client: httpx.AsyncClient) -> None:
+async def test_an_aggregate_response_reports_for_a_served_location(capture_client: httpx2.AsyncClient) -> None:
     """An aggregate response names the organisation unit it reports for as a Location reference."""
     generated = await _generate(capture_client, AGGREGATE_ID, seed=3)
     response = generated.json()
@@ -343,7 +343,7 @@ async def test_an_aggregate_response_reports_for_a_served_location(capture_clien
 
 
 async def test_a_generated_response_names_an_attribute_option_combo_its_form_declares(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A form declaring a vocabulary generates a response drawing one real concept of it, never an invented one."""
     response = (await _generate(capture_client, ATTRIBUTE_COMBO_ID, seed=3)).json()
@@ -355,14 +355,14 @@ async def test_a_generated_response_names_an_attribute_option_combo_its_form_dec
     assert carried[0]["valueCoding"]["code"] in {"pO5CEqK6c1s", "sSeEjeQ0Rgt", "oawMLLH7OjA", "BqblOcSwGey"}
 
 
-async def test_a_default_combo_form_generates_no_attribute_option_combo(capture_client: httpx.AsyncClient) -> None:
+async def test_a_default_combo_form_generates_no_attribute_option_combo(capture_client: httpx2.AsyncClient) -> None:
     """Absence means the default combo, so a form declaring nothing generates nothing to declare."""
     response = (await _generate(capture_client, AGGREGATE_ID, seed=3)).json()
 
     assert _extensions(response, ATTRIBUTE_COMBO_URL) == []
 
 
-async def test_an_event_response_records_when_it_was_captured(capture_client: httpx.AsyncClient) -> None:
+async def test_an_event_response_records_when_it_was_captured(capture_client: httpx2.AsyncClient) -> None:
     """The event contract requires an authored instant, so a generated event response carries one."""
     response = (await _generate(capture_client, EVENT_ID, seed=5)).json()
 
@@ -371,7 +371,7 @@ async def test_an_event_response_records_when_it_was_captured(capture_client: ht
     assert _extensions(response, FORM_TYPE_URL)[0]["valueCode"] == "event"
 
 
-async def test_a_tracker_event_response_carries_its_synthetic_context(capture_client: httpx.AsyncClient) -> None:
+async def test_a_tracker_event_response_carries_its_synthetic_context(capture_client: httpx2.AsyncClient) -> None:
     """A tracker event names a tracked entity and an enrollment: shaped UIDs, which is what the contract checks."""
     response = (await _generate(capture_client, TRACKER_EVENT_ID, seed=5)).json()
 
@@ -384,7 +384,7 @@ async def test_a_tracker_event_response_carries_its_synthetic_context(capture_cl
     assert len(enrollment["value"]) == 11
 
 
-async def test_a_registration_response_mints_the_identities_it_creates(capture_client: httpx.AsyncClient) -> None:
+async def test_a_registration_response_mints_the_identities_it_creates(capture_client: httpx2.AsyncClient) -> None:
     """A registration is answered before either identity exists, so `$generate` mints both, shaped as DHIS2 UIDs."""
     response = (await _generate(capture_client, REGISTRATION_ID, seed=5)).json()
 
@@ -399,7 +399,7 @@ async def test_a_registration_response_mints_the_identities_it_creates(capture_c
     assert subject["identifier"]["value"] != enrollment["value"]
 
 
-async def test_a_registration_response_dates_the_enrollment_it_creates(capture_client: httpx.AsyncClient) -> None:
+async def test_a_registration_response_dates_the_enrollment_it_creates(capture_client: httpx2.AsyncClient) -> None:
     """DHIS2 requires every enrollment to say when it began, so the enrolment date is always generated."""
     response = (await _generate(capture_client, REGISTRATION_ID, seed=5)).json()
 
@@ -410,7 +410,7 @@ async def test_a_registration_response_dates_the_enrollment_it_creates(capture_c
 
 
 async def test_a_registration_response_carries_no_incident_date_a_form_declares_none(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """The fixture program collects no incident date and says so, so none is invented for its enrollments."""
     response = (await _generate(capture_client, REGISTRATION_ID, seed=5)).json()
@@ -434,8 +434,8 @@ async def test_a_registration_response_dates_the_incident_a_form_declares_its_pr
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, _COLLECTING_ID, seed=5)
             posted = await _post_back(client, generated)
 
@@ -465,8 +465,8 @@ async def test_a_registration_dates_the_incident_before_the_enrolment_and_both_b
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, _COLLECTING_ID, seed=seed)
             posted = await _post_back(client, generated)
 
@@ -490,8 +490,8 @@ async def test_the_ordered_dates_stay_inside_the_window_and_reproduce_from_the_s
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, _COLLECTING_ID, seed=5)
             replayed = await _generate(client, _COLLECTING_ID, seed=5)
 
@@ -508,7 +508,7 @@ async def test_the_ordered_dates_stay_inside_the_window_and_reproduce_from_the_s
 
 
 async def test_a_registration_response_names_the_unit_that_owns_the_enrollment(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A registration's subject is the person, so the organisation unit rides on its own extension."""
     response = (await _generate(capture_client, REGISTRATION_ID, seed=5)).json()
@@ -527,7 +527,7 @@ def _unique_attribute_value(response: dict[str, Any]) -> str:
 
 
 async def test_a_generated_registration_leaves_a_generated_attribute_unanswered(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A question DHIS2 answers is one the draw declines.
 
@@ -546,7 +546,7 @@ async def test_a_generated_registration_leaves_a_generated_attribute_unanswered(
 
 
 async def test_two_generated_registrations_never_repeat_a_unique_attribute_value(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """DHIS2 refuses the second registration repeating a unique value with E1064, so no two seeds share one."""
     first = (await _generate(capture_client, REGISTRATION_ID, seed=1)).json()
@@ -556,7 +556,7 @@ async def test_two_generated_registrations_never_repeat_a_unique_attribute_value
 
 
 async def test_a_unique_attribute_answer_carries_the_minted_tracked_entity_uid(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """The distinct value is the response's own minted UID - the one value no other generated response holds."""
     response = (await _generate(capture_client, REGISTRATION_ID, seed=5)).json()
@@ -565,7 +565,7 @@ async def test_a_unique_attribute_answer_carries_the_minted_tracked_entity_uid(
 
 
 async def test_the_organisation_unit_is_part_of_the_seeded_draw_inside_the_assignment(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """Different seeds range over the whole admitted set, and every draw stays inside the published assignment."""
     drawn: set[str] = set()
@@ -579,7 +579,7 @@ async def test_the_organisation_unit_is_part_of_the_seeded_draw_inside_the_assig
 
 
 async def test_an_unrestricted_form_draws_its_unit_across_the_served_registry(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A form publishing no assignment reports for any served Location, varying with the seed."""
     drawn: set[str] = set()
@@ -593,7 +593,7 @@ async def test_an_unrestricted_form_draws_its_unit_across_the_served_registry(
 
 
 async def test_a_seedless_call_draws_its_unit_across_the_admitted_set_too(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A seedless call is answered from a drawn seed, so its unit varies exactly as a named seed's does."""
     stream = random.getstate()
@@ -609,7 +609,7 @@ async def test_a_seedless_call_draws_its_unit_across_the_admitted_set_too(
     assert len(drawn) > 1
 
 
-async def test_a_generated_response_declares_its_form_kind_profile(capture_client: httpx.AsyncClient) -> None:
+async def test_a_generated_response_declares_its_form_kind_profile(capture_client: httpx2.AsyncClient) -> None:
     """Every generated response is profile-declared, which is what a validating consumer reads it against."""
     aggregate = (await _generate(capture_client, AGGREGATE_ID, seed=2)).json()
     tracker = (await _generate(capture_client, TRACKER_EVENT_ID, seed=2)).json()
@@ -618,7 +618,7 @@ async def test_a_generated_response_declares_its_form_kind_profile(capture_clien
     assert tracker["meta"]["profile"] == [f"{CANONICAL}/StructureDefinition/d2-tracker-event-response"]
 
 
-async def test_a_coded_answer_names_a_concept_the_store_publishes(capture_client: httpx.AsyncClient) -> None:
+async def test_a_coded_answer_names_a_concept_the_store_publishes(capture_client: httpx2.AsyncClient) -> None:
     """Every generated coding is drawn from a served CodeSystem, never invented."""
     response = (await _generate(capture_client, "PrTemporal1", seed=4)).json()
 
@@ -632,7 +632,7 @@ async def test_a_coded_answer_names_a_concept_the_store_publishes(capture_client
 
 
 async def test_a_question_bound_to_unpublished_terminology_is_left_unanswered(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """Answering a binding this project never published would only make the server warn about its own output."""
     response = (await _generate(capture_client, "PrTemporal1", seed=4)).json()
@@ -642,7 +642,7 @@ async def test_a_question_bound_to_unpublished_terminology_is_left_unanswered(
     assert "DeOpenBind01" not in answered
 
 
-async def test_a_numeric_answer_stays_inside_the_bounds_the_form_pins(capture_client: httpx.AsyncClient) -> None:
+async def test_a_numeric_answer_stays_inside_the_bounds_the_form_pins(capture_client: httpx2.AsyncClient) -> None:
     """A bounded question is generated inside its bounds, which is exactly what capture would refuse outside."""
     response = (await _generate(capture_client, "PrTemporal1", seed=6)).json()
 
@@ -653,7 +653,7 @@ async def test_a_numeric_answer_stays_inside_the_bounds_the_form_pins(capture_cl
 
 @pytest.mark.parametrize("seed", [1, 6, 11, 4242])
 async def test_a_dated_answer_stays_inside_the_calendar_days_the_form_pins(
-    seed: int, capture_client: httpx.AsyncClient
+    seed: int, capture_client: httpx2.AsyncClient
 ) -> None:
     """The draw is clamped into the range whatever the window is, so a form's own days hold in any year."""
     response = (await _generate(capture_client, "PrTemporal1", seed=seed)).json()
@@ -665,7 +665,7 @@ async def test_a_dated_answer_stays_inside_the_calendar_days_the_form_pins(
 
 @pytest.mark.parametrize("seed", [1, 2, 3, 6, 11, 4242])
 async def test_a_question_the_draw_did_not_enable_is_left_unanswered(
-    seed: int, capture_client: httpx.AsyncClient
+    seed: int, capture_client: httpx2.AsyncClient
 ) -> None:
     """`$generate` answers what the form is asking under the answers it drew, not every question it holds.
 
@@ -680,7 +680,7 @@ async def test_a_question_the_draw_did_not_enable_is_left_unanswered(
     assert ("DeVisitLink1" in answered) is (coverage >= COVERAGE_LINK_THRESHOLD)
 
 
-async def test_the_post_spelling_takes_its_seed_from_a_parameters_body(capture_client: httpx.AsyncClient) -> None:
+async def test_the_post_spelling_takes_its_seed_from_a_parameters_body(capture_client: httpx2.AsyncClient) -> None:
     """R4 lets an operation be invoked with a Parameters body, and the seed is read off it."""
     body = {"resourceType": "Parameters", "parameter": [{"name": "seed", "valueInteger": 4242}]}
 
@@ -691,7 +691,7 @@ async def test_the_post_spelling_takes_its_seed_from_a_parameters_body(capture_c
     assert posted.content == queried.content
 
 
-async def test_the_post_spelling_takes_an_empty_body(capture_client: httpx.AsyncClient) -> None:
+async def test_the_post_spelling_takes_an_empty_body(capture_client: httpx2.AsyncClient) -> None:
     """A bare POST is how a client says `any seed`, and it is answered rather than refused."""
     posted = await capture_client.post(_generate_path(EVENT_ID))
 
@@ -699,7 +699,7 @@ async def test_the_post_spelling_takes_an_empty_body(capture_client: httpx.Async
     assert posted.json()["resourceType"] == "QuestionnaireResponse"
 
 
-async def test_an_unreadable_seed_is_refused(capture_client: httpx.AsyncClient) -> None:
+async def test_an_unreadable_seed_is_refused(capture_client: httpx2.AsyncClient) -> None:
     """A seed the operation's `integer` input cannot carry is a bad request, not a silently drawn one."""
     unparseable = await _generate(capture_client, EVENT_ID, seed="banana")
     out_of_range = await _generate(capture_client, EVENT_ID, seed=MAXIMUM_SEED + 1)
@@ -709,7 +709,7 @@ async def test_an_unreadable_seed_is_refused(capture_client: httpx.AsyncClient) 
     assert out_of_range.status_code == 400
 
 
-async def test_a_body_that_is_not_parameters_is_refused(capture_client: httpx.AsyncClient) -> None:
+async def test_a_body_that_is_not_parameters_is_refused(capture_client: httpx2.AsyncClient) -> None:
     """A client that meant to name a seed and sent the wrong resource is told so, not quietly ignored."""
     refused = await capture_client.post(_generate_path(EVENT_ID), json={"resourceType": "Bundle"})
 
@@ -717,7 +717,7 @@ async def test_a_body_that_is_not_parameters_is_refused(capture_client: httpx.As
     assert refused.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_an_unknown_questionnaire_is_a_404_outcome(capture_client: httpx.AsyncClient) -> None:
+async def test_an_unknown_questionnaire_is_a_404_outcome(capture_client: httpx2.AsyncClient) -> None:
     """A form this server does not hold is a 404 OperationOutcome, the same answer a read of it gives."""
     missing = await _generate(capture_client, "NoSuchForm", seed=1)
 
@@ -729,7 +729,7 @@ async def test_an_unknown_questionnaire_is_a_404_outcome(capture_client: httpx.A
 
 
 async def test_a_questionnaire_declaring_no_form_kind_cannot_be_generated_against(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """The minimal project's Questionnaire carries no D2FormType, so there is no contract to fill it against."""
     refused = await client.get(_generate_path("d2-pr-anc-visit-q"))
@@ -739,7 +739,7 @@ async def test_a_questionnaire_declaring_no_form_kind_cannot_be_generated_agains
 
 
 async def test_metadata_declares_the_operation_on_the_questionnaire_entry(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """`/metadata` names `$generate` on the entry whose URL answers it: the Questionnaire resource."""
     metadata = (await capture_client.get("/metadata")).json()
@@ -859,8 +859,8 @@ async def _generated_wide_response(
     app = create_app(ServeSettings(project_dir=capture_project.project_root))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             generated = await _generate(client, WIDE_FORM_ID, seed=seed)
             posted = await _post_back(client, generated)
 
@@ -961,7 +961,7 @@ def _spool_registration(
 
 
 async def test_a_stage_response_answers_against_the_pair_a_captured_registration_minted(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """A stage event naming a pair that never existed is refused `E1079`, so a spooled registration's is adopted."""
     registration = await _generate(capture_client, REGISTRATION_ID, seed=5)
@@ -976,7 +976,7 @@ async def test_a_stage_response_answers_against_the_pair_a_captured_registration
 
 
 async def test_a_stage_response_prefers_a_forwarded_registration_over_a_received_one(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
 ) -> None:
     """A forwarded pair names objects DHIS2 already holds; a received one will only after the next drain."""
@@ -1003,7 +1003,7 @@ async def test_a_stage_response_prefers_a_forwarded_registration_over_a_received
 
 
 async def test_a_rejected_registration_is_never_answered_against(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
 ) -> None:
     """DHIS2 refused the registration, so its pair names nothing and no forwarder run will change that."""
@@ -1024,7 +1024,7 @@ async def test_a_rejected_registration_is_never_answered_against(
 
 
 async def test_a_stage_response_mints_a_pair_when_no_registration_of_its_program_is_spooled(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
 ) -> None:
     """The join is the program the two forms share, so another program's registration is not one to answer against.
 
@@ -1046,7 +1046,7 @@ async def test_a_stage_response_mints_a_pair_when_no_registration_of_its_program
 
 
 async def test_an_answered_pair_wins_over_the_pair_the_seed_would_mint(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
 ) -> None:
     """Which person a stage event is about is a fact about this project's data, not a value the seed draws.
@@ -1078,7 +1078,7 @@ async def test_an_answered_pair_wins_over_the_pair_the_seed_would_mint(
 
 
 async def test_a_stage_response_is_the_same_bytes_for_one_seed_and_one_spool_state(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
 ) -> None:
     """Determinism holds with the spool in it: the same seed against the same receipts is the same document."""

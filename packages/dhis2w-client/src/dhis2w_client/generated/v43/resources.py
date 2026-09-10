@@ -121,7 +121,7 @@ def _build_write_params(
       list needs this — otherwise DHIS2 silently merges additively).
     - `importStrategy` — `CREATE` / `CREATE_AND_UPDATE` / `UPDATE` / `DELETE`.
     - `skipSharing` / `skipTranslation` — skip those subsystems on import.
-    Returns `None` when no flag is set so httpx omits the query string.
+    Returns `None` when no flag is set so httpx2 omits the query string.
     """
     params: dict[str, Any] = {}
     if merge_mode is not None:
@@ -149,7 +149,7 @@ def _build_list_params(
 ) -> dict[str, Any]:
     """Build the /api/<resource> query-param dict.
 
-    Repeated params (`filter`, `order`) are emitted as list values — httpx
+    Repeated params (`filter`, `order`) are emitted as list values — httpx2
     flattens `{"filter": ["a", "b"]}` into `?filter=a&filter=b`.
     """
     params: dict[str, Any] = {}

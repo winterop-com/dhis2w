@@ -1,6 +1,6 @@
 """Read a refusal with `FacadeClient` - `FacadeError`, its status, and the issues the facade stated.
 
-`read_capture_refusal.py` next door meets the same refusals over plain httpx and digs the issues out
+`read_capture_refusal.py` next door meets the same refusals over plain httpx2 and digs the issues out
 of the parsed body. This is the typed path: anything that is not an answer raises `FacadeError`, and
 the error carries the `OperationOutcome` the facade refused with. There is no status code to compare
 against a constant and no body to reach into.
@@ -14,7 +14,7 @@ Three properties are the whole surface:
   everything it finds before answering, so a capture screen renders a whole round of corrections.
 - **`diagnostics`** joins those words into one line, for the log entry that has to say why in one.
 
-**A connection that never reached the facade is not this.** httpx's own `TransportError` passes
+**A connection that never reached the facade is not this.** httpx2's own `TransportError` passes
 through untouched, because a server that did not answer stated no outcome to carry.
 
 Usage:

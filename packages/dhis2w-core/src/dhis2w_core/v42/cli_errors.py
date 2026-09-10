@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 from typing import NoReturn
 
-import httpx
+import httpx2
 import typer
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError, Dhis2ClientError, OAuth2FlowError
 from dhis2w_client.v42.envelopes import WebMessageResponse
@@ -78,7 +78,7 @@ def run_app(app: typer.Typer) -> NoReturn:
         _render_api_error(exc)
     except Dhis2ClientError as exc:
         _render("DHIS2 error", str(exc))
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         _render_transport_error(exc)
     except LookupError as exc:
         _render("error", str(exc))
@@ -124,13 +124,13 @@ def _webmessage_detail_lines(envelope: WebMessageResponse) -> list[str]:
     return lines
 
 
-def _render_transport_error(exc: httpx.HTTPError) -> NoReturn:
-    """Render an httpx transport failure — the instance never answered, so there is no DHIS2 body."""
+def _render_transport_error(exc: httpx2.HTTPError) -> NoReturn:
+    """Render an httpx2 transport failure — the instance never answered, so there is no DHIS2 body."""
     detail = str(exc) or type(exc).__name__
     url = _request_url(exc)
     if url:
         detail = f"{detail} ({url})"
-    hint = _CONNECT_HINT if isinstance(exc, httpx.ConnectError) else None
+    hint = _CONNECT_HINT if isinstance(exc, httpx2.ConnectError) else None
     _render("error", f"cannot reach the DHIS2 instance: {detail}", hint)
 
 
@@ -148,8 +148,8 @@ def _render(label: str, message: str, hint: list[str] | None = None, extras: lis
     sys.exit(1)
 
 
-def _request_url(exc: httpx.HTTPError) -> str | None:
-    """The URL the failed request targeted, when httpx attached a request to the exception."""
+def _request_url(exc: httpx2.HTTPError) -> str | None:
+    """The URL the failed request targeted, when httpx2 attached a request to the exception."""
     try:
         return str(exc.request.url)
     except RuntimeError:

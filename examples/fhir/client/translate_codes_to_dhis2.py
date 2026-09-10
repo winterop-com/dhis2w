@@ -38,7 +38,7 @@ Runs whole without a facade: the `$translate` half then says so and the offline 
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import conversion_context, served_facade, stage_form_id
 from dhis2w_fhir import ConversionContext, ConversionNaming
 from dhis2w_fhir.conversion import CodedAnswerMode, FormSpec, OptionTable, QuestionSpec, resolve_option
@@ -101,13 +101,13 @@ def _print_resolution(table: OptionTable, code: str, mode: CodedAnswerMode) -> N
 def _translate_over_the_wire(base_url: str, system: str, code: str, target_system: str) -> None:
     """Ask a running facade what one concept maps onto, through R4's own `$translate` operation."""
     try:
-        answer = httpx.get(
+        answer = httpx2.get(
             f"{base_url}/ConceptMap/$translate",
             params={"system": system, "code": code, "targetsystem": target_system},
             headers={"Accept": FHIR_JSON},
             timeout=FACADE_TIMEOUT_SECONDS,
         )
-    except httpx.HTTPError as error:
+    except httpx2.HTTPError as error:
         print(f"  no facade answering at {base_url} ({type(error).__name__})")
         print("  start one with `d2w fhir serve --port 8123` in the project directory to see this half")
         return

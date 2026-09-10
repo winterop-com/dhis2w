@@ -14,7 +14,7 @@ from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client.errors import Dhis2ApiError
 from dhis2w_core.security_core import (
@@ -348,7 +348,7 @@ async def test_run_routes_degrades_on_transport_error(tree: str) -> None:
     """A transport error reading /api/routes degrades the check rather than reporting an empty inventory."""
     client = MagicMock()
     client.base_url = "https://mock.example"
-    client.get_raw = AsyncMock(side_effect=httpx.ConnectError("boom"))
+    client.get_raw = AsyncMock(side_effect=httpx2.ConnectError("boom"))
 
     result = await _audit_module(tree)._run_routes(client)
 

@@ -13,6 +13,7 @@ import json
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_fhir import (
@@ -496,7 +497,7 @@ async def test_evaluate_over_a_typed_resource_dumps_it_for_the_wire() -> None:
 async def test_a_borrowed_pool_is_left_open_for_its_owner_to_close() -> None:
     """A caller pooling several clients, or a test driving the app in process, keeps its own pool."""
     respx.get(f"{FACADE_URL}/metadata").mock(return_value=httpx.Response(200, json=_capability()))
-    async with httpx.AsyncClient() as pool:
+    async with httpx2.AsyncClient() as pool:
         async with FacadeClient(FACADE_URL, http_client=pool) as facade:
             await facade.capability()
         assert not pool.is_closed

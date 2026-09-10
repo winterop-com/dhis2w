@@ -11,7 +11,7 @@ Three lines carry the whole pattern:
 1. `create_app(ServeSettings(...))` - the application, with nothing loaded yet.
 2. `app.router.lifespan_context(app)` - the startup the ASGI server would have run: the project is
    read, the store is built, the spool is opened, `/metadata` is rendered once.
-3. `httpx.ASGITransport(app=app)` - a client that calls the application in this event loop.
+3. `httpx2.ASGITransport(app=app)` - a client that calls the application in this event loop.
 
 The store is built `live=True`, off the DHIS2 instance, because the shared example project has
 never run SUSHI: a compiled `ig/fsh-generated/resources` is the other store and this project holds
@@ -35,7 +35,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import httpx
+import httpx2
 from _fixture import example_project
 from _runner import run_example
 from dhis2w_fhir_serve import FACADE_MOUNT_PATH, ServeSettings, create_app
@@ -56,8 +56,8 @@ async def main() -> None:
     print(f"project: {directory}")
 
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(
             transport=transport, base_url=EMBEDDED_BASE_URL, headers={"Accept": FHIR_JSON}, timeout=60.0
         ) as client:
             capability = (await client.get("/metadata")).raise_for_status().json()

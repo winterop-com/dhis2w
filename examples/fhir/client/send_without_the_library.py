@@ -1,4 +1,4 @@
-"""Capture against a facade from a stack that has never heard of DHIS2 tooling - httpx and a JSON body.
+"""Capture against a facade from a stack that has never heard of DHIS2 tooling - httpx2 and a JSON body.
 
 Nothing that reads the form, builds the document, or posts it imports anything of this project's.
 That is the point: a facade is an ordinary HTTP endpoint taking an ordinary JSON document, and the
@@ -31,7 +31,7 @@ import json
 import os
 from typing import Any
 
-import httpx
+import httpx2
 
 FHIR_JSON = "application/fhir+json"
 OK = 200
@@ -111,7 +111,7 @@ def facade_base_url() -> str:
 async def main() -> None:
     """Read the form, post one filled copy of it, and print what the facade answered."""
     base_url = facade_base_url()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         form = await client.get(f"/Questionnaire/{DATA_SET}")
         if form.status_code != OK:
             print(f"the facade at {base_url} serves no form `{DATA_SET}` - set DATA_SET to one it does")

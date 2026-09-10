@@ -33,7 +33,7 @@ A typical agent turn: `search_tools("data element count") → call_tool("dhis2__
 
 ## Domain-neutral core
 
-The core depends only on FastMCP + httpx (the latter for the optional embedding ranker) — **zero `dhis2w-*` imports**. It knows nothing about DHIS2;
+The core depends only on FastMCP + httpx2 (the latter for the optional embedding ranker) — **zero `dhis2w-*` imports**. It knows nothing about DHIS2;
 it fronts whatever MCP servers the config names. That is deliberate: the router is infrastructure, not a
 DHIS2 feature. It ships to PyPI as `dhis2w-mcp-router` (from 1.2.0), and the same domain-neutral core
 could extract to a standalone `mcp-router` repo without a rewrite.

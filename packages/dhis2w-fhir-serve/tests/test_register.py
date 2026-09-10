@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -149,7 +150,7 @@ def patient_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Profile:
 async def live_client(
     capture_project: FhirProject,
     patient_profile: Profile,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the capture guide, holding a DHIS2 client against the mocked host.
 
     The respx router is opened here rather than by a decorator on each test: a fixture is set up
@@ -164,8 +165,8 @@ async def live_client(
             open_client(patient_profile) as dhis2,
         ):
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
@@ -198,7 +199,7 @@ def _read_route(entity: dict[str, Any] | None, tracked_entity_uid: str = _PERSON
 
 
 async def test_a_system_qualified_identifier_searches_the_attribute_it_names(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """`identifier={system}|{value}` filters on the one attribute that system belongs to."""
     _read_route(None, _NATIONAL_ID)
@@ -219,7 +220,7 @@ async def test_a_system_qualified_identifier_searches_the_attribute_it_names(
 
 
 async def test_a_bare_identifier_value_tries_the_uid_and_every_search_key_that_could_hold_it(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """A token naming no system is a lookup across every key at once, the tracked entity UID included.
 
@@ -247,7 +248,7 @@ async def test_a_bare_identifier_value_tries_the_uid_and_every_search_key_that_c
     assert all(call.request.url.params["orgUnitMode"] == "ACCESSIBLE" for call in search.calls)
 
 
-async def test_a_key_whose_value_type_could_hold_the_value_is_asked(live_client: httpx.AsyncClient) -> None:
+async def test_a_key_whose_value_type_could_hold_the_value_is_asked(live_client: httpx2.AsyncClient) -> None:
     """The screen drops a key for the value typed rather than for good: a date reaches the date of birth."""
     _read_route(None, "2001-02-03")
     search = _search_route()
@@ -260,7 +261,7 @@ async def test_a_key_whose_value_type_could_hold_the_value_is_asked(live_client:
 
 
 async def test_a_key_the_instance_refuses_matches_nobody_rather_than_failing_the_search(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """One key's 400 is that key matching nobody: every other key still answers, and the search stands.
 
@@ -292,7 +293,7 @@ async def test_a_key_the_instance_refuses_matches_nobody_rather_than_failing_the
 
 
 async def test_every_search_runs_through_the_index_whatever_is_behind_it(
-    live_client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
+    live_client: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The register asks a `NameSearchIndex` for candidates and reads each one back - never records from a search.
 
@@ -339,7 +340,7 @@ async def test_every_search_runs_through_the_index_whatever_is_behind_it(
     assert not search.called
 
 
-async def test_a_value_that_is_not_uid_shaped_is_never_read_as_one(live_client: httpx.AsyncClient) -> None:
+async def test_a_value_that_is_not_uid_shaped_is_never_read_as_one(live_client: httpx2.AsyncClient) -> None:
     """DHIS2 answers 400 for a non-UID in the UID slot, so a national ID is not spent on that read."""
     read = _read_route(None, _NATIONAL_ID)
     _search_route()
@@ -351,7 +352,7 @@ async def test_a_value_that_is_not_uid_shaped_is_never_read_as_one(live_client: 
 
 
 async def test_the_tracked_entity_system_reads_the_entity_rather_than_filtering(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """The UID system is not an attribute, so it is answered by reading that one entity."""
     read = _read_route(_entity())
@@ -366,7 +367,7 @@ async def test_the_tracked_entity_system_reads_the_entity_rather_than_filtering(
 
 
 async def test_two_identifiers_finding_one_person_answer_one_entry(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """A person matched by two tokens is carried once - the fold deduplicates by tracked entity UID."""
     _read_route(_entity(), _PERSON_UID)
@@ -381,7 +382,7 @@ async def test_two_identifiers_finding_one_person_answer_one_entry(
     assert [entry["resource"]["id"] for entry in body["entry"]] == [_PERSON_UID]
 
 
-async def test_two_people_holding_the_value_both_come_back(live_client: httpx.AsyncClient) -> None:
+async def test_two_people_holding_the_value_both_come_back(live_client: httpx2.AsyncClient) -> None:
     """Nothing here collapses a result set DHIS2 returned with two people in it."""
     _read_route(None, _NATIONAL_ID)
     _search_route(_entity(), _entity(_OTHER_PERSON_UID))
@@ -392,7 +393,7 @@ async def test_two_people_holding_the_value_both_come_back(live_client: httpx.As
     assert [entry["resource"]["id"] for entry in body["entry"]] == [_PERSON_UID, _OTHER_PERSON_UID]
 
 
-async def test_a_search_parameter_this_server_cannot_answer_is_refused(live_client: httpx.AsyncClient) -> None:
+async def test_a_search_parameter_this_server_cannot_answer_is_refused(live_client: httpx2.AsyncClient) -> None:
     """`family=Smith` is a query the register cannot run, so it is refused rather than answered with everybody."""
     read = _read_route(None, "NOBODY00001")
     search = _search_route()
@@ -412,7 +413,7 @@ async def test_a_search_parameter_this_server_cannot_answer_is_refused(live_clie
 
 
 async def test_an_unanswerable_parameter_beside_an_identifier_is_refused_too(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """A refused parameter is refused whatever it was sent with - a partly-run query is not an answer."""
     _read_route(None, _NATIONAL_ID)
@@ -424,7 +425,7 @@ async def test_an_unanswerable_parameter_beside_an_identifier_is_refused_too(
     assert "`birthdate`" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_format_is_not_a_search_parameter_the_register_screens(live_client: httpx.AsyncClient) -> None:
+async def test_a_format_is_not_a_search_parameter_the_register_screens(live_client: httpx2.AsyncClient) -> None:
     """`_format` names the format the searchset comes back in, so it narrows the search by nothing."""
     _read_route(None, _NATIONAL_ID)
     _search_route(_entity())
@@ -435,7 +436,7 @@ async def test_a_format_is_not_a_search_parameter_the_register_screens(live_clie
     assert response.json()["total"] == 1
 
 
-async def test_a_format_is_not_offered_as_something_the_register_searches_on(live_client: httpx.AsyncClient) -> None:
+async def test_a_format_is_not_offered_as_something_the_register_searches_on(live_client: httpx2.AsyncClient) -> None:
     """The refusal lists the searches a register runs, and the format the answer arrives in is not one."""
     _read_route(None, "NOBODY00001")
     _search_route()
@@ -445,7 +446,7 @@ async def test_a_format_is_not_offered_as_something_the_register_searches_on(liv
     assert "_format" not in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_page_named_on_an_identifier_search_is_refused(live_client: httpx.AsyncClient) -> None:
+async def test_a_page_named_on_an_identifier_search_is_refused(live_client: httpx2.AsyncClient) -> None:
     """`page` walks the listing; a search naming an identifier is answered whole, so the two do not combine."""
     _read_route(None, _NATIONAL_ID)
     _search_route(_entity())
@@ -459,7 +460,7 @@ async def test_a_page_named_on_an_identifier_search_is_refused(live_client: http
 
 
 async def test_the_identifier_search_carries_no_more_than_the_count_asked_for(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """`_count` caps the matches a client is handed, and `total` still states how many there were."""
     _read_route(None, _NATIONAL_ID)
@@ -476,7 +477,7 @@ async def test_the_identifier_search_carries_no_more_than_the_count_asked_for(
 
 
 async def test_a_count_of_zero_on_an_identifier_search_answers_the_total_alone(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """R4's way of asking how many matched: the number, and none of the matches."""
     _read_route(None, _NATIONAL_ID)
@@ -489,7 +490,7 @@ async def test_a_count_of_zero_on_an_identifier_search_answers_the_total_alone(
     assert body["link"][0]["url"] == f"{_BASE_URL}/Patient?identifier={_NATIONAL_ID}&_count=0"
 
 
-async def test_a_count_that_is_not_a_number_of_matches_is_refused(live_client: httpx.AsyncClient) -> None:
+async def test_a_count_that_is_not_a_number_of_matches_is_refused(live_client: httpx2.AsyncClient) -> None:
     """An unreadable cap is a malformed query, and a negative one is not a number of rows."""
     _read_route(None, _NATIONAL_ID)
     _search_route(_entity())
@@ -503,7 +504,7 @@ async def test_a_count_that_is_not_a_number_of_matches_is_refused(live_client: h
     assert negative.json()["issue"][0]["code"] == "invalid"
 
 
-async def test_an_identifier_nobody_holds_is_an_empty_searchset(live_client: httpx.AsyncClient) -> None:
+async def test_an_identifier_nobody_holds_is_an_empty_searchset(live_client: httpx2.AsyncClient) -> None:
     """An unmatched search is an empty Bundle, never a 404 - a 404 would deny the endpoint exists."""
     _read_route(None, "NOBODY00001")
     _search_route()
@@ -518,7 +519,7 @@ async def test_an_identifier_nobody_holds_is_an_empty_searchset(live_client: htt
 
 
 async def test_a_system_the_guide_publishes_nothing_for_matches_nothing(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """An unknown identifier system is an unsatisfied query, not a malformed one."""
     search = _search_route(_entity())
@@ -531,7 +532,7 @@ async def test_a_system_the_guide_publishes_nothing_for_matches_nothing(
 
 
 async def test_the_patient_carries_the_uid_the_unique_value_and_the_rest_as_extensions(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """The projection: identity in `identifier`, the type as a tag, every other value an extension."""
     _read_route(_entity())
@@ -564,7 +565,7 @@ async def test_the_patient_carries_the_uid_the_unique_value_and_the_rest_as_exte
     assert "birthDate" not in patient
 
 
-async def test_an_unknown_tracked_entity_uid_reads_as_not_found(live_client: httpx.AsyncClient) -> None:
+async def test_an_unknown_tracked_entity_uid_reads_as_not_found(live_client: httpx2.AsyncClient) -> None:
     """A read - unlike a search - does 404, and answers it as an OperationOutcome."""
     _read_route(None, "NOBODY00001")
 
@@ -575,7 +576,7 @@ async def test_an_unknown_tracked_entity_uid_reads_as_not_found(live_client: htt
 
 
 async def test_the_enrollment_listing_names_the_program_and_the_organisation_unit(
-    live_client: httpx.AsyncClient,
+    live_client: httpx2.AsyncClient,
 ) -> None:
     """The picker's feed: the enrollment, joined to the names this guide publishes."""
     _read_route(_entity())
@@ -597,7 +598,7 @@ async def test_the_enrollment_listing_names_the_program_and_the_organisation_uni
     ]
 
 
-async def test_a_completed_enrollment_is_listed_and_marked(live_client: httpx.AsyncClient) -> None:
+async def test_a_completed_enrollment_is_listed_and_marked(live_client: httpx2.AsyncClient) -> None:
     """DHIS2 takes events into a completed enrollment without a word (BUGS.md 70); the listing says so."""
     _read_route(
         _entity(
@@ -620,7 +621,7 @@ async def test_a_completed_enrollment_is_listed_and_marked(live_client: httpx.As
     assert listing["enrollments"][0]["active"] is False
 
 
-async def test_the_enrollment_read_never_names_a_program(live_client: httpx.AsyncClient) -> None:
+async def test_the_enrollment_read_never_names_a_program(live_client: httpx2.AsyncClient) -> None:
     """BUGS.md 72: a program the person is not enrolled in answers 404 claiming the person is gone."""
     read = _read_route(_entity())
 
@@ -629,7 +630,7 @@ async def test_the_enrollment_read_never_names_a_program(live_client: httpx.Asyn
     assert "program" not in read.calls[0].request.url.params
 
 
-async def test_a_compiled_run_refuses_patient_as_not_supported(capture_client: httpx.AsyncClient) -> None:
+async def test_a_compiled_run_refuses_patient_as_not_supported(capture_client: httpx2.AsyncClient) -> None:
     """No live client, so no instance to ask - stated as the FHIR refusal, not as an empty result."""
     search = await capture_client.get("/Patient?identifier=anything")
     listing = await capture_client.get(f"/facade/tracked-entities/{_PERSON_UID}/enrollments")
@@ -726,7 +727,7 @@ async def pass_through_facade(
     capture_project: FhirProject,
     patient_profile: Profile,
     monkeypatch: pytest.MonkeyPatch,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The same facade under `auth = "dhis2"`: the runtime's client beside the pool a caller's header rides.
 
     The runtime's client is booby-trapped rather than merely observed. Every assertion below could be
@@ -756,13 +757,13 @@ async def pass_through_facade(
             monkeypatch.setattr(dhis2, "get_raw", _never_the_runtime)
             app.state.live_client = dhis2
             app.state.caller_client = pool
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 async def test_a_register_read_carries_the_callers_own_header_and_never_the_runtimes(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """The whole wave in one assertion: DHIS2 is asked as the person who asked this server."""
     read = _read_route(_entity())
@@ -775,7 +776,7 @@ async def test_a_register_read_carries_the_callers_own_header_and_never_the_runt
     assert sent.headers["authorization"] != _RUNTIME_BASIC
 
 
-async def test_a_search_and_a_listing_carry_it_too(pass_through_facade: httpx.AsyncClient) -> None:
+async def test_a_search_and_a_listing_carry_it_too(pass_through_facade: httpx2.AsyncClient) -> None:
     """Every register read is a read on somebody's behalf, so every one of them is forwarded."""
     _read_route(None, _NATIONAL_ID)
     search = _search_route(_entity())
@@ -789,7 +790,7 @@ async def test_a_search_and_a_listing_carry_it_too(pass_through_facade: httpx.As
     assert forwarded == [_CALLER_BASIC, _OTHER_CALLER_BASIC]
 
 
-async def test_resolving_a_match_is_read_as_the_caller_too(pass_through_facade: httpx.AsyncClient) -> None:
+async def test_resolving_a_match_is_read_as_the_caller_too(pass_through_facade: httpx2.AsyncClient) -> None:
     """The index says an identifier matched; the instance says whether this caller may have the person behind it.
 
     Authorization by construction, on the wire: the read that turns a match into a record carries the
@@ -808,7 +809,7 @@ async def test_resolving_a_match_is_read_as_the_caller_too(pass_through_facade: 
     assert resolution.calls.last.request.headers["authorization"] == _CALLER_BASIC
 
 
-async def test_the_enrollment_listing_is_read_as_the_caller(pass_through_facade: httpx.AsyncClient) -> None:
+async def test_the_enrollment_listing_is_read_as_the_caller(pass_through_facade: httpx2.AsyncClient) -> None:
     """The picker's feed is one person's episodes, so it is answered under that person's own reader."""
     read = _read_route(_entity())
 
@@ -821,7 +822,7 @@ async def test_the_enrollment_listing_is_read_as_the_caller(pass_through_facade:
 
 
 async def test_an_evaluation_over_a_registered_entity_is_read_as_the_caller(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """An expression may only ever run over a person its caller may see, which is DHIS2's call to make."""
     read = _read_route(_entity())
@@ -841,7 +842,7 @@ async def test_an_evaluation_over_a_registered_entity_is_read_as_the_caller(
 
 
 async def test_the_read_names_the_facade_and_never_the_caller_in_a_header_of_its_own(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """One breadcrumb, naming the software: the caller's own header already carries who they are."""
     read = _read_route(_entity())
@@ -854,7 +855,7 @@ async def test_the_read_names_the_facade_and_never_the_caller_in_a_header_of_its
 
 
 async def test_what_dhis2_hides_stays_hidden_rather_than_becoming_a_facade_verdict(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """DHIS2 answers 404 for a tracked entity a caller may not see, and 404 is what the caller is told."""
     _read_route(None)
@@ -866,7 +867,7 @@ async def test_what_dhis2_hides_stays_hidden_rather_than_becoming_a_facade_verdi
 
 
 async def test_a_refusal_dhis2_did_send_is_carried_rather_than_turned_into_a_facade_failure(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """A 403 is about the caller, and a 502 would say this server could not reach an instance that answered."""
     respx.get(f"{_HOST}/api/tracker/trackedEntities/{_PERSON_UID}").mock(
@@ -880,7 +881,7 @@ async def test_a_refusal_dhis2_did_send_is_carried_rather_than_turned_into_a_fac
 
 
 async def test_two_callers_are_two_upstream_reads_and_neither_is_answered_from_the_others(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """Nothing on this path is cached, because one caller's page is never another caller's page."""
     read = _read_route(_entity())
@@ -893,7 +894,7 @@ async def test_two_callers_are_two_upstream_reads_and_neither_is_answered_from_t
 
 
 async def test_a_register_read_presenting_no_credential_is_refused_rather_than_read_as_the_facade(
-    pass_through_facade: httpx.AsyncClient,
+    pass_through_facade: httpx2.AsyncClient,
 ) -> None:
     """There is nobody to answer as, and answering as the facade is the read this posture exists to stop."""
     read = _read_route(_entity())
@@ -915,7 +916,7 @@ async def runtime_reading_facade(
     capture_project: FhirProject,
     patient_profile: Profile,
     monkeypatch: pytest.MonkeyPatch,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade under a posture that names nobody, which is what makes the register the runtime's read."""
     posture, presented = request.param
     monkeypatch.setenv("D2W_FHIR_SERVE_TOKENS", "a-deployment-token")
@@ -926,14 +927,14 @@ async def runtime_reading_facade(
         )
         async with app.router.lifespan_context(app), open_client(patient_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
+            transport = httpx2.ASGITransport(app=app)
             headers = {} if presented is None else {"Authorization": presented}
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL, headers=headers) as http:
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL, headers=headers) as http:
                 yield http
 
 
 async def test_a_posture_that_names_nobody_reads_the_register_over_the_runtimes_own_client(
-    runtime_reading_facade: httpx.AsyncClient,
+    runtime_reading_facade: httpx2.AsyncClient,
 ) -> None:
     """Pass-through is the `dhis2` posture's. `none` and `token` name no DHIS2 user to read as."""
     read = _read_route(_entity())

@@ -1,7 +1,7 @@
-"""Retry policy + httpx transport wrapper for transient HTTP failures.
+"""Retry policy + httpx2 transport wrapper for transient HTTP failures.
 
 Default-off. Opt in by passing `retry_policy=RetryPolicy(...)` to
-`Dhis2Client` — the client wraps its httpx transport with `_RetryTransport`
+`Dhis2Client` — the client wraps its httpx2 transport with `_RetryTransport`
 which retries on the configured status codes and on connection-level
 errors (ConnectError, ReadTimeout, etc.) with exponential backoff + jitter.
 
@@ -23,7 +23,7 @@ from __future__ import annotations
 import asyncio
 import random
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, Field
 
 _IDEMPOTENT_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "PUT", "DELETE", "OPTIONS"})
@@ -75,12 +75,12 @@ def _parse_retry_after(value: str | None) -> float | None:
     return max(0.0, seconds)
 
 
-class _RetryTransport(httpx.AsyncBaseTransport):
+class _RetryTransport(httpx2.AsyncBaseTransport):
     """Wrap another transport and retry per the given `RetryPolicy`.
 
     Retries on:
 
-    - Connection-level exceptions (`httpx.ConnectError`, `ConnectTimeout`,
+    - Connection-level exceptions (`httpx2.ConnectError`, `ConnectTimeout`,
       `ReadTimeout`, `WriteTimeout`, `PoolTimeout`, `RemoteProtocolError`).
     - Responses whose status is in `policy.retry_statuses`.
 
@@ -88,12 +88,12 @@ class _RetryTransport(httpx.AsyncBaseTransport):
     opts in via `retry_non_idempotent=True`.
     """
 
-    def __init__(self, inner: httpx.AsyncBaseTransport, policy: RetryPolicy) -> None:
+    def __init__(self, inner: httpx2.AsyncBaseTransport, policy: RetryPolicy) -> None:
         """Compose a retry transport over `inner` using `policy`."""
         self._inner = inner
         self._policy = policy
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
         """Dispatch with retries. Always returns a final Response or raises the last transport error."""
         method = request.method.upper()
         allowed = self._policy.retry_non_idempotent or method in _IDEMPOTENT_METHODS
@@ -132,24 +132,24 @@ class _RetryTransport(httpx.AsyncBaseTransport):
 
 
 _RETRYABLE_ERRORS: tuple[type[Exception], ...] = (
-    httpx.ConnectError,
-    httpx.ConnectTimeout,
-    httpx.ReadTimeout,
-    httpx.WriteTimeout,
-    httpx.PoolTimeout,
-    httpx.RemoteProtocolError,
+    httpx2.ConnectError,
+    httpx2.ConnectTimeout,
+    httpx2.ReadTimeout,
+    httpx2.WriteTimeout,
+    httpx2.PoolTimeout,
+    httpx2.RemoteProtocolError,
 )
 
 
-def build_retry_transport(policy: RetryPolicy, *, inner: httpx.AsyncBaseTransport | None = None) -> _RetryTransport:
+def build_retry_transport(policy: RetryPolicy, *, inner: httpx2.AsyncBaseTransport | None = None) -> _RetryTransport:
     """Compose a retry-wrapped transport; defaults to wrapping a fresh `AsyncHTTPTransport`."""
-    base: httpx.AsyncBaseTransport = inner if inner is not None else _default_transport()
+    base: httpx2.AsyncBaseTransport = inner if inner is not None else _default_transport()
     return _RetryTransport(base, policy)
 
 
-def _default_transport() -> httpx.AsyncBaseTransport:
-    """Build httpx's default async transport — matches what `httpx.AsyncClient()` would pick."""
-    return httpx.AsyncHTTPTransport()
+def _default_transport() -> httpx2.AsyncBaseTransport:
+    """Build httpx2's default async transport — matches what `httpx2.AsyncClient()` would pick."""
+    return httpx2.AsyncHTTPTransport()
 
 
 __all__ = ["RetryPolicy", "build_retry_transport"]

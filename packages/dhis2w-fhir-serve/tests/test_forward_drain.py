@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.profile import Profile
@@ -104,7 +105,7 @@ def _attribute_value_types(request: httpx.Request) -> httpx.Response:
     )
 
 
-async def _capture(client: httpx.AsyncClient, response: dict[str, Any]) -> str:
+async def _capture(client: httpx2.AsyncClient, response: dict[str, Any]) -> str:
     """Post one submission through the facade and answer with the receipt id the server minted.
 
     The id is read off `Location` rather than off the body, because that is where the server states
@@ -124,7 +125,7 @@ def _rows(listing: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 @respx.mock
 async def test_forward_drain_is_visible_to_the_running_facade(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
     aggregate_response: dict[str, Any],
     event_response: dict[str, Any],
@@ -186,7 +187,7 @@ async def test_forward_drain_is_visible_to_the_running_facade(
 
 @respx.mock
 async def test_a_receipt_the_drain_never_reached_is_still_offered_as_pending(
-    capture_client: httpx.AsyncClient,
+    capture_client: httpx2.AsyncClient,
     capture_project: FhirProject,
     aggregate_response: dict[str, Any],
     event_response: dict[str, Any],

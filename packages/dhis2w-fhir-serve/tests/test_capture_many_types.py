@@ -23,7 +23,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.conversion import ConversionNaming, build_conversion_context, translate_response
@@ -51,16 +51,16 @@ def many_types_project(tmp_path: Path) -> FhirProject:
 
 
 @pytest.fixture
-async def many_types_capture_client(many_types_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def many_types_capture_client(many_types_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """The compiled facade over that guide - no instance behind it, because capture needs none."""
     app: FastAPI = create_app(ServeSettings(project_dir=many_types_project.project_root))
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as http:
             yield http
 
 
-async def _generate(client: httpx.AsyncClient, published: FixtureTrackedEntityType) -> dict[str, Any]:
+async def _generate(client: httpx2.AsyncClient, published: FixtureTrackedEntityType) -> dict[str, Any]:
     """Fill one type's registration form through the operation a capture client invokes."""
     answer = await client.get(f"/Questionnaire/{published.uid}/$generate", params={"seed": 7})
     assert answer.status_code == 200, answer.text
@@ -71,7 +71,7 @@ async def _generate(client: httpx.AsyncClient, published: FixtureTrackedEntityTy
 
 @pytest.mark.parametrize("published", MANY_TRACKED_ENTITY_TYPES, ids=lambda published: published.uid)
 async def test_a_generated_registration_is_typed_by_the_form_its_type_publishes(
-    many_types_capture_client: httpx.AsyncClient, published: FixtureTrackedEntityType
+    many_types_capture_client: httpx2.AsyncClient, published: FixtureTrackedEntityType
 ) -> None:
     """QR subject typing follows the map: the generated subject is the resource the type is served as."""
     generated = await _generate(many_types_capture_client, published)
@@ -84,7 +84,7 @@ async def test_a_generated_registration_is_typed_by_the_form_its_type_publishes(
 
 @pytest.mark.parametrize("published", MANY_TRACKED_ENTITY_TYPES, ids=lambda published: published.uid)
 async def test_a_generated_registration_of_any_type_posts_back_201(
-    many_types_capture_client: httpx.AsyncClient, published: FixtureTrackedEntityType
+    many_types_capture_client: httpx2.AsyncClient, published: FixtureTrackedEntityType
 ) -> None:
     """One capture implementation over every subject type: a fridge is received as a person is."""
     generated = await _generate(many_types_capture_client, published)
@@ -97,7 +97,7 @@ async def test_a_generated_registration_of_any_type_posts_back_201(
 
 @pytest.mark.parametrize("published", MANY_TRACKED_ENTITY_TYPES, ids=lambda published: published.uid)
 async def test_a_generated_registration_of_any_type_translates_to_its_own_dhis2_type(
-    many_types_capture_client: httpx.AsyncClient,
+    many_types_capture_client: httpx2.AsyncClient,
     many_types_project: FhirProject,
     published: FixtureTrackedEntityType,
 ) -> None:

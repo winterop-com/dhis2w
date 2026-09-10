@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -171,15 +172,15 @@ def summary_project(tmp_path: Path, summary_tables: str) -> FhirProject:
 
 
 @pytest.fixture
-async def summary_client(summary_project: FhirProject, summary_profile: Profile) -> AsyncIterator[httpx.AsyncClient]:
+async def summary_client(summary_project: FhirProject, summary_profile: Profile) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over that guide, holding a DHIS2 client against the mocked host."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
         app: FastAPI = create_app(ServeSettings(project_dir=summary_project.project_root))
         async with app.router.lifespan_context(app), open_client(summary_profile) as dhis2:
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
@@ -196,7 +197,7 @@ def _sections(bundle: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 async def test_a_summary_is_a_document_carrying_the_person_and_their_doses(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """The instance form: one document, the register's own Patient in it, one Immunization per dose."""
     _routes(_event("EvPostnat01"))
@@ -217,7 +218,7 @@ async def test_a_summary_is_a_document_carrying_the_person_and_their_doses(
 
 
 async def test_the_three_required_sections_state_an_empty_reason_and_the_mapped_one_carries_entries(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """Nothing is invented for the sections nobody mapped, and the mapped one carries the real doses."""
     _routes(_event("EvPostnat01"))
@@ -237,7 +238,7 @@ async def test_the_three_required_sections_state_an_empty_reason_and_the_mapped_
     assert len(sections[3]["entry"]) == 1
 
 
-async def test_the_caveat_rides_the_document_and_the_response(summary_client: httpx.AsyncClient) -> None:
+async def test_the_caveat_rides_the_document_and_the_response(summary_client: httpx2.AsyncClient) -> None:
     """One fact stated where resources are read, and stated again where responses are."""
     _routes(_event("EvPostnat01"))
 
@@ -248,7 +249,7 @@ async def test_the_caveat_rides_the_document_and_the_response(summary_client: ht
     assert caveat in _resources(response.json(), "Composition")[0]["text"]["div"]
 
 
-async def test_a_value_recording_no_dose_produces_no_immunization(summary_client: httpx.AsyncClient) -> None:
+async def test_a_value_recording_no_dose_produces_no_immunization(summary_client: httpx2.AsyncClient) -> None:
     """A boolean `false` says the vaccine was not given and states no reason, so nothing is minted."""
     _routes(_event("EvPostnat01", values=[{"dataElement": _MEASLES, "value": "false"}]))
 
@@ -258,14 +259,14 @@ async def test_a_value_recording_no_dose_produces_no_immunization(summary_client
     assert _sections(body)[3]["emptyReason"]["coding"][0]["code"] == "unavailable"
 
 
-async def test_a_value_the_mapping_does_not_nominate_is_not_a_dose(summary_client: httpx.AsyncClient) -> None:
+async def test_a_value_the_mapping_does_not_nominate_is_not_a_dose(summary_client: httpx2.AsyncClient) -> None:
     """Every entry traces to a line somebody wrote, so an unmapped element on a mapped stage is left alone."""
     _routes(_event("EvPostnat01", values=[{"dataElement": _INFANT_WEIGHT, "value": "4100"}]))
 
     assert _resources((await summary_client.get(f"/Patient/{_PERSON_UID}/$summary")).json(), "Immunization") == []
 
 
-async def test_a_coded_dose_carries_the_dose_number_it_names(summary_client: httpx.AsyncClient) -> None:
+async def test_a_coded_dose_carries_the_dose_number_it_names(summary_client: httpx2.AsyncClient) -> None:
     """The value of a coded dose element names which dose of the series it was, and that is what it becomes."""
     _routes(_event("EvPostnat01", values=[{"dataElement": _PENTA, "value": "2"}]))
 
@@ -276,7 +277,7 @@ async def test_a_coded_dose_carries_the_dose_number_it_names(summary_client: htt
 
 @pytest.mark.parametrize("summary_tables", [_SUMMARY_TABLES_WITH_AN_UNPUBLISHED_STAGE])
 async def test_a_mapped_stage_with_no_published_form_is_named_in_the_section(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """A guide narrower than its mapping is a fact about the guide, not a person who was never vaccinated."""
     _routes(_event("EvBirth00001", stage_uid=_UNPUBLISHED_STAGE))
@@ -293,7 +294,7 @@ def _unpublished_stated(narrative: str) -> bool:
 
 @pytest.mark.parametrize("summary_tables", [_SUMMARY_MAPPING_NOTHING])
 async def test_a_summary_with_no_mapped_section_is_served_with_the_caveat(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """The owner's call: such a document is served, and it says what it is and is not."""
     _routes(_event("EvPostnat01"))
@@ -310,7 +311,7 @@ async def test_a_summary_with_no_mapped_section_is_served_with_the_caveat(
 
 
 async def test_the_type_level_form_resolves_through_the_registers_identifier_search(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """`$summary?identifier=` answers the same document the UID form does, for the person it names."""
     _routes(_event("EvPostnat01"))
@@ -333,7 +334,7 @@ def _without_instants(bundle: dict[str, Any]) -> dict[str, Any]:
     return body
 
 
-async def test_the_type_level_form_refuses_a_request_naming_nobody(summary_client: httpx.AsyncClient) -> None:
+async def test_the_type_level_form_refuses_a_request_naming_nobody(summary_client: httpx2.AsyncClient) -> None:
     """The IPS says a requestor SHALL provide an identifier, so a bare type-level call is refused."""
     _routes(_event("EvPostnat01"))
 
@@ -343,7 +344,7 @@ async def test_the_type_level_form_refuses_a_request_naming_nobody(summary_clien
     assert "names no person" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_the_type_level_form_refuses_a_parameter_it_cannot_apply(summary_client: httpx.AsyncClient) -> None:
+async def test_the_type_level_form_refuses_a_parameter_it_cannot_apply(summary_client: httpx2.AsyncClient) -> None:
     """A narrowing this operation cannot perform would answer a question the caller did not ask."""
     _routes(_event("EvPostnat01"))
 
@@ -353,7 +354,7 @@ async def test_the_type_level_form_refuses_a_parameter_it_cannot_apply(summary_c
     assert "`identifier` is the one it supports" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_uid_the_instance_holds_nobody_under_is_a_not_found(summary_client: httpx.AsyncClient) -> None:
+async def test_a_uid_the_instance_holds_nobody_under_is_a_not_found(summary_client: httpx2.AsyncClient) -> None:
     """A summary is about somebody the register serves, and about nobody else."""
     respx.get(_TRACKED_ENTITY_URL).mock(return_value=httpx.Response(404, json={}))
 
@@ -363,7 +364,7 @@ async def test_a_uid_the_instance_holds_nobody_under_is_a_not_found(summary_clie
 
 
 async def test_the_operation_is_refused_on_a_register_that_is_not_people(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """`$summary` is a patient summary, and the refusal names what this server does answer it on."""
     response = await summary_client.get("/Specimen/$summary", params={"identifier": _NATIONAL_ID})
@@ -376,7 +377,7 @@ async def test_the_operation_is_refused_on_a_register_that_is_not_people(
 
 @pytest.mark.parametrize("summary_tables", [""])
 async def test_a_project_that_publishes_no_summary_is_refused_by_the_key(
-    summary_client: httpx.AsyncClient,
+    summary_client: httpx2.AsyncClient,
 ) -> None:
     """`[ips] enabled` is false by default, and the refusal names the line an operator would change."""
     response = await summary_client.get(f"/Patient/{_PERSON_UID}/$summary")
@@ -390,8 +391,8 @@ async def test_a_compiled_run_answers_no_summary(capture_project: FhirProject) -
     (capture_project.project_root / "fhir.toml").write_text(CAPTURE_FHIR_TOML + _SUMMARY_TABLES, encoding="utf-8")
     app: FastAPI = create_app(ServeSettings(project_dir=capture_project.project_root))
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
             response = await http.get(f"/Patient/{_PERSON_UID}/$summary")
 
     assert response.status_code == 404

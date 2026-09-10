@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # The canonical stable-release feed. The only host the audit contacts directly
@@ -72,7 +72,7 @@ async def fetch_release_feed(*, force: bool = False) -> ReleaseFeed:
     cached = _CACHE.get(RELEASES_FEED_URL)
     if cached is not None and not force and (elapsed - cached[0]) < _TTL_SECONDS:
         return cached[1]
-    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=10.0)) as http:
+    async with httpx2.AsyncClient(timeout=httpx2.Timeout(15.0, connect=10.0)) as http:
         response = await http.get(RELEASES_FEED_URL, headers={"Accept": "application/json"})
         response.raise_for_status()
         payload = _FeedPayload.model_validate(response.json())

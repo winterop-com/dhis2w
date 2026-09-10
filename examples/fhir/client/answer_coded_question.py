@@ -32,7 +32,7 @@ docs/fhir/401-terminology-and-conceptmaps.md.
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import conversion_context, served_facade
 from _runner import run_example
 from dhis2w_fhir.conversion import answer_wire_value
@@ -85,7 +85,7 @@ def _coded_questions(items: list[QuestionnaireItem] | None, form: Questionnaire)
 
 
 async def _find_by_url[T: FhirBase](
-    client: httpx.AsyncClient, model: type[T], resource_type: str, url: str
+    client: httpx2.AsyncClient, model: type[T], resource_type: str, url: str
 ) -> T | None:
     """Find one published terminology resource by its canonical, which is how a client resolves a binding."""
     bundle = (await client.get(f"/{resource_type}", params={"url": url})).raise_for_status().json()
@@ -95,7 +95,7 @@ async def _find_by_url[T: FhirBase](
 
 async def main() -> None:
     """Resolve one coded question's published option list, then answer it right and two ways wrong."""
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         bundle = (await client.get("/Questionnaire", params={"_count": 100})).raise_for_status().json()
         questions = [
             question

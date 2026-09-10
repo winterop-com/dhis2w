@@ -53,7 +53,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -433,8 +433,8 @@ def _await_facade(process: subprocess.Popen[bytes], base_url: str, log_path: Pat
                 f"{_facade_log_tail(log_path)}"
             )
         try:
-            response = httpx.get(f"{base_url}/metadata", headers={"Accept": "application/fhir+json"}, timeout=5.0)
-        except httpx.HTTPError:
+            response = httpx2.get(f"{base_url}/metadata", headers={"Accept": "application/fhir+json"}, timeout=5.0)
+        except httpx2.HTTPError:
             time.sleep(_FACADE_POLL_SECONDS)
             continue
         if response.status_code == _HTTP_OK:

@@ -57,7 +57,7 @@ async def test_export_per_resource_filter_hits_prefixed_wire_format() -> None:
             "dataElements": ["name:like:ANC", "valueType:eq:INTEGER_POSITIVE"],
         },
     )
-    # httpx serialises list values as repeated params — .params is a MultiDict.
+    # httpx2 serialises list values as repeated params — .params is a MultiDict.
     params = route.calls.last.request.url.params
     filter_values = params.get_list("dataElements:filter")
     assert filter_values == ["name:like:ANC", "valueType:eq:INTEGER_POSITIVE"]

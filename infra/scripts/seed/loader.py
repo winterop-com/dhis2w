@@ -837,7 +837,7 @@ async def import_metadata_bundle(
 # 10 k-row chunks in seconds; v43's stricter validation (per-DE category
 # combo cross-check, plus the auto-target validator from BUGS.md #35)
 # pushes a single 10 k-row chunk past 5 minutes under linux/amd64
-# emulation on arm64 macOS — which times out the httpx read deadline.
+# emulation on arm64 macOS — which times out the httpx2 read deadline.
 # 1 k strikes the balance: each chunk completes in ~5-10 s on v43, total
 # import takes ~3-4 minutes for the 188 k Sierra Leone fixture, well
 # inside the 300 s read timeout.

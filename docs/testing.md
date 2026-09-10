@@ -4,7 +4,7 @@ Tests fall into two tiers (fast unit + slow integration) plus a focused **upstre
 
 ## Tier 1: fast unit tests (`make test`)
 
-Use **respx** to mock httpx responses. Cover:
+Use **respx** to mock httpx2 responses. Cover:
 
 - Every auth provider returns the right headers.
 - OAuth2 token caching and refresh paths.
@@ -15,6 +15,28 @@ Use **respx** to mock httpx responses. Cover:
 - Generated resources' CRUD verbs (GET/POST/PUT/DELETE) hit the right paths with the right HTTP verbs.
 
 Fast — currently runs in <0.5s.
+
+### respx against httpx2
+
+The root `conftest.py` sets `respx.mocks.DEFAULT_MOCKER = "httpcore2"`, so a plain
+`respx.mock` intercepts httpx2 traffic without any per-test set-up. `pytest-httpx2`
+is a dev dependency too, and its `httpx2_mock` fixture is the other route for a new
+test that would rather assert on requests than register routes.
+
+respx builds and asserts on the original `httpx.Response` class, so a test file
+imports both libraries: `httpx` for exactly the `Response` and `Request` objects
+respx consumes and produces, `httpx2` for everything the code under test touches —
+clients, transports, `MockTransport` handlers, and exception classes. Ruff's
+`TID251` rule enforces that split by banning `httpx` outside `**/tests/**`.
+
+```python
+@respx.mock
+async def test_conflict_raises() -> None:
+    respx.get("https://play.example/api/me").mock(return_value=httpx.Response(409))
+    async with httpx2.AsyncClient(base_url="https://play.example") as client:
+        with pytest.raises(httpx2.HTTPStatusError):
+            (await client.get("/api/me")).raise_for_status()
+```
 
 ## Tier 2: slow integration tests (`make test-slow`)
 

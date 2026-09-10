@@ -295,7 +295,7 @@ async def export_metadata(
     if per_resource_filters:
         for resource, filter_exprs in per_resource_filters.items():
             if filter_exprs:
-                # httpx serialises a list-valued param as repeated query
+                # httpx2 serialises a list-valued param as repeated query
                 # params — exactly what DHIS2 expects for per-resource filters.
                 params[f"{resource}:filter"] = list(filter_exprs)
     if per_resource_fields:

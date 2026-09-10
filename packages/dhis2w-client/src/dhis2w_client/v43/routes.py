@@ -7,7 +7,7 @@ Routes are addressed in the wire endpoint by UID; users typically know
 them by `code`. This accessor resolves `code -> uid` once per client
 (cached for the lifetime of the connection) and delegates the actual
 GET to `Dhis2Client.get_response()` so callers see the raw
-`httpx.Response` and can do their own status-based handling (a 502
+`httpx2.Response` and can do their own status-based handling (a 502
 from the proxy means "DHIS2 reached, downstream didn't" — that's a
 fact to report, not an exception to raise).
 """
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 
 from dhis2w_client.generated.v43.schemas import Route
 from dhis2w_client.v43._collection import parse_collection
@@ -51,7 +51,7 @@ class RoutesAccessor:
         params: Mapping[str, str] | None = None,
         extra_headers: Mapping[str, str] | None = None,
         use_cache: bool = True,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """GET `/api/routes/<resolved-uid>/run[/<path>]` via the DHIS2 proxy.
 
         `code` is the user-set `Route.code`. The UID is resolved once via
@@ -61,7 +61,7 @@ class RoutesAccessor:
         appended after `/run/` — empty path hits `/run` directly with no
         suffix.
 
-        Returns the raw `httpx.Response`. The status code is the caller's
+        Returns the raw `httpx2.Response`. The status code is the caller's
         problem: 200 means the upstream responded, 502 means DHIS2
         reached but the upstream didn't, 404 means the Route's `id`
         no longer resolves (cached UID is stale — retry with

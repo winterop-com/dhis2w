@@ -27,7 +27,7 @@ import os
 import sys
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, served_facade
 from _runner import run_example
 
@@ -59,7 +59,7 @@ async def main() -> None:
     """Ask one stored Questionnaire seven questions, sample its link ids, then name a resource nobody holds."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
     form_id = aggregate_form_id()
-    async with httpx.AsyncClient(base_url=base_url, timeout=60.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, timeout=60.0) as client:
         print(f"evaluating against {base_url}")
         print(f"stored context: Questionnaire/{form_id}, read off the server rather than posted")
         print()
@@ -95,7 +95,7 @@ async def main() -> None:
             print(f"    {issue['code']}: {issue['diagnostics']}")
 
 
-async def evaluate(client: httpx.AsyncClient, expression: str, resource_id: str) -> dict[str, Any]:
+async def evaluate(client: httpx2.AsyncClient, expression: str, resource_id: str) -> dict[str, Any]:
     """One FHIRPath expression over one resource the served guide already holds."""
     answered = await client.post(
         "/facade/evaluate",

@@ -15,7 +15,7 @@ from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject, load_fhir_config
 from dhis2w_fhir_serve.app import create_app
@@ -180,11 +180,11 @@ def app(compiled_project: FhirProject, stored_responses: tuple[StoredResponseEnv
 
 
 @pytest.fixture
-async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def client(app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the facade, with the lifespan run around the test."""
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
@@ -222,11 +222,11 @@ def capture_app(capture_project: FhirProject, strict_codes: bool) -> FastAPI:
 
 
 @pytest.fixture
-async def capture_client(capture_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def capture_client(capture_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the golden project, with the lifespan run around the test."""
     async with capture_app.router.lifespan_context(capture_app):
-        transport = httpx.ASGITransport(app=capture_app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=capture_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 

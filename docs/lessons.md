@@ -108,6 +108,6 @@ Tests default to headless Chromium. Set `DHIS2_HEADFUL=1` to flip — the `resol
 ## Pydantic datetime serialization on PUT/POST
 
 - Generated models have `created`, `lastUpdated` etc. typed as `datetime`. After `client.get(..., model=X)`, those fields hold real `datetime` objects.
-- `model.model_dump(by_alias=True, exclude_none=True)` leaves datetimes as `datetime` objects — `httpx.Request(json=...)` then blows up with `TypeError: Object of type datetime is not JSON serializable`.
+- `model.model_dump(by_alias=True, exclude_none=True)` leaves datetimes as `datetime` objects — `httpx2.Request(json=...)` then blows up with `TypeError: Object of type datetime is not JSON serializable`.
 - Dump with `mode="json"`: that converts datetime → ISO 8601 string, `UUID → str`, etc.
 - Generated CRUD templates use `model_dump(by_alias=True, exclude_none=True, mode="json")`.

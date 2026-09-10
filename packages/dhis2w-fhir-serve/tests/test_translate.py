@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir import build_category_concept_map_artifacts, build_option_set_concept_map_artifacts
 from dhis2w_fhir.config import FhirProject, load_fhir_config
@@ -170,11 +170,11 @@ def translate_app(translate_project: FhirProject) -> FastAPI:
 
 
 @pytest.fixture
-async def translate_client(translate_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def translate_client(translate_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the facade, with the lifespan run around the test."""
     async with translate_app.router.lifespan_context(translate_app):
-        transport = httpx.ASGITransport(app=translate_app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=translate_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
             yield http
 
 
@@ -193,7 +193,7 @@ def _named(body: dict[str, Any], name: str) -> dict[str, Any] | None:
     return next((parameter for parameter in body["parameter"] if parameter["name"] == name), None)
 
 
-async def test_translate_answers_both_dhis2_identifiers_for_one_concept(translate_client: httpx.AsyncClient) -> None:
+async def test_translate_answers_both_dhis2_identifiers_for_one_concept(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE})
 
     assert response.status_code == 200
@@ -208,7 +208,7 @@ async def test_translate_answers_both_dhis2_identifiers_for_one_concept(translat
     ]
 
 
-async def test_a_match_states_its_equivalence_and_the_map_it_came_from(translate_client: httpx.AsyncClient) -> None:
+async def test_a_match_states_its_equivalence_and_the_map_it_came_from(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE})
 
     parts = _parts(_matches(response.json())[0])
@@ -218,7 +218,7 @@ async def test_a_match_states_its_equivalence_and_the_map_it_came_from(translate
 
 @pytest.mark.parametrize("spelling", ["targetsystem", "targetSystem"])
 async def test_a_target_system_narrows_the_answer_to_one_group(
-    translate_client: httpx.AsyncClient, spelling: str
+    translate_client: httpx2.AsyncClient, spelling: str
 ) -> None:
     response = await translate_client.get(
         _TRANSLATE_PATH,
@@ -232,7 +232,7 @@ async def test_a_target_system_narrows_the_answer_to_one_group(
 
 
 async def test_translate_answers_both_dhis2_identifiers_for_one_category_concept(
-    translate_client: httpx.AsyncClient,
+    translate_client: httpx2.AsyncClient,
 ) -> None:
     """The store reads `input/resources` whole, so a category map is served the moment the target writes it."""
     response = await translate_client.get(
@@ -251,7 +251,7 @@ async def test_translate_answers_both_dhis2_identifiers_for_one_category_concept
 
 
 async def test_translate_answers_the_resource_type_a_tracked_entity_type_is_published_as(
-    translate_client: httpx.AsyncClient,
+    translate_client: httpx2.AsyncClient,
 ) -> None:
     """The map rides the same operation every other does: a type UID in, a FHIR resource type out."""
     response = await translate_client.get(
@@ -271,7 +271,7 @@ async def test_translate_answers_the_resource_type_a_tracked_entity_type_is_publ
     assert parts["source"] == {"name": "source", "valueUri": _TYPE_CONCEPT_MAP}
 
 
-async def test_a_target_system_narrows_a_category_answer_to_one_group(translate_client: httpx.AsyncClient) -> None:
+async def test_a_target_system_narrows_a_category_answer_to_one_group(translate_client: httpx2.AsyncClient) -> None:
     """Narrowing works over the category namespaces the same way it does over the option ones."""
     response = await translate_client.get(
         _TRANSLATE_PATH,
@@ -287,7 +287,7 @@ async def test_a_target_system_narrows_a_category_answer_to_one_group(translate_
     assert codings == [{"system": _CATEGORY_OPTION_CODE_SYSTEM, "code": _CATEGORY_OPTION_CODE, "display": "Female"}]
 
 
-async def test_the_option_namespaces_do_not_narrow_a_category_concept(translate_client: httpx.AsyncClient) -> None:
+async def test_the_option_namespaces_do_not_narrow_a_category_concept(translate_client: httpx2.AsyncClient) -> None:
     """The two families keep their own namespaces, so an option target system matches no category mapping."""
     response = await translate_client.get(
         _TRANSLATE_PATH,
@@ -303,7 +303,7 @@ async def test_the_option_namespaces_do_not_narrow_a_category_concept(translate_
     assert _matches(body) == []
 
 
-async def test_an_unknown_system_answers_false_with_a_message(translate_client: httpx.AsyncClient) -> None:
+async def test_an_unknown_system_answers_false_with_a_message(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get(
         _TRANSLATE_PATH, params={"system": "http://example.org/nowhere", "code": _CONCEPT_CODE}
     )
@@ -317,7 +317,7 @@ async def test_an_unknown_system_answers_false_with_a_message(translate_client: 
     assert _matches(body) == []
 
 
-async def test_an_unknown_code_answers_false_with_a_message(translate_client: httpx.AsyncClient) -> None:
+async def test_an_unknown_code_answers_false_with_a_message(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": "nobody"})
 
     body = response.json()
@@ -327,7 +327,7 @@ async def test_an_unknown_code_answers_false_with_a_message(translate_client: ht
     assert "nobody" in message["valueString"]
 
 
-async def test_an_unknown_target_system_answers_false_with_a_message(translate_client: httpx.AsyncClient) -> None:
+async def test_an_unknown_target_system_answers_false_with_a_message(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get(
         _TRANSLATE_PATH,
         params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE, "targetsystem": "http://example.org/nowhere"},
@@ -348,7 +348,7 @@ async def test_an_unknown_target_system_answers_false_with_a_message(translate_c
     ],
 )
 async def test_a_call_missing_a_required_parameter_is_an_operation_outcome(
-    translate_client: httpx.AsyncClient, params: dict[str, str], missing: str
+    translate_client: httpx2.AsyncClient, params: dict[str, str], missing: str
 ) -> None:
     response = await translate_client.get(_TRANSLATE_PATH, params=params)
 
@@ -360,7 +360,7 @@ async def test_a_call_missing_a_required_parameter_is_an_operation_outcome(
     assert f"`{missing}`" in body["issue"][0]["diagnostics"]
 
 
-async def test_the_operation_wins_over_the_read_catch_all(translate_client: httpx.AsyncClient) -> None:
+async def test_the_operation_wins_over_the_read_catch_all(translate_client: httpx2.AsyncClient) -> None:
     """`$translate` is a resource id as far as the catch-all is concerned, so mount order decides."""
     operation = await translate_client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE})
     missing = await translate_client.get("/ConceptMap/no-such-map")
@@ -372,7 +372,7 @@ async def test_the_operation_wins_over_the_read_catch_all(translate_client: http
 
 
 async def test_a_concept_map_is_read_as_the_document_the_project_published(
-    translate_client: httpx.AsyncClient,
+    translate_client: httpx2.AsyncClient,
 ) -> None:
     response = await translate_client.get("/ConceptMap/d2-os-Xa1b2c3d4e5-cm")
 
@@ -385,7 +385,7 @@ async def test_a_concept_map_is_read_as_the_document_the_project_published(
     assert _CONCEPT_CODE in [element["code"] for element in body["group"][0]["element"]]
 
 
-async def test_searching_concept_maps_answers_every_family(translate_client: httpx.AsyncClient) -> None:
+async def test_searching_concept_maps_answers_every_family(translate_client: httpx2.AsyncClient) -> None:
     """The search reads the whole store, so the compiled tree's maps sit beside the predefined tree's."""
     response = await translate_client.get("/ConceptMap")
 
@@ -399,7 +399,7 @@ async def test_searching_concept_maps_answers_every_family(translate_client: htt
     ]
 
 
-async def test_searching_concept_maps_by_url_selects_one_map(translate_client: httpx.AsyncClient) -> None:
+async def test_searching_concept_maps_by_url_selects_one_map(translate_client: httpx2.AsyncClient) -> None:
     response = await translate_client.get("/ConceptMap", params={"url": _CONCEPT_MAP})
 
     body = response.json()
@@ -409,7 +409,7 @@ async def test_searching_concept_maps_by_url_selects_one_map(translate_client: h
 
 
 async def test_metadata_declares_the_operation_when_the_store_holds_concept_maps(
-    translate_client: httpx.AsyncClient,
+    translate_client: httpx2.AsyncClient,
 ) -> None:
     """The operation rides the ConceptMap entry, which is the type its own URL names."""
     body = (await translate_client.get("/metadata")).json()
@@ -424,7 +424,7 @@ async def test_metadata_declares_the_operation_when_the_store_holds_concept_maps
 
 
 async def test_the_declared_operation_is_reachable_at_the_url_its_entry_names(
-    translate_client: httpx.AsyncClient,
+    translate_client: httpx2.AsyncClient,
 ) -> None:
     """A type-level operation on ConceptMap is `/ConceptMap/$translate`, and that is what answers."""
     declared = await translate_client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE})
@@ -434,7 +434,7 @@ async def test_the_declared_operation_is_reachable_at_the_url_its_entry_names(
     assert server_level.status_code == 404
 
 
-async def test_metadata_declares_concept_map_as_a_read_type(translate_client: httpx.AsyncClient) -> None:
+async def test_metadata_declares_concept_map_as_a_read_type(translate_client: httpx2.AsyncClient) -> None:
     """The maps are read as well as translated through, so the statement carries a ConceptMap entry."""
     body = (await translate_client.get("/metadata")).json()
 
@@ -444,7 +444,7 @@ async def test_metadata_declares_concept_map_as_a_read_type(translate_client: ht
 
 
 async def test_metadata_declares_no_translate_when_the_store_holds_no_concept_map(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     body = (await client.get("/metadata")).json()
 
@@ -455,7 +455,7 @@ async def test_metadata_declares_no_translate_when_the_store_holds_no_concept_ma
     assert "translate" not in declared
 
 
-async def test_translate_over_a_store_without_concept_maps_answers_false(client: httpx.AsyncClient) -> None:
+async def test_translate_over_a_store_without_concept_maps_answers_false(client: httpx2.AsyncClient) -> None:
     response = await client.get(_TRANSLATE_PATH, params={"system": _CODE_SYSTEM, "code": _CONCEPT_CODE})
 
     assert response.status_code == 200

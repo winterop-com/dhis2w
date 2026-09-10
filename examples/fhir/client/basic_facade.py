@@ -33,7 +33,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, conversion_context, form_canonical
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError, Dhis2Client, Dhis2ClientError, Profile
@@ -154,7 +154,7 @@ def build_facade(settings: FacadeSettings, context: ConversionContext) -> FastAP
             # Uncached on purpose: a cached answer says the instance was reachable once, which is
             # not the question a health check asks.
             info = await client.system.info(use_cache=False)
-        except (Dhis2ClientError, httpx.HTTPError) as error:
+        except (Dhis2ClientError, httpx2.HTTPError) as error:
             return unreachable(str(error))
         report = HealthReport(
             dhis2_reachable=True,
@@ -235,7 +235,7 @@ def aggregate_capture(
 async def main() -> None:
     """Run the facade the way a process runs it: one startup, two captures, one shutdown."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(name)s: %(message)s")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpx2").setLevel(logging.WARNING)
     context = conversion_context()
     # The demo validates only; a deployment drops the flag and DHIS2 keeps what it is sent.
     settings = FacadeSettings.resolved(dry_run=True)
@@ -248,13 +248,13 @@ async def main() -> None:
             aggregate_capture(context, canonical, organisation_unit=UNREPORTING_ORGANISATION_UNIT_UID),
         ),
     )
-    # `httpx.ASGITransport` calls the application and nothing else - it runs no startup and no
+    # `httpx2.ASGITransport` calls the application and nothing else - it runs no startup and no
     # shutdown, so a client opened in the lifespan would still be None inside every route. Entering
     # the lifespan by hand is what uvicorn does for a served process and what `asgi-lifespan`'s
     # LifespanManager does for a test suite.
     async with (
         app.router.lifespan_context(app),
-        httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://facade") as caller,
+        httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://facade") as caller,
     ):
         health = await caller.get("/health")
         print(f"GET /health -> {health.status_code}: {json.dumps(health.json())}\n")

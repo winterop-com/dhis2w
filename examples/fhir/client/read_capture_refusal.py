@@ -29,13 +29,13 @@ import asyncio
 import json
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, served_facade
 
 FHIR_JSON = "application/fhir+json"
 
 
-async def refused(client: httpx.AsyncClient, what: str, body: str, *, content_type: str = FHIR_JSON) -> None:
+async def refused(client: httpx2.AsyncClient, what: str, body: str, *, content_type: str = FHIR_JSON) -> None:
     """Post one submission that will not be accepted, and print the answer in full."""
     answer = await client.post("/QuestionnaireResponse", content=body, headers={"Content-Type": content_type})
     print(f"\n{what} -> HTTP {answer.status_code}")
@@ -58,7 +58,7 @@ def first_answered(items: list[dict[str, Any]]) -> str:
 
 async def main() -> None:
     """Meet a malformed submission, one the models will not read, and one that is merely wrong."""
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         # A valid submission to spoil. Whatever is wrong below is wrong on purpose and only there.
         draft: dict[str, Any] = (
             (await client.get(f"/Questionnaire/{aggregate_form_id()}/$generate", params={"seed": 11}))

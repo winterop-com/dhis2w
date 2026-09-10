@@ -33,7 +33,7 @@ The registry of every `D2*` extension is at docs/fhir/401-identifiers-and-extens
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import (
     aggregate_form_id,
     event_form_id,
@@ -144,7 +144,7 @@ async def main() -> None:
         stage_form_id(),
         person_form_id(),
     ]
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         for form_id in form_ids:
             body = (await client.get(f"/Questionnaire/{form_id}")).raise_for_status().json()
             _report_form(Questionnaire.model_validate(body), urls)

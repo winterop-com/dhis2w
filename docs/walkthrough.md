@@ -340,7 +340,7 @@ Opens `http://127.0.0.1:8000` with the mkdocs-claude-theme site. Architecture, c
 
 | Capability | Status | Where |
 | --- | --- | --- |
-| Async httpx client with pluggable auth | Done | `dhis2w-client` |
+| Async httpx2 client with pluggable auth | Done | `dhis2w-client` |
 | Basic / PAT / OAuth2-PKCE providers | Done | `dhis2w-client/auth/` |
 | Version-aware dispatch via `/api/system/info` | Done | `dhis2w-client/client.py` |
 | `client.system.info()` / `client.system.me()` | Done | `dhis2w-client/system.py` |

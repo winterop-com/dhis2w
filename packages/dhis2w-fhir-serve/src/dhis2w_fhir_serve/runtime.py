@@ -43,7 +43,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 from dhis2w_client import Dhis2Client
 from dhis2w_fhir.config import FhirProject, ServeAuth, load_project
 from pydantic import BaseModel, ConfigDict
@@ -108,7 +108,7 @@ class ServeRuntime(BaseModel):
     context: ServeContext
     live_client: Dhis2Client | None = None
 
-    caller_client: httpx.AsyncClient | None = None
+    caller_client: httpx2.AsyncClient | None = None
     """The credential-free pool a register read forwards one caller's `Authorization` over.
 
     None in every mode but live, and in every posture that forwards nothing - `none`, `token`, and

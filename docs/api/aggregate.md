@@ -122,7 +122,7 @@ async with open_client(profile_from_env()) as client:
 
 `import_grouped_by_dataset(values)` is the safe cross-version default. It pre-fetches each `DataElement`'s `DataSet` membership and POSTs one `{"dataSet": …, "dataValues": [...]}` envelope per group — required on DHIS2 v43 for any DE that belongs to multiple DataSets (BUGS #35: v43 rejects mixed batches with `409 E8002`). v41 + v42 accept the same envelope shape, so the call is portable.
 
-`client.data_values.stream(values, ...)` is the streaming alternative for very large imports — wraps the values as an async-byte stream so httpx doesn't have to materialise the full payload in memory.
+`client.data_values.stream(values, ...)` is the streaming alternative for very large imports — wraps the values as an async-byte stream so httpx2 doesn't have to materialise the full payload in memory.
 
 ## Related examples
 

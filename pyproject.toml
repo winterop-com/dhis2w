@@ -31,6 +31,8 @@ dev = [
   "textual>=8.2.8",
   "pyyaml>=6.0.3",
   "types-pyyaml>=6.0.12.20260815",
+  "pytest-httpx2>=1.0.0",
+  "httpx2>=2.12.0",
 ]
 
 [tool.ruff]
@@ -39,14 +41,19 @@ line-length = 120
 
 [tool.ruff.lint]
 fixable = ["ALL"]
-select = ["E", "W", "F", "I", "D", "SIM", "UP", "B"]
+select = ["E", "W", "F", "I", "D", "SIM", "UP", "B", "TID251"]
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"httpx".msg = "Import httpx2. The original httpx is allowed only in tests, for the Response and Request objects respx consumes."
+"httpcore".msg = "Import httpcore2."
+"urllib.request".msg = "Use httpx2."
+
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**/*.py" = ["D"]
+"**/tests/**/*.py" = ["D", "TID251"]
 "**/__init__.py" = ["D104"]
 "**/src/**/*.py" = ["D102", "D105", "D107"]
 "infra/**/*.py" = ["D"]

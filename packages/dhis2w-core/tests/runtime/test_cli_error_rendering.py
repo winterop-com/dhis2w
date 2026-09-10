@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-import httpx
+import httpx2
 import pytest
 import typer
 from dhis2w_client.errors import Dhis2ApiError
@@ -85,8 +85,8 @@ def test_renders_connect_error_with_url_and_hint(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A refused connection reads as an unreachable instance, with the dialled URL and a base_url hint."""
-    request = httpx.Request("GET", "https://dhis2.example.org/api/system/info")
-    app = _app_raising(httpx.ConnectError("[Errno 61] Connection refused", request=request))
+    request = httpx2.Request("GET", "https://dhis2.example.org/api/system/info")
+    app = _app_raising(httpx2.ConnectError("[Errno 61] Connection refused", request=request))
     monkeypatch.setattr(sys, "argv", ["d2w"])
     with pytest.raises(SystemExit) as excinfo:
         run_app(app)
@@ -102,7 +102,7 @@ def test_renders_read_timeout_without_connect_hint(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A read timeout renders through the same funnel; only ConnectError earns the base_url hint."""
-    app = _app_raising(httpx.ReadTimeout("timed out"))
+    app = _app_raising(httpx2.ReadTimeout("timed out"))
     monkeypatch.setattr(sys, "argv", ["d2w"])
     with pytest.raises(SystemExit) as excinfo:
         run_app(app)

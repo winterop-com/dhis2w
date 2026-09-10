@@ -15,10 +15,11 @@ import webbrowser
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol, runtime_checkable
 
-import httpx
+import httpx2
 from pydantic import BaseModel, Field, field_serializer
 from pydantic_core.core_schema import SerializationInfo
 
+from dhis2w_client._tls import resolve_verify
 from dhis2w_client.errors import OAuth2FlowError
 
 RedirectCapturer = Callable[[str, str], Awaitable[str]]
@@ -269,7 +270,8 @@ class OAuth2Auth:
         calls (`/oauth2/token`). Pass the same value you pass to
         `Dhis2Client(verify=...)` so the code exchange and refresh use the
         same trust decision as the API traffic — `False` for self-signed
-        staging boxes, or a path to a custom CA bundle.
+        staging boxes, or a path to a custom CA bundle (a path is turned into
+        an `ssl.SSLContext` before it reaches httpx2).
         """
         self._base_url = base_url.rstrip("/")
         self._client_id = client_id
@@ -281,7 +283,7 @@ class OAuth2Auth:
         self._token: OAuth2Token | None = None
         self._redirect_capturer = redirect_capturer
         self._open_browser = open_browser
-        self._verify = verify
+        self._verify = resolve_verify(verify)
         self._refresh_lock = asyncio.Lock()
 
     async def headers(self) -> dict[str, str]:
@@ -364,7 +366,7 @@ class OAuth2Auth:
         """Exchange an authorization code for access+refresh tokens.
 
         Wraps HTTP failures in `OAuth2FlowError` so callers see a clean
-        actionable message instead of a raw `httpx.HTTPStatusError`
+        actionable message instead of a raw `httpx2.HTTPStatusError`
         traceback. Common failure modes: rejected client secret (DHIS2
         returns 401), redirect-URI mismatch with the OAuth2 client
         registration (400), or DHIS2-side OAuth2 misconfig (5xx).
@@ -377,7 +379,7 @@ class OAuth2Auth:
             "client_secret": self._client_secret,
             "code_verifier": code_verifier,
         }
-        async with httpx.AsyncClient(follow_redirects=True, verify=self._verify) as http_client:
+        async with httpx2.AsyncClient(follow_redirects=True, verify=self._verify) as http_client:
             response = await http_client.post(f"{self._base_url}/oauth2/token", data=data)
         if response.status_code >= 400:
             raise OAuth2FlowError(_format_token_endpoint_failure("authorization-code exchange", response))
@@ -400,7 +402,7 @@ class OAuth2Auth:
 
         Wraps HTTP failures in `OAuth2FlowError` so callers see a clean
         actionable message ("run `d2w profile login <name>`") instead of a
-        raw `httpx.HTTPStatusError` traceback. The most common case is DHIS2
+        raw `httpx2.HTTPStatusError` traceback. The most common case is DHIS2
         rotating its OAuth2 client (volume wiped, client UID reissued) —
         the stored refresh_token no longer matches and DHIS2 returns 400.
         """
@@ -414,7 +416,7 @@ class OAuth2Auth:
             "client_id": self._client_id,
             "client_secret": self._client_secret,
         }
-        async with httpx.AsyncClient(follow_redirects=True, verify=self._verify) as http_client:
+        async with httpx2.AsyncClient(follow_redirects=True, verify=self._verify) as http_client:
             response = await http_client.post(f"{self._base_url}/oauth2/token", data=data)
         if response.status_code >= 400:
             raise OAuth2FlowError(
@@ -428,7 +430,7 @@ class OAuth2Auth:
 _TOKEN_ERROR_BODY_MAX = 400
 
 
-def _format_token_endpoint_failure(context: str, response: httpx.Response) -> str:
+def _format_token_endpoint_failure(context: str, response: httpx2.Response) -> str:
     """Render an OAuth2FlowError message for a non-2xx response from `/oauth2/token`.
 
     Includes the HTTP status, the OAuth2 `error` + `error_description` fields
