@@ -29,7 +29,7 @@ import time
 from collections.abc import Sequence
 from pathlib import Path
 
-import httpx
+import httpx2
 from fastmcp import Client
 from pydantic import BaseModel, ConfigDict
 
@@ -208,7 +208,7 @@ async def _bridge_call(client: Client, args: list[str]) -> tuple[int, str]:
 
 
 async def _agent(
-    client: Client, http: httpx.AsyncClient, tools: list[dict[str, object]], model: str, task: str, max_steps: int
+    client: Client, http: httpx2.AsyncClient, tools: list[dict[str, object]], model: str, task: str, max_steps: int
 ) -> _Run:
     """Run one task through the model + bridge; capture calls, wall-clock, tokens, tool args."""
     messages: list[dict[str, object]] = [
@@ -224,7 +224,7 @@ async def _agent(
         try:
             resp = await http.post(LM, json=body, timeout=300.0)
             resp.raise_for_status()
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             return _Run(
                 calls=calls,
                 secs=round(time.monotonic() - started, 1),
@@ -295,7 +295,7 @@ async def _benchmark_model(model: str) -> ModelReport:
     read_outcomes: list[TaskOutcome] = []
     async with Client(_bridge_config("play42", "1")) as client:
         tools = _tools(await client.list_tools())
-        async with httpx.AsyncClient() as http:
+        async with httpx2.AsyncClient() as http:
             for key, task in READ_TASKS:
                 run = await _agent(client, http, tools, model, task, max_steps=8)
                 ok = _score_read(key, run.answer, run.tool_args)
@@ -305,7 +305,7 @@ async def _benchmark_model(model: str) -> ModelReport:
     async with Client(_bridge_config("local_basic", "0")) as client:
         _, base_out = await _bridge_call(client, ["security", "settings"])
         baseline = json.loads(base_out).get("minPasswordLength") if base_out.strip().startswith("{") else None
-        async with httpx.AsyncClient() as http:
+        async with httpx2.AsyncClient() as http:
             run = await _agent(client, http, tools, model, WRITE_TASK, max_steps=10)
         found = _used(run.tool_args, ["system", "settings", "set"])
         write = TaskOutcome(

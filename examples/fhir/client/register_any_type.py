@@ -34,7 +34,7 @@ at exit.
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import served_facade
 from _runner import run_example
 from pydantic import BaseModel, ConfigDict
@@ -101,7 +101,7 @@ def registers(capability: dict[str, object]) -> list[Register]:
 async def main() -> None:
     """Read the registers off `/metadata` and walk each one, without naming a resource type anywhere."""
     base_url = served_facade()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
         capability = (await client.get("/metadata")).raise_for_status().json()
         served = registers(capability)
         if not served:

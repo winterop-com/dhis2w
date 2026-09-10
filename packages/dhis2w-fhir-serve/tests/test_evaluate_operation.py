@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 from dhis2w_fhir.r4 import Parameters
 from dhis2w_fhir_serve.capability import EVALUATE_OPERATION_DEFINITION
 from dhis2w_fhir_serve.errors import FHIR_JSON_MEDIA_TYPE
@@ -98,7 +98,7 @@ def _names(body: dict[str, Any]) -> list[str]:
     return [parameter["name"] for parameter in body.get("parameter", [])]
 
 
-async def test_a_single_answer_rides_the_parameter_named_for_the_expression(client: httpx.AsyncClient) -> None:
+async def test_a_single_answer_rides_the_parameter_named_for_the_expression(client: httpx2.AsyncClient) -> None:
     """The whole point: one define, one parameter, the answer on the parameter rather than wrapped in one."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -111,7 +111,7 @@ async def test_a_single_answer_rides_the_parameter_named_for_the_expression(clie
     assert _named(body, "expression") == {"name": "expression", "valueString": "1815-12-10"}
 
 
-async def test_several_values_ride_one_part_apiece(client: httpx.AsyncClient) -> None:
+async def test_several_values_ride_one_part_apiece(client: httpx2.AsyncClient) -> None:
     """A parameter states one value, and a collection is several - so each one is a part named `value`."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -124,7 +124,7 @@ async def test_several_values_ride_one_part_apiece(client: httpx.AsyncClient) ->
     }
 
 
-async def test_a_boolean_takes_the_boolean_value(client: httpx.AsyncClient) -> None:
+async def test_a_boolean_takes_the_boolean_value(client: httpx2.AsyncClient) -> None:
     """The `value[x]` is the one R4 spells the JSON type with, which for a bool is never `valueString`."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -134,7 +134,7 @@ async def test_a_boolean_takes_the_boolean_value(client: httpx.AsyncClient) -> N
     assert _named(answered.json(), "expression") == {"name": "expression", "valueBoolean": True}
 
 
-async def test_a_cql_library_answers_one_parameter_per_define(client: httpx.AsyncClient) -> None:
+async def test_a_cql_library_answers_one_parameter_per_define(client: httpx2.AsyncClient) -> None:
     """Every define the library declares, in declaration order, each said in the terms its value has."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -148,7 +148,7 @@ async def test_a_cql_library_answers_one_parameter_per_define(client: httpx.Asyn
     assert _named(body, "Ratio") == {"name": "Ratio", "valueDecimal": 1.5}
 
 
-async def test_a_define_answering_a_resource_carries_it_as_a_resource(client: httpx.AsyncClient) -> None:
+async def test_a_define_answering_a_resource_carries_it_as_a_resource(client: httpx2.AsyncClient) -> None:
     """A retrieve answers documents, and a document rides `resource` rather than being flattened into parts."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -160,7 +160,7 @@ async def test_a_define_answering_a_resource_carries_it_as_a_resource(client: ht
     assert people["resource"]["id"] == "ada"
 
 
-async def test_a_define_that_refuses_carries_its_own_operation_outcome(client: httpx.AsyncClient) -> None:
+async def test_a_define_that_refuses_carries_its_own_operation_outcome(client: httpx2.AsyncClient) -> None:
     """A refusal belongs to the one define it stopped, so the rest of the library still answers."""
     answered = await client.post(EVALUATE_OPERATION_PATH, json=_ask("cql", REFUSING_LIBRARY))
 
@@ -175,7 +175,7 @@ async def test_a_define_that_refuses_carries_its_own_operation_outcome(client: h
     assert "this define will not answer" in issue["diagnostics"]
 
 
-async def test_a_define_that_matched_nothing_carries_no_parameter(client: httpx.AsyncClient) -> None:
+async def test_a_define_that_matched_nothing_carries_no_parameter(client: httpx2.AsyncClient) -> None:
     """FHIR has no empty collection: an expression that matched nothing says so by not being there."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -186,7 +186,7 @@ async def test_a_define_that_matched_nothing_carries_no_parameter(client: httpx.
     assert answered.json() == {"resourceType": "Parameters"}
 
 
-async def test_an_expression_that_will_not_parse_answers_the_outcome_parameter(client: httpx.AsyncClient) -> None:
+async def test_an_expression_that_will_not_parse_answers_the_outcome_parameter(client: httpx2.AsyncClient) -> None:
     """A parse failure is 200 with the position in it - the request was well formed and this is its answer."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -202,7 +202,7 @@ async def test_an_expression_that_will_not_parse_answers_the_outcome_parameter(c
     assert issue["diagnostics"].startswith("line 1, column 14: ")
 
 
-async def test_a_define_the_library_does_not_declare_is_said_in_the_outcome(client: httpx.AsyncClient) -> None:
+async def test_a_define_the_library_does_not_declare_is_said_in_the_outcome(client: httpx2.AsyncClient) -> None:
     """A name nothing answers is the run's diagnostic, not an empty parameter that reads as an empty answer."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -214,14 +214,14 @@ async def test_a_define_the_library_does_not_declare_is_said_in_the_outcome(clie
     assert "declares no define" in issue["diagnostics"]
 
 
-async def test_an_elm_library_runs_from_the_json_it_arrived_as(client: httpx.AsyncClient) -> None:
+async def test_an_elm_library_runs_from_the_json_it_arrived_as(client: httpx2.AsyncClient) -> None:
     """ELM is a source like the other two: a library as JSON, answering the define it declares."""
     answered = await client.post(EVALUATE_OPERATION_PATH, json=_ask("elm", ELM_LIBRARY))
 
     assert _named(answered.json(), "Sum") == {"name": "Sum", "valueInteger": 3}
 
 
-async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx.AsyncClient) -> None:
+async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx2.AsyncClient) -> None:
     """The context a guide's own author reaches for, named here the way a read names it: by type and id."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -240,7 +240,7 @@ async def test_a_stored_resource_is_read_out_of_the_served_guide(client: httpx.A
 
 
 async def test_a_stored_resource_this_server_does_not_hold_is_an_operation_outcome(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """The two addresses refuse the same way, because they resolve their context through the same function."""
     answered = await client.post(
@@ -260,7 +260,7 @@ async def test_a_stored_resource_this_server_does_not_hold_is_an_operation_outco
     assert answered.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_a_register_context_says_this_process_holds_no_instance(client: httpx.AsyncClient) -> None:
+async def test_a_register_context_says_this_process_holds_no_instance(client: httpx2.AsyncClient) -> None:
     """The registered context is live-only here too, and refuses in the register's own words."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -278,7 +278,7 @@ async def test_a_register_context_says_this_process_holds_no_instance(client: ht
     assert "--live" in answered.json()["issue"][0]["diagnostics"]
 
 
-async def test_the_plain_json_body_answers_the_same_parameters(client: httpx.AsyncClient) -> None:
+async def test_the_plain_json_body_answers_the_same_parameters(client: httpx2.AsyncClient) -> None:
     """Parameters in is canonical, and the `/facade/evaluate` body is read too: same evaluation, same answer."""
     as_parameters = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -293,7 +293,7 @@ async def test_the_plain_json_body_answers_the_same_parameters(client: httpx.Asy
     assert as_json.content == as_parameters.content
 
 
-async def test_the_json_answer_is_the_project_s_own_shape_and_this_one_is_not(client: httpx.AsyncClient) -> None:
+async def test_the_json_answer_is_the_project_s_own_shape_and_this_one_is_not(client: httpx2.AsyncClient) -> None:
     """Two addresses, two shapes: the UI's endpoint keeps its rows, and this one answers a resource."""
     rows = await client.post(
         "/facade/evaluate",
@@ -312,7 +312,7 @@ async def test_the_json_answer_is_the_project_s_own_shape_and_this_one_is_not(cl
     assert resource.json()["resourceType"] == "Parameters"
 
 
-async def test_the_answer_is_a_parameters_resource_the_r4_model_round_trips(client: httpx.AsyncClient) -> None:
+async def test_the_answer_is_a_parameters_resource_the_r4_model_round_trips(client: httpx2.AsyncClient) -> None:
     """Wire-true is the whole claim: the body validates as R4 Parameters and re-serialises to itself."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -323,14 +323,14 @@ async def test_the_answer_is_a_parameters_resource_the_r4_model_round_trips(clie
     assert parsed.model_dump(mode="json", exclude_none=True, by_alias=True) == answered.json()
 
 
-async def test_the_answer_is_served_as_fhir_json(client: httpx.AsyncClient) -> None:
+async def test_the_answer_is_served_as_fhir_json(client: httpx2.AsyncClient) -> None:
     """Every FHIR document leaves this server the same way, this operation's answer included."""
     answered = await client.post(EVALUATE_OPERATION_PATH, json=_ask("elm", ELM_LIBRARY))
 
     assert answered.headers["content-type"].startswith(FHIR_JSON_MEDIA_TYPE)
 
 
-async def test_a_request_naming_no_source_is_refused(client: httpx.AsyncClient) -> None:
+async def test_a_request_naming_no_source_is_refused(client: httpx2.AsyncClient) -> None:
     """An evaluation with no source is not a narrower question - it is no question."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -341,7 +341,7 @@ async def test_a_request_naming_no_source_is_refused(client: httpx.AsyncClient) 
     assert "`source`" in answered.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_language_this_server_does_not_evaluate_is_refused(client: httpx.AsyncClient) -> None:
+async def test_a_language_this_server_does_not_evaluate_is_refused(client: httpx2.AsyncClient) -> None:
     """Three languages and no fourth, named in the refusal so a caller learns which three."""
     answered = await client.post(EVALUATE_OPERATION_PATH, json=_ask("sql", "SELECT 1"))
 
@@ -353,7 +353,7 @@ async def test_a_language_this_server_does_not_evaluate_is_refused(client: httpx
 
 
 async def test_a_context_kind_this_server_does_not_offer_is_refused_before_anything_runs(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """Three kinds and no fourth: a request naming one that does not exist never reaches the engine."""
     answered = await client.post(
@@ -369,7 +369,7 @@ async def test_a_context_kind_this_server_does_not_offer_is_refused_before_anyth
     assert answered.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_an_inline_context_with_no_resource_is_refused(client: httpx.AsyncClient) -> None:
+async def test_an_inline_context_with_no_resource_is_refused(client: httpx2.AsyncClient) -> None:
     """A context that names a kind and then names no resource is a request nothing can be run over."""
     answered = await client.post(
         EVALUATE_OPERATION_PATH,
@@ -380,7 +380,7 @@ async def test_an_inline_context_with_no_resource_is_refused(client: httpx.Async
     assert "`resource`" in answered.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_body_that_is_neither_shape_says_which_two_it_takes(client: httpx.AsyncClient) -> None:
+async def test_a_body_that_is_neither_shape_says_which_two_it_takes(client: httpx2.AsyncClient) -> None:
     """A refusal that names the two bodies is one a caller can act on without reading the source."""
     answered = await client.post(EVALUATE_OPERATION_PATH, json={"language": "fhirpath"})
 
@@ -390,7 +390,7 @@ async def test_a_body_that_is_neither_shape_says_which_two_it_takes(client: http
     assert "/facade/evaluate" in diagnostics
 
 
-async def test_the_operation_is_declared_at_the_server_level_slot(client: httpx.AsyncClient) -> None:
+async def test_the_operation_is_declared_at_the_server_level_slot(client: httpx2.AsyncClient) -> None:
     """A client following `/metadata` reaches `[base]/$evaluate`, which is the address that answers."""
     body = (await client.get("/metadata")).json()
 
@@ -400,7 +400,7 @@ async def test_the_operation_is_declared_at_the_server_level_slot(client: httpx.
     assert "FHIRPath" in declared[0]["documentation"]
 
 
-async def test_the_declared_operation_is_reachable_at_the_url_its_slot_names(client: httpx.AsyncClient) -> None:
+async def test_the_declared_operation_is_reachable_at_the_url_its_slot_names(client: httpx2.AsyncClient) -> None:
     """The server-level slot names the service base, so `[base]/$evaluate` is what a client posts to."""
     answered = await client.post("/$evaluate", json=_ask("elm", ELM_LIBRARY))
 

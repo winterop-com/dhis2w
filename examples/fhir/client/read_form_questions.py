@@ -26,7 +26,7 @@ Reads the aggregate form the example fixture publishes, from the facade the fixt
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, served_facade
 from _runner import run_example
 from dhis2w_fhir.r4 import Questionnaire, QuestionnaireItem
@@ -93,7 +93,7 @@ async def main() -> None:
     """Read one published form and print what it asks, keyed by the link id each answer is filed under."""
     base_url = served_facade()
     form_id = aggregate_form_id()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         body = (await client.get(f"/Questionnaire/{form_id}")).raise_for_status().json()
 
     # The served document validated into the same model the generator wrote it from, so every field

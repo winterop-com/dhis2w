@@ -17,6 +17,14 @@ import os
 import webbrowser
 
 import pytest
+import pytest_httpx2  # noqa: F401  registers the "httpcore2" respx mocker on import
+import respx.mocks
+
+#: Every `respx.mock` / `respx.MockRouter` in the suite intercepts httpx2 traffic. respx reads
+#: this name lazily when a router starts, so one assignment here covers routers created at
+#: module import time as well as inside tests. The `httpcore2` mocker is the one pytest-httpx2
+#: registers; respx's own default patches the old `httpcore`, which nothing shipped uses.
+respx.mocks.DEFAULT_MOCKER = "httpcore2"
 
 #: Variables that make Rich render as if stdout were a terminal - ANSI colour, 80-column
 #: panels, wrapped lines - even under a captured stream. `FORCE_COLOR` / `CLICOLOR_FORCE` are

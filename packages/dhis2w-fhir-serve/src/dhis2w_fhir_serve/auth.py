@@ -74,7 +74,7 @@ import os
 import time
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from dhis2w_fhir.config import ServeAuth, ServeJwtConfig
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import Request
@@ -357,7 +357,7 @@ async def validate_with_dhis2(base_url: str, header_value: str) -> str:
     A REQUEST OF ITS OWN, CARRYING THE CALLER'S HEADER AND NOTHING ELSE. The client the live store was
     built through holds the facade's own credentials, and reusing it here would validate every caller
     as whoever the server logs in as - which would be the facade handing out its own account. So this
-    opens a plain `httpx` client, sends exactly what arrived, and closes it.
+    opens a plain `httpx2` client, sends exactly what arrived, and closes it.
 
     Any answer other than a 2xx is a refusal, and so is one the instance never gave: an unreachable
     DHIS2 means this facade cannot say who is calling, and serving the request anyway would be
@@ -365,12 +365,12 @@ async def validate_with_dhis2(base_url: str, header_value: str) -> str:
     """
     challenge = challenge_for(ServeAuth.DHIS2)
     try:
-        async with httpx.AsyncClient(base_url=base_url, timeout=DHIS2_IDENTITY_TIMEOUT_SECONDS) as http:
+        async with httpx2.AsyncClient(base_url=base_url, timeout=DHIS2_IDENTITY_TIMEOUT_SECONDS) as http:
             answer = await http.get(
                 DHIS2_IDENTITY_PATH,
                 headers={"Authorization": header_value, "Accept": "application/json"},
             )
-    except httpx.HTTPError as error:
+    except httpx2.HTTPError as error:
         raise UnauthenticatedError(
             f"this server could not reach the DHIS2 instance to check the credentials it was given ({error})",
             challenge,
@@ -384,7 +384,7 @@ async def validate_with_dhis2(base_url: str, header_value: str) -> str:
     return _username_from(answer, challenge)
 
 
-def _username_from(answer: httpx.Response, challenge: str) -> str:
+def _username_from(answer: httpx2.Response, challenge: str) -> str:
     """The username on one `/api/me` answer, refusing an answer that names nobody."""
     from dhis2w_client import Me
 
@@ -466,7 +466,7 @@ async def _establish_dhis2_identity(
         )
     if settings.dhis2_base_url is None:
         # Unreachable through `ServeSettings.resolve`, which refuses this posture on a run with no
-        # instance behind it. Stated here anyway: the alternative is a `None` base url reaching httpx.
+        # instance behind it. Stated here anyway: the alternative is a `None` base url reaching httpx2.
         raise UnauthenticatedError("this server has no DHIS2 instance to check credentials against", challenge)
     key = credential_key(presented)
     now = current_monotonic()

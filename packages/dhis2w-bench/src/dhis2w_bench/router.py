@@ -20,7 +20,7 @@ import os
 import sys
 import time
 
-import httpx
+import httpx2
 from dhis2w_mcp_router.core import Registry, UpstreamServer
 from pydantic import BaseModel, ConfigDict
 
@@ -118,7 +118,7 @@ async def _dispatch(registry: Registry, name: str, arguments: dict) -> str:
 
 
 async def _agent(
-    http: httpx.AsyncClient, model: str, registry: Registry, goal: str, max_steps: int = 8
+    http: httpx2.AsyncClient, model: str, registry: Registry, goal: str, max_steps: int = 8
 ) -> tuple[str, int]:
     """Drive `model` over the router's two tools toward `goal`; return (answer, turns)."""
     messages: list[dict] = [{"role": "system", "content": _SYSTEM}, {"role": "user", "content": goal}]
@@ -146,7 +146,7 @@ async def _benchmark_model(model: str) -> ModelReport:
     await registry.ensure_built()
     print(f"  router fronts {registry.tool_count()} tools")
     outcomes: list[TaskOutcome] = []
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         for key, goal in READ_TASKS:
             started = time.monotonic()
             answer, turns = await _agent(http, model, registry, goal)

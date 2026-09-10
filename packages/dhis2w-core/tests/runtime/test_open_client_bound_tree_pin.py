@@ -11,6 +11,7 @@ wild won't bother to declare a `version` field.
 from __future__ import annotations
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.errors import VersionPinMismatchError
@@ -62,7 +63,7 @@ async def test_unpinned_profile_bound_tree_mismatches_server_raises() -> None:
 
 @respx.mock
 async def test_event_hooks_reach_every_request_the_client_makes() -> None:
-    """`open_client(event_hooks=...)` threads httpx hooks through to the underlying client."""
+    """`open_client(event_hooks=...)` threads httpx2 hooks through to the underlying client."""
     base_url = "http://mocked.hooks.example"
     respx.get(f"{base_url}/").mock(return_value=httpx.Response(200, text=""))
     respx.get(f"{base_url}/api/system/info").mock(
@@ -70,7 +71,7 @@ async def test_event_hooks_reach_every_request_the_client_makes() -> None:
     )
     seen_urls: list[str] = []
 
-    async def record(request: httpx.Request) -> None:
+    async def record(request: httpx2.Request) -> None:
         """Record every outgoing URL, the way the security audit's read-only guardrail hook does."""
         seen_urls.append(str(request.url))
 

@@ -16,6 +16,7 @@ from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.profile import Profile
@@ -110,7 +111,7 @@ def _audit_options() -> AuditOptions:
 async def test_guardrail_hook_rejects_non_get_method() -> None:
     """A POST to an allowlisted path is rejected because the method is not read-only."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS)
-    request = httpx.Request("POST", f"{BASE}/api/me")
+    request = httpx2.Request("POST", f"{BASE}/api/me")
     with pytest.raises(GuardrailViolation, match="method POST"):
         await hook(request)
 
@@ -118,7 +119,7 @@ async def test_guardrail_hook_rejects_non_get_method() -> None:
 async def test_guardrail_hook_rejects_off_allowlist_path() -> None:
     """A GET to a path outside the allowlist is rejected even though the method is read-only."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS)
-    request = httpx.Request("GET", f"{BASE}/api/dataValueSets")
+    request = httpx2.Request("GET", f"{BASE}/api/dataValueSets")
     with pytest.raises(GuardrailViolation, match="not on the audit allowlist"):
         await hook(request)
 
@@ -126,49 +127,49 @@ async def test_guardrail_hook_rejects_off_allowlist_path() -> None:
 async def test_guardrail_hook_allows_get_to_allowlisted_path() -> None:
     """A GET to an allowlisted plugin-read path passes the hook without raising."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS)
-    await hook(httpx.Request("GET", f"{BASE}/api/me"))
+    await hook(httpx2.Request("GET", f"{BASE}/api/me"))
 
 
 async def test_guardrail_hook_allows_connect_probe_paths() -> None:
     """The connect-time GET / and a HEAD to a connect path both pass the hook."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS)
     for connect_path in CONNECT_PATHS:
-        await hook(httpx.Request("GET", f"{BASE}{connect_path}"))
-    await hook(httpx.Request("HEAD", f"{BASE}/api/system/info"))
+        await hook(httpx2.Request("GET", f"{BASE}{connect_path}"))
+    await hook(httpx2.Request("HEAD", f"{BASE}/api/system/info"))
 
 
 async def test_guardrail_hook_strips_context_path_before_matching() -> None:
     """With a context `base_path`, a GET to a prefixed allowlist path passes after the prefix is stripped."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path="/dev-2-42")
-    await hook(httpx.Request("GET", "https://x.example/dev-2-42/api/system/info"))
+    await hook(httpx2.Request("GET", "https://x.example/dev-2-42/api/system/info"))
 
 
 async def test_guardrail_hook_maps_context_root_to_connect_slash() -> None:
     """A GET to the bare context root under `base_path` maps to `/`, an allowlisted connect probe."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path="/dev-2-42")
-    await hook(httpx.Request("GET", "https://x.example/dev-2-42/"))
+    await hook(httpx2.Request("GET", "https://x.example/dev-2-42/"))
 
 
 async def test_guardrail_hook_rejects_off_allowlist_path_under_context_prefix() -> None:
     """A GET to an off-allowlist path under the context prefix is still rejected after stripping."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path="/dev-2-42")
     with pytest.raises(GuardrailViolation, match="not on the audit allowlist"):
-        await hook(httpx.Request("GET", "https://x.example/dev-2-42/api/dataValueSets"))
+        await hook(httpx2.Request("GET", "https://x.example/dev-2-42/api/dataValueSets"))
 
 
 async def test_guardrail_hook_rejects_non_get_under_context_prefix() -> None:
     """A non-GET to a prefixed allowlist path is rejected on the method before any path stripping."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path="/dev-2-42")
     with pytest.raises(GuardrailViolation, match="method POST"):
-        await hook(httpx.Request("POST", "https://x.example/dev-2-42/api/me"))
+        await hook(httpx2.Request("POST", "https://x.example/dev-2-42/api/me"))
 
 
 async def test_guardrail_hook_empty_base_path_matches_exactly() -> None:
     """The default empty `base_path` leaves the request path untouched, so context-prefixed paths are rejected."""
     hook = guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path="")
-    await hook(httpx.Request("GET", f"{BASE}/api/me"))
+    await hook(httpx2.Request("GET", f"{BASE}/api/me"))
     with pytest.raises(GuardrailViolation, match="not on the audit allowlist"):
-        await hook(httpx.Request("GET", "https://x.example/dev-2-42/api/me"))
+        await hook(httpx2.Request("GET", "https://x.example/dev-2-42/api/me"))
 
 
 # ---------------------------------------------------------------------------

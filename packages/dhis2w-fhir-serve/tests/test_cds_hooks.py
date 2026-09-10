@@ -16,7 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve.routes.cds import CQL_LIBRARY_SERVICE_HOOK, CQL_LIBRARY_SERVICE_ID
@@ -51,7 +51,7 @@ def _invocation(**context: object) -> dict[str, Any]:
     }
 
 
-async def test_discovery_names_one_service_and_what_it_wants_prefetched(client: httpx.AsyncClient) -> None:
+async def test_discovery_names_one_service_and_what_it_wants_prefetched(client: httpx2.AsyncClient) -> None:
     """One service, honestly described, with the prefetch templates an EHR fills before invoking."""
     answered = await client.get("/cds-services")
 
@@ -64,7 +64,7 @@ async def test_discovery_names_one_service_and_what_it_wants_prefetched(client: 
     assert "context.library" in services[0]["usageRequirements"]
 
 
-async def test_an_invocation_answers_a_card_per_define_that_said_something(client: httpx.AsyncClient) -> None:
+async def test_an_invocation_answers_a_card_per_define_that_said_something(client: httpx2.AsyncClient) -> None:
     """A define answering true becomes its own name; one answering a message becomes that message."""
     answered = await client.post(f"/cds-services/{CQL_LIBRARY_SERVICE_ID}", json=_invocation(library=LIBRARY))
 
@@ -74,7 +74,7 @@ async def test_an_invocation_answers_a_card_per_define_that_said_something(clien
     assert {card["indicator"] for card in answered.json()["cards"]} == {"info"}
 
 
-async def test_the_prefetch_is_the_only_data_the_library_sees(client: httpx.AsyncClient) -> None:
+async def test_the_prefetch_is_the_only_data_the_library_sees(client: httpx2.AsyncClient) -> None:
     """The retrieves read what the EHR sent and nothing else - `fhirServer` is read and never followed."""
     invocation = _invocation(library=LIBRARY)
     invocation["prefetch"] = {"patient": PATIENT}
@@ -86,7 +86,7 @@ async def test_the_prefetch_is_the_only_data_the_library_sees(client: httpx.Asyn
     assert [card["summary"] for card in answered.json()["cards"]] == ["Book a follow-up visit"]
 
 
-async def test_one_define_can_be_asked_for_by_name(client: httpx.AsyncClient) -> None:
+async def test_one_define_can_be_asked_for_by_name(client: httpx2.AsyncClient) -> None:
     """`expressionName` narrows the invocation to the one rule a caller wanted run."""
     answered = await client.post(
         f"/cds-services/{CQL_LIBRARY_SERVICE_ID}",
@@ -96,7 +96,7 @@ async def test_one_define_can_be_asked_for_by_name(client: httpx.AsyncClient) ->
     assert [card["summary"] for card in answered.json()["cards"]] == ["Book a follow-up visit"]
 
 
-async def test_a_library_that_will_not_parse_is_a_card_rather_than_a_failure(client: httpx.AsyncClient) -> None:
+async def test_a_library_that_will_not_parse_is_a_card_rather_than_a_failure(client: httpx2.AsyncClient) -> None:
     """An EHR gets an answer it can render, carrying the parser's own message and where it stopped."""
     answered = await client.post(
         f"/cds-services/{CQL_LIBRARY_SERVICE_ID}",
@@ -111,7 +111,7 @@ async def test_a_library_that_will_not_parse_is_a_card_rather_than_a_failure(cli
 
 
 async def test_an_invocation_with_no_rules_is_refused_rather_than_answered_with_nothing(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
 ) -> None:
     """Silence would teach nobody why; the refusal names both ways to send the rules."""
     answered = await client.post(f"/cds-services/{CQL_LIBRARY_SERVICE_ID}", json=_invocation())
@@ -120,7 +120,7 @@ async def test_an_invocation_with_no_rules_is_refused_rather_than_answered_with_
     assert "context.libraryId" in answered.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_service_this_facade_does_not_offer_is_not_found(client: httpx.AsyncClient) -> None:
+async def test_a_service_this_facade_does_not_offer_is_not_found(client: httpx2.AsyncClient) -> None:
     """One service is one service: an id nothing answers is a 404 OperationOutcome, not an empty card list."""
     answered = await client.post("/cds-services/some-other-service", json=_invocation(library=LIBRARY))
 
@@ -152,7 +152,7 @@ def library_project(
 
 
 async def test_a_library_this_guide_publishes_is_run_by_id(
-    library_project: FhirProject, client: httpx.AsyncClient
+    library_project: FhirProject, client: httpx2.AsyncClient
 ) -> None:
     """The other way to name the rules: a Library the guide publishes, whose inline content is decoded here."""
     answered = await client.post(f"/cds-services/{CQL_LIBRARY_SERVICE_ID}", json=_invocation(libraryId="advice"))
@@ -161,7 +161,7 @@ async def test_a_library_this_guide_publishes_is_run_by_id(
     assert "Book a follow-up visit" in [card["summary"] for card in answered.json()["cards"]]
 
 
-async def test_a_library_id_this_guide_does_not_publish_is_not_found(client: httpx.AsyncClient) -> None:
+async def test_a_library_id_this_guide_does_not_publish_is_not_found(client: httpx2.AsyncClient) -> None:
     """A named Library the store does not hold is a 404 about that Library, not a silent empty answer."""
     answered = await client.post(f"/cds-services/{CQL_LIBRARY_SERVICE_ID}", json=_invocation(libraryId="nothing-here"))
 

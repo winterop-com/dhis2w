@@ -33,7 +33,7 @@ import os
 import sys
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import served_facade
 from _runner import run_example
 
@@ -65,7 +65,7 @@ HELPER_DEFINITIONS = ("Attribute Value Extension", "Attribute Values")
 async def main() -> None:
     """Read the guide's vocabulary, pick a person, write a library from both, and review the record."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
-    async with httpx.AsyncClient(base_url=base_url, timeout=120.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, timeout=120.0) as client:
         print(f"evaluating against {base_url}")
 
         canonical = await guide_canonical(client)
@@ -146,20 +146,20 @@ def chart_review_library(canonical: str, types: dict[str, str], attributes: dict
     return "\n".join(lines)
 
 
-async def guide_canonical(client: httpx.AsyncClient) -> str:
+async def guide_canonical(client: httpx2.AsyncClient) -> str:
     """The canonical every url of this guide is built from, read off one of its own resources."""
     listed = (await client.get("/CodeSystem", params={"_count": 1})).raise_for_status().json()
     url = str(listed["entry"][0]["resource"]["url"])
     return url.rsplit("/CodeSystem/", 1)[0]
 
 
-async def concepts(client: httpx.AsyncClient, code_system_id: str) -> dict[str, str]:
+async def concepts(client: httpx2.AsyncClient, code_system_id: str) -> dict[str, str]:
     """Every concept one of the guide's CodeSystems publishes, as code to display."""
     read = (await client.get(f"/CodeSystem/{code_system_id}")).raise_for_status().json()
     return {concept["code"]: concept.get("display", concept["code"]) for concept in read.get("concept", [])}
 
 
-async def someone(client: httpx.AsyncClient) -> str:
+async def someone(client: httpx2.AsyncClient) -> str:
     """The tracked entity UID of the person on the register's first page with the most written down."""
     page = (await client.get(f"/{PERSON_RESOURCE_TYPE}", params={"_count": REGISTER_PAGE})).raise_for_status().json()
     people = [entry["resource"] for entry in page.get("entry", [])]
@@ -170,7 +170,7 @@ async def someone(client: httpx.AsyncClient) -> str:
     return str(richest["id"])
 
 
-async def evaluate(client: httpx.AsyncClient, library: str, tracked_entity_uid: str) -> dict[str, Any]:
+async def evaluate(client: httpx2.AsyncClient, library: str, tracked_entity_uid: str) -> dict[str, Any]:
     """One CQL library over one tracked entity the DHIS2 instance holds."""
     answered = await client.post(
         "/facade/evaluate",

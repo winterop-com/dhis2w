@@ -7,10 +7,10 @@ batch workflows:
 2. **Bounded semaphore** — for hundreds / thousands of items; caps
    simultaneous in-flight calls to match DHIS2's capacity.
 3. **Tuned connection pool + semaphore** — when the default 100-connection
-   httpx pool is either too big (small DHIS2 instance) or too small
+   httpx2 pool is either too big (small DHIS2 instance) or too small
    (high-concurrency writes).
 
-The client's `httpx.AsyncClient` pool is shared across every concurrent
+The client's `httpx2.AsyncClient` pool is shared across every concurrent
 call on a single `Dhis2Client` instance, so there's no per-call handshake
 cost — the bottleneck is DHIS2-side capacity + the configured pool limits.
 
@@ -24,7 +24,7 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable, Iterable
 
-import httpx
+import httpx2
 from _runner import run_example
 from dhis2w_client import Dhis2Client, RetryPolicy
 from dhis2w_core.client_context import open_client
@@ -103,7 +103,7 @@ async def main() -> None:
     # 4. Tuned pool + retries — what you'd use for a production batch job. Clamp the
     # pool below the semaphore limit so pool waits are impossible; retries cover
     # the transient 5xx / connection-reset edges.
-    tight_pool = httpx.Limits(max_connections=15, max_keepalive_connections=5)
+    tight_pool = httpx2.Limits(max_connections=15, max_keepalive_connections=5)
     retry = RetryPolicy(max_attempts=3, base_delay=0.1, jitter=0.1)
     async with open_client(profile, http_limits=tight_pool, retry_policy=retry) as client:
         tuned_elapsed = await _bounded(client, uids, limit=10)

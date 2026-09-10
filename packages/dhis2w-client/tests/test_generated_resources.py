@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client
@@ -20,7 +21,7 @@ async def test_get_data_element_typed() -> None:
         return_value=httpx.Response(200, json={"id": "abc123", "name": "Malaria Cases"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
     try:
         de = await client.resources.data_elements.get("abc123")
@@ -41,7 +42,7 @@ async def test_list_data_elements_returns_typed_models() -> None:
         ),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
     try:
         items = await client.resources.data_elements.list()
@@ -59,7 +60,7 @@ async def test_create_data_element_posts() -> None:
         return_value=httpx.Response(201, json={"status": "OK", "response": {"uid": "new123"}}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
 
     module = __import__(f"dhis2w_client.generated.{_GENERATED[-1]}.schemas.data_element", fromlist=["DataElement"])
@@ -80,7 +81,7 @@ async def test_update_data_element_puts_with_id() -> None:
         return_value=httpx.Response(200, json={"status": "OK"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
 
     module = __import__(f"dhis2w_client.generated.{_GENERATED[-1]}.schemas.data_element", fromlist=["DataElement"])
@@ -96,7 +97,7 @@ async def test_update_raises_without_id() -> None:
     """Update raises without id."""
     generated = load(_GENERATED[-1])
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
 
     module = __import__(f"dhis2w_client.generated.{_GENERATED[-1]}.schemas.data_element", fromlist=["DataElement"])
@@ -116,7 +117,7 @@ async def test_delete_data_element() -> None:
         return_value=httpx.Response(200, json={"status": "OK"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     client._resources = generated.Resources(client)
     try:
         await client.resources.data_elements.delete("abc123")

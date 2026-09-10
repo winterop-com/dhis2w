@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import httpx
+import httpx2
 import pytest
 import respx
 
@@ -45,9 +46,9 @@ def play_target(request: pytest.FixtureRequest) -> tuple[str, str]:
     version_key = str(request.param)
     url = _PLAY_SERVERS[version_key]
     try:
-        with httpx.Client(timeout=5.0) as client:
+        with httpx2.Client(timeout=5.0) as client:
             client.get(f"{url}/api/system/info.json", auth=("admin", "district")).raise_for_status()
-    except (httpx.RequestError, httpx.HTTPError):
+    except (httpx2.RequestError, httpx2.HTTPError):
         pytest.skip(f"play {version_key} not reachable at {url}")
     return url, version_key
 
@@ -114,10 +115,10 @@ def local_password() -> str:
 
 def _is_local_reachable(url: str) -> bool:
     try:
-        with httpx.Client(timeout=2.0) as client:
+        with httpx2.Client(timeout=2.0) as client:
             client.get(f"{url}/dhis-web-login/")
         return True
-    except (httpx.RequestError, httpx.HTTPError):
+    except (httpx2.RequestError, httpx2.HTTPError):
         return False
 
 
@@ -154,3 +155,36 @@ def local_pat(
     except Exception as exc:  # noqa: BLE001 — surface as skip so we don't wedge CI
         pytest.skip(f"PAT creation failed: {exc}")
     yield token
+
+
+@pytest.fixture(scope="session")
+def ca_bundle_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Write a self-signed certificate to a temp PEM file and return its path.
+
+    Gives TLS tests a real CA bundle `ssl.create_default_context(cafile=...)` can
+    load, without depending on the host's trust store layout.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "dhis2w-test-ca")])
+    now = datetime.now(UTC)
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(subject_name)
+        .issuer_name(subject_name)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=365))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(private_key, hashes.SHA256())
+    )
+    bundle_path = tmp_path_factory.mktemp("tls") / "test-ca.pem"
+    bundle_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    return bundle_path

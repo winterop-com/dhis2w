@@ -1,7 +1,7 @@
 """Guest-check tests: anonymous-access probe, self-registration, account recovery, and per-tree wiring.
 
 `evaluate_guest` is version-invariant and tested directly. The `_run_guest` wiring runs an
-unauthenticated probe through a throwaway httpx client (intercepted by respx) plus authenticated
+unauthenticated probe through a throwaway httpx2 client (intercepted by respx) plus authenticated
 reads for the self-registration role and account-recovery setting (a mock client), across all trees.
 """
 

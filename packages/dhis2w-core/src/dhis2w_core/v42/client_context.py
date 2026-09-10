@@ -13,7 +13,7 @@ from collections.abc import AsyncGenerator, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import Any
 
-import httpx
+import httpx2
 from dhis2w_client.v42 import AuthProvider, Dhis2, Dhis2Client, RetryPolicy
 from dhis2w_client.v42.auth.oauth2 import OAuth2Auth
 from dhis2w_client.v42.client_context import build_auth_provider
@@ -122,7 +122,7 @@ async def open_client(
     scope: str = "global",
     allow_version_fallback: bool = False,
     retry_policy: RetryPolicy | None = None,
-    http_limits: httpx.Limits | None = None,
+    http_limits: httpx2.Limits | None = None,
     system_cache_ttl: float | None = 300.0,
     event_hooks: Mapping[str, list[Callable[..., Any]]] | None = None,
 ) -> AsyncGenerator[Dhis2Client]:
@@ -137,7 +137,7 @@ async def open_client(
     on transient HTTP failures (connection errors, 429/502/503/504). See
     `dhis2w_client.RetryPolicy` for the tuning knobs.
 
-    Pass `http_limits=httpx.Limits(max_connections=..., max_keepalive_connections=...)`
+    Pass `http_limits=httpx2.Limits(max_connections=..., max_keepalive_connections=...)`
     to tune the connection pool for high-concurrency workloads (or to clamp
     it down against a small DHIS2 instance). See
     `docs/architecture/client.md` for sizing guidance.
@@ -161,7 +161,7 @@ async def open_client(
     field. CLI doesn't trigger this path — it discovers plugins fresh per
     invocation and never binds.
 
-    `event_hooks` (default `None`) passes httpx event hooks through to the
+    `event_hooks` (default `None`) passes httpx2 event hooks through to the
     underlying `Dhis2Client`; the security audit uses a `request` hook to
     enforce its read-only allowlist.
     """

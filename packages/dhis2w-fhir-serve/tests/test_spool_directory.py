@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.spool import SPOOL_RELATIVE_PATH, SpoolLayout, SpoolState
@@ -34,11 +34,11 @@ def _serving(project: FhirProject, spool_dir: str) -> FastAPI:
 
 
 @asynccontextmanager
-async def _client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
+async def _client(app: FastAPI) -> AsyncGenerator[httpx2.AsyncClient]:
     """An in-process client over one built app, with the lifespan run around the caller."""
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 

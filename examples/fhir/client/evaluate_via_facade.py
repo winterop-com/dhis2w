@@ -2,7 +2,7 @@
 
 `POST /facade/evaluate` is the facade's own endpoint, not FHIR: it answers `application/json` with typed
 results and real diagnostics, because a parse error's line and column have nowhere to go in a
-`Parameters` resource. So this needs httpx and a served project, and nothing else - no dhis2w
+`Parameters` resource. So this needs httpx2 and a served project, and nothing else - no dhis2w
 package, no DHIS2, no engine install of your own.
 
 Two calls, which are the two shapes:
@@ -31,7 +31,7 @@ import os
 import sys
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import served_facade
 
 #: A resource with nothing to do with DHIS2. The evaluator takes any FHIR JSON, which is what makes
@@ -67,7 +67,7 @@ define Greeting: 'hello'
 async def main() -> None:
     """Evaluate one FHIRPath expression, one CQL library, and one expression that will not parse."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
-    async with httpx.AsyncClient(base_url=base_url, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, timeout=30.0) as client:
         print(f"evaluating against {base_url}")
 
         # 1. FHIRPath over a resource carried in the request itself.
@@ -110,7 +110,7 @@ async def main() -> None:
             print(f"  {diagnostic['kind']} error at {place}: {diagnostic['message'].splitlines()[0]}")
 
 
-async def evaluate(client: httpx.AsyncClient, request: dict[str, Any]) -> dict[str, Any]:
+async def evaluate(client: httpx2.AsyncClient, request: dict[str, Any]) -> dict[str, Any]:
     """One `POST /facade/evaluate`, raising only when the facade refused the request itself.
 
     A bad expression is not a refusal: it answers 200 with its diagnostics. What raises here is a

@@ -27,7 +27,7 @@ import asyncio
 import os
 import sys
 
-import httpx
+import httpx2
 from _fixture import served_facade
 
 #: How many findings and objects to print. The whole report can run to thousands of rows on a
@@ -45,7 +45,7 @@ def spellings(name: bool, form_name: bool) -> str:
 async def main() -> None:
     """Read the report and print the strip, the first findings, and the first translation gaps."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": "application/json"}, timeout=600.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": "application/json"}, timeout=600.0) as client:
         health = (await client.get("/facade/metadata-health")).raise_for_status().json()
 
     if not health["available"]:

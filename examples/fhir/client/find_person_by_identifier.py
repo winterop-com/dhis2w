@@ -35,7 +35,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import served_facade
 
 FHIR_JSON = "application/fhir+json"
@@ -59,7 +59,7 @@ def keyed_person(entries: list[dict[str, Any]]) -> dict[str, Any]:
     return next((person for person in people if len(person["identifier"]) > 1), people[0])
 
 
-async def search(client: httpx.AsyncClient, identifier: str) -> None:
+async def search(client: httpx2.AsyncClient, identifier: str) -> None:
     """Run one identifier search and print how many people it named."""
     answer = (await client.get(f"/{PERSON_RESOURCE_TYPE}", params={"identifier": identifier})).raise_for_status()
     print(f"  identifier={identifier}")
@@ -68,7 +68,7 @@ async def search(client: httpx.AsyncClient, identifier: str) -> None:
 
 async def main() -> None:
     """List one person out of the register, then find that same person by each of their keys."""
-    async with httpx.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
         # No `identifier` is the listing - a paged walk of everyone the register serves.
         listing = await client.get(f"/{PERSON_RESOURCE_TYPE}", params={"_count": 20})
         if listing.status_code != OK:

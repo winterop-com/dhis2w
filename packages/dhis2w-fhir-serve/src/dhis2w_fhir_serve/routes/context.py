@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING
 from starlette.requests import Request
 
 if TYPE_CHECKING:
-    import httpx
+    import httpx2
     from dhis2w_client import Dhis2Client
 
     from dhis2w_fhir_serve.projection.base import ProjectionStore
@@ -55,9 +55,9 @@ def live_client(request: Request) -> Dhis2Client | None:
     return client
 
 
-def caller_client(request: Request) -> httpx.AsyncClient | None:
+def caller_client(request: Request) -> httpx2.AsyncClient | None:
     """The credential-free connection pass-through reads borrow, or None outside the `dhis2` posture."""
-    connection: httpx.AsyncClient | None = getattr(request.app.state, CALLER_CLIENT_ATTRIBUTE, None)
+    connection: httpx2.AsyncClient | None = getattr(request.app.state, CALLER_CLIENT_ATTRIBUTE, None)
     return connection
 
 

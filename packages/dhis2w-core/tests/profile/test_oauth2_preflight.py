@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.oauth2_preflight import DISCOVERY_PATH, check_oauth2_server
@@ -58,7 +59,7 @@ async def test_non_json_response_flagged() -> None:
 @respx.mock
 async def test_connect_error_is_clean() -> None:
     """Connect error is clean."""
-    respx.get(f"{BASE_URL}{DISCOVERY_PATH}").mock(side_effect=httpx.ConnectError("boom"))
+    respx.get(f"{BASE_URL}{DISCOVERY_PATH}").mock(side_effect=httpx2.ConnectError("boom"))
     error = await check_oauth2_server(BASE_URL)
     assert error is not None
     assert "cannot reach" in error

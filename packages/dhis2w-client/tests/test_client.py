@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import ssl
+from pathlib import Path
+
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import (
@@ -28,7 +32,7 @@ async def test_get_raw_injects_auth_header_and_parses_json() -> None:
         return_value=httpx.Response(200, json={"username": "admin"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         body = await client.get_raw("/api/me")
     finally:
@@ -47,7 +51,7 @@ async def test_empty_2xx_body_parses_to_empty_dict() -> None:
         return_value=httpx.Response(204),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         body = await client.delete_raw("/api/dataElements/abc")
     finally:
@@ -66,7 +70,7 @@ async def test_non_json_2xx_body_raises_with_snippet() -> None:
         ),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(Dhis2ApiError) as exc:
             await client.get_raw("/api/me")
@@ -85,7 +89,7 @@ async def test_typed_get_returns_pydantic_instance() -> None:
         return_value=httpx.Response(200, json={"username": "admin"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         me = await client.get("/api/me", model=_Me)
     finally:
@@ -101,7 +105,7 @@ async def test_non_success_raises_dhis2_api_error() -> None:
         return_value=httpx.Response(404, json={"message": "not found"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(Dhis2ApiError) as exc:
             await client.get_raw("/api/missing")
@@ -116,7 +120,7 @@ async def test_401_raises_authentication_error() -> None:
     """401 raises authentication error."""
     respx.get("https://dhis2.example/api/me").mock(return_value=httpx.Response(401, text="Unauthorized"))
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(AuthenticationError):
             await client.get_raw("/api/me")
@@ -142,7 +146,7 @@ async def test_401_openid_mapping_message_includes_actionable_fix() -> None:
         )
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(AuthenticationError) as exc_info:
             await client.get_raw("/api/me")
@@ -168,7 +172,7 @@ async def test_401_passes_through_unrecognised_error_description() -> None:
         )
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(AuthenticationError) as exc_info:
             await client.get_raw("/api/me")
@@ -348,7 +352,7 @@ async def test_verify_false_passes_through_to_httpx_pool() -> None:
     try:
         await client.connect()
         assert client._http is not None
-        # httpx stores the configured SSLContext on the transport when verify=True
+        # httpx2 stores the configured SSLContext on the transport when verify=True
         # and a no-verify context when verify=False. The simplest, stable check
         # is that our constructor value was stored on the client.
         assert client._verify is False
@@ -356,14 +360,14 @@ async def test_verify_false_passes_through_to_httpx_pool() -> None:
         await client.close()
 
 
-async def test_verify_ca_bundle_path_stored() -> None:
-    """A custom CA bundle path is accepted and stored."""
+async def test_verify_ca_bundle_path_becomes_an_ssl_context(ca_bundle_path: Path) -> None:
+    """A custom CA bundle path is accepted and held as an `ssl.SSLContext`."""
     client = Dhis2Client(
         "https://dhis2.example",
         auth=BasicAuth(username="u", password="p"),
-        verify="/etc/ssl/custom-ca.pem",
+        verify=str(ca_bundle_path),
     )
-    assert client._verify == "/etc/ssl/custom-ca.pem"
+    assert isinstance(client._verify, ssl.SSLContext)
 
 
 # ---------- skip_version_probe ----------
@@ -433,17 +437,17 @@ async def test_skip_version_probe_still_allows_get_raw() -> None:
 
 @respx.mock
 async def test_get_response_returns_2xx_raw_response() -> None:
-    """`get_response` hands back the raw `httpx.Response` on success."""
+    """`get_response` hands back the raw `httpx2.Response` on success."""
     respx.get("https://dhis2.example/api/me").mock(
         return_value=httpx.Response(200, json={"username": "admin"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         response = await client.get_response("/api/me")
     finally:
         await client.close()
-    assert isinstance(response, httpx.Response)
+    assert isinstance(response, httpx2.Response)
     assert response.status_code == 200
     assert response.json() == {"username": "admin"}
 
@@ -455,7 +459,7 @@ async def test_get_response_does_not_raise_on_401() -> None:
         return_value=httpx.Response(401, text="Unauthorized"),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         response = await client.get_response("/api/me")
     finally:
@@ -470,7 +474,7 @@ async def test_get_response_does_not_raise_on_502_from_route() -> None:
         return_value=httpx.Response(502, text="upstream did not respond"),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         response = await client.get_response("/api/routes/chap/run/health")
     finally:
@@ -486,7 +490,7 @@ async def test_get_response_applies_auth_header() -> None:
         return_value=httpx.Response(200, json={"username": "admin"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         await client.get_response("/api/me")
     finally:
@@ -501,10 +505,10 @@ async def test_get_response_applies_auth_header() -> None:
 @respx.mock
 async def test_connect_closes_pool_when_probe_returns_401() -> None:
     """A 401 during the connect probe closes the pool — connect() never leaks an AsyncClient."""
-    created: list[httpx.AsyncClient] = []
-    real_async_client = httpx.AsyncClient
+    created: list[httpx2.AsyncClient] = []
+    real_async_client = httpx2.AsyncClient
 
-    def _spy(*args: object, **kwargs: object) -> httpx.AsyncClient:
+    def _spy(*args: object, **kwargs: object) -> httpx2.AsyncClient:
         instance = real_async_client(*args, **kwargs)  # type: ignore[arg-type]
         created.append(instance)
         return instance
@@ -513,7 +517,7 @@ async def test_connect_closes_pool_when_probe_returns_401() -> None:
     respx.get("https://dhis2.example/api/system/info").mock(return_value=httpx.Response(401, text="Unauthorized"))
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(httpx, "AsyncClient", _spy)
+        mp.setattr(httpx2, "AsyncClient", _spy)
         with pytest.raises(AuthenticationError):
             await client.connect()
     # close() nulls the pool reference; the created pool must be closed, not leaked.
@@ -557,7 +561,7 @@ async def test_get_raw_still_raises_after_refactor() -> None:
         return_value=httpx.Response(404, json={"message": "not found"}),
     )
     client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
-    client._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     try:
         with pytest.raises(Dhis2ApiError) as exc:
             await client.get_raw("/api/missing")

@@ -44,7 +44,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 from fastmcp import Client
 from pydantic import BaseModel, ConfigDict
 
@@ -178,7 +178,7 @@ async def _call_bridge(client: Client, arguments: dict[str, Any]) -> CliResult:
 
 async def _agent_loop(
     client: Client,
-    http: httpx.AsyncClient,
+    http: httpx2.AsyncClient,
     tools: list[dict[str, Any]],
     model: str,
     task: str,
@@ -229,7 +229,7 @@ async def _agent_loop(
     return calls, round(time.monotonic() - started, 1), "[no final answer within max steps]"
 
 
-async def _read_round(client: Client, http: httpx.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
+async def _read_round(client: Client, http: httpx2.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
     """Drive every READ_TASK and print a transcript per task."""
     for task in READ_TASKS:
         print(f"\n{'=' * 78}\nTASK: {task}\n{'=' * 78}")
@@ -237,7 +237,7 @@ async def _read_round(client: Client, http: httpx.AsyncClient, tools: list[dict[
         print(f"\nFINAL ({calls} calls, {secs}s): {answer}")
 
 
-async def _write_round(client: Client, http: httpx.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
+async def _write_round(client: Client, http: httpx2.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
     """Snapshot minPasswordLength, drive the write task, then restore the baseline."""
     before = await _call_bridge(client, {"args": ["security", "settings"]})
     baseline = json.loads(before.stdout).get("minPasswordLength") if before.exit_code == 0 else None
@@ -253,7 +253,7 @@ async def _write_round(client: Client, http: httpx.AsyncClient, tools: list[dict
         print(f"\nrestore minPasswordLength -> {baseline}: exit {restored.exit_code}")
 
 
-async def _bench_round(client: Client, http: httpx.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
+async def _bench_round(client: Client, http: httpx2.AsyncClient, tools: list[dict[str, Any]], model: str) -> None:
     """Run the timed benchmark prompts and print one line per prompt."""
     print(f"model={model}")
     for label, task in BENCH_TASKS:
@@ -268,7 +268,7 @@ async def _run(model: str, profile: str, readonly: str, round_name: str) -> int:
     async with client:
         tools = [_to_openai_tool(tool) for tool in await client.list_tools()]
         print(f"bridge tools: {[tool['function']['name'] for tool in tools]}")
-        async with httpx.AsyncClient() as http:
+        async with httpx2.AsyncClient() as http:
             if round_name == "read":
                 await _read_round(client, http, tools, model)
             elif round_name == "write":
@@ -293,12 +293,12 @@ def main() -> int:
     readonly = args.readonly if args.readonly is not None else ("0" if args.round == "write" else "1")
     try:
         return asyncio.run(_run(args.model, args.profile, readonly, args.round))
-    except httpx.HTTPStatusError as exc:
+    except httpx2.HTTPStatusError as exc:
         body = exc.response.text[:500]
         print(f"!!! LM Studio returned {exc.response.status_code}: {body}", file=sys.stderr)
         print("    A 400 often means the model id is ambiguous — run `lms ps` and unload duplicates", file=sys.stderr)
         return 1
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         print(f"!!! LM Studio request failed (is `lms server` up and the model loaded?): {exc}", file=sys.stderr)
         return 1
 

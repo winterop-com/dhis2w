@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from urllib.parse import urlsplit
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve.app import create_app
@@ -56,11 +56,11 @@ def paged_app(compiled_project: FhirProject) -> FastAPI:
 
 
 @pytest.fixture
-async def paged_client(paged_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def paged_client(paged_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the seeded facade."""
     async with paged_app.router.lifespan_context(paged_app):
-        transport = httpx.ASGITransport(app=paged_app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=paged_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
@@ -80,7 +80,7 @@ def _link(body: dict[str, object], relation: str) -> str | None:
     return None
 
 
-async def test_the_spool_listing_pages_and_states_one_total_throughout(paged_client: httpx.AsyncClient) -> None:
+async def test_the_spool_listing_pages_and_states_one_total_throughout(paged_client: httpx2.AsyncClient) -> None:
     """A walk reads every receipt once, newest first, and every page states the whole listing's total."""
     walked: list[str] = []
     totals: list[int] = []
@@ -95,7 +95,7 @@ async def test_the_spool_listing_pages_and_states_one_total_throughout(paged_cli
     assert totals == [SEEDED_RECEIPTS] * 3
 
 
-async def test_a_spool_page_links_back_to_the_one_before_it(paged_client: httpx.AsyncClient) -> None:
+async def test_a_spool_page_links_back_to_the_one_before_it(paged_client: httpx2.AsyncClient) -> None:
     """`previous` returns a client to the page it came from, which is what makes a walk reversible."""
     first = (await paged_client.get("/facade/spool?_count=3")).json()
     second = (await paged_client.get(_path_and_query(first["next_url"]))).json()
@@ -106,7 +106,7 @@ async def test_a_spool_page_links_back_to_the_one_before_it(paged_client: httpx.
     assert [row["response_id"] for row in back["responses"]] == [row["response_id"] for row in first["responses"]]
 
 
-async def test_the_spool_counts_are_the_whole_spool_rather_than_the_page(paged_client: httpx.AsyncClient) -> None:
+async def test_the_spool_counts_are_the_whole_spool_rather_than_the_page(paged_client: httpx2.AsyncClient) -> None:
     """A queue depth that changed with the page you were looking at would be no queue depth at all."""
     body = (await paged_client.get("/facade/spool?_count=2")).json()
 
@@ -120,7 +120,7 @@ async def test_the_spool_counts_are_the_whole_spool_rather_than_the_page(paged_c
     }
 
 
-async def test_a_page_this_server_did_not_mint_is_refused(paged_client: httpx.AsyncClient) -> None:
+async def test_a_page_this_server_did_not_mint_is_refused(paged_client: httpx2.AsyncClient) -> None:
     """`page` is a link to follow, not a number a client composes."""
     response = await paged_client.get("/facade/spool?page=17")
 
@@ -128,7 +128,7 @@ async def test_a_page_this_server_did_not_mint_is_refused(paged_client: httpx.As
     assert "is not a page of this listing" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_a_count_that_is_not_a_number_of_rows_is_refused(paged_client: httpx.AsyncClient) -> None:
+async def test_a_count_that_is_not_a_number_of_rows_is_refused(paged_client: httpx2.AsyncClient) -> None:
     """A malformed query is refused; an ambitious one is served the limit."""
     response = await paged_client.get("/facade/spool?_count=none")
 
@@ -136,7 +136,7 @@ async def test_a_count_that_is_not_a_number_of_rows_is_refused(paged_client: htt
     assert "not a number of rows" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_the_receipt_search_pages_over_the_same_order(paged_client: httpx.AsyncClient) -> None:
+async def test_the_receipt_search_pages_over_the_same_order(paged_client: httpx2.AsyncClient) -> None:
     """The FHIR search walks the same receipts, in the same order, by following the same kind of link."""
     walked: list[str] = []
     totals: list[int] = []
@@ -151,7 +151,7 @@ async def test_the_receipt_search_pages_over_the_same_order(paged_client: httpx.
     assert totals == [SEEDED_RECEIPTS, SEEDED_RECEIPTS]
 
 
-async def test_a_receipt_search_page_carries_the_filters_that_were_applied(paged_client: httpx.AsyncClient) -> None:
+async def test_a_receipt_search_page_carries_the_filters_that_were_applied(paged_client: httpx2.AsyncClient) -> None:
     """Following a link must not silently widen the search it came from."""
     body = (await paged_client.get(f"/QuestionnaireResponse?questionnaire={QUESTIONNAIRE_URL}&_count=3")).json()
 
@@ -164,7 +164,7 @@ async def test_a_receipt_search_page_carries_the_filters_that_were_applied(paged
 
 
 async def test_a_corrupt_file_costs_one_row_and_is_named_rather_than_failing_the_listing(
-    paged_client: httpx.AsyncClient, compiled_project: FhirProject
+    paged_client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """One unreadable byte on disk must not take the whole listing down with it - the loud part is the naming."""
     spool = ResponseSpool.at(compiled_project.project_root)
@@ -180,7 +180,7 @@ async def test_a_corrupt_file_costs_one_row_and_is_named_rather_than_failing_the
 
 
 async def test_a_corrupt_file_does_not_fail_the_receipt_search_either(
-    paged_client: httpx.AsyncClient, compiled_project: FhirProject
+    paged_client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """The FHIR search answers the receipts that are readable rather than refusing the query."""
     spool = ResponseSpool.at(compiled_project.project_root)
@@ -193,7 +193,7 @@ async def test_a_corrupt_file_does_not_fail_the_receipt_search_either(
 
 
 async def test_a_corrupt_receipt_read_by_id_answers_not_found_and_is_quarantined(
-    paged_client: httpx.AsyncClient, compiled_project: FhirProject
+    paged_client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """A file that no longer reads as a receipt is not a receipt, and is moved aside rather than served."""
     spool = ResponseSpool.at(compiled_project.project_root)

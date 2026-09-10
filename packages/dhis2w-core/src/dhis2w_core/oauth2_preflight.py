@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, Field
 
 DISCOVERY_PATH = "/.well-known/openid-configuration"
@@ -49,13 +49,13 @@ async def fetch_oidc_discovery(url: str, *, timeout: float = 10.0) -> OidcDiscov
     discovery_url = _normalise_discovery_url(url)
     base_hint = url.replace(DISCOVERY_PATH, "").rstrip("/")
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with httpx2.AsyncClient(timeout=timeout, follow_redirects=True) as client:
             response = await client.get(discovery_url)
-    except httpx.ConnectError as exc:
+    except httpx2.ConnectError as exc:
         raise OidcDiscoveryError(f"cannot reach {base_hint or url} — is DHIS2 running? ({exc})") from exc
-    except httpx.TimeoutException as exc:
+    except httpx2.TimeoutException as exc:
         raise OidcDiscoveryError(f"timed out fetching {discovery_url}") from exc
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         raise OidcDiscoveryError(f"error fetching {discovery_url}: {type(exc).__name__}: {exc}") from exc
     if response.status_code == 404:
         raise OidcDiscoveryError(
@@ -83,13 +83,13 @@ async def check_oauth2_server(base_url: str, *, timeout: float = 5.0) -> str | N
     """
     url = base_url.rstrip("/") + DISCOVERY_PATH
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with httpx2.AsyncClient(timeout=timeout, follow_redirects=True) as client:
             response = await client.get(url)
-    except httpx.ConnectError as exc:
+    except httpx2.ConnectError as exc:
         return f"cannot reach {base_url} — is the DHIS2 instance running? ({exc})"
-    except httpx.TimeoutException:
+    except httpx2.TimeoutException:
         return f"timed out probing {url} — DHIS2 may be slow or unreachable"
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         return f"error probing {url}: {type(exc).__name__}: {exc}"
     if response.status_code == 404:
         return (

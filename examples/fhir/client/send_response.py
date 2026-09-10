@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, served_facade
 
 FHIR_JSON = "application/fhir+json"
@@ -34,7 +34,7 @@ CREATED = 201
 async def main() -> None:
     """Post one filled form, then read back everything the facade said about it."""
     base_url = served_facade()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         # $generate fills the form against its own rules, so the submission below is the server's
         # own idea of a valid one. A real client fills it from what a reporter typed.
         form_id = aggregate_form_id()

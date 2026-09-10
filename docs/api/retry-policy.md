@@ -1,7 +1,7 @@
 # Retry policy
 
 `RetryPolicy` opts the client into transient-failure retries. Default-off — pass
-`retry_policy=RetryPolicy(...)` to `Dhis2Client` and the underlying httpx
+`retry_policy=RetryPolicy(...)` to `Dhis2Client` and the underlying httpx2
 transport gets wrapped with exponential backoff, jitter, and `Retry-After`
 support.
 

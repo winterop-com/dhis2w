@@ -1,7 +1,7 @@
 """User roles via the Python client.
 
 Read the user role surface without going through the CLI - everything the
-`d2w user role` commands do is one httpx call over the typed OAS models.
+`d2w user role` commands do is one httpx2 call over the typed OAS models.
 
 1. List user roles + their authority counts.
 2. Walk one role's authorities.

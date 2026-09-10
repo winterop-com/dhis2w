@@ -48,7 +48,7 @@ uv add dhis2w-client dhis2w-core  # adds TOML profile resolution + OAuth2 token 
 
 PAT, Basic, and session library users get the `Profile` model + `open_client(profile)` from `dhis2w-client` alone. Multi-profile TOML resolution (`profiles.toml` discovery, `resolve()`, `profile_from_env()` with its full precedence chain) and the OAuth2 token cache live in `dhis2w-core` — pull it when you want the CLI/MCP profile layer or when your auth is OAuth2. Calling `dhis2w_client.open_client(oauth2_profile)` raises `NotImplementedError` with the install hint.
 
-The split exists for transitive-dependency weight on PyPI, not for cycle avoidance. `dhis2w-client` keeps a minimal install (`httpx`, `pydantic`, `geojson-pydantic`) so third-party Python apps — FastAPI services, scripts, notebooks — can embed it without pulling in a CLI framework, an MCP server, SQLAlchemy for the OAuth2 token store, or bcrypt. `dhis2w-core` adds all of those because the CLI and MCP server need them. The dependency arrow is one-way: `dhis2w-core` imports from `dhis2w-client`, never the reverse. See [Decisions log](../decisions.md) for the original decision.
+The split exists for transitive-dependency weight on PyPI, not for cycle avoidance. `dhis2w-client` keeps a minimal install (`httpx2`, `pydantic`, `geojson-pydantic`) so third-party Python apps — FastAPI services, scripts, notebooks — can embed it without pulling in a CLI framework, an MCP server, SQLAlchemy for the OAuth2 token store, or bcrypt. `dhis2w-core` adds all of those because the CLI and MCP server need them. The dependency arrow is one-way: `dhis2w-core` imports from `dhis2w-client`, never the reverse. See [Decisions log](../decisions.md) for the original decision.
 
 ## Concepts: auth + profiles
 
@@ -125,7 +125,7 @@ Both paths return the same `Dhis2Client` — only the install footprint and the 
 
 What happens on `__aenter__`:
 1. Resolves the `Profile` into a concrete `AuthProvider`.
-2. Opens an `httpx.AsyncClient` connection pool.
+2. Opens an `httpx2.AsyncClient` connection pool.
 3. Calls `/api/system/info` to discover the DHIS2 version.
 4. Binds the matching generated resource accessors (`client.resources.*`).
 
@@ -134,7 +134,7 @@ What happens on `__aenter__`:
 **Canonical URL discovery.** Step 3 is preceded by one unauthenticated request to
 the profile's base URL, because some DHIS2 deployments answer on a different host
 than the one you configured (`play.dhis2.org/dev` redirects to
-`play.im.dhis2.org/dev`, and `httpx` drops the Authorization header across such a
+`play.im.dhis2.org/dev`, and `httpx2` drops the Authorization header across such a
 redirect). The client follows that chain once with no credentials and adopts the
 destination as the base URL for everything after — but only when the destination
 earns it. A same-origin destination is adopted outright. A different origin is
@@ -542,7 +542,7 @@ match response:
 is a typed parser helper over `Grid.metaData` — use it when you want the
 structured `{items, dimensions}` view; skip it when you're iterating rows.
 
-For streaming large exports to disk, reach for `client.analytics.stream_to(path, params=..., endpoint=...)` — that feeds httpx's chunked transfer straight to a file without buffering the full body.
+For streaming large exports to disk, reach for `client.analytics.stream_to(path, params=..., endpoint=...)` — that feeds httpx2's chunked transfer straight to a file without buffering the full body.
 
 For resource-table regeneration after a data push, the typed service wrappers avoid the raw-call boilerplate:
 
@@ -751,7 +751,7 @@ async with Dhis2Client(base_url, auth=auth, retry_policy=policy) as client:
 
 Retry scope:
 
-- **Connection-level errors** (`httpx.ConnectError`, `ReadTimeout`, `PoolTimeout`, `RemoteProtocolError`) always retry.
+- **Connection-level errors** (`httpx2.ConnectError`, `ReadTimeout`, `PoolTimeout`, `RemoteProtocolError`) always retry.
 - **Status codes** listed in `policy.retry_statuses` (default: 429, 502, 503, 504) retry.
 - **Non-idempotent methods** (POST, PATCH) are exempt by default — double-writes risk DHIS2-side duplicates. Opt in for specific endpoints where you know it's safe (analytics-refresh kick-offs, for instance):
 
@@ -767,7 +767,7 @@ See `examples/client/retry_policy.py` for a runnable demo across default / aggre
 
 ## Concurrency
 
-The client's `httpx.AsyncClient` is shared across concurrent calls on the same `Dhis2Client` instance; safe to use with `asyncio.gather`.
+The client's `httpx2.AsyncClient` is shared across concurrent calls on the same `Dhis2Client` instance; safe to use with `asyncio.gather`.
 
 ```python
 import asyncio
@@ -784,7 +784,7 @@ async with open_client(profile_from_env()) as client:
     await asyncio.gather(*(client.resources.data_elements.update(de) for de in elements))
 ```
 
-Connection pool defaults are httpx's defaults (100 max connections, 20 keepalive).
+Connection pool defaults are httpx2's defaults (100 max connections, 20 keepalive).
 
 ## Raw escape hatches
 

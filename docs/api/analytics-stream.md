@@ -28,7 +28,7 @@ async with open_client(profile_from_env()) as client:
     ):
         ...
 
-    # `stream_to(Path, ...)` writes directly; httpx never buffers the body.
+    # `stream_to(Path, ...)` writes directly; httpx2 never buffers the body.
     bytes_written = await client.analytics.stream_to(
         Path("./monthly-anc.csv"),
         dx="fbfJHSPpUQD",

@@ -8,6 +8,7 @@ from types import ModuleType
 from unittest.mock import MagicMock
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.security_core import (
@@ -226,7 +227,7 @@ async def test_run_version_flags_eol_from_live_feed(tree: str) -> None:
 async def test_run_version_degrades_when_feed_unavailable(tree: str) -> None:
     """A feed outage degrades to a note while the static advisory floor still fires."""
     audit = _audit_module(tree)
-    respx.get(RELEASES_FEED_URL).mock(side_effect=httpx.ConnectError("feed down"))
+    respx.get(RELEASES_FEED_URL).mock(side_effect=httpx2.ConnectError("feed down"))
     client = MagicMock()
     client.raw_version = "2.41.5"
 

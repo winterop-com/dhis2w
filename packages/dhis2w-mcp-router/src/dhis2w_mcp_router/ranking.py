@@ -12,7 +12,7 @@ from __future__ import annotations
 import math
 from typing import Protocol, runtime_checkable
 
-import httpx
+import httpx2
 
 from dhis2w_mcp_router.core import ToolEntry
 
@@ -107,7 +107,7 @@ class EmbeddingRanker:
 
     async def _embed(self, inputs: list[str]) -> list[list[float]]:
         """POST `inputs` to the embeddings endpoint and return their vectors in input order."""
-        async with httpx.AsyncClient() as http:
+        async with httpx2.AsyncClient() as http:
             response = await http.post(self._url, json={"model": self._model, "input": inputs}, timeout=120.0)
         response.raise_for_status()
         data = sorted(response.json()["data"], key=lambda item: item.get("index", 0))

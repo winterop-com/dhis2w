@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.errors import Dhis2ApiError, Dhis2ClientError
@@ -110,11 +111,11 @@ def _settings(project: FhirProject, posture: ServeAuth, scope: ServeAuthScope) -
 
 
 @asynccontextmanager
-async def _client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
+async def _client(app: FastAPI) -> AsyncGenerator[httpx2.AsyncClient]:
     """An in-process client over one facade, with its lifespan run around the body."""
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
@@ -368,7 +369,7 @@ async def test_the_all_scope_closes_everything_but_the_conformance_document(
     """`/metadata` stays open so a client can read the posture it is expected to meet."""
     app = create_app(_settings(serving_project, ServeAuth.TOKEN, ServeAuthScope.ALL))
 
-    answered: httpx.Response | None = None
+    answered: httpx2.Response | None = None
     async with _client(app) as http:
         answered = await http.get(path)
 
@@ -417,8 +418,8 @@ async def test_the_write_scope_guards_the_create_and_nothing_else_that_posts(
     """`$generate` and `/facade/evaluate` are POSTs that write nothing, so a write scope leaves both open."""
     app = create_app(_settings(serving_project, ServeAuth.TOKEN, ServeAuthScope.WRITE))
 
-    generated: httpx.Response | None = None
-    evaluated: httpx.Response | None = None
+    generated: httpx2.Response | None = None
+    evaluated: httpx2.Response | None = None
     async with _client(app) as http:
         generated = await http.post("/Questionnaire/d2-pr-anc-visit-q/$generate")
         evaluated = await http.post(
@@ -510,7 +511,7 @@ async def test_credentials_the_instance_refuses_are_refused_here() -> None:
 async def test_an_unreachable_instance_refuses_rather_than_serves() -> None:
     """This facade cannot say who is calling, and serving anyway would answer the question by giving up."""
     with respx.mock(base_url=INSTANCE_URL) as router:
-        router.get("/api/me").mock(side_effect=httpx.ConnectError("no route"))
+        router.get("/api/me").mock(side_effect=httpx2.ConnectError("no route"))
         with pytest.raises(auth_module.UnauthenticatedError):
             await validate_with_dhis2(INSTANCE_URL, CALLER_BASIC)
 
@@ -651,7 +652,7 @@ async def test_a_stale_credential_meets_that_challenge_on_the_capture_itself(
 
     with respx.mock(base_url=INSTANCE_URL) as router:
         router.get("/api/me").mock(return_value=httpx.Response(401))
-        refused: httpx.Response | None = None
+        refused: httpx2.Response | None = None
         async with _client(app) as http:
             refused = await http.post(
                 "/QuestionnaireResponse",
@@ -732,7 +733,7 @@ async def test_credentials_the_instance_refuses_are_refused_at_this_address_too(
 
     with respx.mock(base_url=INSTANCE_URL) as router:
         router.get("/api/me").mock(return_value=httpx.Response(401))
-        refused: httpx.Response | None = None
+        refused: httpx2.Response | None = None
         async with _client(app) as http:
             refused = await http.get(WHOAMI_ADDRESS, headers={"Authorization": CALLER_BASIC})
 
@@ -901,7 +902,7 @@ async def test_a_verdict_about_the_instance_stays_the_refusal_the_register_alrea
 async def test_an_unreachable_instance_is_a_failure_to_read_rather_than_an_empty_answer() -> None:
     """The routes answer 502 to this, which is what "this server could not reach DHIS2" means."""
     with respx.mock(base_url=INSTANCE_URL) as router:
-        router.get(TRACKER_PATH).mock(side_effect=httpx.ConnectError("no route"))
+        router.get(TRACKER_PATH).mock(side_effect=httpx2.ConnectError("no route"))
         async with _reader() as reader:
             with pytest.raises(Dhis2ClientError):
                 await reader.get_raw(TRACKER_PATH)

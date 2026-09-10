@@ -29,6 +29,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
@@ -107,7 +108,7 @@ def many_types_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Profi
 @pytest.fixture
 async def many_types_client(
     many_types_project: FhirProject, many_types_profile: Profile
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the six-type guide, holding a DHIS2 client against the mocked host."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
@@ -117,8 +118,8 @@ async def many_types_client(
             open_client(many_types_profile) as dhis2,
         ):
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
@@ -265,7 +266,7 @@ def test_the_metadata_declares_one_resource_per_register_naming_every_type_behin
 
 
 async def test_a_shared_resource_lists_both_of_its_types_in_one_walk(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """`GET /Device` is the fridges and the vehicles, walked in the order the forms register them."""
     _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
@@ -283,7 +284,7 @@ async def test_a_shared_resource_lists_both_of_its_types_in_one_walk(
 
 
 async def test_a_tag_narrows_a_shared_resource_to_one_of_its_types(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """`_tag` asks the union about one half of it, and the other half is never asked about."""
     fridges = _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
@@ -297,7 +298,7 @@ async def test_a_tag_narrows_a_shared_resource_to_one_of_its_types(
     assert not vehicles.called
 
 
-async def test_a_bare_tag_names_the_type_code_alone(many_types_client: httpx.AsyncClient) -> None:
+async def test_a_bare_tag_names_the_type_code_alone(many_types_client: httpx2.AsyncClient) -> None:
     """One tag rides these resources, so a code with no system has no ambiguity to fall into."""
     _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
     vehicles = _route(VEHICLE_TYPE, _page(_entity("TeVehicle01", VEHICLE_TYPE), total=1))
@@ -308,7 +309,7 @@ async def test_a_bare_tag_names_the_type_code_alone(many_types_client: httpx.Asy
     assert not vehicles.called
 
 
-async def test_two_tags_widen_the_way_two_identifiers_do(many_types_client: httpx.AsyncClient) -> None:
+async def test_two_tags_widen_the_way_two_identifiers_do(many_types_client: httpx2.AsyncClient) -> None:
     """Values of one token parameter are alternatives, so naming both types is naming the whole union."""
     _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
     _route(VEHICLE_TYPE, _page(_entity("TeVehicle01", VEHICLE_TYPE), total=1))
@@ -319,7 +320,7 @@ async def test_two_tags_widen_the_way_two_identifiers_do(many_types_client: http
 
 
 async def test_a_tag_rides_every_link_of_the_listing_it_narrowed(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """A `next` that dropped the tag would walk out of the type the client asked about."""
     _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), page_size=1, total=2))
@@ -333,7 +334,7 @@ async def test_a_tag_rides_every_link_of_the_listing_it_narrowed(
 
 
 async def test_a_tag_naming_a_type_this_resource_does_not_serve_matches_nothing(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """An unsatisfied token is an empty searchset, and nothing upstream is asked to confirm it."""
     fridges = _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
@@ -348,7 +349,7 @@ async def test_a_tag_naming_a_type_this_resource_does_not_serve_matches_nothing(
 
 
 async def test_a_tag_under_a_system_this_guide_publishes_nothing_for_matches_nothing(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """A token naming another vocabulary is a question about something else, not about these types."""
     fridges = _route(FRIDGE_TYPE, _page(_entity("TeFridge001", FRIDGE_TYPE), total=1))
@@ -360,7 +361,7 @@ async def test_a_tag_under_a_system_this_guide_publishes_nothing_for_matches_not
 
 
 async def test_an_identifier_search_over_a_shared_resource_tries_every_type_it_serves(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """A caller holding an asset tag does not have to know whether it is on a fridge or a vehicle."""
     respx.get(f"{_HOST}/api/tracker/trackedEntities/FRIDGE-0001").mock(return_value=httpx.Response(404))
@@ -378,7 +379,7 @@ async def test_an_identifier_search_over_a_shared_resource_tries_every_type_it_s
 
 
 async def test_an_identifier_search_narrowed_by_a_tag_asks_one_type_only(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """`_tag` narrows a search as it narrows a listing: one upstream query rather than two."""
     respx.get(f"{_HOST}/api/tracker/trackedEntities/FRIDGE-0001").mock(return_value=httpx.Response(404))
@@ -398,7 +399,7 @@ async def test_an_identifier_search_narrowed_by_a_tag_asks_one_type_only(
 
 
 async def test_the_register_size_counts_the_union_and_a_tag_counts_one_type(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """`_count=0` asks how large the register is, and beside a `_tag` how large one type's part of it is."""
     _route(FRIDGE_TYPE, _page(total=7))
@@ -413,7 +414,7 @@ async def test_the_register_size_counts_the_union_and_a_tag_counts_one_type(
 
 
 async def test_a_read_answers_only_under_the_resource_the_entity_type_is_served_as(
-    many_types_client: httpx.AsyncClient,
+    many_types_client: httpx2.AsyncClient,
 ) -> None:
     """A fridge read as a `Group` is not found: a resource never hands back a type it does not serve."""
     respx.get(f"{_HOST}/api/tracker/trackedEntities/TeFridge001").mock(
@@ -432,7 +433,7 @@ async def test_a_read_answers_only_under_the_resource_the_entity_type_is_served_
     "published", (PERSON_TYPE, SPECIMEN_TYPE, HERD_TYPE, WATER_POINT_TYPE), ids=lambda published: published.uid
 )
 async def test_every_resource_the_map_names_answers_its_own_listing(
-    many_types_client: httpx.AsyncClient, published: FixtureTrackedEntityType
+    many_types_client: httpx2.AsyncClient, published: FixtureTrackedEntityType
 ) -> None:
     """Five resources are five register addresses, each one paged by the same machinery."""
     _route(published, _page(_entity("TeAaaaaaaa1", published), total=1))

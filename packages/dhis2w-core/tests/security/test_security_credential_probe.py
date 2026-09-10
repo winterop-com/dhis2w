@@ -17,6 +17,7 @@ from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_cli.main import build_app
@@ -146,7 +147,7 @@ async def test_probe_flags_critical_when_default_login_succeeds(tree: str) -> No
 @respx.mock
 async def test_probe_degrades_on_transport_error(tree: str) -> None:
     """An unreachable host degrades the probe instead of crashing the audit."""
-    respx.get(f"{BASE}/api/me").mock(side_effect=httpx.ConnectError("unreachable"))
+    respx.get(f"{BASE}/api/me").mock(side_effect=httpx2.ConnectError("unreachable"))
     audit = _audit_module(tree)
 
     result = await audit._run_credential_probe(_operator_client(lockout=False), _quiet_console())

@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client import BasicAuth, Dhis2Client
 from dhis2w_fhir.config import FhirProject, ServeAuth
@@ -163,8 +163,8 @@ async def test_attaching_a_runtime_is_what_the_routers_need(settings: ServeSetti
 
     async with open_serve_runtime(settings) as runtime, _lifespan_context(create_app(settings)) as served:
         attach_serve_runtime(embedded, runtime)
-        transport = httpx.ASGITransport(app=embedded)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=embedded)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             answered = await http.get("/metadata")
 
         assert answered.status_code == 200

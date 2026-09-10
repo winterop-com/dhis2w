@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import base64
 
-import httpx
+import httpx2
 from _fixture import FixtureError, served_facade
 from _runner import run_example
 from dhis2w_client import Profile
@@ -71,7 +71,7 @@ async def main() -> None:
     """Read the register with no credential, then with your own, against a `dhis2`-posture facade."""
     base_url = served_facade(auth="dhis2")
     authorization = caller_authorization(resolve_profile())
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=60.0) as client:
         # 1. The conformance document states the posture, in every posture. Nothing is inferred.
         capability = (await client.get("/metadata")).raise_for_status().json()
         security = capability["rest"][0]["security"]

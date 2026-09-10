@@ -33,7 +33,7 @@ toolchain" - if you are integrating against a guide.
 | [`fhir/client/build_aggregate_response.py`](fhir/client/build_aggregate_response.py) | The minimal aggregate capture - a data set's numbers for one period at one organisation unit |
 | [`fhir/client/build_registration_response.py`](fhir/client/build_registration_response.py) | Registering a person and enrolling them, minting both DHIS2 UIDs client-side |
 | [`fhir/client/generate_ig.py`](fhir/client/generate_ig.py) | Generate a whole IG from Python and read the `GenerateFullReport` back as a model |
-| [`fhir/client/consume_facade.py`](fhir/client/consume_facade.py) | Plain httpx against a running facade - discover, fill, submit, read the receipt |
+| [`fhir/client/consume_facade.py`](fhir/client/consume_facade.py) | Plain httpx2 against a running facade - discover, fill, submit, read the receipt |
 | [`fhir/client/forward_spool.py`](fhir/client/forward_spool.py) | Dry-run a drain from Python and read the `ForwardReport` back as a model |
 
 `dhis2w-fhir` and `dhis2w-fhir-serve` are not per-version packages - the client detects the DHIS2

@@ -13,7 +13,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-import httpx
+import httpx2
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError
 
 # The v41 generated OAS tree carries no import-summary, import-conflict, or import-count module, so
@@ -6100,7 +6100,7 @@ async def _post_translations(
         else:
             try:
                 imported = await _post_result(client, result, dry_run=dry_run)
-            except (Dhis2ApiError, AuthenticationError, httpx.HTTPError) as error:
+            except (Dhis2ApiError, AuthenticationError, httpx2.HTTPError) as error:
                 return _PostedPayloads(
                     imports=imports,
                     filed=filed,
@@ -6330,7 +6330,7 @@ def _non_verdict_stop(entry: SpooledResponse, imported: ForwardImportOutcome) ->
     )
 
 
-def _forward_stop(entry: SpooledResponse, error: Dhis2ApiError | AuthenticationError | httpx.HTTPError) -> ForwardStop:
+def _forward_stop(entry: SpooledResponse, error: Dhis2ApiError | AuthenticationError | httpx2.HTTPError) -> ForwardStop:
     """Name what stopped one drain, in the terms the operator has to act on."""
     if isinstance(error, AuthenticationError):
         return ForwardStop(
@@ -6503,7 +6503,7 @@ async def _completeness_answer(client: Dhis2Client, claim: CompleteDataSetRegist
     """
     try:
         return await _post_completeness(client, claim)
-    except (Dhis2ApiError, AuthenticationError, httpx.HTTPError) as error:
+    except (Dhis2ApiError, AuthenticationError, httpx2.HTTPError) as error:
         return _completeness_outcome(
             ForwardCompletenessKind.PENDING,
             claim,

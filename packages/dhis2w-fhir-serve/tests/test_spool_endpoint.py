@@ -15,7 +15,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.service import ForwardImportIssue, ForwardImportOutcome, WithdrawalRecord
@@ -58,15 +58,15 @@ def bare_app(compiled_project: FhirProject) -> FastAPI:
 
 
 @pytest.fixture
-async def bare_client(bare_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def bare_client(bare_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over a facade whose spool is empty."""
     async with bare_app.router.lifespan_context(bare_app):
-        transport = httpx.ASGITransport(app=bare_app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=bare_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
-async def test_spool_lists_every_receipt_newest_first(client: httpx.AsyncClient) -> None:
+async def test_spool_lists_every_receipt_newest_first(client: httpx2.AsyncClient) -> None:
     """The listing is the whole spool in received order, as plain JSON rather than a Bundle."""
     response = await client.get("/facade/spool")
 
@@ -78,7 +78,7 @@ async def test_spool_lists_every_receipt_newest_first(client: httpx.AsyncClient)
     assert body["counts"] == {"received": 3, "forwarded": 0, "rejected": 0, "withdrawn": 0, "malformed": 0}
 
 
-async def test_the_listing_states_the_form_the_receipt_answered(client: httpx.AsyncClient) -> None:
+async def test_the_listing_states_the_form_the_receipt_answered(client: httpx2.AsyncClient) -> None:
     """A row carries the canonical and the id it ends in, so a UI can join it to the form's title."""
     body = (await client.get("/facade/spool")).json()
 
@@ -89,7 +89,7 @@ async def test_the_listing_states_the_form_the_receipt_answered(client: httpx.As
 
 
 async def test_the_listing_re_reads_the_directory_on_every_request(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """A drain that happens while the server is up shows up on the next request, with no restart.
 
@@ -111,7 +111,7 @@ async def test_the_listing_re_reads_the_directory_on_every_request(
     }
 
 
-async def test_a_rejection_carries_what_dhis2_said(client: httpx.AsyncClient, compiled_project: FhirProject) -> None:
+async def test_a_rejection_carries_what_dhis2_said(client: httpx2.AsyncClient, compiled_project: FhirProject) -> None:
     """The sidecar report is rolled up onto the row: the status, the counts, and every issue named."""
     drain(compiled_project, "receipt-middle", ResponseLifecycle.REJECTED)
     write_report(
@@ -139,7 +139,7 @@ async def test_a_rejection_carries_what_dhis2_said(client: httpx.AsyncClient, co
     assert row["rejection"]["issues"][0]["subject"] == "ImspTQPwCqd"
 
 
-async def test_a_received_receipt_carries_no_rejection(client: httpx.AsyncClient) -> None:
+async def test_a_received_receipt_carries_no_rejection(client: httpx2.AsyncClient) -> None:
     """Only a rejection has a report; every other row states none rather than an empty one."""
     body = (await client.get("/facade/spool")).json()
 
@@ -154,7 +154,7 @@ def write_refusal(project: FhirProject, response_id: str, record: ForwardRefusal
     )
 
 
-async def test_a_translator_refused_receipt_says_so(client: httpx.AsyncClient, compiled_project: FhirProject) -> None:
+async def test_a_translator_refused_receipt_says_so(client: httpx2.AsyncClient, compiled_project: FhirProject) -> None:
     """A refused-but-queued row no longer reads like one no drain has touched."""
     write_refusal(
         compiled_project,
@@ -179,7 +179,7 @@ async def test_a_translator_refused_receipt_says_so(client: httpx.AsyncClient, c
     assert all(entry["refusal"] is None for entry in body["responses"] if entry["response_id"] != "receipt-newest")
 
 
-async def test_a_receipt_no_drain_has_refused_states_no_refusal(client: httpx.AsyncClient) -> None:
+async def test_a_receipt_no_drain_has_refused_states_no_refusal(client: httpx2.AsyncClient) -> None:
     """Nothing beside the receipt means nothing stated - absence stays distinguishable from refusal."""
     body = (await client.get("/facade/spool")).json()
 
@@ -196,7 +196,7 @@ def write_withdrawal(project: FhirProject, response_id: str, record: WithdrawalR
 
 
 async def test_a_withdrawn_receipt_is_counted_in_the_fourth_state(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """`d2w fhir withdraw` files a receipt under `withdrawn/`, and the listing names that state."""
     drain(compiled_project, "receipt-oldest", ResponseLifecycle.WITHDRAWN)
@@ -210,7 +210,7 @@ async def test_a_withdrawn_receipt_is_counted_in_the_fourth_state(
 
 
 async def test_a_withdrawn_row_carries_what_dhis2_answered_the_delete(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """The record beside the receipt is rolled up onto the row: the event, when, and what the instance keeps."""
     drain(compiled_project, "receipt-oldest", ResponseLifecycle.WITHDRAWN)
@@ -239,7 +239,7 @@ async def test_a_withdrawn_row_carries_what_dhis2_answered_the_delete(
 
 
 async def test_a_withdrawn_receipt_with_no_record_is_still_listed(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """The state is the directory, so a receipt whose record is missing still reads as withdrawn."""
     drain(compiled_project, "receipt-oldest", ResponseLifecycle.WITHDRAWN)
@@ -253,7 +253,7 @@ async def test_a_withdrawn_receipt_with_no_record_is_still_listed(
 
 
 async def test_a_withdrawn_receipt_still_reads_back_as_fhir(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """The receipt is what a client was handed at capture, and a retraction from DHIS2 does not expire it."""
     drain(compiled_project, "receipt-oldest", ResponseLifecycle.WITHDRAWN)
@@ -265,7 +265,7 @@ async def test_a_withdrawn_receipt_still_reads_back_as_fhir(
 
 
 async def test_a_rejection_with_an_unreadable_report_is_still_listed(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """A corrupt diagnostic is not a lost receipt: the row still says rejected, and says nothing more."""
     drain(compiled_project, "receipt-middle", ResponseLifecycle.REJECTED)
@@ -279,7 +279,7 @@ async def test_a_rejection_with_an_unreadable_report_is_still_listed(
     assert row["rejection"] is None
 
 
-async def test_an_empty_spool_lists_nothing(bare_client: httpx.AsyncClient) -> None:
+async def test_an_empty_spool_lists_nothing(bare_client: httpx2.AsyncClient) -> None:
     """A project nothing has been captured into answers an empty listing, not a refusal."""
     body = (await bare_client.get("/facade/spool")).json()
 
@@ -294,7 +294,7 @@ async def test_an_empty_spool_lists_nothing(bare_client: httpx.AsyncClient) -> N
     }
 
 
-async def test_the_read_catch_all_does_not_claim_the_listing(client: httpx.AsyncClient) -> None:
+async def test_the_read_catch_all_does_not_claim_the_listing(client: httpx2.AsyncClient) -> None:
     """`/facade/spool` is a fixed path mounted ahead of `/{resource_type}`, which would refuse it as a type."""
     response = await client.get("/facade/spool")
 
@@ -302,7 +302,7 @@ async def test_the_read_catch_all_does_not_claim_the_listing(client: httpx.Async
 
 
 async def test_a_forwarded_receipt_still_reads_back_as_fhir(
-    client: httpx.AsyncClient, compiled_project: FhirProject
+    client: httpx2.AsyncClient, compiled_project: FhirProject
 ) -> None:
     """Draining a receipt renames its file; the id a client was handed at capture time keeps resolving."""
     drain(compiled_project, "receipt-oldest", ResponseLifecycle.FORWARDED)
@@ -316,7 +316,7 @@ async def test_a_forwarded_receipt_still_reads_back_as_fhir(
 
 
 async def test_the_capture_context_is_derived_from_the_stored_resource(
-    capture_client: httpx.AsyncClient, tracker_response: dict[str, Any]
+    capture_client: httpx2.AsyncClient, tracker_response: dict[str, Any]
 ) -> None:
     """A tracker row states where it happened, whose it is, and how many answers it carries.
 
@@ -344,7 +344,7 @@ async def test_the_capture_context_is_derived_from_the_stored_resource(
 
 
 async def test_an_aggregate_row_states_its_reporting_period(
-    capture_client: httpx.AsyncClient, aggregate_response: dict[str, Any]
+    capture_client: httpx2.AsyncClient, aggregate_response: dict[str, Any]
 ) -> None:
     """The ISO period and its type come off the D2Period extension, which is how an aggregate row is filed."""
     posted = await capture_client.post(

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-import httpx
+import httpx2
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError, Dhis2ClientError
 from dhis2w_client.generated.v43.oas import LoginConfigResponse, Route
 from dhis2w_client.v43 import Dhis2Client
@@ -142,7 +142,7 @@ async def _run_version(client: Dhis2Client) -> CheckResult:
     feed: ReleaseFeed | None
     try:
         feed = await fetch_release_feed()
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         feed = None
         note = f"release feed unavailable ({exc}); EOL and upgrade checks limited to the static advisory floor"
     return _ok("version", evaluate_version(parsed, feed), note=note)
@@ -160,7 +160,7 @@ async def _run_transport(client: Dhis2Client) -> CheckResult:
     scheme = urlsplit(client.base_url).scheme or "http"
     try:
         response = await client.get_response("/api/system/info", extra_headers={"Origin": CORS_PROBE_ORIGIN})
-    except (Dhis2ApiError, httpx.HTTPError) as exc:
+    except (Dhis2ApiError, httpx2.HTTPError) as exc:
         return CheckResult(check="transport", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     headers = TransportHeaders(
         base_url=client.base_url,
@@ -185,7 +185,7 @@ async def _run_settings(client: Dhis2Client) -> CheckResult:
     label = label_for("settings")
     try:
         settings = await client.get("/api/systemSettings", SecuritySettings)
-    except (Dhis2ApiError, httpx.HTTPError) as exc:
+    except (Dhis2ApiError, httpx2.HTTPError) as exc:
         return CheckResult(check="settings", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     cors = await _fetch_cors_whitelist(client)
     note = None if cors is not None else "CORS whitelist unreadable; wildcard-origin verdict skipped"
@@ -196,7 +196,7 @@ async def _fetch_cors_whitelist(client: Dhis2Client) -> CorsWhitelist | None:
     """Read `/api/configuration/corsWhitelist` into a CorsWhitelist, or None when unreadable."""
     try:
         raw = await client.get_raw("/api/configuration/corsWhitelist")
-    except (Dhis2ApiError, httpx.HTTPError):
+    except (Dhis2ApiError, httpx2.HTTPError):
         return None
     payload = raw.get("data", raw)
     if not isinstance(payload, list):
@@ -209,7 +209,7 @@ async def _run_authorities(client: Dhis2Client) -> CheckResult:
     label = label_for("authorities")
     try:
         raw = await client.get_raw("/api/me/authorization")
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="authorities", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     payload = raw.get("data")
     if not isinstance(payload, list):
@@ -230,7 +230,7 @@ async def _run_roles(client: Dhis2Client) -> CheckResult:
         raw = await client.get_raw(
             "/api/userRoles", params={"fields": "id,name,authorities,users~size", "paging": "false"}
         )
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="roles", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     items = raw.get("userRoles")
     if not isinstance(items, list):
@@ -315,7 +315,7 @@ async def _fetch_two_factor_summary(client: Dhis2Client) -> tuple[TwoFactorSumma
     """Read the superuser-only 2FA summary; degrade with a note when absent (404) or forbidden (403)."""
     try:
         raw = await client.get_raw("/api/users/twoFactor/summary")
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return None, f"2FA audit endpoint unavailable ({exc}); superuser-2FA coverage not checked"
     privileged = raw.get("privileged")
     privileged = privileged if isinstance(privileged, dict) else {}
@@ -334,7 +334,7 @@ async def _fetch_disabled_2fa_ids(client: Dhis2Client) -> set[str] | None:
     """Read the per-user list of accounts with 2FA disabled (ids only); None on error."""
     try:
         raw = await client.get_raw("/api/users/twoFactor", params={"status": "DISABLED", "paging": "false"})
-    except (Dhis2ClientError, httpx.HTTPError):
+    except (Dhis2ClientError, httpx2.HTTPError):
         return None
     items = raw.get("users")
     if not isinstance(items, list):
@@ -350,7 +350,7 @@ async def _run_hygiene(
     try:
         roles_raw = await client.get_raw("/api/userRoles", params={"fields": "id,authorities", "paging": "false"})
         users_raw = await client.get_raw("/api/users", params={"fields": _wire.USER_FIELDS, "paging": "false"})
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="hygiene", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     user_items = users_raw.get("users")
     if not isinstance(user_items, list):
@@ -384,7 +384,7 @@ async def _custom_code_flags(client: Dhis2Client) -> tuple[bool, bool]:
     """Read keyCustomJs / keyCustomCss; True for each when set to a non-empty value."""
     try:
         raw = await client.get_raw("/api/systemSettings", params={"key": ["keyCustomJs", "keyCustomCss"]})
-    except (Dhis2ClientError, httpx.HTTPError):
+    except (Dhis2ClientError, httpx2.HTTPError):
         return False, False
     custom_js = raw.get("keyCustomJs")
     custom_css = raw.get("keyCustomCss")
@@ -399,7 +399,7 @@ async def _run_apps(client: Dhis2Client) -> CheckResult:
     label = label_for("apps")
     try:
         installed_apps = await client.apps.list_apps()
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="apps", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     installed = [
         InstalledApp(
@@ -415,7 +415,7 @@ async def _run_apps(client: Dhis2Client) -> CheckResult:
     note: str | None = None
     try:
         catalog = await client.apps.hub_list()
-    except (Dhis2ApiError, httpx.HTTPError) as exc:
+    except (Dhis2ApiError, httpx2.HTTPError) as exc:
         hub = None
         note = f"App Hub unreachable ({exc}); update-available checks skipped"
     else:
@@ -438,7 +438,7 @@ async def _probe_anonymous(base_url: str) -> list[AnonymousResult]:
         for target in ANONYMOUS_PROBE_TARGETS:
             try:
                 response = await http.get(f"{base_url}{target.path}", headers=headers)
-            except httpx.HTTPError:
+            except httpx2.HTTPError:
                 results.append(AnonymousResult(path=target.path))
             else:
                 results.append(
@@ -455,7 +455,7 @@ async def _self_registration_role(client: Dhis2Client) -> str | None:
     """Return the self-registration role name when self-registration is enabled, else None."""
     try:
         raw = await client.get_raw("/api/configuration/selfRegistrationRole")
-    except (Dhis2ClientError, httpx.HTTPError):
+    except (Dhis2ClientError, httpx2.HTTPError):
         return None
     name = raw.get("name") or raw.get("displayName") or raw.get("id")
     return name if isinstance(name, str) else None
@@ -469,7 +469,7 @@ async def _run_guest(client: Dhis2Client) -> CheckResult:
     note: str | None = None
     try:
         settings = await client.get("/api/systemSettings", SecuritySettings)
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         note = f"system settings unavailable ({exc}); account-recovery state not checked"
     else:
         account_recovery = settings.keyAccountRecovery is True
@@ -509,7 +509,7 @@ async def _run_routes(client: Dhis2Client) -> CheckResult:
     label = label_for("routes")
     try:
         raw = await client.get_raw("/api/routes", params={"fields": _ROUTE_FIELDS, "paging": "false"})
-    except (Dhis2ApiError, httpx.HTTPError) as exc:
+    except (Dhis2ApiError, httpx2.HTTPError) as exc:
         return CheckResult(check="routes", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     raw_routes = raw.get("routes")
     if not isinstance(raw_routes, list):
@@ -571,7 +571,7 @@ async def _account_is_superuser(client: Dhis2Client) -> bool:
     """
     try:
         raw = await client.get_raw("/api/me/authorization")
-    except (Dhis2ApiError, httpx.HTTPError):
+    except (Dhis2ApiError, httpx2.HTTPError):
         return False
     payload = raw.get("data")
     if not isinstance(payload, list):
@@ -591,7 +591,7 @@ async def _run_tokens(client: Dhis2Client) -> CheckResult:
     superuser = await _account_is_superuser(client)
     try:
         raw = await client.get_raw("/api/apiToken", params={"fields": _TOKEN_FIELDS, "paging": "false"})
-    except (Dhis2ApiError, httpx.HTTPError) as exc:
+    except (Dhis2ApiError, httpx2.HTTPError) as exc:
         return CheckResult(check="tokens", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     records = raw.get("apiToken")
     if not isinstance(records, list):
@@ -613,7 +613,7 @@ async def _run_auth_methods(client: Dhis2Client) -> CheckResult:
     label = label_for("auth-methods")
     try:
         login_raw = await client.get_raw("/api/loginConfig")
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="auth-methods", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     try:
         login_config = LoginConfigResponse.model_validate(login_raw)
@@ -633,7 +633,7 @@ async def _run_auth_methods(client: Dhis2Client) -> CheckResult:
     status = CheckStatus.OK
     try:
         clients_raw = await client.get_raw("/api/oAuth2Clients", params={"fields": _wire.OAUTH2_CLIENT_FIELDS})
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         clients = None
         status = CheckStatus.DEGRADED
         if isinstance(exc, AuthenticationError) or getattr(exc, "status_code", None) in (401, 403):
@@ -905,7 +905,7 @@ async def _run_sharing(
                 capped_at = focus.name
                 break
         users, roles, groups = await _fetch_sharing_principals(client)
-    except (Dhis2ClientError, httpx.HTTPError) as exc:
+    except (Dhis2ClientError, httpx2.HTTPError) as exc:
         return CheckResult(check="sharing", label=label, status=CheckStatus.DEGRADED, note=f"HTTP error: {exc}")
     truncation_note = (
         f"Scanning stopped at the --max-objects budget ({max_objects}); objects from '{capped_at}' "
@@ -939,7 +939,7 @@ async def _lockout_active(client: Dhis2Client) -> bool:
     """Read keyLockMultipleFailedLogins so the probe can warn before it tries a wrong password."""
     try:
         settings = await client.get("/api/systemSettings", SecuritySettings)
-    except (Dhis2ClientError, httpx.HTTPError):
+    except (Dhis2ClientError, httpx2.HTTPError):
         return False
     return settings.keyLockMultipleFailedLogins is True
 
@@ -970,7 +970,7 @@ async def _run_credential_probe(client: Dhis2Client, console: Console) -> CheckR
         )
     try:
         result = await _probe_default_credentials(client.base_url, lockout_active=lockout_active)
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         return CheckResult(
             check="credential-probe",
             label=label,

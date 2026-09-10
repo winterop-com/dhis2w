@@ -22,6 +22,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client
@@ -368,7 +369,7 @@ async def test_run_auth_methods_oauth2_transport_error_degrades_but_keeps_oidc(t
     """A transport error on /api/oAuth2Clients degrades with a note but keeps the OIDC findings."""
     client = _mock_client(
         login=_login_payload([{"id": "azure", "loginText": "Azure AD"}]),
-        clients=httpx.ConnectError("boom"),
+        clients=httpx2.ConnectError("boom"),
     )
 
     result = await _audit_module(tree)._run_auth_methods(client)
@@ -470,7 +471,7 @@ async def test_run_auth_methods_oauth2_transport_error_note_is_generic(tree: str
     """A transport error (not 401/403) on /api/oAuth2Clients produces a generic note without F_OAUTH2_CLIENT_MANAGE."""
     client = _mock_client(
         login=_login_payload([]),
-        clients=httpx.ConnectTimeout("timed out"),
+        clients=httpx2.ConnectTimeout("timed out"),
     )
 
     result = await _audit_module(tree)._run_auth_methods(client)

@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve.app import create_app
@@ -55,11 +55,11 @@ def viewer_app(capture_project: FhirProject) -> FastAPI:
 
 
 @pytest.fixture
-async def viewer_client(viewer_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def viewer_client(viewer_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the viewer-posture facade, with the lifespan run around the test."""
     async with viewer_app.router.lifespan_context(viewer_app):
-        transport = httpx.ASGITransport(app=viewer_app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=viewer_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
@@ -70,7 +70,7 @@ def _response_entry(body: dict[str, Any]) -> dict[str, Any]:
 
 
 async def test_a_submission_is_refused_in_fhirs_own_terms_naming_the_key(
-    viewer_client: httpx.AsyncClient, aggregate_response: dict[str, Any]
+    viewer_client: httpx2.AsyncClient, aggregate_response: dict[str, Any]
 ) -> None:
     """405 with an OperationOutcome: the address is served, and the create interaction is what is gone."""
     posted = await viewer_client.post(
@@ -86,7 +86,7 @@ async def test_a_submission_is_refused_in_fhirs_own_terms_naming_the_key(
     assert "[serve] capture" in issue["diagnostics"]
 
 
-async def test_the_statement_declares_no_create_and_keeps_every_read(viewer_client: httpx.AsyncClient) -> None:
+async def test_the_statement_declares_no_create_and_keeps_every_read(viewer_client: httpx2.AsyncClient) -> None:
     """A statement declaring `create` here would advertise the one interaction every request to it refuses."""
     entry = _response_entry((await viewer_client.get("/metadata")).json())
 
@@ -95,14 +95,14 @@ async def test_the_statement_declares_no_create_and_keeps_every_read(viewer_clie
     assert entry["supportedProfile"]
 
 
-async def test_a_capturing_server_declares_create_beside_the_reads(capture_client: httpx.AsyncClient) -> None:
+async def test_a_capturing_server_declares_create_beside_the_reads(capture_client: httpx2.AsyncClient) -> None:
     """The other half of the same claim, so the difference is the dial rather than the fixture."""
     entry = _response_entry((await capture_client.get("/metadata")).json())
 
     assert [interaction["code"] for interaction in entry["interaction"]] == ["create", "read", "search-type"]
 
 
-async def test_the_receipts_this_project_already_holds_are_still_served(viewer_client: httpx.AsyncClient) -> None:
+async def test_the_receipts_this_project_already_holds_are_still_served(viewer_client: httpx2.AsyncClient) -> None:
     """An id handed out at capture time must not expire on the day somebody edited one line of fhir.toml."""
     read = await viewer_client.get("/QuestionnaireResponse/receipt-from-before")
 
@@ -115,14 +115,14 @@ async def test_the_receipts_this_project_already_holds_are_still_served(viewer_c
     assert [entry["resource"]["id"] for entry in searched.json()["entry"]] == ["receipt-from-before"]
 
 
-async def test_the_spool_still_counts_what_it_holds(viewer_client: httpx.AsyncClient) -> None:
+async def test_the_spool_still_counts_what_it_holds(viewer_client: httpx2.AsyncClient) -> None:
     """The queue is a fact about receipts already taken, and a drain of them is still ahead."""
     body = (await viewer_client.get("/facade/spool")).json()
 
     assert body["total"] == 1
 
 
-async def test_the_read_shaped_operation_still_answers(viewer_client: httpx.AsyncClient) -> None:
+async def test_the_read_shaped_operation_still_answers(viewer_client: httpx2.AsyncClient) -> None:
     """`$generate` reads a published form and answers with a draft; it writes nothing, so it stays."""
     generated = await viewer_client.get(f"/Questionnaire/{AGGREGATE_FORM}/$generate")
 
@@ -130,11 +130,11 @@ async def test_the_read_shaped_operation_still_answers(viewer_client: httpx.Asyn
     assert generated.json()["resourceType"] == "QuestionnaireResponse"
 
 
-async def test_the_settings_the_screens_read_carry_the_posture(viewer_client: httpx.AsyncClient) -> None:
+async def test_the_settings_the_screens_read_carry_the_posture(viewer_client: httpx2.AsyncClient) -> None:
     """The screens gate their Submit on this, so a form says the fact rather than posting into a refusal."""
     assert (await viewer_client.get("/facade/uiconfig")).json()["capture"] is False
 
 
-async def test_a_capturing_server_states_the_same_flag_the_other_way(capture_client: httpx.AsyncClient) -> None:
+async def test_a_capturing_server_states_the_same_flag_the_other_way(capture_client: httpx2.AsyncClient) -> None:
     """Always stated, never inferred from absence - the screens read one field either way."""
     assert (await capture_client.get("/facade/uiconfig")).json()["capture"] is True

@@ -26,6 +26,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client.profile import NoProfileError, Profile
@@ -182,11 +183,11 @@ def _jwt_settings(project: FhirProject, **over: Any) -> ServeSettings:
 
 
 @asynccontextmanager
-async def _client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
+async def _client(app: FastAPI) -> AsyncGenerator[httpx2.AsyncClient]:
     """An in-process client over one facade, with its lifespan run around the body."""
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
@@ -246,7 +247,7 @@ def test_the_refusal_for_an_absent_posture_offers_jwt_among_the_four() -> None:
 async def test_an_issuer_this_machine_cannot_reach_refuses_the_run() -> None:
     """A posture that cannot be honoured is a line in a terminal, never a 401 on every caller."""
     with respx.mock as router:
-        router.get(DISCOVERY_URL).mock(side_effect=httpx.ConnectError("no route to host"))
+        router.get(DISCOVERY_URL).mock(side_effect=httpx2.ConnectError("no route to host"))
 
         with pytest.raises(ServeAuthConfigurationError) as refused:
             await open_jwt_verifier(ServeJwtConfig(issuer=ISSUER))
@@ -517,7 +518,7 @@ async def test_the_keys_are_held_for_the_floor_however_short_the_issuer_asked(
 )
 def test_a_cache_control_is_honoured_above_the_floor_and_ignored_below_it(stated: str, expected: float) -> None:
     """The floor is the whole of the policy; there is no ceiling, because a rotation is caught by `kid`."""
-    assert cache_seconds(httpx.Headers({"Cache-Control": stated} if stated else {})) == expected
+    assert cache_seconds(httpx2.Headers({"Cache-Control": stated} if stated else {})) == expected
 
 
 # ---------------------------------------------------------------------------------------------

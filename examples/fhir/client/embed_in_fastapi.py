@@ -51,7 +51,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import httpx
+import httpx2
 from _fixture import example_project
 from _runner import run_example
 from dhis2w_fhir import ServeAuth, ServeAuthScope
@@ -183,8 +183,8 @@ async def main() -> None:
     print(f"guarded routers: {len(routers.guarded)} of {len(routers.in_mount_order())}")
 
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
             own = (await client.get("/status")).raise_for_status().json()
             print(f"GET /status -> {own['service']}")
 
@@ -225,8 +225,8 @@ async def show_the_fhir_only_posture(settings: ServeSettings) -> None:
     """Stand up the FHIR-only posture and show that it serves FHIR and nothing operational at all."""
     application = build_hand_mounted_application(settings, controls_prefix=None)
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
             headers = {"Accept": FHIR_JSON, EXAMPLE_KEY_HEADER: EXAMPLE_KEY}
             metadata = await client.get("/metadata", headers={"Accept": FHIR_JSON})
             forms = await client.get("/Questionnaire", headers=headers, params={"_count": 1})
@@ -242,8 +242,8 @@ async def show_the_controls_under_a_prefix_of_your_own(settings: ServeSettings) 
     """Stand up the other posture, with the operational API somewhere this service chose."""
     application = build_hand_mounted_application(settings, controls_prefix=OWN_CONTROLS_PREFIX)
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(transport=transport, base_url=EMBEDDED_BASE_URL, timeout=60.0) as client:
             headers = {EXAMPLE_KEY_HEADER: EXAMPLE_KEY}
             listing = await client.get(f"{OWN_CONTROLS_PREFIX}/spool", headers=headers)
             contract = (await client.get(f"{OWN_CONTROLS_PREFIX}/openapi.json")).raise_for_status().json()

@@ -18,7 +18,7 @@ import os
 from datetime import date, datetime
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_client import BasicAuth, Dhis2ApiError, Dhis2Client
 from pydantic import BaseModel, ConfigDict, Field
@@ -73,9 +73,9 @@ class Dhis2StackSettings(BaseModel):
 def skip_unless_stack_reachable(settings: Dhis2StackSettings) -> None:
     """Skip the test when the local DHIS2 stack does not answer a short root probe."""
     try:
-        with httpx.Client(timeout=2.0) as probe:
+        with httpx2.Client(timeout=2.0) as probe:
             probe.get(f"{settings.base_url}/dhis-web-login/")
-    except (httpx.RequestError, httpx.HTTPError) as exc:
+    except (httpx2.RequestError, httpx2.HTTPError) as exc:
         pytest.skip(
             f"local DHIS2 stack not reachable at {settings.base_url} ({exc}). "
             "Run `make dhis2-run DHIS2_VERSION=43` first."

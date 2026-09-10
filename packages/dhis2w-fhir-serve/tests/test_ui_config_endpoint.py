@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import DEFAULT_BASEMAP_TEMPLATE, BasemapSource, FhirProject, TrackedEntitiesConfig
 from dhis2w_fhir_serve.app import create_app
@@ -78,16 +78,16 @@ def ui_config_app(compiled_project: FhirProject, basemaps: list[BasemapSource], 
 
 
 @pytest.fixture
-async def ui_config_client(ui_config_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def ui_config_client(ui_config_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over that facade, with the lifespan run around the test."""
     async with ui_config_app.router.lifespan_context(ui_config_app):
-        transport = httpx.ASGITransport(app=ui_config_app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+        transport = httpx2.ASGITransport(app=ui_config_app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
             yield client
 
 
 async def test_the_default_answers_the_openstreetmap_layer_with_its_attribution(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """A project stating nothing gets tiles, because a boundary on a blank canvas says where nothing is."""
     response = await ui_config_client.get(UI_CONFIG_ADDRESS)
@@ -105,7 +105,7 @@ async def test_the_default_answers_the_openstreetmap_layer_with_its_attribution(
 
 @pytest.mark.parametrize("basemaps", [[]])
 async def test_no_configured_layer_is_served_as_an_empty_list_rather_than_as_an_absence(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """`basemaps = []` is the air-gapped posture: the map's layer control then offers None alone."""
     assert (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["basemaps"] == []
@@ -121,7 +121,7 @@ async def test_no_configured_layer_is_served_as_an_empty_list_rather_than_as_an_
     ],
 )
 async def test_the_layers_are_served_in_the_order_they_were_configured(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """The order is the deployment's own statement of which layer the map opens with - the first."""
     served = (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["basemaps"]
@@ -133,7 +133,7 @@ async def test_the_layers_are_served_in_the_order_they_were_configured(
 
 @pytest.mark.parametrize("dhis2_base_url", ["https://play.example.org/dhis"])
 async def test_a_resolved_profile_puts_its_instance_address_where_the_screens_can_link_to_it(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """The address is the whole of what makes a link; the profile's name and credentials stay here."""
     body = (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()
@@ -142,14 +142,14 @@ async def test_a_resolved_profile_puts_its_instance_address_where_the_screens_ca
 
 
 async def test_no_resolved_profile_is_served_as_null_rather_than_as_a_guess(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """A compiled guide on a machine that names no profile has nowhere honest to point, and says so."""
     assert (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["dhis2_base_url"] is None
 
 
 async def test_the_settings_carry_nothing_a_browser_has_no_business_knowing(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """The model is the enumeration of what the UI acts on, and the omissions are the point."""
     body = (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()
@@ -162,7 +162,7 @@ async def test_the_settings_carry_nothing_a_browser_has_no_business_knowing(
 
 
 async def test_a_compiled_run_reports_no_register_surface_to_navigate_to(
-    ui_config_client: httpx.AsyncClient,
+    ui_config_client: httpx2.AsyncClient,
 ) -> None:
     """The state is the effective one, not the table read back: a compiled run answers for nothing."""
     assert (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["tracked_entities"] == {
@@ -284,7 +284,7 @@ def test_the_record_is_reported_as_its_own_offer_beside_the_listing(capture_proj
     assert compiled.events is False
 
 
-async def test_the_path_is_not_claimed_by_the_read_catch_all(client: httpx.AsyncClient) -> None:
+async def test_the_path_is_not_claimed_by_the_read_catch_all(client: httpx2.AsyncClient) -> None:
     """Mounted with the fixed paths: reversed, this answers that `uiconfig` is not a served type."""
     response = await client.get(UI_CONFIG_ADDRESS)
 

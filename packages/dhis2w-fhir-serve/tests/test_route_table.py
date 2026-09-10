@@ -19,7 +19,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject, SearchBackend, SearchConfig, ServeAuth, ServeAuthScope
 from dhis2w_fhir_serve import capability as capability_module
@@ -102,10 +102,10 @@ def pinned_clock(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @asynccontextmanager
-async def _client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
+async def _client(app: FastAPI) -> AsyncGenerator[httpx2.AsyncClient]:
     """An in-process client over one application."""
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+    transport = httpx2.ASGITransport(app=app)
+    async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
         yield http
 
 

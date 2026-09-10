@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.profile import resolve
@@ -880,7 +881,7 @@ async def test_a_drain_that_cannot_reach_the_instance_stops_without_losing_what_
 ) -> None:
     """A connection that never completes stops the drain too, and the receipt it met stays put."""
     route = respx.post(f"{_BASE_URL}/api/tracker").mock(
-        side_effect=[_accepted_tracker(), httpx.ConnectError("connection refused")]
+        side_effect=[_accepted_tracker(), httpx2.ConnectError("connection refused")]
     )
     respx.get(f"{_BASE_URL}/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": _HARVESTED_INSTANCE_VERSIONS["v42"]})
@@ -2337,8 +2338,8 @@ async def test_a_second_drain_is_refused_while_another_holds_the_lock(forward_pr
 @respx.mock
 async def test_the_lock_is_released_however_the_drain_ends(forward_project: Path) -> None:
     """A drain that raised still leaves the spool drainable, or one bad run would wedge the project."""
-    respx.get(f"{_BASE_URL}/api/system/info").mock(side_effect=httpx.ConnectError("connection refused"))
-    with pytest.raises(httpx.ConnectError):
+    respx.get(f"{_BASE_URL}/api/system/info").mock(side_effect=httpx2.ConnectError("connection refused"))
+    with pytest.raises(httpx2.ConnectError):
         await _forward(forward_project)
 
     _mock_instance()
@@ -3229,7 +3230,7 @@ async def test_a_completeness_registration_that_times_out_is_retried_by_the_next
 ) -> None:
     """The values are in DHIS2 and the claim is written down, so the next run pays it without resending them."""
     routes = _mock_instance()
-    routes["completeness"].mock(side_effect=httpx.TimeoutException("the registration timed out"))
+    routes["completeness"].mock(side_effect=httpx2.TimeoutException("the registration timed out"))
     document = _aggregate_document()
     assert document.id is not None
 
@@ -3326,7 +3327,7 @@ async def test_a_drain_killed_after_the_values_landed_leaves_the_claim_owed(
 async def test_a_dry_run_pays_no_owed_claim(one_aggregate_project: Path) -> None:
     """A dry run writes nothing, and a registration is a write like any other."""
     routes = _mock_instance()
-    routes["completeness"].mock(side_effect=httpx.TimeoutException("the registration timed out"))
+    routes["completeness"].mock(side_effect=httpx2.TimeoutException("the registration timed out"))
     await _forward(one_aggregate_project, import_responses=True)
     routes["completeness"].mock(return_value=_accepted_completeness())
     attempted = routes["completeness"].call_count
@@ -3341,7 +3342,7 @@ async def test_a_dry_run_pays_no_owed_claim(one_aggregate_project: Path) -> None
 async def test_a_run_that_registers_nothing_pays_no_owed_claim(one_aggregate_project: Path) -> None:
     """`--no-register-completeness` is a statement about the run, and it covers the owed claims too."""
     routes = _mock_instance()
-    routes["completeness"].mock(side_effect=httpx.TimeoutException("the registration timed out"))
+    routes["completeness"].mock(side_effect=httpx2.TimeoutException("the registration timed out"))
     await _forward(one_aggregate_project, import_responses=True)
     routes["completeness"].mock(return_value=_accepted_completeness())
     attempted = routes["completeness"].call_count

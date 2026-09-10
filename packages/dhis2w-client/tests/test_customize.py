@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, LoginCustomization
@@ -15,7 +16,7 @@ def client() -> Dhis2Client:
         "https://dhis2.example",
         auth=BasicAuth(username="admin", password="district"),
     )
-    instance._http = httpx.AsyncClient(base_url="https://dhis2.example")
+    instance._http = httpx2.AsyncClient(base_url="https://dhis2.example")
     return instance
 
 

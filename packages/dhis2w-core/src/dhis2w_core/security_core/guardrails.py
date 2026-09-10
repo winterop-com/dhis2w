@@ -49,10 +49,10 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
-import httpx
+import httpx2
 
 # Every path the security plugin is allowed to GET, matched exactly against
-# `httpx.URL.path`. Adding an endpoint here is a reviewed decision, not a
+# `httpx2.URL.path`. Adding an endpoint here is a reviewed decision, not a
 # side effect of adding a feature. The list covers the full planned surface
 # (settings, authorities, roles, hygiene, guest, apps, access, version) so a
 # later check that stays inside it needs no allowlist edit.
@@ -150,7 +150,7 @@ REPORT_GUARDRAIL_NOTE = (
 class GuardrailViolation(Exception):
     """Raised when an audit request escapes the read-only allowlist contract.
 
-    Deliberately not a `Dhis2ClientError` / `httpx.HTTPError` subclass so it surfaces
+    Deliberately not a `Dhis2ClientError` / `httpx2.HTTPError` subclass so it surfaces
     loudly as an error rather than being swallowed by a check's degrade-catch.
     """
 
@@ -169,8 +169,8 @@ def guardrail_request_hook(
     allowed_methods: frozenset[str] = frozenset({"GET", "HEAD"}),
     *,
     base_path: str = "",
-) -> Callable[[httpx.Request], Awaitable[None]]:
-    """Build an async httpx request event hook that rejects any off-contract request.
+) -> Callable[[httpx2.Request], Awaitable[None]]:
+    """Build an async httpx2 request event hook that rejects any off-contract request.
 
     `base_path` is the instance's context path (the path component of the base URL, e.g. `/dev-2-42`
     for an instance served under a sub-path or reverse proxy). It is stripped off the request path
@@ -180,7 +180,7 @@ def guardrail_request_hook(
     """
     prefix = base_path.rstrip("/")
 
-    async def _hook(request: httpx.Request) -> None:
+    async def _hook(request: httpx2.Request) -> None:
         """Raise `GuardrailViolation` when the request leaves the read-only allowlist."""
         if request.method not in allowed_methods:
             raise GuardrailViolation(
@@ -195,8 +195,8 @@ def guardrail_request_hook(
     return _hook
 
 
-def probe_client(*, base_path: str = "", headers: dict[str, str] | None = None) -> httpx.AsyncClient:
-    """Build a read-only, guardrailed httpx.AsyncClient for the plugin's bare-httpx probes.
+def probe_client(*, base_path: str = "", headers: dict[str, str] | None = None) -> httpx2.AsyncClient:
+    """Build a read-only, guardrailed httpx2.AsyncClient for the plugin's bare-httpx probes.
 
     `base_path` is threaded into the guardrail hook so probes against a context-path-hosted instance
     (whose absolute probe URLs carry that prefix) match the allowlist after the prefix is stripped.
@@ -204,8 +204,8 @@ def probe_client(*, base_path: str = "", headers: dict[str, str] | None = None) 
     merged_headers = {"User-Agent": SECURITY_AUDIT_USER_AGENT}
     if headers is not None:
         merged_headers.update(headers)
-    return httpx.AsyncClient(
-        timeout=httpx.Timeout(15.0, connect=10.0),
+    return httpx2.AsyncClient(
+        timeout=httpx2.Timeout(15.0, connect=10.0),
         follow_redirects=False,
         headers=merged_headers,
         event_hooks={"request": [guardrail_request_hook(ALLOWED_AUDIT_PATHS, base_path=base_path)]},

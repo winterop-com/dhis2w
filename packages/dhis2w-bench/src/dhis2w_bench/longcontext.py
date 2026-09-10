@@ -21,7 +21,7 @@ import os
 import sys
 import time
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_bench.backend import get_backend
@@ -137,7 +137,7 @@ class ModelReport(BaseModel):
         return bool(self.results) and all(result.ok for result in self.results)
 
 
-async def _ask(http: httpx.AsyncClient, model: str, prompt: str) -> tuple[str, float, str]:
+async def _ask(http: httpx2.AsyncClient, model: str, prompt: str) -> tuple[str, float, str]:
     """One retrieval query (retries once on a fast non-200). Returns (answer, seconds, note).
 
     A large cold prompt sometimes 400s on the first KV-cache allocation, then succeeds once warm — so a
@@ -154,7 +154,7 @@ async def _ask(http: httpx.AsyncClient, model: str, prompt: str) -> tuple[str, f
         started = time.monotonic()
         try:
             response = await http.post(LM, json=body, timeout=600.0)
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             return ("", time.monotonic() - started, f"request error: {type(exc).__name__}")
         elapsed = time.monotonic() - started
         if response.status_code == 200:
@@ -167,7 +167,7 @@ async def _ask(http: httpx.AsyncClient, model: str, prompt: str) -> tuple[str, f
     return ("", elapsed, note)
 
 
-async def _benchmark_model(http: httpx.AsyncClient, model: str, load_context: int) -> ModelReport:
+async def _benchmark_model(http: httpx2.AsyncClient, model: str, load_context: int) -> ModelReport:
     """Run the length sweep (needle at mid-depth) against one model loaded at `load_context`."""
     results: list[LengthResult] = []
     for tokens in LENGTHS:
@@ -229,7 +229,7 @@ async def main() -> None:
         return
     details = {info.key: info for info in BACKEND.list_installed_details()}
     reports: list[ModelReport] = []
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         for model in models:
             info = details.get(model)
             load_context = min(info.max_context, CONTEXT) if info and info.max_context else CONTEXT

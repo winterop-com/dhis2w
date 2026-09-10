@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_core.v42.plugins.security.models import SecuritySettings
@@ -58,7 +58,7 @@ def _make_fake_ctx() -> AsyncMock:
     fake_client.base_url = "https://mock.example"
     fake_client.raw_version = "2.42.0"
     fake_client.get_response = AsyncMock(
-        return_value=httpx.Response(
+        return_value=httpx2.Response(
             200,
             headers={
                 "strict-transport-security": "max-age=63072000",

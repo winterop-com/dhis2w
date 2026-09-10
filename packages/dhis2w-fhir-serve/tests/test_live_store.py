@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -616,12 +617,12 @@ async def test_live_generate_output_posts_back_at_the_live_server(
     """
     _mock_instance()
     app = create_app(ServeSettings(project_dir=live_project.project_root, live=True))
-    generated: dict[str, httpx.Response] = {}
-    posted: dict[str, httpx.Response] = {}
+    generated: dict[str, httpx2.Response] = {}
+    posted: dict[str, httpx2.Response] = {}
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as client:
             for resource_id in ("BfMAe6Itzgt", "VBqh0ynB2wv", _TRACKER_STAGE_UID):
                 generated[resource_id] = await client.get(f"/Questionnaire/{resource_id}/$generate?seed=13")
                 posted[resource_id] = await client.post(
@@ -652,8 +653,8 @@ async def test_live_facade_answers_reads_and_searches_over_the_built_store(
     app = create_app(ServeSettings(project_dir=live_project.project_root, live=True))
 
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as client:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as client:
             metadata = await client.get("/metadata")
             read = await client.get("/Questionnaire/BfMAe6Itzgt")
             search = await client.get(

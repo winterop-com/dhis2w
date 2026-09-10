@@ -1,7 +1,7 @@
 """Print the DHIS2 versions available on Docker Hub as `dhis2/core` tags.
 
 Used by `make list` in `infra/`. Keeps the logic out of the Makefile so it's
-readable and testable. Uses `httpx` (already in the workspace venv).
+readable and testable. Uses `httpx2` (already in the workspace venv).
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import sys
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict
 
 _ENDPOINT = "https://hub.docker.com/v2/repositories/dhis2/core/tags"
@@ -29,9 +29,9 @@ class _VersionTag(BaseModel):
 def main() -> int:
     """Fetch, filter, and print version-looking tags; return 0 on success."""
     try:
-        response = httpx.get(_ENDPOINT, params={"page_size": 100}, timeout=15.0)
+        response = httpx2.get(_ENDPOINT, params={"page_size": 100}, timeout=15.0)
         response.raise_for_status()
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         print(f"!!! Failed to reach Docker Hub: {exc}", file=sys.stderr)
         return 1
 

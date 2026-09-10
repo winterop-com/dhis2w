@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import random
+import ssl
+from pathlib import Path
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, RetryPolicy
@@ -183,13 +186,13 @@ async def test_retry_respects_retry_after_header(monkeypatch: pytest.MonkeyPatch
         policy,
         inner=_FakeTransport(
             response_queue=[
-                httpx.Response(503, headers={"Retry-After": "7"}),
-                httpx.Response(200, text="ok"),
+                httpx2.Response(503, headers={"Retry-After": "7"}),
+                httpx2.Response(200, text="ok"),
             ]
         ),
     )
 
-    async with httpx.AsyncClient(transport=transport) as client:
+    async with httpx2.AsyncClient(transport=transport) as client:
         response = await client.get("https://dhis2.example/x")
     assert response.status_code == 200
     assert sleep_args == [7.0]  # server's Retry-After hint beats the computed 0.5
@@ -209,44 +212,44 @@ async def test_retry_after_hint_is_capped_at_max_delay(monkeypatch: pytest.Monke
         policy,
         inner=_FakeTransport(
             response_queue=[
-                httpx.Response(429, headers={"Retry-After": "86400"}),
-                httpx.Response(200, text="ok"),
+                httpx2.Response(429, headers={"Retry-After": "86400"}),
+                httpx2.Response(200, text="ok"),
             ]
         ),
     )
 
-    async with httpx.AsyncClient(transport=transport) as client:
+    async with httpx2.AsyncClient(transport=transport) as client:
         response = await client.get("https://dhis2.example/x")
     assert response.status_code == 200
     assert sleep_args == [2.0]  # hint honored but clamped to policy.max_delay
 
 
 def test_retry_transport_is_async_base_transport() -> None:
-    """The wrapper is a proper httpx transport so `httpx.AsyncClient(transport=...)` accepts it."""
+    """The wrapper is a proper httpx2 transport so `httpx2.AsyncClient(transport=...)` accepts it."""
     policy = RetryPolicy()
     transport = build_retry_transport(policy)
     assert isinstance(transport, _RetryTransport)
-    assert isinstance(transport, httpx.AsyncBaseTransport)
+    assert isinstance(transport, httpx2.AsyncBaseTransport)
 
 
 async def test_retry_transport_carries_verify_false_and_custom_limits(monkeypatch: pytest.MonkeyPatch) -> None:
     """Under a retry policy, `verify=False` and `http_limits` reach the inner transport.
 
-    httpx ignores the client-level `verify`/`limits` kwargs whenever a transport is
+    httpx2 ignores the client-level `verify`/`limits` kwargs whenever a transport is
     supplied, so the client folds both into the `AsyncHTTPTransport` the retry wrapper
     drives. Without that, `Dhis2Client(verify=False, retry_policy=...)` would fail TLS
     on every call and silently ignore the pool limits.
     """
     captured: dict[str, object] = {}
-    real_transport = httpx.AsyncHTTPTransport
+    real_transport = httpx2.AsyncHTTPTransport
 
-    def _capturing_transport(*args: object, **kwargs: object) -> httpx.AsyncHTTPTransport:
+    def _capturing_transport(*args: object, **kwargs: object) -> httpx2.AsyncHTTPTransport:
         captured.update(kwargs)
         return real_transport(*args, **kwargs)  # type: ignore[arg-type]
 
-    monkeypatch.setattr(httpx, "AsyncHTTPTransport", _capturing_transport)
+    monkeypatch.setattr(httpx2, "AsyncHTTPTransport", _capturing_transport)
 
-    limits = httpx.Limits(max_connections=7, max_keepalive_connections=3)
+    limits = httpx2.Limits(max_connections=7, max_keepalive_connections=3)
     client = Dhis2Client(
         "https://dhis2.example",
         auth=BasicAuth(username="a", password="b"),
@@ -263,33 +266,36 @@ async def test_retry_transport_carries_verify_false_and_custom_limits(monkeypatc
     assert captured["limits"] is limits
 
 
-async def test_retry_transport_carries_ca_bundle_and_default_limits(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A CA-bundle path reaches the transport; unset `http_limits` falls back to httpx defaults."""
+async def test_retry_transport_carries_ca_bundle_and_default_limits(
+    monkeypatch: pytest.MonkeyPatch,
+    ca_bundle_path: Path,
+) -> None:
+    """A CA-bundle path reaches the transport as an SSL context; unset `http_limits` falls back to httpx2 defaults."""
     captured: dict[str, object] = {}
-    real_transport = httpx.AsyncHTTPTransport
+    real_transport = httpx2.AsyncHTTPTransport
 
-    def _capturing_transport(*args: object, **kwargs: object) -> httpx.AsyncHTTPTransport:
+    def _capturing_transport(*args: object, **kwargs: object) -> httpx2.AsyncHTTPTransport:
         captured.update(kwargs)
-        # Return a transport that does not read the (non-existent) CA path — the assertion is on
-        # what the client passed, not on building a real TLS context from a fixture bundle.
+        # Return a transport with verification off — the assertion is on what the client
+        # passed, not on completing a TLS handshake against the fixture bundle.
         return real_transport(verify=False)
 
-    monkeypatch.setattr(httpx, "AsyncHTTPTransport", _capturing_transport)
+    monkeypatch.setattr(httpx2, "AsyncHTTPTransport", _capturing_transport)
 
     client = Dhis2Client(
         "https://dhis2.example",
         auth=BasicAuth(username="a", password="b"),
         retry_policy=RetryPolicy(),
-        verify="/etc/ssl/custom-ca.pem",
+        verify=str(ca_bundle_path),
         skip_version_probe=True,
     )
     try:
         await client.connect()
     finally:
         await client.close()
-    assert captured["verify"] == "/etc/ssl/custom-ca.pem"
+    assert isinstance(captured["verify"], ssl.SSLContext)
     default_limits = captured["limits"]
-    assert isinstance(default_limits, httpx.Limits)
+    assert isinstance(default_limits, httpx2.Limits)
     assert default_limits.max_connections == 100
     assert default_limits.max_keepalive_connections == 20
 
@@ -360,14 +366,14 @@ def test_parse_retry_after_handles_seconds_and_drops_dates(header_value: str | N
 # ---------------------------------------------------------------------------
 
 
-class _FakeTransport(httpx.AsyncBaseTransport):
+class _FakeTransport(httpx2.AsyncBaseTransport):
     """Return a queue of pre-built responses in order; used to drive retry-transport tests."""
 
-    def __init__(self, *, response_queue: list[httpx.Response]) -> None:
+    def __init__(self, *, response_queue: list[httpx2.Response]) -> None:
         """Seed the queue."""
         self._queue = list(response_queue)
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
         """Pop the next response, or raise if the queue is empty."""
         if not self._queue:
             raise AssertionError("FakeTransport response queue exhausted")

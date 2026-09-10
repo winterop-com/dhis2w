@@ -1,6 +1,6 @@
 """Ask a facade a FHIRPath question with `FacadeClient` - an inline document, a stored one, and a typo.
 
-`evaluate_via_facade.py` next door posts the same request over plain httpx, which is worth reading
+`evaluate_via_facade.py` next door posts the same request over plain httpx2, which is worth reading
 for what the wire carries. This is the typed path: the two contexts are models, the answer is an
 `EvaluationOutcome`, and nothing here spells a JSON key.
 

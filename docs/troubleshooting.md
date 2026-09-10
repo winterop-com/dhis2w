@@ -36,7 +36,7 @@ Common culprits:
 | `cryptography` (Rust+OpenSSL) | Crashes during TLS handshake | `uv lock --upgrade-package cryptography && uv sync` |
 | `lxml` (libxml2) | Crashes during XML parsing | Rare for our workload, but possible if an example hits a tracker XML import |
 | `Pillow` (libpng/libjpeg) | Crashes during image decode | `dhis2w-browser` screenshot capture is the only path that does this |
-| `httpcore-rs` / `h11` | Crashes during connection close | Switching to httpx 0.28+ helps |
+| `httpcore2` / `h11` | Crashes during connection close | Pin to latest; `uv lock --upgrade-package httpx2 && uv sync` |
 
 Once-or-twice in a week is unusual but tolerable. Daily, with a stable repro, file a bug at the offending library. Until you have a fix, run Python with `faulthandler` on so you get a Python-level traceback at SIGSEGV time:
 

@@ -2,6 +2,16 @@
 
 Running list of architectural choices and the reasoning behind them. Each entry is a terse "we decided X because Y, alternatives were Z". This file is a first stop when you're wondering "why is it done that way?".
 
+## 2026-09-10 — HTTP client is httpx2
+
+**Decision:** every workspace member speaks HTTP through `httpx2`, Pydantic's continuation of httpx forked from httpx 0.28.1. Nothing shipped imports `httpx`, and a ruff `TID251` rule bans `httpx`, `httpcore`, and `urllib.request` outside `**/tests/**`. `dhis2w-fhir-engine` carries `httpx2` as a runtime dependency of its own, for the synchronous `httpx2.Client` behind `FHIRTerminologyService` — synchronous because the terminology protocol the evaluator drives is.
+
+**Why:** upstream httpx is inactive, Pydantic maintains the fork, and the mcp SDK that FastMCP sits on already depends on `httpx2`. A workspace on the older library therefore installs two HTTP libraries and two transport hierarchies to do one job. One library removes the duplicate and the question of which class hierarchy a given connection belongs to.
+
+**Visible edges:** TLS verification reads the operating system trust store through `truststore` rather than certifi, with `SSL_CERT_FILE` / `SSL_CERT_DIR` still honoured first; the default User-Agent is `python-httpx2/<version>`; the loggers are `httpx2` and `httpcore2.*`; deprecations surface as a visible `HTTPXDeprecationWarning`. `Dhis2Client(verify=...)` takes `bool | str`, and the helper in `dhis2w_client/_tls.py` turns a CA-bundle path into an `ssl.SSLContext` before it reaches httpx2, so a string path works without a warning. Native SSE, WebSockets, and the `QUERY` method come with the library.
+
+**In tests:** the root `conftest.py` sets `respx.mocks.DEFAULT_MOCKER = "httpcore2"`, so every `respx.mock` intercepts httpx2 traffic, and new tests may use the `httpx2_mock` fixture from `pytest-httpx2`. respx asserts on the original `httpx.Response` class, so a test file imports `httpx` for exactly the `Response` / `Request` objects respx consumes and produces — `mock(return_value=httpx.Response(...))`, `side_effect` callables, `respx.calls[...]`. Clients, transports, `MockTransport` handlers, and exception classes come from `httpx2` in tests as everywhere else.
+
 ## 2026-08-15 — The spool stays files on disk: the state is the directory, the last error is the sidecar
 
 **Decision:** the revisit trigger recorded on the 2026-08-08 spool entry has fired — a receipt now has a state that moves (`received → forwarded | rejected`), a last-error, and a reverse move (`d2w fhir requeue`) — and the answer is still **files**, hardened rather than replaced. What hardening means, concretely: every write is `fsync`ed and its directory entry `fsync`ed before the caller acknowledges anything; a file that will not parse is moved to `.serve/responses/malformed/` with its reason beside it instead of failing the read that met it; one drain at a time, via an exclusive `flock` on `.serve/responses/.drain.lock` carrying the holding process id; each receipt is filed the instant DHIS2 answers about it rather than in a pass at the end; abandoned temporary files older than an hour are swept at process start and at drain start; and both spool reads are paged behind an opaque cursor and run off the event loop.
@@ -18,7 +28,7 @@ Running list of architectural choices and the reasoning behind them. Each entry 
 
 **Decision:** the FHIR facade is its own workspace member (`packages/dhis2w-fhir-serve`, tenth publishable), depending on `dhis2w-fhir` + FastAPI + uvicorn. `dhis2w-cli` declares it as the optional `serve` extra, and `d2w fhir serve` — the command itself, which stays in `dhis2w-fhir/cli.py` — guards the import and raises a `LookupError` naming both install routes when the package is absent.
 
-**Why:** the workspace convention is "each shippable unit is a member; new surfaces land as new folders", and this is the first HTTP surface that convention has had to absorb. `dhis2w-fhir` generates a file tree — httpx, pydantic, jinja2, nothing that listens — and it is a dependency of both `dhis2w-cli` and `dhis2w-mcp`, so an optional-dependency group inside it would still put FastAPI + uvicorn in the resolver's path for every install that only ever writes FSH, including CI and the MCP server. A separate member makes the dependency arrow explicit (`fhir-serve → fhir`, never the reverse) and lets the server version and publish on its own.
+**Why:** the workspace convention is "each shippable unit is a member; new surfaces land as new folders", and this is the first HTTP surface that convention has had to absorb. `dhis2w-fhir` generates a file tree — httpx2, pydantic, jinja2, nothing that listens — and it is a dependency of both `dhis2w-cli` and `dhis2w-mcp`, so an optional-dependency group inside it would still put FastAPI + uvicorn in the resolver's path for every install that only ever writes FSH, including CI and the MCP server. A separate member makes the dependency arrow explicit (`fhir-serve → fhir`, never the reverse) and lets the server version and publish on its own.
 
 **Alternatives rejected:** an optional dependency group on `dhis2w-fhir` (fails the "API-only installs stay FastAPI-free" goal and hides the arrow); putting the server in `dhis2w-core` (it is FHIR-shaped, not DHIS2-domain-shaped, and core is imported by everything); a standalone repo (the store, the capture path, and the JSON builders share the parity tests with the generator).
 
@@ -257,7 +267,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 **Decision:** all public APIs in `dhis2w-client` are `async`. No sync wrapper generated via `unasync` or similar.
 
-**Why:** FastMCP and FastAPI are async, httpx is async, and notebook users who actually need sync can do `asyncio.run(...)`. A sync wrapper would double the test surface for negligible ergonomic gain.
+**Why:** FastMCP and FastAPI are async, httpx2 is async, and notebook users who actually need sync can do `asyncio.run(...)`. A sync wrapper would double the test surface for negligible ergonomic gain.
 
 ## 2026-04-17 — camelCase fields in generated pydantic models
 
@@ -319,7 +329,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 **Decision:** `create` and `update` in the generated resources template use `model.model_dump(by_alias=True, exclude_none=True, mode="json")`.
 
-**Why:** default pydantic dumps leave `datetime` objects raw, which `httpx.Request(json=...)` cannot serialise. `mode="json"` converts datetime → ISO 8601 strings and handles other JSON-unfriendly types transparently. No cost on models that don't have such fields.
+**Why:** default pydantic dumps leave `datetime` objects raw, which `httpx2.Request(json=...)` cannot serialise. `mode="json"` converts datetime → ISO 8601 strings and handles other JSON-unfriendly types transparently. No cost on models that don't have such fields.
 
 ## 2026-04-17 — `DHIS2_HEADFUL=1` env var flips Playwright to visible mode
 

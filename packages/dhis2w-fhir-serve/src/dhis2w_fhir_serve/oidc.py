@@ -42,7 +42,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-import httpx
+import httpx2
 from dhis2w_core.oauth2_preflight import DISCOVERY_PATH, OidcDiscovery
 from dhis2w_fhir.config import ServeJwtConfig
 from joserfc import jwt as jose_jwt
@@ -295,9 +295,9 @@ async def fetch_issuer_discovery(issuer: str) -> OidcDiscovery:
     """
     url = issuer.rstrip("/") + DISCOVERY_PATH
     try:
-        async with httpx.AsyncClient(timeout=ISSUER_TIMEOUT_SECONDS, follow_redirects=True) as http:
+        async with httpx2.AsyncClient(timeout=ISSUER_TIMEOUT_SECONDS, follow_redirects=True) as http:
             answer = await http.get(url, headers={"Accept": "application/json"})
-    except httpx.HTTPError as error:
+    except httpx2.HTTPError as error:
         raise OidcIssuerUnavailableError(f"`{url}` could not be read ({error})") from error
     if answer.status_code >= 400:
         raise OidcIssuerUnavailableError(f"`{url}` answered {answer.status_code}")
@@ -312,9 +312,9 @@ async def fetch_issuer_discovery(issuer: str) -> OidcDiscovery:
 async def fetch_published_keys(jwks_uri: str) -> PublishedKeys:
     """Read one JWKS document and hold it for as long as its own `Cache-Control` asks, within the floor."""
     try:
-        async with httpx.AsyncClient(timeout=ISSUER_TIMEOUT_SECONDS, follow_redirects=True) as http:
+        async with httpx2.AsyncClient(timeout=ISSUER_TIMEOUT_SECONDS, follow_redirects=True) as http:
             answer = await http.get(jwks_uri, headers={"Accept": "application/json"})
-    except httpx.HTTPError as error:
+    except httpx2.HTTPError as error:
         raise OidcIssuerUnavailableError(f"`{jwks_uri}` could not be read ({error})") from error
     if answer.status_code >= 400:
         raise OidcIssuerUnavailableError(f"`{jwks_uri}` answered {answer.status_code}")
@@ -326,7 +326,7 @@ async def fetch_published_keys(jwks_uri: str) -> PublishedKeys:
     return PublishedKeys(key_set=key_set, fetched_at=now, expires_at=now + cache_seconds(answer.headers))
 
 
-def cache_seconds(headers: httpx.Headers) -> float:
+def cache_seconds(headers: httpx2.Headers) -> float:
     """How long one JWKS answer is held: what it asked for, never below `JWKS_MINIMUM_CACHE_SECONDS`.
 
     The floor is the whole of the policy. An issuer that sends `max-age=0` - which several do, out

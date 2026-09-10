@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_cli.main import build_app
@@ -598,8 +599,8 @@ def _form(resource_id: str, form_kind: str = "aggregate") -> _ServedResource:
 
 async def test_capture_accepts_what_the_endpoint_generated() -> None:
     """The 201 invariant holding is what a passing capture phase means."""
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=_capture_app(accept=True)), base_url="http://serve.test"
+    async with httpx2.AsyncClient(
+        transport=httpx2.ASGITransport(app=_capture_app(accept=True)), base_url="http://serve.test"
     ) as http:
         outcome = await _capture_one(http, _form("DS1"), 0)
     assert outcome.generated
@@ -610,8 +611,8 @@ async def test_capture_accepts_what_the_endpoint_generated() -> None:
 
 async def test_capture_fails_when_the_endpoint_refuses_its_own_output() -> None:
     """An endpoint refusing what it just generated is broken, and the diagnostics say why."""
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=_capture_app(accept=False)), base_url="http://serve.test"
+    async with httpx2.AsyncClient(
+        transport=httpx2.ASGITransport(app=_capture_app(accept=False)), base_url="http://serve.test"
     ) as http:
         outcome = await _capture_one(http, _form("DS1"), 0)
     assert outcome.generated

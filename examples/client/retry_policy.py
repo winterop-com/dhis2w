@@ -2,7 +2,7 @@
 
 Real-world shape: batch workflows that hit a live DHIS2 instance sometimes
 see transient 5xxs (503 during an analytics refresh) or connection resets
-(TCP keepalive drops on long idle periods). `RetryPolicy` wraps the httpx
+(TCP keepalive drops on long idle periods). `RetryPolicy` wraps the httpx2
 transport with exponential-backoff retries so a single blip doesn't fail
 the whole job.
 

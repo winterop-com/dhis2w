@@ -1,6 +1,6 @@
 """Submit one filled form with `FacadeClient` - the typed path, where `send_response.py` is the raw one.
 
-`send_response.py` next door does exactly this over plain httpx, and it is worth reading first: it
+`send_response.py` next door does exactly this over plain httpx2, and it is worth reading first: it
 shows what the wire actually carries. This file is what an integrator writes instead once they are
 in Python and want the contract handed to them rather than reconstructed. Four calls, no request
 built by hand, no header spelled twice, and no status code compared against a constant.

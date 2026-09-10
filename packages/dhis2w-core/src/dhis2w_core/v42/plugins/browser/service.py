@@ -15,7 +15,7 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 from dhis2w_client.v42 import BasicAuth
 
 from dhis2w_core.profile import Profile
@@ -103,7 +103,7 @@ async def mint_jsessionid(profile: Profile) -> str:
             f"Profile auth={profile.auth!r} has no username/password; cannot mint a JSESSIONID without credentials.",
         )
     auth = BasicAuth(username=profile.username, password=profile.password)
-    async with httpx.AsyncClient(base_url=profile.base_url.rstrip("/")) as http_client:
+    async with httpx2.AsyncClient(base_url=profile.base_url.rstrip("/")) as http_client:
         response = await http_client.get("/api/me", headers=await auth.headers())
         response.raise_for_status()
         jsessionid = response.cookies.get("JSESSIONID")

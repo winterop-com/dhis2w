@@ -37,7 +37,7 @@ and two workspace-only ones.
 
 **Package:** `dhis2w-client` | **Install:** `uv add dhis2w-client`
 
-Pure async httpx + pydantic DHIS2 API client. Zero dependency on the plugin
+Pure async httpx2 + pydantic DHIS2 API client. Zero dependency on the plugin
 runtime; drop it into any async Python project.
 
 ### Authentication Providers
@@ -3630,7 +3630,7 @@ typed phases.
   started, from the compiled guide or from the live builders written where a
   compiler would have written them.
 - **capture** - `$generate` over every published form, posted straight back
-  through an in-process `httpx.AsyncClient` over the ASGI app, holding the
+  through an in-process `httpx2.AsyncClient` over the ASGI app, holding the
   endpoint to its 201 invariant, registrations before their stages.
 - **forward** - the corpus drained at the real instance in validate-only mode,
   rejections rolled up by cause.
@@ -3929,6 +3929,11 @@ expressions over FHIR-shaped JSON and returns values. It is the FHIR foundation
 of the workspace rather than a leaf of it - `dhis2w-fhir` and `dhis2w-fhir-serve`
 both depend on it.
 
+- **Remote terminology lookups go over `httpx2`.** `FHIRTerminologyService`
+  reaches an external FHIR terminology server through a synchronous
+  `httpx2.Client`, because the terminology protocol the evaluator drives is
+  synchronous. That call is why `httpx2` is a runtime dependency of this package.
+
 - [`dhis2w_fhir_engine` API reference](../fhir/api-dhis2w-fhir-engine.md) - the
   importable surface, module by module.
 - [FHIRPath](../fhir/501-fhirpath.md), [CQL](../fhir/501-cql.md),
@@ -3986,7 +3991,7 @@ plugin trees and generated code. Version resolution:
 
 ### Async-First Architecture
 
-Every client method is async. The entire runtime uses `async/await` with `httpx`
+Every client method is async. The entire runtime uses `async/await` with `httpx2`
 as the HTTP transport.
 
 ```python

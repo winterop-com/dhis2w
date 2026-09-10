@@ -9,7 +9,7 @@ Three opt-in knobs unlock the health-checker shape:
 
 - `skip_version_probe=True` opens the HTTP pool with zero round-trips.
 - `verify=False` (or a CA bundle path) loosens TLS for self-signed staging.
-- `get_response()` returns the raw `httpx.Response` without raising on 4xx/5xx.
+- `get_response()` returns the raw `httpx2.Response` without raising on 4xx/5xx.
 
 Usage:
     uv run python examples/client/health_check.py

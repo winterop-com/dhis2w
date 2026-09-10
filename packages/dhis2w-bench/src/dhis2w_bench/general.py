@@ -50,7 +50,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, cast
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, Field
 
 from dhis2w_bench.backend import get_backend
@@ -815,19 +815,19 @@ class ModelReport(BaseModel):
 # --- model calls ----------------------------------------------------------------------------
 
 
-async def _post_chat(http: httpx.AsyncClient, payload: dict[str, object]) -> httpx.Response:
+async def _post_chat(http: httpx2.AsyncClient, payload: dict[str, object]) -> httpx2.Response:
     """POST to the chat endpoint, retrying a few times on a transient disconnect (model still alive)."""
-    last: httpx.HTTPError | None = None
+    last: httpx2.HTTPError | None = None
     for attempt in range(3):
         try:
             return await http.post(LM, json=payload, timeout=300.0)
-        except httpx.HTTPError as exc:
+        except httpx2.HTTPError as exc:
             last = exc
             await asyncio.sleep(2.0 * (attempt + 1))
     raise last if last is not None else RuntimeError("chat post exhausted retries")
 
 
-async def _chat(http: httpx.AsyncClient, model: str, system: str, prompt: str) -> tuple[str, float, int]:
+async def _chat(http: httpx2.AsyncClient, model: str, system: str, prompt: str) -> tuple[str, float, int]:
     """One plain chat completion. Returns (content, seconds, completion_tokens)."""
     started = time.monotonic()
     response = await _post_chat(
@@ -856,7 +856,7 @@ def _parse_tool_call(raw: _ToolCallRaw) -> ToolCall:
 
 
 async def _run_tool_scenario(
-    http: httpx.AsyncClient, model: str, scenario: ToolScenario
+    http: httpx2.AsyncClient, model: str, scenario: ToolScenario
 ) -> tuple[list[ToolCall], float, int]:
     """Drive a multi-turn agent loop: call tools, feed back canned results, collect every call made.
 
@@ -1050,7 +1050,7 @@ def _run_cli(text: str, task: CliTask) -> tuple[int, int]:
 async def _benchmark_model(model: str) -> ModelReport:
     """Run all three suites against one loaded model."""
     results: list[TaskResult] = []
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         for py_task in PYTHON_TASKS:
             content, elapsed, tokens = await _chat(http, model, PY_SYSTEM, py_task.prompt)
             outcome = _run_python(content, py_task)

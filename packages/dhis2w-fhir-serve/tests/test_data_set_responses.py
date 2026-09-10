@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.client_context import open_client
@@ -138,7 +139,7 @@ async def data_set_client(
     capture_project: FhirProject,
     data_set_profile: Profile,
     data_sets: DataSetsConfig,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncIterator[httpx2.AsyncClient]:
     """The facade over the capture guide, holding a DHIS2 client against the mocked host."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
@@ -148,18 +149,18 @@ async def data_set_client(
             open_client(data_set_profile) as dhis2,
         ):
             app.state.live_client = dhis2
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 @pytest.fixture
-async def compiled_client(compiled_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def compiled_client(compiled_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """The same facade with no instance behind it, which is what a compiled run is."""
     app: FastAPI = create_app(ServeSettings(project_dir=compiled_project.project_root))
     async with app.router.lifespan_context(app):
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
             yield http
 
 
@@ -210,7 +211,7 @@ def test_the_naming_states_the_system_a_data_set_form_is_published_under(capture
 
 
 async def test_the_read_names_the_data_set_the_unit_and_the_periods_and_nothing_wider(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The bounds the request stated are the bounds the instance is asked under - no subtree, no range."""
     read = _export(_value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "12", org_unit=_ORG_UNIT_UID, period=_PERIOD))
@@ -228,7 +229,7 @@ async def test_the_read_names_the_data_set_the_unit_and_the_periods_and_nothing_
 
 
 async def test_one_reporting_key_is_served_as_the_document_its_data_set_form_describes(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The document is the capture contract's own: the data set's form, the unit, the period, the cells."""
     _export(
@@ -255,7 +256,7 @@ async def test_one_reporting_key_is_served_as_the_document_its_data_set_form_des
 
 
 async def test_the_document_dates_itself_with_the_period_the_values_were_reported_for(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The D2Period extension, in the one spelling `$generate` also writes: the ISO, the type, the range."""
     _export(_value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "12", org_unit=_ORG_UNIT_UID, period=_PERIOD))
@@ -270,7 +271,7 @@ async def test_the_document_dates_itself_with_the_period_the_values_were_reporte
     assert extensions[_FORM_TYPE_EXTENSION]["valueCode"] == "aggregate"
 
 
-async def test_a_value_naming_no_key_of_its_own_takes_the_envelopes(data_set_client: httpx.AsyncClient) -> None:
+async def test_a_value_naming_no_key_of_its_own_takes_the_envelopes(data_set_client: httpx2.AsyncClient) -> None:
     """DHIS2 reads the envelope's keys as the default for a value that names none, and so does this."""
     _export(
         _value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "12"),
@@ -288,7 +289,7 @@ async def test_a_value_naming_no_key_of_its_own_takes_the_envelopes(data_set_cli
 
 
 async def test_a_data_set_on_a_non_default_category_combo_answers_one_document_per_combo(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The attribute option combo is the third reporting key, so two combos are two forms, each coded."""
     _export(
@@ -327,7 +328,7 @@ async def test_a_data_set_on_a_non_default_category_combo_answers_one_document_p
     assert all(response["meta"]["profile"] == [_AGGREGATE_PROFILE] for response in responses)
 
 
-async def test_one_combo_can_be_asked_for_on_its_own(data_set_client: httpx.AsyncClient) -> None:
+async def test_one_combo_can_be_asked_for_on_its_own(data_set_client: httpx2.AsyncClient) -> None:
     """`attributeOptionCombo` narrows the answer to the values filed under one of them."""
     _export(
         _value(
@@ -356,7 +357,7 @@ async def test_one_combo_can_be_asked_for_on_its_own(data_set_client: httpx.Asyn
 
 
 async def test_several_periods_are_several_forms_ordered_by_the_reporting_key(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The order is `(orgUnit, period, attributeOptionCombo)` ascending, so two reads answer the same bytes."""
     read = _export(
@@ -377,7 +378,7 @@ async def test_several_periods_are_several_forms_ordered_by_the_reporting_key(
 
 
 async def test_a_page_is_a_slice_of_the_selection_and_the_links_carry_the_bounds(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """`_count` and `page` walk the ordered selection, and every link still names the read's own bounds."""
     _export(
@@ -404,7 +405,7 @@ async def test_a_page_is_a_slice_of_the_selection_and_the_links_carry_the_bounds
     assert _parameters(_link(second, "self") or "")["period"] == [_PERIOD]
 
 
-async def test_count_zero_asks_how_many_forms_the_selection_holds(data_set_client: httpx.AsyncClient) -> None:
+async def test_count_zero_asks_how_many_forms_the_selection_holds(data_set_client: httpx2.AsyncClient) -> None:
     """R4's request for the total alone: how many forms were reported, and none of them."""
     _export(
         _value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "1", org_unit=_ORG_UNIT_UID, period=_PERIOD),
@@ -417,7 +418,7 @@ async def test_count_zero_asks_how_many_forms_the_selection_holds(data_set_clien
     assert "entry" not in body
 
 
-async def test_a_count_above_the_limit_is_served_the_limit(data_set_client: httpx.AsyncClient) -> None:
+async def test_a_count_above_the_limit_is_served_the_limit(data_set_client: httpx2.AsyncClient) -> None:
     """A page is bounded by `[serve.data_sets] page_size_limit`, clamped rather than refused."""
     _export(_value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "1", org_unit=_ORG_UNIT_UID, period=_PERIOD))
 
@@ -426,7 +427,7 @@ async def test_a_count_above_the_limit_is_served_the_limit(data_set_client: http
     assert _parameters(_link(body, "self") or "")["_count"] == ["100"]
 
 
-async def test_one_reported_form_is_read_at_the_url_its_entry_names(data_set_client: httpx.AsyncClient) -> None:
+async def test_one_reported_form_is_read_at_the_url_its_entry_names(data_set_client: httpx2.AsyncClient) -> None:
     """The id carries all three keys, so the item read needs no parameters and names its own bounds."""
     _export(_value(_BCG_ELEMENT, _FIXED_UNDER_ONE, "12", org_unit=_ORG_UNIT_UID, period=_PERIOD))
 
@@ -444,7 +445,7 @@ async def test_one_reported_form_is_read_at_the_url_its_entry_names(data_set_cli
 
 
 async def test_a_read_naming_no_period_is_refused_before_the_instance_is_asked(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """Ignoring it would answer every period the data set collects to a client that asked about one."""
     read = _export()
@@ -458,7 +459,7 @@ async def test_a_read_naming_no_period_is_refused_before_the_instance_is_asked(
 
 
 async def test_a_read_naming_no_organisation_unit_is_refused_the_same_way(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """The other half of the same bound, and the refusal names both so one round trip states the whole rule."""
     read = _export()
@@ -474,7 +475,7 @@ async def test_a_read_naming_no_organisation_unit_is_refused_the_same_way(
 
 @pytest.mark.parametrize("data_sets", [DataSetsConfig(period_limit=2)])
 async def test_more_periods_than_the_project_answers_at_once_is_refused_with_both_numbers(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """Splitting the read is the client's move, and it cannot make it without the count and the limit."""
     read = _export()
@@ -491,7 +492,7 @@ async def test_more_periods_than_the_project_answers_at_once_is_refused_with_bot
 
 
 async def test_a_period_this_server_cannot_read_is_refused_rather_than_asked_about(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """DHIS2 answers an unparseable period with an empty export, which reads as `nothing was reported`."""
     read = _export()
@@ -503,7 +504,7 @@ async def test_a_period_this_server_cannot_read_is_refused_rather_than_asked_abo
     assert not read.called
 
 
-async def test_a_parameter_this_surface_cannot_apply_is_refused(data_set_client: httpx.AsyncClient) -> None:
+async def test_a_parameter_this_surface_cannot_apply_is_refused(data_set_client: httpx2.AsyncClient) -> None:
     """Ignoring one would answer a narrower question with the whole selection."""
     read = _export()
 
@@ -515,7 +516,7 @@ async def test_a_parameter_this_surface_cannot_apply_is_refused(data_set_client:
     assert not read.called
 
 
-async def test_a_data_set_this_guide_publishes_no_form_for_is_a_404(data_set_client: httpx.AsyncClient) -> None:
+async def test_a_data_set_this_guide_publishes_no_form_for_is_a_404(data_set_client: httpx2.AsyncClient) -> None:
     """There is nothing to serve the values as, and nothing else the request could have meant."""
     read = _export()
 
@@ -528,7 +529,7 @@ async def test_a_data_set_this_guide_publishes_no_form_for_is_a_404(data_set_cli
 
 @pytest.mark.parametrize("data_sets", [DataSetsConfig(data_sets=[_COMBO_DATA_SET_UID])])
 async def test_a_data_set_outside_the_projects_own_list_is_answered_the_same_way(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """A project that named the data sets it answers for has said the others are not served here."""
     read = _export()
@@ -542,7 +543,7 @@ async def test_a_data_set_outside_the_projects_own_list_is_answered_the_same_way
 
 @pytest.mark.parametrize("data_sets", [DataSetsConfig(responses=False)])
 async def test_a_project_serving_forms_alone_refuses_the_values_and_names_the_key(
-    data_set_client: httpx.AsyncClient,
+    data_set_client: httpx2.AsyncClient,
 ) -> None:
     """`[serve.data_sets] responses = false` is a decision the refusal states in the operator's words."""
     read = _export()
@@ -555,7 +556,7 @@ async def test_a_project_serving_forms_alone_refuses_the_values_and_names_the_ke
     assert not read.called
 
 
-async def test_a_compiled_run_answers_that_it_has_no_instance_to_read(compiled_client: httpx.AsyncClient) -> None:
+async def test_a_compiled_run_answers_that_it_has_no_instance_to_read(compiled_client: httpx2.AsyncClient) -> None:
     """A compiled guide has nothing to answer about, and says so rather than answering an empty selection."""
     response = await compiled_client.get(_responses_url())
 
@@ -600,7 +601,7 @@ _JWKS_URL = f"{_ISSUER}/protocol/openid-connect/certs"
 
 
 @pytest.fixture
-async def forwarding_client(capture_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def forwarding_client(capture_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """A facade under `[serve] auth = "dhis2"`, reading the instance as whoever asked."""
     with respx.mock:
         respx.get(f"{_HOST}/api/system/info").mock(return_value=httpx.Response(200, json=_SYSTEM_INFO))
@@ -617,13 +618,13 @@ async def forwarding_client(capture_project: FhirProject) -> AsyncIterator[httpx
         ):
             app.state.live_client = pool
             app.state.caller_client = pool
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 async def test_the_read_carries_the_callers_own_credentials_to_the_instance(
-    forwarding_client: httpx.AsyncClient,
+    forwarding_client: httpx2.AsyncClient,
 ) -> None:
     """Under the `dhis2` posture the values come back as the caller sees them, not as the facade does."""
     respx.get(f"{_HOST}/api/me").mock(return_value=httpx.Response(200, json={"username": "clerk"}))
@@ -636,7 +637,7 @@ async def test_the_read_carries_the_callers_own_credentials_to_the_instance(
 
 
 async def test_a_refusal_the_instance_gave_the_caller_is_answered_as_it_stands(
-    forwarding_client: httpx.AsyncClient,
+    forwarding_client: httpx2.AsyncClient,
 ) -> None:
     """A 403 about the caller is carried through rather than dressed as this server failing to read."""
     respx.get(f"{_HOST}/api/me").mock(return_value=httpx.Response(200, json={"username": "clerk"}))
@@ -649,7 +650,7 @@ async def test_a_refusal_the_instance_gave_the_caller_is_answered_as_it_stands(
 
 
 async def test_a_request_with_no_credential_is_refused_rather_than_read_as_the_facade(
-    forwarding_client: httpx.AsyncClient,
+    forwarding_client: httpx2.AsyncClient,
 ) -> None:
     """There is nobody to answer as, and answering as the facade's own profile is the read this prevents."""
     read = _export()
@@ -662,7 +663,7 @@ async def test_a_request_with_no_credential_is_refused_rather_than_read_as_the_f
 
 
 @pytest.fixture
-async def unforwarded_client(capture_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def unforwarded_client(capture_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """A facade under `auth = "jwt"` with `[serve.jwt] forward_bearer` off, which forwards nothing."""
     with respx.mock:
         respx.get(_DISCOVERY_URL).mock(
@@ -692,13 +693,13 @@ async def unforwarded_client(capture_project: FhirProject) -> AsyncIterator[http
             open_pass_through_client(_HOST, provenance="dhis2w-fhir-serve/9.9.9") as pool,
         ):
             app.state.live_client = pool
-            transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
                 yield http
 
 
 async def test_a_posture_that_forwards_no_token_answers_no_values_at_all(
-    unforwarded_client: httpx.AsyncClient,
+    unforwarded_client: httpx2.AsyncClient,
 ) -> None:
     """501 and the two things that would make it answerable, never a read under the facade's own rights."""
     read = _export()

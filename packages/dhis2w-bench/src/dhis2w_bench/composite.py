@@ -22,7 +22,7 @@ import json
 import subprocess
 from collections.abc import Callable
 
-import httpx
+import httpx2
 from fastmcp import Client
 from pydantic import BaseModel, ConfigDict
 
@@ -281,7 +281,7 @@ async def _run_model(model: str, scenario: Scenario, profile: str) -> ScenarioRe
     """Drive one model through a composite goal via the bridge (write mode), verify, then clean up."""
     async with Client(_bridge_config(profile, "0")) as client:
         tools = _tools(await client.list_tools())
-        async with httpx.AsyncClient() as http:
+        async with httpx2.AsyncClient() as http:
             run = await _agent(client, http, tools, model, scenario.goal, max_steps=20)
     ok, detail = _verify_model(profile, scenario.key)
     _cleanup_model(profile, scenario.key)

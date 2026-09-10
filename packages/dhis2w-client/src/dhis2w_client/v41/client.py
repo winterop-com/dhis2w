@@ -5,15 +5,17 @@ from __future__ import annotations
 import ipaddress
 import logging
 import re
+import ssl
 import time
 from collections.abc import Callable, Mapping
 from types import ModuleType, TracebackType
 from typing import Any, Self
 
-import httpx
+import httpx2
 from pydantic import BaseModel
 
 from dhis2w_client._streaming import StreamParams, StreamSink, stream_to_sink
+from dhis2w_client._tls import resolve_verify
 from dhis2w_client.errors import (
     AuthenticationError,
     Dhis2ApiError,
@@ -109,7 +111,7 @@ class Dhis2Client:
         version: Dhis2 | None = None,
         allow_version_mismatch: bool = False,
         retry_policy: RetryPolicy | None = None,
-        http_limits: httpx.Limits | None = None,
+        http_limits: httpx2.Limits | None = None,
         system_cache_ttl: float | None = 300.0,
         verify: bool | str = True,
         skip_version_probe: bool = False,
@@ -131,7 +133,7 @@ class Dhis2Client:
         the policy sets `retry_non_idempotent=True`. See
         `dhis2w_client.retry.RetryPolicy` for tuning knobs.
 
-        `http_limits` overrides the httpx connection-pool defaults (100
+        `http_limits` overrides the httpx2 connection-pool defaults (100
         max connections, 20 keepalive). Raise them for high-concurrency
         batch workflows; lower them to protect a small DHIS2 instance
         from a large `asyncio.gather`. See
@@ -145,10 +147,11 @@ class Dhis2Client:
         `client.system.info()` after connect costs zero round-trips.
 
         `verify` controls TLS certificate verification on every internal
-        `httpx.AsyncClient` (the main pool plus the canonical-URL and
+        `httpx2.AsyncClient` (the main pool plus the canonical-URL and
         DHIS2-shape probes). Pass `False` to disable verification (only
         safe against self-signed staging boxes) or a path to a custom CA
-        bundle. Default `True`.
+        bundle — a path is turned into an `ssl.SSLContext` before it reaches
+        httpx2. Default `True`.
 
         `skip_version_probe` (default `False`) opens the HTTP pool without
         the two probes `connect()` normally runs (canonical-URL resolution
@@ -160,17 +163,17 @@ class Dhis2Client:
         on access — only `get_raw`, `post_raw`, `get_response`, and
         friends are usable.
 
-        `event_hooks` (default `None`) passes httpx event hooks straight to the
-        internal `AsyncClient`; `None` leaves httpx defaults untouched. The
+        `event_hooks` (default `None`) passes httpx2 event hooks straight to the
+        internal `AsyncClient`; `None` leaves httpx2 defaults untouched. The
         security audit uses a `request` hook to enforce its read-only allowlist.
         """
         self._base_url = base_url.rstrip("/")
         self._auth = auth
-        self._timeout = httpx.Timeout(timeout, connect=connect_timeout)
+        self._timeout = httpx2.Timeout(timeout, connect=connect_timeout)
         self._retry_policy = retry_policy
         self._http_limits = http_limits
-        self._http: httpx.AsyncClient | None = None
-        self._verify = verify
+        self._http: httpx2.AsyncClient | None = None
+        self._verify = resolve_verify(verify)
         self._skip_version_probe = skip_version_probe
         self._event_hooks = event_hooks
         self._version_key: str | None = None
@@ -301,7 +304,7 @@ class Dhis2Client:
                 "verify": self._verify,
             }
             if self._retry_policy is not None:
-                # httpx ignores the client-level `verify`/`limits` kwargs whenever an
+                # httpx2 ignores the client-level `verify`/`limits` kwargs whenever an
                 # explicit transport is supplied, so fold both into the inner transport
                 # the retry wrapper drives. Otherwise a retry policy would silently drop
                 # `verify=False` / a custom CA bundle (TLS failure on every call) and
@@ -309,15 +312,15 @@ class Dhis2Client:
                 pool_limits = (
                     self._http_limits
                     if self._http_limits is not None
-                    else httpx.Limits(max_connections=100, max_keepalive_connections=20)
+                    else httpx2.Limits(max_connections=100, max_keepalive_connections=20)
                 )
-                inner_transport = httpx.AsyncHTTPTransport(verify=self._verify, limits=pool_limits)
+                inner_transport = httpx2.AsyncHTTPTransport(verify=self._verify, limits=pool_limits)
                 kwargs["transport"] = build_retry_transport(self._retry_policy, inner=inner_transport)
             if self._http_limits is not None:
                 kwargs["limits"] = self._http_limits
             if self._event_hooks is not None:
                 kwargs["event_hooks"] = self._event_hooks
-            self._http = httpx.AsyncClient(**kwargs)
+            self._http = httpx2.AsyncClient(**kwargs)
         if self._skip_version_probe:
             return
         try:
@@ -357,10 +360,10 @@ class Dhis2Client:
             raise
 
     @staticmethod
-    async def _resolve_canonical_base_url(base_url: str, *, verify: bool | str = True) -> str:
+    async def _resolve_canonical_base_url(base_url: str, *, verify: bool | ssl.SSLContext = True) -> str:
         """Follow redirects (without auth) to find the canonical DHIS2 base URL.
 
-        httpx strips Authorization headers on cross-host redirects as a security
+        httpx2 strips Authorization headers on cross-host redirects as a security
         measure (it won't leak credentials to a host the user didn't target).
         DHIS2 `play.*` instances redirect `play.dhis2.org/dev` ->
         `play.im.dhis2.org/dev`, so every authenticated call would silently
@@ -379,8 +382,8 @@ class Dhis2Client:
         """
         candidate = base_url.rstrip("/")
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(10.0, connect=10.0),
+            async with httpx2.AsyncClient(
+                timeout=httpx2.Timeout(10.0, connect=10.0),
                 follow_redirects=True,
                 verify=verify,
             ) as probe:
@@ -404,8 +407,8 @@ class Dhis2Client:
     @staticmethod
     def _same_origin(left: str, right: str) -> bool:
         """Return True if two URLs share scheme + host + port."""
-        a = httpx.URL(left)
-        b = httpx.URL(right)
+        a = httpx2.URL(left)
+        b = httpx2.URL(right)
         return (a.scheme, a.host, a.port) == (b.scheme, b.host, b.port)
 
     @staticmethod
@@ -417,8 +420,8 @@ class Dhis2Client:
         registrable domain, which is what makes the DHIS2 `play.dhis2.org` ->
         `play.im.dhis2.org` redirect adoptable while an unrelated host is not.
         """
-        left = httpx.URL(configured)
-        right = httpx.URL(target)
+        left = httpx2.URL(configured)
+        right = httpx2.URL(target)
         if left.scheme != right.scheme:
             return False
         domain = Dhis2Client._registrable_domain(left.host)
@@ -450,7 +453,7 @@ class Dhis2Client:
         return ".".join(labels[-2:])
 
     @staticmethod
-    async def _probe_looks_like_dhis2(base_url: str, *, verify: bool | str = True) -> bool:
+    async def _probe_looks_like_dhis2(base_url: str, *, verify: bool | ssl.SSLContext = True) -> bool:
         """Return True if `<base_url>/api/system/info` answers with a DHIS2 body.
 
         The body is parsed, not sniffed: a content type is something any host
@@ -461,8 +464,8 @@ class Dhis2Client:
         descriptor, an unrelated API — is not DHIS2.
         """
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(5.0, connect=5.0),
+            async with httpx2.AsyncClient(
+                timeout=httpx2.Timeout(5.0, connect=5.0),
                 follow_redirects=False,
                 verify=verify,
             ) as probe:
@@ -532,8 +535,8 @@ class Dhis2Client:
         *,
         params: dict[str, Any] | None = None,
         extra_headers: dict[str, str] | None = None,
-    ) -> httpx.Response:
-        """No-raise GET returning the raw `httpx.Response`; escape hatch for caller-side status logic.
+    ) -> httpx2.Response:
+        """No-raise GET returning the raw `httpx2.Response`; escape hatch for caller-side status logic.
 
         Skips the 4xx/5xx raise block in `_request` so callers can inspect
         status / headers / non-JSON bodies themselves. The auth header is
@@ -702,11 +705,11 @@ class Dhis2Client:
         *,
         params: dict[str, Any] | None = None,
         json: Any = None,
-        content: httpx._types.RequestContent | None = None,
+        content: httpx2._types.RequestContent | None = None,
         files: dict[str, tuple[str, bytes, str]] | None = None,
         extra_headers: dict[str, str] | None = None,
         raise_for_status: bool = True,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Dispatch a request through the shared pool with fresh auth headers.
 
         With `raise_for_status=False`, returns the raw response on any
@@ -755,7 +758,7 @@ class Dhis2Client:
         return response
 
     @staticmethod
-    def _parse_json(response: httpx.Response) -> dict[str, Any]:
+    def _parse_json(response: httpx2.Response) -> dict[str, Any]:
         """Parse a successful response body into a dict (wrapping non-dict JSON under "data").
 
         An empty body maps to `{}` — DHIS2 DELETEs and some 204-style

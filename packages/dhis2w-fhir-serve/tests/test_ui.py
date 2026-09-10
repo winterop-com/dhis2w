@@ -20,7 +20,7 @@ import re
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve import ui as ui_module
@@ -67,15 +67,15 @@ def ui_app(compiled_project: FhirProject, built_bundle: Path) -> FastAPI:
 
 
 @pytest.fixture
-async def ui_client(ui_app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+async def ui_client(ui_app: FastAPI) -> AsyncIterator[httpx2.AsyncClient]:
     """An in-process client over the facade with the UI mounted, lifespan run around the test."""
     async with ui_app.router.lifespan_context(ui_app):
-        transport = httpx.ASGITransport(app=ui_app)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=ui_app)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             yield http
 
 
-async def test_root_serves_the_shell(ui_client: httpx.AsyncClient) -> None:
+async def test_root_serves_the_shell(ui_client: httpx2.AsyncClient) -> None:
     """`/` answers the built index.html, which is what makes the UI reachable at all."""
     response = await ui_client.get("/")
     assert response.status_code == 200
@@ -83,7 +83,7 @@ async def test_root_serves_the_shell(ui_client: httpx.AsyncClient) -> None:
     assert 'id="root"' in response.text
 
 
-async def test_the_shell_takes_the_read_and_leaves_the_batch_refusal_alone(ui_client: httpx.AsyncClient) -> None:
+async def test_the_shell_takes_the_read_and_leaves_the_batch_refusal_alone(ui_client: httpx2.AsyncClient) -> None:
     """A mount at `/` answers GET and would answer POST with a bare 405, so the FHIR refusal mounts ahead of it."""
     response = await ui_client.post("/", json={"resourceType": "Bundle", "type": "batch"})
 
@@ -92,7 +92,7 @@ async def test_the_shell_takes_the_read_and_leaves_the_batch_refusal_alone(ui_cl
     assert "no batch and no transaction" in response.json()["issue"][0]["diagnostics"]
 
 
-async def test_metadata_still_wins(ui_client: httpx.AsyncClient) -> None:
+async def test_metadata_still_wins(ui_client: httpx2.AsyncClient) -> None:
     """The conformance endpoint answers FHIR, not the shell - the mount is registered after it."""
     response = await ui_client.get("/metadata")
     assert response.status_code == 200
@@ -112,14 +112,14 @@ async def test_metadata_still_wins(ui_client: httpx.AsyncClient) -> None:
         "/Location",
     ],
 )
-async def test_fhir_reads_still_win(ui_client: httpx.AsyncClient, path: str) -> None:
+async def test_fhir_reads_still_win(ui_client: httpx2.AsyncClient, path: str) -> None:
     """Every read the facade answers is still answered as FHIR with the UI mounted."""
     response = await ui_client.get(path)
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/fhir+json")
 
 
-async def test_an_unserved_type_is_still_refused_as_fhir(ui_client: httpx.AsyncClient) -> None:
+async def test_an_unserved_type_is_still_refused_as_fhir(ui_client: httpx2.AsyncClient) -> None:
     """A resource type the facade does not serve is an OperationOutcome, not the SPA shell.
 
     This is the case the mount would quietly swallow if it were registered before the read
@@ -130,7 +130,7 @@ async def test_an_unserved_type_is_still_refused_as_fhir(ui_client: httpx.AsyncC
     assert response.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_a_capture_still_posts(ui_client: httpx.AsyncClient) -> None:
+async def test_a_capture_still_posts(ui_client: httpx2.AsyncClient) -> None:
     """The capture route answers a POST, so the mount did not claim the write path either."""
     response = await ui_client.post(
         "/QuestionnaireResponse",
@@ -142,7 +142,7 @@ async def test_a_capture_still_posts(ui_client: httpx.AsyncClient) -> None:
     assert response.json()["resourceType"] == "OperationOutcome"
 
 
-async def test_the_shell_revalidates_and_assets_do_not(ui_client: httpx.AsyncClient) -> None:
+async def test_the_shell_revalidates_and_assets_do_not(ui_client: httpx2.AsyncClient) -> None:
     """A hashed asset is immutable; the shell that names the hashes must never be cached."""
     shell = await ui_client.get("/")
     assert shell.headers["cache-control"] == "no-cache"
@@ -187,8 +187,8 @@ async def test_the_real_bundle_serves_every_asset_its_shell_names(compiled_proje
     """
     application = create_app(ServeSettings(project_dir=compiled_project.project_root, ui=True))
     async with application.router.lifespan_context(application):
-        transport = httpx.ASGITransport(app=application)
-        async with httpx.AsyncClient(transport=transport, base_url=BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=application)
+        async with httpx2.AsyncClient(transport=transport, base_url=BASE_URL) as http:
             shell = await http.get("/")
             assert shell.status_code == 200
             referenced = re.findall(r'(?:src|href)="(/[^"]+)"', shell.text)
@@ -198,7 +198,7 @@ async def test_the_real_bundle_serves_every_asset_its_shell_names(compiled_proje
                 assert asset.status_code == 200, f"{reference} did not load"
 
 
-async def test_the_facade_mounts_nothing_by_default(client: httpx.AsyncClient) -> None:
+async def test_the_facade_mounts_nothing_by_default(client: httpx2.AsyncClient) -> None:
     """Without `--ui` the root is not served at all, so a plain endpoint stays a plain endpoint."""
     response = await client.get("/")
     assert response.status_code == 404

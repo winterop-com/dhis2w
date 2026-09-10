@@ -2,7 +2,7 @@
 
 DHIS2's `POST /api/dataValueSets` accepts JSON, XML, CSV, and ADX. For
 large payloads (100k+ rows), buffering the whole body in memory before
-sending is the slow path — `client.data_values.stream` feeds httpx's
+sending is the slow path — `client.data_values.stream` feeds httpx2's
 chunked transfer encoding directly.
 
 Covered here:

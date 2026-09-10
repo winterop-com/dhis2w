@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_fhir.config import SearchBackend
@@ -55,7 +56,7 @@ class _Reader(BaseModel):
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
-    connection: httpx.AsyncClient
+    connection: httpx2.AsyncClient
 
     async def get_raw(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Read one DHIS2 path, answering the parsed JSON body."""
@@ -112,7 +113,7 @@ def _search_route(*entities: dict[str, Any]) -> respx.Route:
 @pytest.fixture
 async def index() -> Dhis2NameSearchIndex:
     """The `dhis2` backend over a reader pointed at the mocked host."""
-    return Dhis2NameSearchIndex(reader=_Reader(connection=httpx.AsyncClient(base_url=_HOST)))
+    return Dhis2NameSearchIndex(reader=_Reader(connection=httpx2.AsyncClient(base_url=_HOST)))
 
 
 def test_the_dhis2_backend_satisfies_the_index_protocol(index: Dhis2NameSearchIndex) -> None:

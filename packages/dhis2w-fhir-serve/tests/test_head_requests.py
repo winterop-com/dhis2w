@@ -8,12 +8,12 @@ the in-process ASGI transport deliberately does not do it.
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 
 FHIR_JSON = "application/fhir+json"
 
 
-async def test_head_metadata_answers_where_get_does(client: httpx.AsyncClient) -> None:
+async def test_head_metadata_answers_where_get_does(client: httpx2.AsyncClient) -> None:
     head = await client.head("/metadata")
     get = await client.get("/metadata")
 
@@ -22,21 +22,21 @@ async def test_head_metadata_answers_where_get_does(client: httpx.AsyncClient) -
     assert head.headers["content-type"] == get.headers["content-type"] == FHIR_JSON
 
 
-async def test_head_read_answers_where_get_does(client: httpx.AsyncClient) -> None:
+async def test_head_read_answers_where_get_does(client: httpx2.AsyncClient) -> None:
     head = await client.head("/Questionnaire/d2-pr-anc-visit-q")
 
     assert head.status_code == 200
     assert head.headers["content-type"] == FHIR_JSON
 
 
-async def test_head_search_answers_where_get_does(client: httpx.AsyncClient) -> None:
+async def test_head_search_answers_where_get_does(client: httpx2.AsyncClient) -> None:
     head = await client.head("/Questionnaire")
 
     assert head.status_code == 200
     assert head.headers["content-type"] == FHIR_JSON
 
 
-async def test_head_is_404_where_get_is(client: httpx.AsyncClient) -> None:
+async def test_head_is_404_where_get_is(client: httpx2.AsyncClient) -> None:
     head = await client.head("/Questionnaire/missing")
 
     assert head.status_code == 404

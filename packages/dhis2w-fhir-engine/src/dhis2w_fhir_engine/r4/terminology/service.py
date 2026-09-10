@@ -7,7 +7,10 @@ for validating codes against value sets and performing terminology operations.
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
+from types import TracebackType
 from typing import Any
+
+import httpx2
 
 from ...ingest import ResourceInput, as_resource_dict
 from .models import (
@@ -282,7 +285,14 @@ class InMemoryTerminologyService(TerminologyService):
 class FHIRTerminologyService(TerminologyService):
     """Terminology service that delegates to an external FHIR server.
 
-    Proxies terminology operations to a FHIR terminology server.
+    Proxies terminology operations to a FHIR terminology server over a synchronous
+    `httpx2.Client`. The client is synchronous because the terminology protocol the
+    evaluator drives is synchronous: `TerminologyService` is called from inside FHIRPath
+    and CQL evaluation, which has no await point to suspend on. This is the documented
+    exception to the workspace's async-everywhere rule.
+
+    One client is held per instance and reused across operations. Call `close()`, or scope
+    the service with `with`, to release the connection pool.
     """
 
     def __init__(self, base_url: str, headers: dict[str, str] | None = None) -> None:
@@ -294,6 +304,32 @@ class FHIRTerminologyService(TerminologyService):
         """
         self.base_url = base_url.rstrip("/")
         self.headers = headers or {}
+        self._client = httpx2.Client(
+            base_url=self.base_url,
+            headers={
+                "Content-Type": "application/fhir+json",
+                "Accept": "application/fhir+json",
+                **self.headers,
+            },
+            timeout=30.0,
+        )
+
+    def close(self) -> None:
+        """Close the underlying HTTP client and its connection pool."""
+        self._client.close()
+
+    def __enter__(self) -> "FHIRTerminologyService":
+        """Enter a scope that closes the HTTP client on exit."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Close the HTTP client without suppressing anything raised in the scope."""
+        self.close()
 
     def _make_request(self, method: str, path: str, data: dict[str, Any] | None = None) -> dict[str, Any] | None:
         """Make an HTTP request to the FHIR server.
@@ -306,24 +342,15 @@ class FHIRTerminologyService(TerminologyService):
         Returns:
             Response JSON or None on error
         """
-        import urllib.error
-        import urllib.request
-
-        url = f"{self.base_url}{path}"
-        headers = {"Content-Type": "application/fhir+json", "Accept": "application/fhir+json", **self.headers}
-
         try:
-            if data:
-                body = json.dumps(data).encode("utf-8")
-                req = urllib.request.Request(url, data=body, headers=headers, method=method)
-            else:
-                req = urllib.request.Request(url, headers=headers, method=method)
-
-            with urllib.request.urlopen(req, timeout=30) as response:
-                # FHIR server responses are decoded at the JSON boundary and validated by the caller
-                payload: dict[str, Any] = json.loads(response.read().decode("utf-8"))
-                return payload
-        except urllib.error.URLError:
+            # `json=None` sends no body at all, so an absent or empty payload stays a bodiless request.
+            body = data if data else None
+            response = self._client.request(method, path, json=body)
+            response.raise_for_status()
+            # FHIR server responses are decoded at the JSON boundary and validated by the caller
+            payload: dict[str, Any] = json.loads(response.content.decode("utf-8"))
+            return payload
+        except httpx2.HTTPError:
             return None
         except json.JSONDecodeError:
             return None

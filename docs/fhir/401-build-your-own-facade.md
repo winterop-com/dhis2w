@@ -231,7 +231,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 ```
 
 The lifespan is what uvicorn runs at startup and shutdown. Note what the
-example's `__main__` has to do about that: `httpx.ASGITransport` calls the
+example's `__main__` has to do about that: `httpx2.ASGITransport` calls the
 application and nothing else, so a demo that only wrapped the app in a transport
 would find `runtime.client` still `None` inside every route. Entering
 `app.router.lifespan_context(app)` by hand is the fix, and it is exactly what

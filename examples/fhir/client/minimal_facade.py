@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import json
 
-import httpx
+import httpx2
 from _fixture import aggregate_form_id, conversion_context, form_canonical
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError, Profile
@@ -172,7 +172,7 @@ async def main() -> None:
         ("a place the form is not collected at", unreporting_place),
         ("a form the context does not carry", unknown_form),
     )
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://facade") as caller:
+    async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url="http://facade") as caller:
         for label, response in postings:
             answer = await caller.post(
                 "/QuestionnaireResponse", json=response.model_dump(mode="json", by_alias=True, exclude_none=True)

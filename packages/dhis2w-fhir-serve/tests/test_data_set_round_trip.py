@@ -25,6 +25,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from dhis2w_core.profile import Profile
@@ -83,7 +84,7 @@ def _attribute_value_types(request: httpx.Request) -> httpx.Response:
 
 
 @pytest.fixture
-async def round_trip_client(capture_project: FhirProject) -> AsyncIterator[httpx.AsyncClient]:
+async def round_trip_client(capture_project: FhirProject) -> AsyncIterator[httpx2.AsyncClient]:
     """One facade that both receives the submission and reads the values back, over the same guide.
 
     One process rather than two, deliberately: the whole claim is that the form a submission is
@@ -94,10 +95,10 @@ async def round_trip_client(capture_project: FhirProject) -> AsyncIterator[httpx
     which is the same stand-in `test_data_set_responses.py` builds.
     """
     app: FastAPI = create_app(ServeSettings(project_dir=capture_project.project_root))
-    async with app.router.lifespan_context(app), httpx.AsyncClient(base_url=_HOST) as instance:
+    async with app.router.lifespan_context(app), httpx2.AsyncClient(base_url=_HOST) as instance:
         app.state.live_client = _Reader(instance)
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url=_BASE_URL) as http:
             yield http
 
 
@@ -117,7 +118,7 @@ def _answers(response: dict[str, Any]) -> dict[str, Any]:
 
 @respx.mock
 async def test_an_aggregate_form_reads_back_as_the_form_that_was_captured(
-    round_trip_client: httpx.AsyncClient,
+    round_trip_client: httpx2.AsyncClient,
     capture_project: FhirProject,
     aggregate_response: dict[str, Any],
 ) -> None:
@@ -164,7 +165,7 @@ async def test_an_aggregate_form_reads_back_as_the_form_that_was_captured(
 class _Reader:
     """The instance as a `RegisterReader`, over the plain client this test opened against the mock."""
 
-    def __init__(self, connection: httpx.AsyncClient) -> None:
+    def __init__(self, connection: httpx2.AsyncClient) -> None:
         """Hold the connection every read of this test's instance runs over."""
         self.connection = connection
 

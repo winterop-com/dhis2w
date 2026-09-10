@@ -6,7 +6,7 @@ Accessed via `Dhis2Client.routes`.
 `run(code, path)` resolves the user-set `Route.code` to its UID once via
 `GET /api/routes?filter=code:eq:<code>`, caches the mapping for the rest of
 the connection, and delegates the actual proxy GET to
-`Dhis2Client.get_response()` so callers see the raw `httpx.Response` and
+`Dhis2Client.get_response()` so callers see the raw `httpx2.Response` and
 can do their own status-based handling — a 502 from the proxy means
 "DHIS2 reached, downstream didn't", which is a fact health-checkers want
 to report rather than an exception to raise.

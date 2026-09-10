@@ -65,7 +65,7 @@ Posting a response at a running facade, and reading what comes back.
 | --- | --- |
 | [`validate_before_sending.py`](validate_before_sending.py) | Checking a response against the form before a server ever sees it |
 | [`send_response.py`](send_response.py) | POSTing one capture and reading the receipt back |
-| [`send_without_the_library.py`](send_without_the_library.py) | The same capture as plain JSON over httpx — no dhis2w package imported at all |
+| [`send_without_the_library.py`](send_without_the_library.py) | The same capture as plain JSON over httpx2 — no dhis2w package imported at all |
 | [`read_receipt_verdict.py`](read_receipt_verdict.py) | The accepted capture's `OperationOutcome` — what was stored, and what was warned about |
 | [`read_capture_refusal.py`](read_capture_refusal.py) | A refused capture: the 422, its issues, and the FHIRPath each one locates itself with |
 | [`find_person_by_identifier.py`](find_person_by_identifier.py) | Resolving a person to a DHIS2 UID through the register a live facade serves |
@@ -119,7 +119,7 @@ a `Parameters` resource. The engine's own examples, with no server at all, are i
 
 | File | Shows |
 | --- | --- |
-| [`evaluate_via_facade.py`](evaluate_via_facade.py) | Plain httpx against a running facade's `POST /facade/evaluate`: one FHIRPath call, one CQL library, and one expression that will not parse - answered with the line and column, not a 500 |
+| [`evaluate_via_facade.py`](evaluate_via_facade.py) | Plain httpx2 against a running facade's `POST /facade/evaluate`: one FHIRPath call, one CQL library, and one expression that will not parse - answered with the line and column, not a 500 |
 | [`evaluate_stored_resource.py`](evaluate_stored_resource.py) | The `stored` context: FHIRPath one-liners counting a DHIS2 data set's sections, data elements and category-combination cells off the served `Questionnaire`, and the 404 a resource nobody holds earns |
 | [`evaluate_registered_person.py`](evaluate_registered_person.py) | The `registered` context: a chart review of one tracked entity read live out of DHIS2, written as CQL from the guide's own published vocabulary, with the type code checked against the served `CodeSystem` |
 | [`evaluate_as_parameters.py`](evaluate_as_parameters.py) | The same evaluation through `POST /$evaluate`, the FHIR operation: one parameter per define, `part` entries where a define answered several values, an `OperationOutcome` part where one refused |
@@ -133,7 +133,7 @@ Generating, serving, and draining from Python, rather than from the command line
 | File | Shows |
 | --- | --- |
 | [`generate_ig.py`](generate_ig.py) | `load_project` + `resolve_generation_profile` + `generate_full`, and the `GenerateFullReport` consumed as a model rather than parsed as text |
-| [`consume_facade.py`](consume_facade.py) | Plain httpx against a running facade: `/metadata`, search, `$generate`, POST a capture, read the receipt, read `/facade/spool` |
+| [`consume_facade.py`](consume_facade.py) | Plain httpx2 against a running facade: `/metadata`, search, `$generate`, POST a capture, read the receipt, read `/facade/spool` |
 | [`read_metadata_health.py`](read_metadata_health.py) | `GET /facade/metadata-health` off a live facade: the `d2w fhir validate` findings with the DHIS2 field at fault and what each grade costs, plus how far the selection is translated per locale |
 | [`forward_spool.py`](forward_spool.py) | `forward_responses` dry run, and the `ForwardReport` counts, per-receipt outcomes, and rejection reasons rolled up by cause |
 | [`minimal_facade.py`](minimal_facade.py) | Facade ladder, level one: one route that translates a capture, posts it to the endpoint its payload names, and hands back DHIS2's verdict under DHIS2's own status |

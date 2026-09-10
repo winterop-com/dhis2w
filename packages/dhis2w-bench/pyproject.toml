@@ -11,7 +11,7 @@ dependencies = [
     "dhis2w-cli",
     "dhis2w-mcp-router",
     "fastmcp>=3.4.2",
-    "httpx>=0.28.1",
+    "httpx2>=2.12.0",
     "pydantic>=2.13.4",
     "typer>=0.26.7",
 ]

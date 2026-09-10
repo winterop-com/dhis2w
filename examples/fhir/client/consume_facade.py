@@ -1,7 +1,7 @@
 """Drive a running `d2w fhir serve` facade over plain HTTP - discover, fill, submit, read the receipt.
 
 This is the integration developer's path and it needs no DHIS2 and no dhis2w package:
-just httpx and a served project. The facade answers `application/fhir+json` and nothing
+just httpx2 and a served project. The facade answers `application/fhir+json` and nothing
 else, so every read below is FHIR and every code path a real client walks is walked here:
 
 1. `/metadata` - the CapabilityStatement, which is the facade's only contract.
@@ -21,7 +21,7 @@ Usage:
 
 BASE_URL defaults to $FHIR_SERVE_URL. With neither, the shared fixture starts a facade on
 the example project and stops it at exit - which is what lets this run unattended. That
-import is the only line here that needs this repository; everything below it is httpx
+import is the only line here that needs this repository; everything below it is httpx2
 against a URL, which is the whole point.
 """
 
@@ -31,7 +31,7 @@ import asyncio
 import os
 import sys
 
-import httpx
+import httpx2
 from _fixture import served_facade
 
 FHIR_JSON = "application/fhir+json"
@@ -42,7 +42,7 @@ CREATED = 201
 async def main() -> None:
     """Walk the whole read-and-capture loop against one served project."""
     base_url = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FHIR_SERVE_URL")) or served_facade()
-    async with httpx.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=base_url, headers={"Accept": FHIR_JSON}, timeout=30.0) as client:
         capability = (await client.get("/metadata")).raise_for_status().json()
         served = [entry.get("type") for entry in capability["rest"][0].get("resource", [])]
         print(f"{capability['software']['name']} {capability['software'].get('version', '?')} at {base_url}")

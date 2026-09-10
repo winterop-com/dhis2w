@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-import httpx
+import httpx2
 from _fixture import served_facade
 
 FHIR_JSON = "application/fhir+json"
@@ -49,7 +49,7 @@ def verdict(row: dict[str, Any]) -> str:
 
 async def main() -> None:
     """Read the queue's verdict on every receipt, then read one receipt back in whatever state it is in."""
-    async with httpx.AsyncClient(base_url=served_facade(), timeout=30.0) as client:
+    async with httpx2.AsyncClient(base_url=served_facade(), timeout=30.0) as client:
         listing = (
             (await client.get("/facade/spool", params={"_count": 50}, headers={"Accept": "application/json"}))
             .raise_for_status()

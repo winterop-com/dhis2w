@@ -29,7 +29,7 @@ Reach for the official client when you want the smallest possible dependency and
 
 | Package | PyPI | Purpose |
 | --- | --- | --- |
-| [`dhis2w-client`](https://pypi.org/project/dhis2w-client/) | `uv add dhis2w-client` | Pure async httpx + pydantic DHIS2 client with pluggable auth (Basic, PAT, OAuth2/OIDC). Typed models from both `/api/schemas` and `/api/openapi.json` codegen. |
+| [`dhis2w-client`](https://pypi.org/project/dhis2w-client/) | `uv add dhis2w-client` | Pure async httpx2 + pydantic DHIS2 client with pluggable auth (Basic, PAT, OAuth2/OIDC). Typed models from both `/api/schemas` and `/api/openapi.json` codegen. |
 | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) | `uv add dhis2w-core` | Shared runtime: profile discovery, plugin registry, auth factory, token store, first-party plugins. |
 | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) | `uv tool install dhis2w-cli` | Typer console script `d2w`. |
 | [`dhis2w-mcp`](https://pypi.org/project/dhis2w-mcp/) | `uv tool install dhis2w-mcp` | FastMCP server `dhis2w-mcp`. |

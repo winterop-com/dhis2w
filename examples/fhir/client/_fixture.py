@@ -53,7 +53,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx2
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -304,9 +304,17 @@ def _scaffolded_project() -> Path:
         try:
             staging.replace(directory)
         except OSError:
-            # Another example's process finished its own scaffold first. Theirs is built from the
-            # same inputs - that is what the digest in the directory name means - so theirs wins.
-            shutil.rmtree(staging, ignore_errors=True)
+            if (directory / _PROJECT_MARKER_FILENAME).is_file():
+                # Another example's process finished its own scaffold first. Theirs is built from
+                # the same inputs - that is what the digest in the directory name means - so
+                # theirs wins.
+                shutil.rmtree(staging, ignore_errors=True)
+            else:
+                # The directory holds the leftovers of a scaffold that never completed - a facade
+                # log, a `.serve` spool - and no marker. Nothing in it is a project, so it makes
+                # way for the one just built.
+                shutil.rmtree(directory, ignore_errors=True)
+                staging.replace(directory)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -433,8 +441,8 @@ def _await_facade(process: subprocess.Popen[bytes], base_url: str, log_path: Pat
                 f"{_facade_log_tail(log_path)}"
             )
         try:
-            response = httpx.get(f"{base_url}/metadata", headers={"Accept": "application/fhir+json"}, timeout=5.0)
-        except httpx.HTTPError:
+            response = httpx2.get(f"{base_url}/metadata", headers={"Accept": "application/fhir+json"}, timeout=5.0)
+        except httpx2.HTTPError:
             time.sleep(_FACADE_POLL_SECONDS)
             continue
         if response.status_code == _HTTP_OK:

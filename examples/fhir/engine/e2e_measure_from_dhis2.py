@@ -35,7 +35,7 @@ import sys
 from datetime import date, datetime
 from typing import Any
 
-import httpx
+import httpx2
 from dhis2w_client import BasicAuth, Dhis2Client
 from dhis2w_fhir_engine.r4 import BundleDataSource, MeasureEvaluator, MeasureScoring, PopulationType
 from pydantic import BaseModel, ConfigDict, Field
@@ -391,7 +391,7 @@ async def main() -> None:
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except httpx.RequestError as error:
+    except httpx2.RequestError as error:
         print(
             f"error: no DHIS2 answered at {error.request.url.host}:{error.request.url.port} ({error}). "
             "Run `make dhis2-run`, or set DHIS2_URL, DHIS2_USERNAME and DHIS2_PASSWORD to your own instance.",

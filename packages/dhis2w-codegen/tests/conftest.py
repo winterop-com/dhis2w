@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 
 
@@ -56,10 +56,10 @@ def local_password() -> str:
 
 def _is_local_reachable(url: str) -> bool:
     try:
-        with httpx.Client(timeout=2.0) as client:
+        with httpx2.Client(timeout=2.0) as client:
             client.get(f"{url}/dhis-web-login/")
         return True
-    except (httpx.RequestError, httpx.HTTPError):
+    except (httpx2.RequestError, httpx2.HTTPError):
         return False
 
 

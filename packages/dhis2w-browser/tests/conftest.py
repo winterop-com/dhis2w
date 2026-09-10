@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 
 
@@ -58,8 +58,8 @@ def local_password() -> str:
 def local_available(local_url: str) -> bool:
     """Whether the local DHIS2 instance is reachable; skip browser tests otherwise."""
     try:
-        with httpx.Client(timeout=2.0) as client:
+        with httpx2.Client(timeout=2.0) as client:
             client.get(f"{local_url}/dhis-web-login/")
-    except (httpx.RequestError, httpx.HTTPError):
+    except (httpx2.RequestError, httpx2.HTTPError):
         return False
     return True

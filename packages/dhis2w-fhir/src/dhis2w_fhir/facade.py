@@ -42,7 +42,7 @@ from enum import StrEnum
 from types import TracebackType
 from typing import Annotated, Any, Literal, Self
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from dhis2w_fhir.r4 import (
@@ -182,7 +182,7 @@ class FacadeError(Exception):
     arrive in the same shape. A capture refused at 400 or 422 carries one issue per thing wrong with
     the submission, which is why `issues` is a tuple and not one value.
 
-    A connection that never reached the facade is not this: httpx's own `TransportError` passes
+    A connection that never reached the facade is not this: httpx2's own `TransportError` passes
     through untouched, because a server that did not answer stated no outcome to carry.
     """
 
@@ -442,7 +442,7 @@ class FacadeClient:
     """A typed async client for one `d2w fhir serve` facade.
 
     Use it as an async context manager and it owns its connection pool; hand it an
-    `httpx.AsyncClient` and it borrows that one, leaving it open at exit - which is what a caller
+    `httpx2.AsyncClient` and it borrows that one, leaving it open at exit - which is what a caller
     pooling several clients, or a test driving the application in-process, wants.
 
     Every request carries `Accept: application/fhir+json`, except `POST /facade/evaluate`, which is
@@ -456,7 +456,7 @@ class FacadeClient:
         *,
         auth: FacadeCredential | None = None,
         timeout: float = 30.0,
-        http_client: httpx.AsyncClient | None = None,
+        http_client: httpx2.AsyncClient | None = None,
     ) -> None:
         """Point a client at a facade, optionally with a credential and a pool to borrow."""
         self._base_url = base_url.rstrip("/")
@@ -622,7 +622,7 @@ class FacadeClient:
         content_type: str | None = None,
         params: tuple[tuple[str, str], ...] | None = None,
         content: bytes | None = None,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """One request against the facade, raising `FacadeError` on anything that is not an answer."""
         http_client = self._open()
         answered = await http_client.request(
@@ -645,10 +645,10 @@ class FacadeClient:
             headers["Authorization"] = self._auth.authorization()
         return headers
 
-    def _open(self) -> httpx.AsyncClient:
+    def _open(self) -> httpx2.AsyncClient:
         """The pool to send on, opened on first use when the caller supplied none."""
         if self._http_client is None:
-            self._http_client = httpx.AsyncClient(timeout=self._timeout)
+            self._http_client = httpx2.AsyncClient(timeout=self._timeout)
         return self._http_client
 
 
@@ -659,7 +659,7 @@ def _capture_payload(questionnaire_response: QuestionnaireResponse | Mapping[str
     return json.dumps(dict(questionnaire_response)).encode()
 
 
-def _receipt(answered: httpx.Response) -> CaptureReceipt:
+def _receipt(answered: httpx2.Response) -> CaptureReceipt:
     """Read an accepted capture's answer: the id off the header, the note and the warnings off the body."""
     outcome = OperationOutcome.model_validate(answered.json())
     issues = tuple(outcome.issue or ())
@@ -674,12 +674,12 @@ def _receipt(answered: httpx.Response) -> CaptureReceipt:
     )
 
 
-def _refusal(method: str, url: str, answered: httpx.Response) -> FacadeError:
+def _refusal(method: str, url: str, answered: httpx2.Response) -> FacadeError:
     """Build the error one refusal becomes, parsing the OperationOutcome the facade stated it in."""
     return FacadeError(answered.status_code, method, url, _parse_outcome(answered), answered.text)
 
 
-def _parse_outcome(answered: httpx.Response) -> OperationOutcome | None:
+def _parse_outcome(answered: httpx2.Response) -> OperationOutcome | None:
     """The `OperationOutcome` a refusal carried, or None when the body was not one.
 
     The facade answers one for every refusal it makes itself, but a proxy in front of it, or a

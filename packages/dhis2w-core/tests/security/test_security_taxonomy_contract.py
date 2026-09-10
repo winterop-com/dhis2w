@@ -16,7 +16,7 @@ being unreachable or down (gateway 502/503/504) skips rather than fails.
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 import pytest
 from dhis2w_core.security_core import AUTHORITY_CATEGORIES
 
@@ -33,14 +33,14 @@ _OUTAGE_STATUS_CODES = frozenset({502, 503, 504})
 async def _fetch_inventory(base_url: str) -> set[str]:
     """Return the authority id inventory from a live instance, skipping only if it's down.
 
-    Network-level failures (`httpx.RequestError`) and gateway outage statuses
+    Network-level failures (`httpx2.RequestError`) and gateway outage statuses
     (502/503/504) skip; any other HTTP error status fails the test — a 401/500
     from the endpoint must not turn into a green run that validated nothing.
     """
     try:
-        async with httpx.AsyncClient(auth=("admin", "district"), timeout=30.0) as client:
+        async with httpx2.AsyncClient(auth=("admin", "district"), timeout=30.0) as client:
             response = await client.get(f"{base_url}/api/authorities")
-    except httpx.RequestError as exc:
+    except httpx2.RequestError as exc:
         pytest.skip(f"play instance {base_url} unreachable: {exc}")
     if response.status_code in _OUTAGE_STATUS_CODES:
         pytest.skip(f"play instance {base_url} down ({response.status_code})")

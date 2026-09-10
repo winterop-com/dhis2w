@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-import httpx
+import httpx2
 
 from dhis2w_client.generated import Dhis2
 from dhis2w_client.profile import Profile
@@ -61,7 +61,7 @@ async def open_client(
     version: Dhis2 | None = None,
     allow_version_mismatch: bool = False,
     retry_policy: RetryPolicy | None = None,
-    http_limits: httpx.Limits | None = None,
+    http_limits: httpx2.Limits | None = None,
     system_cache_ttl: float | None = 300.0,
     verify: bool | str = True,
 ) -> AsyncGenerator[Dhis2Client]:
@@ -83,7 +83,8 @@ async def open_client(
 
     `verify` controls TLS certificate verification — pass `False` for a
     self-signed staging box or a path to a custom CA bundle for a private-CA
-    instance. Default `True`.
+    instance; a path is turned into an `ssl.SSLContext` before it reaches
+    httpx2. Default `True`.
 
     `retry_policy`, `http_limits`, and `system_cache_ttl` mirror the
     underlying `Dhis2Client` constructor — see its docstring for tuning.
