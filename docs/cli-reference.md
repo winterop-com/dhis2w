@@ -2204,7 +2204,7 @@ $ d2w files resources upload [OPTIONS] {file}
 
 **Options**:
 
-* `--domain <data_value|push_analysis|document|message_attachment|user_avatar|org_unit|icon|job_data>`: FileResource domain (DATA_VALUE, ICON, MESSAGE_ATTACHMENT, ...).  [default: DATA_VALUE]
+* `--domain <data_value|document|message_attachment|user_avatar|org_unit|icon|job_data>`: FileResource domain (DATA_VALUE, ICON, MESSAGE_ATTACHMENT, ...).  [default: DATA_VALUE]
 * `--help`: Show this message and exit.
 
 #### `d2w files resources get`
@@ -2966,7 +2966,7 @@ $ d2w messaging send [OPTIONS] {subject} {text}
 
 Reply to an existing conversation with a plain-text message.
 
-DHIS2&#x27;s reply endpoint takes text/plain only on v42 — attachments +
+DHIS2&#x27;s reply endpoint takes text/plain only on v43 — attachments +
 internal-note flag only work on the initial `send` call.
 
 **Usage**:
@@ -7470,6 +7470,9 @@ $ d2w metadata programs [OPTIONS] COMMAND [ARGS]...
 * `get`: Show one Program with counts inline.
 * `create`: Create a Program.
 * `rename`: Partial-update the label fields on a Program.
+* `set-labels`: Set the v43-only Program UI label...
+* `set-change-log`: Toggle the v43-only `enableChangeLog`...
+* `set-enrollment-category-combo`: Set the v43-only `enrollmentCategoryCombo`...
 * `add-attribute`: Attach a TrackedEntityAttribute to the...
 * `remove-attribute`: Detach a TrackedEntityAttribute from the...
 * `add-to-ou`: Scope the Program to another...
@@ -7546,6 +7549,79 @@ $ d2w metadata programs rename [OPTIONS] {uid}
 * `--short-name <str>`: New short name.
 * `--form-name <str>`: New form name.
 * `--description <str>`: New description.
+* `--help`: Show this message and exit.
+
+#### `d2w metadata programs set-labels`
+
+Set the v43-only Program UI label overrides (capture / tracker apps).
+
+Requires the active DHIS2 to be v43. Pass only the labels to change.
+
+    d2w metadata programs set-labels PRG... --enrollments-label Visits --events-label Encounters
+
+**Usage**:
+
+```console
+$ d2w metadata programs set-labels [OPTIONS] {uid}
+```
+
+**Arguments**:
+
+* `uid`: Program UID.  [required]
+
+**Options**:
+
+* `--enrollments-label <str>`: Custom UI label for enrollments (2-255 chars).
+* `--events-label <str>`: Custom UI label for events (2-255 chars).
+* `--program-stages-label <str>`: Custom UI label for program stages (2-255 chars).
+* `--help`: Show this message and exit.
+
+#### `d2w metadata programs set-change-log`
+
+Toggle the v43-only `enableChangeLog` audit flag on a Program.
+
+Behavioural switch — orthogonal to the UI label setters. Requires
+the active DHIS2 to be v43.
+
+    d2w metadata programs set-change-log PRG... --enable
+
+**Usage**:
+
+```console
+$ d2w metadata programs set-change-log [OPTIONS] {uid}
+```
+
+**Arguments**:
+
+* `uid`: Program UID.  [required]
+
+**Options**:
+
+* `--enable / --disable`: Turn the per-program change-log audit on or off.  [required]
+* `--help`: Show this message and exit.
+
+#### `d2w metadata programs set-enrollment-category-combo`
+
+Set the v43-only `enrollmentCategoryCombo` reference on a Program.
+
+An alt-CC applied specifically at enrollment time, distinct from the
+Program&#x27;s regular `categoryCombo`. Requires the active DHIS2 to be v43.
+
+    d2w metadata programs set-enrollment-category-combo PRG... CC_ALT...
+
+**Usage**:
+
+```console
+$ d2w metadata programs set-enrollment-category-combo [OPTIONS] {uid} {category_combo_uid}
+```
+
+**Arguments**:
+
+* `uid`: Program UID.  [required]
+* `category_combo_uid`: UID of the alternative CategoryCombo applied at enrollment time.  [required]
+
+**Options**:
+
 * `--help`: Show this message and exit.
 
 #### `d2w metadata programs add-attribute`
@@ -8550,7 +8626,7 @@ $ d2w profile add [OPTIONS] {name}
 * `--local`: Save to ./.dhis2/profiles.toml instead (project-scoped, overrides global).
 * `--default`: Set as default after adding.
 * `--verify`: Probe /api/system/info + /api/me after saving.
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile remove`
@@ -8677,7 +8753,7 @@ $ d2w profile bootstrap [OPTIONS] {name}
 * `--global`: Save to ~/.config/dhis2/profiles.toml (default).
 * `--local`: Save to ./.dhis2/profiles.toml instead.
 * `--login / --no-login`: For auth=oauth2, run `profile login` after saving. Ignored for auth=pat.  [default: login]
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile oidc-config`
@@ -8717,7 +8793,7 @@ $ d2w profile oidc-config [OPTIONS] {url}
 * `--local`: Save to ./.dhis2/profiles.toml instead (project-scoped).
 * `--default`: Set as default after saving.
 * `--login`: Trigger `d2w profile login &lt;name&gt;` immediately after saving.
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile pat`

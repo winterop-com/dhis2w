@@ -138,11 +138,11 @@ coverage:
 	@$(UV) run pytest -n auto -q -m "not slow and not contract" \
 		--cov --cov-report=term-missing --cov-report=xml --cov-fail-under=70 packages
 
-# The reference docs render the canonical v42 surface (CLAUDE.md baseline). Pin the
+# The reference docs render the canonical v43 surface (CLAUDE.md baseline). Pin the
 # version so the output is reproducible everywhere — CI (no profile) and local dev
 # (any active profile) alike. The sentinel DHIS2_PROFILE makes profile resolution
 # miss, so DHIS2_VERSION wins instead of whatever .dhis2 profile happens to be active.
-DOCS_DHIS2_VERSION ?= v42
+DOCS_DHIS2_VERSION ?= v43
 DOCS_PIN := DHIS2_PROFILE=__docs_no_profile__ DHIS2_VERSION=$(DOCS_DHIS2_VERSION)
 
 docs-cli:
