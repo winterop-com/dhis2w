@@ -27,7 +27,7 @@ class Profile(BaseModel):
     v43 stack). The wire `Dhis2Client` always auto-detects the server's
     version on connect and rebinds accessors via `_dispatch.py` —
     `profile.version` doesn't override that. When unset, plugin discovery
-    falls back to `DHIS2_VERSION` env var (`41`/`42`/`43`), then to v42.
+    falls back to `DHIS2_VERSION` env var (`41`/`42`/`43`), then to v43.
     """
 
     model_config = ConfigDict(frozen=True)

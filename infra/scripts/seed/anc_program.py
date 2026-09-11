@@ -30,17 +30,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.enums import AggregationType, DataElementDomain, ProgramType, ValueType
-from dhis2w_client.generated.v42.oas import Sharing, TrackerImportReport
-from dhis2w_client.generated.v42.schemas import DataElement, Program, ProgramStage, ProgramStageDataElement
-from dhis2w_client.v42.sharing import ACCESS_READ_WRITE_DATA
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import AggregationType, DataElementDomain, ProgramType, ValueType
+from dhis2w_client.generated.v43.oas import Sharing, TrackerImportReport
+from dhis2w_client.generated.v43.schemas import DataElement, Program, ProgramStage, ProgramStageDataElement
+from dhis2w_client.v43.sharing import ACCESS_READ_WRITE_DATA
 
 from .event_program import _level_four_org_units
 from .loader import ANC_PERSON_IDENTIFIER_BASE, UNIQUE_IDENTIFIER_ATTRIBUTE_UID, person_identifier
 
 if TYPE_CHECKING:
-    from dhis2w_client.v42.client import Dhis2Client
+    from dhis2w_client.v43.client import Dhis2Client
 
 PROGRAM_UID = "PrAncCare01"
 STAGE_UID = "PsAncVisit1"

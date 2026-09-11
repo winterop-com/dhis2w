@@ -42,8 +42,8 @@ from pathlib import Path
 from _runner import run_example
 from dhis2w_client import Dhis2Client
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.v42.auth.oauth2 import OAuth2Auth, capture_code
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth, capture_code
 from dhis2w_core.token_store import SqliteTokenStore
 
 

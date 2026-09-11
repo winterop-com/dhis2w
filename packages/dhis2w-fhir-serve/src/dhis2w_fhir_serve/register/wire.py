@@ -40,7 +40,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from dhis2w_client.errors import Dhis2ApiError
-from dhis2w_client.generated.v42.oas import TrackerEnrollment, TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import TrackerEnrollment, TrackerTrackedEntity
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:

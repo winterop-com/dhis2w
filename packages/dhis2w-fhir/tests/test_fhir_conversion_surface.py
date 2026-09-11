@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import dhis2w_fhir
-from dhis2w_client.generated.v42.oas import DataValueSet, TrackerEnrollment, TrackerEvent, TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import DataValueSet, TrackerEnrollment, TrackerTrackedEntity
+from dhis2w_client.generated.v43.tracker import TrackerEvent
 from dhis2w_fhir import conversion
 from dhis2w_fhir.config import GenerateConfig
 from dhis2w_fhir.conversion import (

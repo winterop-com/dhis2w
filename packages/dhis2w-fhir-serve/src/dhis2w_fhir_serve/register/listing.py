@@ -44,7 +44,7 @@ import binascii
 import re
 from typing import TYPE_CHECKING
 
-from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir_serve.errors import BadSearchError

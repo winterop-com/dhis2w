@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from dhis2w_client.generated.v41.enums import ProgramRuleActionType as ProgramRuleActionTypeV41
-from dhis2w_client.generated.v42.enums import ProgramRuleActionType as ProgramRuleActionTypeV42
+from dhis2w_client.generated.v43.enums import ProgramRuleActionType as ProgramRuleActionTypeV42
 from dhis2w_client.generated.v43.enums import ProgramRuleActionType as ProgramRuleActionTypeV43
 from dhis2w_fhir import (
     AttributeCodeIndex,

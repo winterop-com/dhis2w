@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from dhis2w_client.generated.v42.oas import DataValueSet
+from dhis2w_client.generated.v43.oas import DataValueSet
 from dhis2w_fhir import (
     AttributeCodeIndex,
     AttributeComboPlan,

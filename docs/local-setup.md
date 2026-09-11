@@ -154,7 +154,7 @@ See `docs/architecture/auth.md` for what each key does and which failure mode it
 
 ## The committed `v{version}/dump.sql.gz`
 
-**`infra/v{version}/dump.sql.gz` is the one exception** to the usual "no DB dumps in repo" rule. It's the committed end-to-end dump that makes a fresh clone usable without any external data. The committed default is `infra/v42/dump.sql.gz`; create a sibling `infra/v43/dump.sql.gz` (or any other DHIS2 major) when you start supporting it.
+**`infra/v{version}/dump.sql.gz` is the one exception** to the usual "no DB dumps in repo" rule. It's the committed end-to-end dump that makes a fresh clone usable without any external data. One dump is committed per supported major: `infra/v41/dump.sql.gz`, `infra/v42/dump.sql.gz` and `infra/v43/dump.sql.gz`; a new DHIS2 major gets a sibling when you start supporting it.
 
 The dump mirrors DHIS2 Play's Sierra Leone immunization demo with workspace-local additions. After `make dhis2-run` it gives you:
 

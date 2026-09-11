@@ -17,9 +17,9 @@ from pathlib import Path
 from _runner import run_example
 from dhis2w_core.profile import profile_from_env
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_core.v42.plugins.metadata import service
-from dhis2w_core.v42.plugins.metadata.models import MetadataBundle
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_core.v43.plugins.metadata import service
+from dhis2w_core.v43.plugins.metadata.models import MetadataBundle
 
 
 async def main() -> None:

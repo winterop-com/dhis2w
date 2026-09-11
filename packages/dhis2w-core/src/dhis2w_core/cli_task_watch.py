@@ -16,7 +16,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 from dhis2w_core.profile import Profile
 from dhis2w_core.rich_console import STDERR_CONSOLE
-from dhis2w_core.v42.plugins.maintenance import service as maintenance_service
+from dhis2w_core.v43.plugins.maintenance import service as maintenance_service
 
 _LEVEL_STYLE: dict[str, str] = {
     "INFO": "cyan",

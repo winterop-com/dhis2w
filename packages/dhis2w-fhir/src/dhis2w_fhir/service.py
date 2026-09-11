@@ -17,16 +17,16 @@ import httpx2
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError
 
 # The v41 generated OAS tree carries no import-summary, import-conflict, or import-count module, so
-# the import-report shapes come from v42 on every major - they are the wire shape all three answer with.
-from dhis2w_client.generated.v42.oas import (
+# the import-report shapes come from v43 on every major - they are the wire shape all three answer with.
+from dhis2w_client.generated.v43.oas import (
     DataValueSet,
     ImportConflict,
     ImportSummary,
-    TrackerEvent,
     TrackerImportError,
     TrackerImportReport,
 )
-from dhis2w_client.v42.aggregate import CompleteDataSetRegistration, CompleteDataSetRegistrations
+from dhis2w_client.generated.v43.tracker import TrackerEvent
+from dhis2w_client.v43.aggregate import CompleteDataSetRegistration, CompleteDataSetRegistrations
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import Profile, resolve
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -240,7 +240,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Sequence
 
     from dhis2w_client import Dhis2Client
-    from dhis2w_client.generated.v42.schemas import (
+    from dhis2w_client.generated.v43.schemas import (
         Attribute,
         Category,
         DataElement,

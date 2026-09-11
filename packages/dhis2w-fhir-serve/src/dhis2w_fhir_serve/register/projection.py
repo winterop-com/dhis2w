@@ -61,7 +61,7 @@ from dhis2w_fhir.ips import ServedIdentity, served_identity
 from dhis2w_fhir.r4 import Coding, Identifier, Meta, RegisteredEntity
 
 if TYPE_CHECKING:
-    from dhis2w_client.generated.v42.oas import TrackerAttribute, TrackerTrackedEntity
+    from dhis2w_client.generated.v43.oas import TrackerAttribute, TrackerTrackedEntity
 
     from dhis2w_fhir_serve.register.index import TrackedEntityIndex
 

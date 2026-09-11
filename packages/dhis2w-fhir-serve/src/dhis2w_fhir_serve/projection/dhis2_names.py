@@ -38,7 +38,7 @@ from dhis2w_fhir_serve.register.wire import search_tracked_entities
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+    from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 
 logger = logging.getLogger(LOGGER_NAME)
 

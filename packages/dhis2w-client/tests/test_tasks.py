@@ -9,7 +9,7 @@ import httpx
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, TaskTimeoutError, parse_task_ref
-from dhis2w_client.v42.tasks import TaskCompletion
+from dhis2w_client.v43.tasks import TaskCompletion
 
 
 def test_parse_task_ref_tuple_passthrough() -> None:
@@ -36,7 +36,7 @@ def _mock_connect_preamble() -> None:
     """Stub the canonical-URL + /api/system/info probes `Dhis2Client.connect()` performs."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="ok"))
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"}),
+        return_value=httpx.Response(200, json={"version": "2.43.1"}),
     )
 
 
@@ -52,7 +52,7 @@ async def test_await_completion_returns_final_notification(monkeypatch: pytest.M
     async def _instant_sleep(_: float) -> None:
         return None
 
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.sleep", _instant_sleep)
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.sleep", _instant_sleep)
     _mock_connect_preamble()
 
     route = respx.get("https://dhis2.example/api/system/tasks/ANALYTICS_TABLE/uid123").mock(
@@ -130,7 +130,7 @@ async def test_await_completion_dedupes_notifications_across_polls(monkeypatch: 
     async def _instant_sleep(_: float) -> None:
         return None
 
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.sleep", _instant_sleep)
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.sleep", _instant_sleep)
     _mock_connect_preamble()
 
     respx.get("https://dhis2.example/api/system/tasks/METADATA_IMPORT/xyz").mock(
@@ -174,8 +174,8 @@ async def test_await_completion_times_out(monkeypatch: pytest.MonkeyPatch) -> No
         def time(self) -> float:
             return fake_time()
 
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.sleep", _instant_sleep)
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.get_event_loop", lambda: _FakeLoop())
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.sleep", _instant_sleep)
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.get_event_loop", lambda: _FakeLoop())
     _mock_connect_preamble()
 
     respx.get("https://dhis2.example/api/system/tasks/ANALYTICS_TABLE/stuck").mock(
@@ -202,7 +202,7 @@ async def test_iter_notifications_yields_chronologically(monkeypatch: pytest.Mon
     async def _instant_sleep(_: float) -> None:
         return None
 
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.sleep", _instant_sleep)
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.sleep", _instant_sleep)
     _mock_connect_preamble()
 
     respx.get("https://dhis2.example/api/system/tasks/FOO/bar").mock(
@@ -234,7 +234,7 @@ async def test_await_completion_unwraps_get_raw_data_wrapper(monkeypatch: pytest
     async def _instant_sleep(_: float) -> None:
         return None
 
-    monkeypatch.setattr("dhis2w_client.v42.tasks.asyncio.sleep", _instant_sleep)
+    monkeypatch.setattr("dhis2w_client.v43.tasks.asyncio.sleep", _instant_sleep)
     _mock_connect_preamble()
 
     # DHIS2 returns a bare array at this endpoint — `_parse_json` will wrap it.

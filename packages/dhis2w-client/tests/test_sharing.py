@@ -123,7 +123,7 @@ async def test_apply_sharing_posts_object_wrapper(client: Dhis2Client) -> None:
 async def test_apply_sharing_accepts_raw_sharing_object(client: Dhis2Client) -> None:
     """Callers can pass a raw SharingObject instead of the builder."""
     _stub_connect_routes()
-    from dhis2w_client.generated.v42.oas import SharingObject
+    from dhis2w_client.generated.v43.oas import SharingObject
 
     route = respx.post(
         "https://dhis2.example/api/sharing",

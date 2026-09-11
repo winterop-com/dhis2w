@@ -25,7 +25,7 @@ from dhis2w_core.profile import (
 if TYPE_CHECKING:
     # Annotation-only — kept out of the runtime import graph so `main.py`'s
     # `import dhis2w_core.cli_errors` stays off the heavy generated OAS tree.
-    from dhis2w_client.v42.envelopes import WebMessageResponse
+    from dhis2w_client.v43.envelopes import WebMessageResponse
 
 _NO_PROFILE_HINT = [
     "run `d2w profile --help` for setup options, or try:",

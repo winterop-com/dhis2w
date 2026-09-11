@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import ipaddress
 import logging
 import re
@@ -14,6 +15,7 @@ from typing import Any, Self
 import httpx2
 from pydantic import BaseModel
 
+from dhis2w_client._dispatch import rebind_accessors_for_version
 from dhis2w_client._streaming import StreamParams, StreamSink, stream_to_sink
 from dhis2w_client._tls import resolve_verify
 from dhis2w_client.errors import (
@@ -24,7 +26,6 @@ from dhis2w_client.errors import (
     format_unauthorized_message,
 )
 from dhis2w_client.generated import Dhis2, available_versions, load
-from dhis2w_client.generated.v43.oas import SystemInfo as _SystemInfo
 from dhis2w_client.v43.analytics_stream import AnalyticsAccessor
 from dhis2w_client.v43.apps import AppsAccessor
 from dhis2w_client.v43.attribute_values import AttributeValuesAccessor
@@ -85,20 +86,21 @@ _HTTP_LOG = logging.getLogger("dhis2w_client.http")
 
 
 class Dhis2Client:
-    """Async DHIS2 client pinned to v43 — accessor attributes are v43-typed.
+    """Async DHIS2 client homed on the v43 tree; the server's major is discovered via /api/system/info on connect.
 
-    Independent class (NOT a subclass of v42's `Dhis2Client`). Every accessor
-    attribute (`self.metadata`, `self.apps`, etc.) imports from the
-    `dhis2w_client.v43.*` hand-written tree, so the static type chain is
-    v43-pure end-to-end. `connect()` validates the server is actually v43
-    and raises `RuntimeError` otherwise.
+    Independent class (NOT a subclass of another tree's `Dhis2Client`).
+    Every accessor attribute (`self.metadata`, `self.apps`, etc.) imports
+    from the `dhis2w_client.v43.*` hand-written tree, so the static type
+    chain is v43-pure end-to-end. `connect()` reads `/api/system/info` and,
+    when the server reports a different major, calls
+    `dhis2w_client._dispatch.rebind_accessors_for_version` to swap the
+    accessor *instances* for that major's classes — behaviour follows the
+    server while the static types stay v43.
 
-    Choose this class when you want v43-typed accessor returns (e.g. for
-    code that relies on v43-specific divergence — BUGS.md #34/#35/#38).
-    For auto-detection against any v41/v42/v43 server, use the top-level
-    `from dhis2w_client import Dhis2Client` — that returns the v42-typed
-    baseline with runtime dispatch via
-    `dhis2w_client._dispatch.rebind_accessors_for_version`.
+    Choose this class when you want v43-typed accessor returns; import
+    `dhis2w_client.v41.Dhis2Client` or `dhis2w_client.v42.Dhis2Client` for
+    v41- or v42-typed ones. The top-level
+    `from dhis2w_client import Dhis2Client` re-exports the v43 class.
     """
 
     def __init__(
@@ -338,25 +340,23 @@ class Dhis2Client:
             else:
                 self._version_key = self._pick_version_key(self._raw_version)
             self._generated = load(self._version_key)
-            if self._version_key != "v43":
-                raise RuntimeError(
-                    f"dhis2w_client.v43.client.Dhis2Client connected to a {self._raw_version!r} "
-                    f"server (version_key={self._version_key!r}); v43 accessors will misbehave "
-                    "against a non-v43 instance. Use dhis2w_client.Dhis2Client (the top-level "
-                    "v42 entry point) for auto-dispatching accessors per server version."
-                )
+            rebind_accessors_for_version(self, self._version_key, home="v43")
             # Prime the system cache with the info we already fetched so
             # `client.system.info()` right after connect is a free in-process read.
+            # Validate against the *bound* tree's SystemInfo — after a rebind,
+            # cached readers must see the detected tree's model, not the home tree's.
             if self._system_cache is not None:
-                self._system_cache.set("info", _SystemInfo.model_validate(info))
+                oas_module = importlib.import_module(f"dhis2w_client.generated.{self._version_key}.oas")
+                system_info_cls: type[BaseModel] | None = getattr(oas_module, "SystemInfo", None)
+                if system_info_cls is not None:
+                    self._system_cache.set("info", system_info_cls.model_validate(info))
             resources_cls = getattr(self._generated, "Resources", None)
             if resources_cls is not None:
                 self._resources = resources_cls(self)
         except BaseException:
-            # Any probe failure (bad auth, version-pin mismatch, non-JSON body, or the
-            # wrong-server RuntimeError above) leaves the pool open, and __aexit__ never
-            # runs because __aenter__ raised. Close the pool before re-raising so
-            # connect() never leaks an AsyncClient.
+            # Any probe failure (bad auth, version-pin mismatch, non-JSON body) leaves
+            # the pool open, and __aexit__ never runs because __aenter__ raised. Close
+            # the pool before re-raising so connect() never leaks an AsyncClient.
             await self.close()
             raise
 

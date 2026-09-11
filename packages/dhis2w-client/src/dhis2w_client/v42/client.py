@@ -86,25 +86,21 @@ _HTTP_LOG = logging.getLogger("dhis2w_client.http")
 
 
 class Dhis2Client:
-    """Async DHIS2 client for v42 (the canonical baseline); version is discovered via /api/system/info on connect.
+    """Async DHIS2 client homed on the v42 tree; the server's major is discovered via /api/system/info on connect.
 
-    This class's accessor attributes (`self.metadata`, `self.apps`, etc.)
-    are typed against the v42 hand-written tree (`dhis2w_client.v42.*`).
-    At runtime, `connect()` calls `dhis2w_client._dispatch.rebind_accessors_for_version`
-    which swaps the *instances* for v41 / v43 versions when the server
-    differs — so behaviour is correct, but the static *types* stay v42.
+    Independent class (NOT a subclass of another tree's `Dhis2Client`).
+    Every accessor attribute (`self.metadata`, `self.apps`, etc.) imports
+    from the `dhis2w_client.v42.*` hand-written tree, so the static type
+    chain is v42-pure end-to-end. `connect()` reads `/api/system/info` and,
+    when the server reports a different major, calls
+    `dhis2w_client._dispatch.rebind_accessors_for_version` to swap the
+    accessor *instances* for that major's classes — behaviour follows the
+    server while the static types stay v42.
 
-    For static-type purity against a non-v42 server, import the
-    per-version class explicitly:
-
-    ```python
-    from dhis2w_client.v43 import Dhis2Client  # v43-typed accessors
-    from dhis2w_client.v41 import Dhis2Client  # v41-typed accessors
-    ```
-
-    The top-level `from dhis2w_client import Dhis2Client` re-exports this
-    v42 class — the runtime dispatch keeps it correct against v41 / v43
-    stacks; only the static type chain is v42-flavoured.
+    Choose this class when you want v42-typed accessor returns; import
+    `dhis2w_client.v41.Dhis2Client` or `dhis2w_client.v43.Dhis2Client` for
+    v41- or v43-typed ones. The top-level
+    `from dhis2w_client import Dhis2Client` re-exports the v43 class.
     """
 
     def __init__(
@@ -344,11 +340,11 @@ class Dhis2Client:
             else:
                 self._version_key = self._pick_version_key(self._raw_version)
             self._generated = load(self._version_key)
-            rebind_accessors_for_version(self, self._version_key)
+            rebind_accessors_for_version(self, self._version_key, home="v42")
             # Prime the system cache with the info we already fetched so
             # `client.system.info()` right after connect is a free in-process read.
-            # Validate against the *bound* tree's SystemInfo — after a rebind to
-            # v41/v43, cached readers must see that tree's model, not the v42 one.
+            # Validate against the *bound* tree's SystemInfo — after a rebind,
+            # cached readers must see the detected tree's model, not the home tree's.
             if self._system_cache is not None:
                 oas_module = importlib.import_module(f"dhis2w_client.generated.{self._version_key}.oas")
                 system_info_cls: type[BaseModel] | None = getattr(oas_module, "SystemInfo", None)

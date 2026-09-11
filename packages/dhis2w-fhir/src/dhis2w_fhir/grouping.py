@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
-    from dhis2w_client.generated.v42.oas import DataValueSet
+    from dhis2w_client.generated.v43.oas import DataValueSet
 
 __all__ = [
     "ReportedForm",

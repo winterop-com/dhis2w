@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from dhis2w_client.generated.v42.oas import DataValueSet
+from dhis2w_client.generated.v43.oas import DataValueSet
 from dhis2w_fhir import group_data_values
 
 

@@ -19,9 +19,9 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_client import DashboardSlot, VisualizationSpec
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.enums import VisualizationType
-from dhis2w_client.generated.v42.schemas import Dashboard
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.enums import VisualizationType
+from dhis2w_client.generated.v43.schemas import Dashboard
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 

@@ -19,8 +19,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from dhis2w_client.generated.v42.oas import DataValueSet, TrackerEnrollment, TrackerEvent, TrackerTrackedEntity
-from dhis2w_client.v42.aggregate import CompleteDataSetRegistration
+from dhis2w_client.generated.v43.oas import DataValueSet, TrackerEnrollment, TrackerTrackedEntity
+from dhis2w_client.generated.v43.tracker import TrackerEvent
+from dhis2w_client.v43.aggregate import CompleteDataSetRegistration
 from pydantic import BaseModel, ConfigDict, Field
 
 from dhis2w_fhir.foundation.schemas import IDENTIFIER_SYSTEM_SUBJECTS, FoundationNaming

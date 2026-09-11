@@ -118,7 +118,7 @@ describe('the issuer a JWT server names', () => {
 describe('the credential this page holds', () => {
     // The literals are what `base64.b64encode("<user>:<password>".encode())` answers in Python, so
     // this asserts the browser builds the byte-for-byte header
-    // `dhis2w_client.v42.auth.basic.BasicAuth` builds. A `btoa` round trip here would assert only
+    // `dhis2w_client.v43.auth.basic.BasicAuth` builds. A `btoa` round trip here would assert only
     // that the module agrees with itself, which is what let the two drift apart.
     it('sends an ASCII username and password as HTTP Basic, as the Python client does', () => {
         expect(basicAuthorization('admin', 'district')).toBe('Basic YWRtaW46ZGlzdHJpY3Q=')

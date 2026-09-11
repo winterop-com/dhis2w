@@ -9,7 +9,7 @@ triaged.
 from __future__ import annotations
 
 import sys
-from typing import NoReturn, cast
+from typing import NoReturn
 
 import httpx2
 import typer
@@ -87,9 +87,7 @@ def run_app(app: typer.Typer) -> NoReturn:
 
 def _render_api_error(exc: Dhis2ApiError) -> NoReturn:
     """Render a Dhis2ApiError — extract the WebMessage envelope when DHIS2 ships one."""
-    # The shared Dhis2ApiError yields the v42-baseline WebMessageResponse; it's structurally
-    # identical to this tree's, so type it as such for the version-typed render helpers below.
-    envelope = cast("WebMessageResponse | None", exc.web_message)
+    envelope = exc.web_message
     detail = exc.message or ""
     body_msg = envelope.message if envelope and envelope.message else _extract_body_message(exc.body)
     if body_msg:

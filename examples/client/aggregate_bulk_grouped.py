@@ -23,10 +23,10 @@ from __future__ import annotations
 
 from _runner import run_example
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.v42 import DataValue
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.v43 import DataValue
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.client_context import open_client
+from dhis2w_core.v43.client_context import open_client
 from pydantic import BaseModel
 
 

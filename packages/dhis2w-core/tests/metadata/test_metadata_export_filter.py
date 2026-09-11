@@ -11,8 +11,8 @@ import pytest
 import respx
 from dhis2w_cli.main import build_app
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.metadata import service
-from dhis2w_core.v42.plugins.metadata.models import MetadataBundle
+from dhis2w_core.v43.plugins.metadata import service
+from dhis2w_core.v43.plugins.metadata.models import MetadataBundle
 from typer.testing import CliRunner
 
 
@@ -38,7 +38,7 @@ def _mock_connect_preamble() -> None:
     """Mock the endpoints `Dhis2Client.connect()` hits before the per-test route."""
     respx.get("http://mock.example/").mock(return_value=httpx.Response(200, text="ok"))
     respx.get("http://mock.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"}),
+        return_value=httpx.Response(200, json={"version": "2.43.1"}),
     )
 
 
@@ -170,7 +170,7 @@ def test_cli_export_parses_prefixed_filter_flag(runner: CliRunner, tmp_path: Pat
     """`--filter dataElements:name:like:ANC` routes into per_resource_filters correctly."""
     out = tmp_path / "b.json"
     mock = AsyncMock(return_value=_bundle({"dataElements": []}))
-    with patch("dhis2w_core.v42.plugins.metadata.service.export_metadata", mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.export_metadata", mock):
         result = runner.invoke(
             build_app(),
             [
@@ -219,7 +219,7 @@ def test_cli_export_prints_dangling_reference_warning(runner: CliRunner, tmp_pat
             }
         )
     )
-    with patch("dhis2w_core.v42.plugins.metadata.service.export_metadata", mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.export_metadata", mock):
         result = runner.invoke(
             build_app(),
             ["metadata", "export", "--resource", "dataElements", "--output", str(out)],
@@ -244,7 +244,7 @@ def test_cli_export_no_check_references_silences_the_warning(runner: CliRunner, 
             }
         )
     )
-    with patch("dhis2w_core.v42.plugins.metadata.service.export_metadata", mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.export_metadata", mock):
         result = runner.invoke(
             build_app(),
             ["metadata", "export", "--resource", "dataElements", "--no-check-references", "--output", str(out)],
@@ -267,7 +267,7 @@ def test_cli_export_clean_bundle_says_no_dangling(runner: CliRunner, tmp_path: P
             }
         )
     )
-    with patch("dhis2w_core.v42.plugins.metadata.service.export_metadata", mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.export_metadata", mock):
         result = runner.invoke(
             build_app(),
             ["metadata", "export", "--resource", "dataElements", "--resource", "categoryCombos", "--output", str(out)],

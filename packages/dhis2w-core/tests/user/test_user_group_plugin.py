@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.user_group import service
+from dhis2w_core.v43.plugins.user_group import service
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def _stub_connect_routes() -> None:
 
 @respx.mock
 async def test_add_member_hits_dedicated_endpoint(basic_profile: Profile) -> None:
-    """DHIS2 v42 names the userGroup member collection `users`, not `members`."""
+    """DHIS2 names the userGroup member collection `users`, not `members`."""
     _stub_connect_routes()
     route = respx.post("https://dhis2.example/api/userGroups/grpUID_12345/users/userUID_567").mock(
         return_value=httpx.Response(200, json={"status": "OK"}),

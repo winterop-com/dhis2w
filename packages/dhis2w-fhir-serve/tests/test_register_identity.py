@@ -20,7 +20,7 @@ import httpx2
 import pytest
 import respx
 from dhis2w_client.errors import Dhis2ApiError
-from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 from dhis2w_fhir.config import FhirProject, TrackedEntitiesConfig, load_project
 from dhis2w_fhir.ips import DATA_ABSENT_ERROR, DATA_ABSENT_UNKNOWN
 from dhis2w_fhir.r4 import DATA_ABSENT_REASON_EXTENSION_URL

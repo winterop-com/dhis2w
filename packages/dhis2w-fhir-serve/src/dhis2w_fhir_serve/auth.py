@@ -20,7 +20,7 @@ process: the values are read once, at first use, and a running server holds what
 
 `dhis2` is the flagship: the caller's DHIS2 credentials are their facade credentials. Whatever the
 caller put in `Authorization` - `Basic` for a username and password, `ApiToken` for a DHIS2 personal
-access token, which is the header shape `dhis2w_client.v42.auth.pat` sends - is replayed against
+access token, which is the header shape `dhis2w_client.v43.auth.pat` sends - is replayed against
 `GET /api/me` on the same instance this run reads, in a request of its own that carries the caller's
 header and NEVER the runtime's client. The facade's own credentials are not a fallback and are not a
 second attempt: a caller who cannot read `/api/me` cannot use this facade. The username DHIS2 answers

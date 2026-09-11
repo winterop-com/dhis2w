@@ -10,8 +10,8 @@ from unittest.mock import patch
 import pytest
 import typer
 from dhis2w_client import CustomizationResult, LoginCustomization
-from dhis2w_core.v42.plugins.customize import plugin, service
-from dhis2w_core.v42.plugins.customize.cli import app as customize_app
+from dhis2w_core.v43.plugins.customize import plugin, service
+from dhis2w_core.v43.plugins.customize.cli import app as customize_app
 from typer.testing import CliRunner
 
 _runner = CliRunner()
@@ -64,7 +64,7 @@ def test_apply_preset_dir_skips_missing_files(tmp_path: Path) -> None:
             return None
 
     async def _run() -> CustomizationResult:
-        with patch("dhis2w_core.v42.plugins.customize.service.open_client", return_value=_FakeClient()):
+        with patch("dhis2w_core.v43.plugins.customize.service.open_client", return_value=_FakeClient()):
             return await service.apply_preset_dir(profile=None, directory=tmp_path)  # type: ignore[arg-type]
 
     import asyncio
@@ -110,7 +110,7 @@ def test_apply_preset_dir_loads_every_file_when_present(tmp_path: Path) -> None:
             return None
 
     async def _run() -> CustomizationResult:
-        with patch("dhis2w_core.v42.plugins.customize.service.open_client", return_value=_FakeClient()):
+        with patch("dhis2w_core.v43.plugins.customize.service.open_client", return_value=_FakeClient()):
             return await service.apply_preset_dir(profile=None, directory=tmp_path)  # type: ignore[arg-type]
 
     import asyncio

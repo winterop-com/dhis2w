@@ -50,8 +50,8 @@ def test_map_screenshot_renders_typed_results(basic_profile: None) -> None:  # n
     """The map command reads `output_path` / `display_name` off the typed model (not dict indexing)."""
     results = [MapCaptureResult(uid="m1", display_name="Malaria cases", output_path=Path("/tmp/m1.png"), rendered=True)]
     with (
-        patch("dhis2w_core.v42.plugins.browser.service.require_browser", return_value=None),
-        patch("dhis2w_core.v42.plugins.browser.service.capture_maps", new=AsyncMock(return_value=results)),
+        patch("dhis2w_core.v43.plugins.browser.service.require_browser", return_value=None),
+        patch("dhis2w_core.v43.plugins.browser.service.capture_maps", new=AsyncMock(return_value=results)),
     ):
         result = _runner.invoke(build_app(), ["browser", "map", "screenshot"])
     assert result.exit_code == 0, result.output
@@ -65,8 +65,8 @@ def test_map_screenshot_json_dumps_typed_models(basic_profile: None) -> None:  #
         MapCaptureResult(uid="m1", display_name="Malaria cases", output_path=Path("/tmp/m1.png"), rendered=False)
     ]
     with (
-        patch("dhis2w_core.v42.plugins.browser.service.require_browser", return_value=None),
-        patch("dhis2w_core.v42.plugins.browser.service.capture_maps", new=AsyncMock(return_value=results)),
+        patch("dhis2w_core.v43.plugins.browser.service.require_browser", return_value=None),
+        patch("dhis2w_core.v43.plugins.browser.service.capture_maps", new=AsyncMock(return_value=results)),
     ):
         result = _runner.invoke(build_app(), ["--json", "browser", "map", "screenshot"])
     assert result.exit_code == 0, result.output
@@ -81,8 +81,8 @@ def test_viz_screenshot_renders_typed_results(basic_profile: None) -> None:  # n
         VisualizationCaptureResult(uid="v1", display_name="ANC trend", output_path=Path("/tmp/v1.png"), rendered=True),
     ]
     with (
-        patch("dhis2w_core.v42.plugins.browser.service.require_browser", return_value=None),
-        patch("dhis2w_core.v42.plugins.browser.service.capture_visualizations", new=AsyncMock(return_value=results)),
+        patch("dhis2w_core.v43.plugins.browser.service.require_browser", return_value=None),
+        patch("dhis2w_core.v43.plugins.browser.service.capture_visualizations", new=AsyncMock(return_value=results)),
     ):
         result = _runner.invoke(build_app(), ["browser", "viz", "screenshot"])
     assert result.exit_code == 0, result.output

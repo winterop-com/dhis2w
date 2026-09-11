@@ -39,7 +39,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from dhis2w_client.errors import Dhis2ApiError
-from dhis2w_client.generated.v42.oas import TrackerEvent, TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import Event, TrackerTrackedEntity
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir_serve.register.wire import TRACKED_ENTITIES_PATH, is_tracked_entity_uid
@@ -141,7 +141,7 @@ def recorded_entity(entity: TrackerTrackedEntity, tracked_entity_uid: str) -> Tr
     )
 
 
-def _recorded_event(event: TrackerEvent, *, enrollment_uid: str | None, program_uid: str | None) -> RecordedEvent:
+def _recorded_event(event: Event, *, enrollment_uid: str | None, program_uid: str | None) -> RecordedEvent:
     """Read one answered event, taking the enrollment it hung under as the enrollment it belongs to.
 
     The event states both facts itself when the projection asks for them, and the enclosing enrollment

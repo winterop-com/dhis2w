@@ -10,8 +10,8 @@ import pytest
 import respx
 from dhis2w_cli.main import build_app
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.maintenance import service
-from dhis2w_core.v42.plugins.maintenance.service import SoftDeleteTarget
+from dhis2w_core.v43.plugins.maintenance import service
+from dhis2w_core.v43.plugins.maintenance.service import SoftDeleteTarget
 from typer.testing import CliRunner
 
 
@@ -37,7 +37,7 @@ def runner() -> CliRunner:
 
 def _mock_system_info() -> None:
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"})
+        return_value=httpx.Response(200, json={"version": "2.43.1"})
     )
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text=""))
 
@@ -192,7 +192,7 @@ async def test_get_dataintegrity_summary_parses_report(profile: Profile) -> None
 def test_cli_cleanup_data_values_confirm_accept(runner: CliRunner) -> None:
     """`maintenance cleanup data-values` with `y` proceeds to the irreversible purge."""
     remove = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.maintenance.service.remove_soft_deleted", new=remove):
+    with patch("dhis2w_core.v43.plugins.maintenance.service.remove_soft_deleted", new=remove):
         result = runner.invoke(build_app(), ["maintenance", "cleanup", "data-values"], input="y\n")
     assert result.exit_code == 0, result.output
     assert "irreversible" in result.output
@@ -203,7 +203,7 @@ def test_cli_cleanup_data_values_confirm_accept(runner: CliRunner) -> None:
 def test_cli_cleanup_data_values_confirm_abort_skips_service(runner: CliRunner) -> None:
     """`maintenance cleanup data-values` with `n` aborts before the purge runs."""
     remove = AsyncMock()
-    with patch("dhis2w_core.v42.plugins.maintenance.service.remove_soft_deleted", new=remove):
+    with patch("dhis2w_core.v43.plugins.maintenance.service.remove_soft_deleted", new=remove):
         result = runner.invoke(build_app(), ["maintenance", "cleanup", "data-values"], input="n\n")
     assert result.exit_code != 0
     remove.assert_not_called()
@@ -212,7 +212,7 @@ def test_cli_cleanup_data_values_confirm_abort_skips_service(runner: CliRunner) 
 def test_cli_cleanup_data_values_yes_flag_skips_prompt(runner: CliRunner) -> None:
     """`maintenance cleanup data-values --yes` purges without prompting."""
     remove = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.maintenance.service.remove_soft_deleted", new=remove):
+    with patch("dhis2w_core.v43.plugins.maintenance.service.remove_soft_deleted", new=remove):
         result = runner.invoke(build_app(), ["maintenance", "cleanup", "data-values", "--yes"])
     assert result.exit_code == 0, result.output
     assert "soft-deleted data values removed" in result.output

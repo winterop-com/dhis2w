@@ -30,8 +30,8 @@ from _runner import run_example
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import Profile, load_catalog
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_core.v42.plugins.profile import service
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_core.v43.plugins.profile import service
 
 
 async def demo_in_memory() -> None:

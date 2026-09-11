@@ -87,7 +87,7 @@ def run_app(app: typer.Typer) -> NoReturn:
 
 def _render_api_error(exc: Dhis2ApiError) -> NoReturn:
     """Render a Dhis2ApiError — extract the WebMessage envelope when DHIS2 ships one."""
-    # The shared Dhis2ApiError yields the v42-baseline WebMessageResponse; it's structurally
+    # The shared Dhis2ApiError yields the v43-baseline WebMessageResponse; it's structurally
     # identical to this tree's, so type it as such for the version-typed render helpers below.
     envelope = cast("WebMessageResponse | None", exc.web_message)
     detail = exc.message or ""

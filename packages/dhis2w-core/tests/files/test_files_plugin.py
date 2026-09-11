@@ -11,8 +11,8 @@ import pytest
 import respx
 from dhis2w_cli.main import build_app
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.files import plugin, service
-from dhis2w_core.v42.plugins.files.cli import app as files_app
+from dhis2w_core.v43.plugins.files import plugin, service
+from dhis2w_core.v43.plugins.files.cli import app as files_app
 from typer.testing import CliRunner
 
 _runner = CliRunner()
@@ -38,7 +38,7 @@ def _mock_preamble() -> None:
     """Connect-time probes (root + /api/system/info)."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text=""))
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"}),
+        return_value=httpx.Response(200, json={"version": "2.43.1"}),
     )
 
 
@@ -82,7 +82,7 @@ def test_cli_mounted_on_root() -> None:
 def test_documents_delete_confirm_accept() -> None:
     """`documents delete <uid>` with `y` at the prompt proceeds to delete."""
     delete = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.files.service.delete_document", new=delete):
+    with patch("dhis2w_core.v43.plugins.files.service.delete_document", new=delete):
         result = _runner.invoke(build_app(), ["files", "documents", "delete", "docUid00001"], input="y\n")
     assert result.exit_code == 0, result.output
     assert "deleted docUid00001" in result.output
@@ -92,7 +92,7 @@ def test_documents_delete_confirm_accept() -> None:
 def test_documents_delete_confirm_abort_skips_service() -> None:
     """`documents delete <uid>` with `n` at the prompt aborts before the service is called."""
     delete = AsyncMock()
-    with patch("dhis2w_core.v42.plugins.files.service.delete_document", new=delete):
+    with patch("dhis2w_core.v43.plugins.files.service.delete_document", new=delete):
         result = _runner.invoke(build_app(), ["files", "documents", "delete", "docUid00001"], input="n\n")
     assert result.exit_code != 0
     delete.assert_not_called()
@@ -101,7 +101,7 @@ def test_documents_delete_confirm_abort_skips_service() -> None:
 def test_documents_delete_yes_flag_skips_prompt() -> None:
     """`documents delete <uid> --yes` deletes without prompting."""
     delete = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.files.service.delete_document", new=delete):
+    with patch("dhis2w_core.v43.plugins.files.service.delete_document", new=delete):
         result = _runner.invoke(build_app(), ["files", "documents", "delete", "docUid00001", "--yes"])
     assert result.exit_code == 0, result.output
     assert "deleted docUid00001" in result.output

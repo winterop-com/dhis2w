@@ -53,7 +53,7 @@ from typing import Any
 
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError
-from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 from dhis2w_fhir.r4 import (

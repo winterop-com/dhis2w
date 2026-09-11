@@ -20,10 +20,10 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_client import Dhis2Client, generate_uid
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.enums import PeriodType
-from dhis2w_client.generated.v42.schemas import DataSet, DataSetElement
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import PeriodType
+from dhis2w_client.generated.v43.schemas import DataSet, DataSetElement
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 

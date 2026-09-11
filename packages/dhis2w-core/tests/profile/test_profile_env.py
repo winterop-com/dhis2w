@@ -68,11 +68,11 @@ def test_env_version_pin_wins_over_tree(app: Typer, tmp_path: Path) -> None:
 
 @TREES
 def test_env_unpinned_falls_back_to_default(app: Typer, tmp_path: Path) -> None:
-    """An unpinned profile emits the v42 default and warns on stderr."""
+    """An unpinned profile emits the v43 default and warns on stderr."""
     _write_basic_profile(tmp_path, version_line="")
     result = CliRunner().invoke(app, ["env"])
     assert result.exit_code == 0, result.output
-    assert "export DHIS2_VERSION=v42" in result.output
+    assert "export DHIS2_VERSION=v43" in result.output
 
 
 @TREES

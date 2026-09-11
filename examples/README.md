@@ -76,8 +76,8 @@ mentions exists.
 everything the examples touch, so a version-neutral file is the honest default.
 
 - CLI and MCP examples name no major at all.
-- Client examples that need a version-pinned import are written against **v42, the canonical
-  baseline**, and carry one comment saying to swap `.v42` for `.v41` / `.v43` to pin another major.
+- Client examples that need a version-pinned import are written against **v43, the canonical
+  baseline**, and carry one comment saying to swap `.v43` for `.v41` / `.v42` to pin another major.
   Most examples do not need the pin: `dhis2w_core.client_context.open_client(profile)` detects the
   major from `/api/system/info` and dispatches accessors at runtime.
 - An example that exists **only** for one major lives under that major's subdirectory -

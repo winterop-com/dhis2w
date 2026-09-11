@@ -20,7 +20,7 @@ def _mock_connect_preamble() -> None:
     """Stub the canonical-URL + /api/system/info probes `Dhis2Client.connect()` performs."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="ok"))
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"}),
+        return_value=httpx.Response(200, json={"version": "2.43.1"}),
     )
 
 
@@ -190,7 +190,7 @@ async def test_get_integrity_report_summary_hits_summary_endpoint() -> None:
 
 def test_integrity_issue_row_is_frozen() -> None:
     """`IntegrityIssueRow` is immutable — no accidental mutation after the iterator yielded it."""
-    from dhis2w_client.generated.v42.oas import DataIntegrityIssue
+    from dhis2w_client.generated.v43.oas import DataIntegrityIssue
 
     row = IntegrityIssueRow(
         check_name="check",
