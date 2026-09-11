@@ -96,6 +96,11 @@ for CLI verification, `fastmcp.Client` for MCP tools. Nothing plugin-
 specific — test `service.py` directly, test `cli.py` via `CliRunner`
 against a fake `Resources` or a mocked `open_client`.
 
+Take the environment those tests run under from core rather than copying a
+`conftest.py`: depend on `dhis2w-core[testing]` and put
+`pytest_plugins = ["dhis2w_core.testing"]` in the root `conftest.py`, as
+[Testing strategy](../testing.md#reusing-the-test-environment-from-a-pack) describes.
+
 ## Publishing
 
 `uv build` → `uv publish` (or PyPI Trusted Publishing via your own GitHub
