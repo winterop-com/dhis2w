@@ -47,7 +47,7 @@ import httpx2
 from _fixture import aggregate_form_id, conversion_context, event_form_id, form_canonical
 from _runner import run_example
 from dhis2w_client import Dhis2ApiError, Dhis2Client, Dhis2ClientError, Profile
-from dhis2w_client.generated.v42.oas import ImportSummary, TrackerImportReport
+from dhis2w_client.generated.v43.oas import ImportSummary, TrackerImportReport
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import resolve
 from dhis2w_fhir import (

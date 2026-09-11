@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from dhis2w_cli.main import build_app
-from dhis2w_core.v42.plugins.metadata import service
-from dhis2w_core.v42.plugins.metadata.models import MetadataBundle
+from dhis2w_core.v43.plugins.metadata import service
+from dhis2w_core.v43.plugins.metadata.models import MetadataBundle
 from typer.testing import CliRunner
 
 
@@ -42,7 +42,7 @@ def test_diff_bundles_created_updated_deleted_and_unchanged() -> None:
     """The classifier puts each UID into exactly one bucket across a realistic mixed bundle."""
     left = {
         "date": "2026-04-18",
-        "system": {"version": "2.42"},
+        "system": {"version": "2.43"},
         "dataElements": [
             _de("keepSame001", name="Stable"),
             _de("renameEnm1", name="Old name", code="CODE_A"),
@@ -168,7 +168,7 @@ def test_cli_diff_live_flag_calls_instance_compare(
     left.write_text(json.dumps(raw), encoding="utf-8")
     fake_diff = service.MetadataDiff(left_label="instance:x", right_label=str(left))
     mock = AsyncMock(return_value=fake_diff)
-    with patch("dhis2w_core.v42.plugins.metadata.service.diff_bundle_against_instance", mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.diff_bundle_against_instance", mock):
         result = runner.invoke(build_app(), ["metadata", "diff", str(left), "--live"])
     assert result.exit_code == 0, result.output
     args, kwargs = mock.call_args

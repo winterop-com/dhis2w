@@ -31,7 +31,7 @@ from dhis2w_core.security_core import (
     classify_probe_status,
     evaluate_credential_probe,
 )
-from dhis2w_core.v42.plugins.security.models import SecuritySettings
+from dhis2w_core.v43.plugins.security.models import SecuritySettings
 from rich.console import Console
 from typer.testing import CliRunner
 
@@ -185,14 +185,14 @@ def test_audit_runs_credential_probe_by_default(tmp_path: Path) -> None:
     fake_client.apps.list_apps = AsyncMock(return_value=[])
     fake_client.apps.hub_list = AsyncMock(return_value=[])
     fake_client.base_url = BASE
-    fake_client.raw_version = "2.42.0"
+    fake_client.raw_version = "2.43.0"
     ctx = AsyncMock()
     ctx.__aenter__.return_value = fake_client
     ctx.__aexit__.return_value = None
 
     with (
         respx.mock(assert_all_called=False) as mock,
-        patch("dhis2w_core.v42.plugins.security.audit.open_client", lambda *a, **k: ctx),
+        patch("dhis2w_core.v43.plugins.security.audit.open_client", lambda *a, **k: ctx),
     ):
         mock.get(f"{BASE}/api/me").mock(return_value=httpx.Response(200, json={"username": "admin"}))
         result = CliRunner().invoke(

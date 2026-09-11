@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from dhis2w_client.generated.v42.oas import DataValueSet
+    from dhis2w_client.generated.v43.oas import DataValueSet
 
 __all__ = [
     "AggregateCell",

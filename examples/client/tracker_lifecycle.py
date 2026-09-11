@@ -3,7 +3,7 @@
 Shows the raw bundle-build pattern: one atomic POST creates a tracked
 entity, its enrollment in a program, and the first event against that
 enrollment, all stitched together via `TrackerBundle` /
-`TrackerTrackedEntity` / `TrackerEnrollment` / `TrackerEvent` models.
+`TrackerTrackedEntity` / `TrackerEnrollment` / `Event` models.
 
 For the everyday workflow, reach for `client.tracker.register(...)` +
 `client.tracker.add_event(...)` (see
@@ -32,13 +32,14 @@ from datetime import datetime
 from _runner import run_example
 from dhis2w_client import WebMessageResponse
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.tracker import (
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+# An event nested under an enrollment is an `Event`; `TrackerBundle.events` takes a `TrackerEvent`.
+from dhis2w_client.generated.v43.oas import Event
+from dhis2w_client.generated.v43.tracker import (
     EnrollmentStatus,
     EventStatus,
     TrackerBundle,
     TrackerEnrollment,
-    TrackerEvent,
     TrackerTrackedEntity,
 )
 from dhis2w_core.client_context import open_client
@@ -65,7 +66,7 @@ async def main() -> None:
                         enrolledAt=now,
                         occurredAt=now,
                         events=[
-                            TrackerEvent(
+                            Event(
                                 program=program_uid,
                                 orgUnit=ou_uid,
                                 status=EventStatus.COMPLETED,

@@ -25,7 +25,7 @@ ls "$OUT"
 d2w dev codegen rebuild --output-root "$OUT"
 
 # Offline, single version:
-d2w dev codegen rebuild --manifest packages/dhis2w-client/src/dhis2w_client/generated/v42/schemas_manifest.json \
+d2w dev codegen rebuild --manifest packages/dhis2w-client/src/dhis2w_client/generated/v43/schemas_manifest.json \
     --output-root "$OUT"
 
 # --- /api/openapi.json path (instance-side shapes) ----------------------------
@@ -36,4 +36,4 @@ d2w dev codegen rebuild --manifest packages/dhis2w-client/src/dhis2w_client/gene
 d2w dev codegen oas-rebuild --output-root "$OUT"
 
 # Offline, single version — useful when iterating on oas_emit.py / its templates.
-d2w dev codegen oas-rebuild --version v42 --output-root "$OUT"
+d2w dev codegen oas-rebuild --version v43 --output-root "$OUT"

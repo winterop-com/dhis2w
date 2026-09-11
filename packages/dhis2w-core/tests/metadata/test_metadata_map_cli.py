@@ -57,7 +57,7 @@ def _map() -> Map:
 def test_map_show_renders_layer_summary(pat_profile: None) -> None:  # noqa: ARG001
     """Map show renders layer summary."""
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.show_map",
+        "dhis2w_core.v43.plugins.metadata.service.show_map",
         new=AsyncMock(return_value=_map()),
     ):
         result = CliRunner().invoke(build_app(), ["metadata", "maps", "get", "MapProbe001"])
@@ -71,7 +71,7 @@ def test_map_show_renders_layer_summary(pat_profile: None) -> None:  # noqa: ARG
 def test_map_create_forwards_every_flag(pat_profile: None) -> None:  # noqa: ARG001
     """Map create forwards every flag."""
     mock = AsyncMock(return_value=_map())
-    with patch("dhis2w_core.v42.plugins.metadata.service.create_map", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.create_map", new=mock):
         result = CliRunner().invoke(
             build_app(),
             [
@@ -113,7 +113,7 @@ def test_map_create_forwards_every_flag(pat_profile: None) -> None:  # noqa: ARG
 def test_map_clone_forwards_new_name(pat_profile: None) -> None:  # noqa: ARG001
     """Map clone forwards new name."""
     mock = AsyncMock(return_value=_map().model_copy(update={"id": "MapClone001", "name": "clone"}))
-    with patch("dhis2w_core.v42.plugins.metadata.service.clone_map", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.clone_map", new=mock):
         result = CliRunner().invoke(
             build_app(),
             [
@@ -136,7 +136,7 @@ def test_map_clone_forwards_new_name(pat_profile: None) -> None:  # noqa: ARG001
 def test_map_delete_aborts_without_yes(pat_profile: None) -> None:  # noqa: ARG001
     """Map delete aborts without yes."""
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.delete_map",
+        "dhis2w_core.v43.plugins.metadata.service.delete_map",
         new=AsyncMock(return_value=None),
     ):
         result = CliRunner().invoke(build_app(), ["metadata", "maps", "delete", "MapProbe001"], input="n\n")
@@ -146,7 +146,7 @@ def test_map_delete_aborts_without_yes(pat_profile: None) -> None:  # noqa: ARG0
 def test_map_delete_with_yes_runs(pat_profile: None) -> None:  # noqa: ARG001
     """Map delete with yes runs."""
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.delete_map",
+        "dhis2w_core.v43.plugins.metadata.service.delete_map",
         new=AsyncMock(return_value=None),
     ):
         result = CliRunner().invoke(build_app(), ["metadata", "maps", "delete", "MapProbe001", "-y"])

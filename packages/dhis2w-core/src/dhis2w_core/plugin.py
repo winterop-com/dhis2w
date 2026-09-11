@@ -5,6 +5,11 @@ Plugins are self-contained capability folders under
 module-level `plugin` attribute conforming to the `Plugin` Protocol.
 External packages may register additional plugins via
 `importlib.metadata.entry_points(group="dhis2.plugins")`.
+
+v43 is the canonical baseline and the default plugin tree. Every tree's
+client re-binds its accessors to the server's major on connect, so the
+default tree does not constrain which server an unpinned profile may talk
+to.
 """
 
 from __future__ import annotations
@@ -14,7 +19,7 @@ import pkgutil
 from importlib.metadata import entry_points
 from typing import Any, Protocol, runtime_checkable
 
-DEFAULT_VERSION_KEY = "v42"
+DEFAULT_VERSION_KEY = "v43"
 
 
 def resolve_startup_version() -> str:
@@ -29,10 +34,10 @@ def resolve_startup_version() -> str:
        active profile has no `version` pin — it lets `make verify-examples
        DHIS2_VERSION=v41` target the v41 tree against an unpinned profile
        without hand-editing it. A bare digit (`41`) is not recognized.
-    3. `DEFAULT_VERSION_KEY` (`"v42"`) — the tree whose top-level client entry point
-       auto-dispatches accessors per server version. v43 is the canonical baseline
-       for new code; the default moves there once the v43 entry point dispatches
-       the same way.
+    3. `DEFAULT_VERSION_KEY` (`"v43"`) — the canonical baseline. Every tree's client
+       re-binds its accessors to the server's major on connect, so the default tree
+       constrains only which plugin tree loads, not which server an unpinned profile
+       may reach.
 
     Falls back to `DEFAULT_VERSION_KEY` on any resolution failure (no profile
     configured, corrupt TOML, etc.) so the CLI / MCP bootstrap never crashes —
@@ -74,8 +79,8 @@ def discover_plugins(version_key: str = DEFAULT_VERSION_KEY) -> list[Plugin]:
     """Discover built-in and entry-point plugins for the given major version.
 
     `version_key` picks which `dhis2w_core.v{N}.plugins.*` tree to walk —
-    `"v41"`, `"v42"` (default), or `"v43"`. CLI / MCP bootstraps resolve
-    this from the active profile and fall back to `"v42"` when nothing is
+    `"v41"`, `"v42"`, or `"v43"` (default). CLI / MCP bootstraps resolve
+    this from the active profile and fall back to `"v43"` when nothing is
     set. Entry-point plugins are version-agnostic.
     """
     plugins: list[Plugin] = []

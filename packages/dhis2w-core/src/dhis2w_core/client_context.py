@@ -18,7 +18,7 @@ from typing import Any
 import httpx2
 from dhis2w_client import AuthProvider, Dhis2, Dhis2Client, RetryPolicy
 from dhis2w_client.client_context import build_auth_provider
-from dhis2w_client.v42.auth.oauth2 import OAuth2Auth
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth
 
 from dhis2w_core.profile import Profile, ResolvedProfile, current_bound_version_tree, resolve
 from dhis2w_core.token_store import token_store_for_scope

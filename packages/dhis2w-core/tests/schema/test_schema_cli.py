@@ -34,7 +34,7 @@ def _invoke(runner: CliRunner, args: list[str], *, version: str = "v42") -> Any:
     ctx.__aenter__.return_value = fake_client
     ctx.__aexit__.return_value = None
 
-    with patch("dhis2w_core.v42.plugins.schema.service.open_client", lambda _profile: ctx):
+    with patch("dhis2w_core.v43.plugins.schema.service.open_client", lambda _profile: ctx):
         return runner.invoke(build_app(), args)
 
 
@@ -121,14 +121,14 @@ def test_schema_unknown_type_exits_2_with_candidates(runner: CliRunner) -> None:
 )
 def test_unknown_fields_flags_only_plain_unknown_identifiers(fields: str, expected: list[str]) -> None:
     """`unknown_fields` flags bare unknown names and skips any non-trivial --fields syntax."""
-    from dhis2w_core.v42.plugins.schema import service
+    from dhis2w_core.v43.plugins.schema import service
 
     assert service.unknown_fields("v42", "dataElements", fields) == expected
 
 
 def test_unknown_fields_skips_unknown_type() -> None:
     """An unresolvable type yields no warnings (nothing to validate against)."""
-    from dhis2w_core.v42.plugins.schema import service
+    from dhis2w_core.v43.plugins.schema import service
 
     assert service.unknown_fields("v42", "bogusType", "a,b,c") == []
 

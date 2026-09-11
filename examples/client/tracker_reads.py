@@ -20,8 +20,8 @@ from typing import Any
 
 from _runner import run_example
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.tracker import TrackerEnrollment, TrackerEvent, TrackerTrackedEntity
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.tracker import TrackerEnrollment, TrackerEvent, TrackerTrackedEntity
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 

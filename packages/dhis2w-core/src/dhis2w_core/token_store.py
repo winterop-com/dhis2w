@@ -6,7 +6,7 @@ import contextlib
 import os
 from pathlib import Path
 
-from dhis2w_client.v42.auth.oauth2 import OAuth2Token
+from dhis2w_client.v43.auth.oauth2 import OAuth2Token
 from sqlalchemy import Float, String, select
 from sqlalchemy import inspect as sqlalchemy_inspect
 from sqlalchemy.engine import Connection
@@ -47,7 +47,7 @@ def _drop_table_without_identity_columns(connection: Connection) -> None:
 
 
 class SqliteTokenStore:
-    """File-backed TokenStore conforming to `dhis2w_client.v42.auth.oauth2.TokenStore`.
+    """File-backed TokenStore conforming to `dhis2w_client.v43.auth.oauth2.TokenStore`.
 
     Creates the parent directory and DB file lazily on first access. After the
     DB file exists, perms are forced to 0600.

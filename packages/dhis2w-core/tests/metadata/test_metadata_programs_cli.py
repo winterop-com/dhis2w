@@ -49,7 +49,7 @@ def _program() -> Program:
 def test_programs_create_forwards_tet_and_knobs(pat_profile: None) -> None:  # noqa: ARG001
     """Programs create forwards tet and knobs."""
     mock = AsyncMock(return_value=_program())
-    with patch("dhis2w_core.v42.plugins.metadata.service.create_program", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.create_program", new=mock):
         result = CliRunner().invoke(
             build_app(),
             [
@@ -84,7 +84,7 @@ def test_programs_create_forwards_tet_and_knobs(pat_profile: None) -> None:  # n
 def test_programs_add_attribute_routes_to_service(pat_profile: None) -> None:  # noqa: ARG001
     """Programs add attribute routes to service."""
     mock = AsyncMock(return_value=_program())
-    with patch("dhis2w_core.v42.plugins.metadata.service.add_program_attribute", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.add_program_attribute", new=mock):
         result = CliRunner().invoke(
             build_app(),
             [
@@ -111,7 +111,7 @@ def test_programs_add_attribute_routes_to_service(pat_profile: None) -> None:  #
 def test_programs_remove_attribute_routes_to_service(pat_profile: None) -> None:  # noqa: ARG001
     """Programs remove attribute routes to service."""
     mock = AsyncMock(return_value=_program())
-    with patch("dhis2w_core.v42.plugins.metadata.service.remove_program_attribute", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.remove_program_attribute", new=mock):
         result = CliRunner().invoke(
             build_app(),
             ["metadata", "programs", "remove-attribute", "PRG1", "TEA_A"],
@@ -124,7 +124,7 @@ def test_programs_remove_attribute_routes_to_service(pat_profile: None) -> None:
 def test_programs_add_to_ou_routes_to_service(pat_profile: None) -> None:  # noqa: ARG001
     """Programs add to ou routes to service."""
     mock = AsyncMock(return_value=_program())
-    with patch("dhis2w_core.v42.plugins.metadata.service.add_program_organisation_unit", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.add_program_organisation_unit", new=mock):
         result = CliRunner().invoke(
             build_app(),
             ["metadata", "programs", "add-to-ou", "PRG1", "OU_A"],
@@ -137,7 +137,7 @@ def test_programs_add_to_ou_routes_to_service(pat_profile: None) -> None:  # noq
 def test_programs_remove_from_ou_routes_to_service(pat_profile: None) -> None:  # noqa: ARG001
     """Programs remove from ou routes to service."""
     mock = AsyncMock(return_value=_program())
-    with patch("dhis2w_core.v42.plugins.metadata.service.remove_program_organisation_unit", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.remove_program_organisation_unit", new=mock):
         result = CliRunner().invoke(
             build_app(),
             ["metadata", "programs", "remove-from-ou", "PRG1", "OU_A"],
@@ -150,7 +150,7 @@ def test_programs_remove_from_ou_routes_to_service(pat_profile: None) -> None:  
 def test_programs_delete_skips_confirm_with_yes(pat_profile: None) -> None:  # noqa: ARG001
     """Programs delete skips confirm with yes."""
     mock = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.metadata.service.delete_program", new=mock):
+    with patch("dhis2w_core.v43.plugins.metadata.service.delete_program", new=mock):
         result = CliRunner().invoke(build_app(), ["metadata", "programs", "delete", "PRG_X", "-y"])
     assert result.exit_code == 0, result.output
     assert mock.await_args is not None

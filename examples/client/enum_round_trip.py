@@ -18,15 +18,15 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_client import Dhis2Client, NoProfileError, generate_uid, open_client, profile_from_env_raw
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.enums import (
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import (
     AggregationType,
     DataElementDomain,
     PeriodType,
     ValueType,
 )
-from dhis2w_client.generated.v42.schemas import DataElement
+from dhis2w_client.generated.v43.schemas import DataElement
 
 
 async def _default_cc_uid(client: Dhis2Client) -> str:
@@ -45,7 +45,7 @@ async def main() -> None:
     )
     period_samples = sorted(m.value for m in PeriodType)[:5]
     print(f"PeriodType members: {period_samples}... (+{len(list(PeriodType)) - 5} more)")
-    # PeriodType is hand-written (see dhis2w_client.v42.periods) because DHIS2's
+    # PeriodType is hand-written (see dhis2w_client.v43.periods) because DHIS2's
     # /api/schemas reports it as TEXT, not CONSTANT — PeriodType is a class
     # hierarchy upstream, not a Java enum.
 

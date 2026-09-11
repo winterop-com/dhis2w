@@ -143,7 +143,7 @@ function base64FromBytes(bytes: Uint8Array): string {
  * One username and password as HTTP Basic sends them.
  *
  * The pair is encoded to UTF-8 before it is base64ed, which is the same byte sequence
- * `dhis2w_client.v42.auth.basic.BasicAuth` builds its header from, so a name with an o-slash or a
+ * `dhis2w_client.v43.auth.basic.BasicAuth` builds its header from, so a name with an o-slash or a
  * password in Chinese reaches DHIS2 as the same bytes from a browser as from the client library.
  * Handing the string to `btoa` directly would send different bytes for the first and raise for the
  * second.

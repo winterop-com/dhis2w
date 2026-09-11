@@ -24,7 +24,7 @@ def _auth() -> BasicAuth:
 
 def _mock_preamble() -> None:
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.0"}),
+        return_value=httpx.Response(200, json={"version": "2.43.0"}),
     )
 
 

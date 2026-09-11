@@ -82,7 +82,7 @@ from dhis2w_fhir_serve.spool import current_instant
 from dhis2w_fhir_serve.summary import SummaryDoses, recorded_doses
 
 if TYPE_CHECKING:
-    from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+    from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 
 #: Where the operation is answered, in both of the forms the IPS defines it in.
 INSTANCE_SUMMARY_PATH = "/{resource_type}/{tracked_entity_uid}/$summary"

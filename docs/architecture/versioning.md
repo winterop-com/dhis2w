@@ -68,7 +68,7 @@ The CLI (`d2w ...`) and MCP server (`dhis2w-mcp`) pick a single plugin tree at b
 
 1. **`profile.version`** — if the active profile carries `version = "v41" | "v42" | "v43"` in `profiles.toml`, that tree is loaded.
 2. **`DHIS2_VERSION` env var** — the vXX key (`v41` / `v42` / `v43`). Lets `make verify-examples DHIS2_VERSION=v43` exercise the v43 plugin tree against a v43 stack without hand-editing every profile. A bare digit (`43`) is not accepted.
-3. **Default `v42`** — the tree whose top-level `dhis2w_client.Dhis2Client` auto-dispatches accessors per server version, so an unpinned profile works against any supported major. v43 is the canonical baseline for new code; the default moves there once the v43 entry point dispatches the same way.
+3. **Default `v43`** — the canonical baseline. Every tree's client re-binds its accessors to the server's major on connect, so the default constrains only which plugin tree the CLI and MCP server load, not which server an unpinned profile may reach.
 
 This selection is independent of the wire client's actual version detection (`Dhis2Client.connect()` — see below). A profile pinned to v43 plugin tree against a v42 stack would load v43-specific plugin overrides + the v42 wire client; runtime dispatch swaps accessors after `connect()` so the wire chain remains correct regardless.
 
@@ -83,11 +83,11 @@ Library callers using `from dhis2w_client.v43 import Dhis2Client` skip the resol
 
 On `Dhis2Client.connect()`:
 
-1. `GET /api/system/info` → raw version string (e.g. `"2.42.0"`).
-2. The minor component is extracted (e.g. `42`) and mapped to `"v42"`.
+1. `GET /api/system/info` → raw version string (e.g. `"2.43.0"`).
+2. The minor component is extracted (e.g. `43`) and mapped to `"v43"`.
 3. `dhis2w_client.generated.available_versions()` is consulted — only populated versions (`GENERATED = True`) are candidates.
-4. If `"v42"` is populated, that module is loaded and bound to `client.resources`, `client.models`, etc.
-5. If `"v42"` is not populated and `allow_version_fallback=False` (default), `UnsupportedVersionError` is raised, pointing the user at `d2w codegen`.
+4. If `"v43"` is populated, that module is loaded and bound to `client.resources`, `client.models`, etc.
+5. If `"v43"` is not populated and `allow_version_fallback=False` (default), `UnsupportedVersionError` is raised, pointing the user at `d2w codegen`.
 6. If fallback is enabled and the live version isn't populated, the nearest-lower populated version is chosen — never higher. With v41 + v42 + v43 populated, the practical case is "any DHIS2 above v43 falls back to v43".
 
 ```python

@@ -9,9 +9,9 @@ import pytest
 import respx
 from dhis2w_cli.main import build_app
 from dhis2w_client import Grid, GridHeader
-from dhis2w_client.generated.v42.oas._enums import ValueType
+from dhis2w_client.generated.v43.oas._enums import ValueType
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.analytics import service
+from dhis2w_core.v43.plugins.analytics import service
 from typer.testing import CliRunner
 
 
@@ -38,7 +38,7 @@ def _mock_preamble() -> None:
 
 
 def _outlier_body() -> dict[str, object]:
-    """DHIS2 v42 returns outliers in the Grid envelope (headers + rows), not a bespoke shape.
+    """DHIS2 returns outliers in the Grid envelope (headers + rows), not a bespoke shape.
 
     Built via the typed `Grid` so the fixture can't drift from the production model.
     """

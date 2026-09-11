@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
-from dhis2w_client.generated.v42.schemas import OptionSet
+from dhis2w_client.generated.v43.schemas import OptionSet
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import resolve_profile
 from dhis2w_fhir import InitOptions, load_project, service

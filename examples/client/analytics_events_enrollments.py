@@ -26,8 +26,8 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_core.profile import profile_from_env
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_core.v42.plugins.analytics import service
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_core.v43.plugins.analytics import service
 
 PROGRAM_UID = "IpHINAT79UW"  # Child Programme — seeded tracker program with immunization stages.
 ORG_UNIT_UID = "ImspTQPwCqd"  # Sierra Leone root.

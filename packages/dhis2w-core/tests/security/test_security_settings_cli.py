@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from dhis2w_cli.main import build_app
-from dhis2w_core.v42.plugins.security.models import SecuritySettings
+from dhis2w_core.v43.plugins.security.models import SecuritySettings
 from typer.testing import CliRunner
 
 _SETTINGS = SecuritySettings(
@@ -46,7 +46,7 @@ def _invoke(runner: CliRunner, args: list[str]) -> Any:
     ctx.__aenter__.return_value = fake_client
     ctx.__aexit__.return_value = None
 
-    with patch("dhis2w_core.v42.plugins.security.service.open_client", lambda _profile: ctx):
+    with patch("dhis2w_core.v43.plugins.security.service.open_client", lambda _profile: ctx):
         return runner.invoke(build_app(), args)
 
 

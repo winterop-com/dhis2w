@@ -8,7 +8,7 @@ import httpx
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, SqlViewResult
-from dhis2w_client.generated.v42.enums import SqlViewType
+from dhis2w_client.generated.v43.enums import SqlViewType
 
 
 def _auth() -> BasicAuth:
@@ -213,7 +213,7 @@ async def test_refresh_posts_to_execute_endpoint(server_version: str, mock_syste
 async def test_create_posts_then_refetches_by_id(server_version: str, mock_system_info: Callable[..., None]) -> None:
     """`create` POSTs the view, then re-reads it to return the typed server shape."""
     mock_system_info(server_version)
-    from dhis2w_client.generated.v42.schemas import SqlView
+    from dhis2w_client.generated.v43.schemas import SqlView
 
     candidate = SqlView.model_validate(
         {"id": "SQL9", "name": "demo", "type": "QUERY", "sqlQuery": "SELECT 1"},

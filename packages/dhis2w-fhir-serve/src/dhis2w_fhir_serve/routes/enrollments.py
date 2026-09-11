@@ -61,7 +61,7 @@ from dhis2w_fhir_serve.register.wire import fetch_tracked_entity, upstream_refus
 from dhis2w_fhir_serve.routes.context import serve_context
 
 if TYPE_CHECKING:
-    from dhis2w_client.generated.v42.oas import TrackerEnrollment
+    from dhis2w_client.generated.v43.oas import TrackerEnrollment
 
     from dhis2w_fhir_serve.register.index import TrackedEntityIndex
 

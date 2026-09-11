@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from dhis2w_client.generated.v42.oas import DataValueSet
+from dhis2w_client.generated.v43.oas import DataValueSet
 
 if TYPE_CHECKING:
     from dhis2w_fhir_serve.passthrough import RegisterReader

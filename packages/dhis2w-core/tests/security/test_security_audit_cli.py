@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx2
 import pytest
 from dhis2w_cli.main import build_app
-from dhis2w_core.v42.plugins.security.models import SecuritySettings
+from dhis2w_core.v43.plugins.security.models import SecuritySettings
 from typer.testing import CliRunner
 
 TREES = ("v41", "v42", "v43")
@@ -56,7 +56,7 @@ def _make_fake_ctx() -> AsyncMock:
     fake_client.apps.list_apps = AsyncMock(return_value=[])
     fake_client.apps.hub_list = AsyncMock(return_value=[])
     fake_client.base_url = "https://mock.example"
-    fake_client.raw_version = "2.42.0"
+    fake_client.raw_version = "2.43.0"
     fake_client.get_response = AsyncMock(
         return_value=httpx2.Response(
             200,
@@ -82,7 +82,7 @@ def _make_fake_ctx() -> AsyncMock:
 def test_audit_creates_run_folder_and_report_files(runner: CliRunner, tmp_path: Path) -> None:
     """security audit writes md, jsonl, and the HTML bundle into a dhis2-security-* folder."""
     ctx = _make_fake_ctx()
-    with patch("dhis2w_core.v42.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
+    with patch("dhis2w_core.v43.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
         result = runner.invoke(
             build_app(),
             [
@@ -114,7 +114,7 @@ def test_audit_creates_run_folder_and_report_files(runner: CliRunner, tmp_path: 
 def test_audit_report_md_contains_a_finding(runner: CliRunner, tmp_path: Path) -> None:
     """report.md produced by security audit contains the weak-password finding title."""
     ctx = _make_fake_ctx()
-    with patch("dhis2w_core.v42.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
+    with patch("dhis2w_core.v43.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
         result = runner.invoke(
             build_app(),
             [
@@ -144,7 +144,7 @@ def test_audit_report_md_contains_a_finding(runner: CliRunner, tmp_path: Path) -
 def test_audit_json_output_has_summary_with_total_findings(runner: CliRunner, tmp_path: Path) -> None:
     """`--json security audit` emits JSON with a summary.total_findings integer."""
     ctx = _make_fake_ctx()
-    with patch("dhis2w_core.v42.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
+    with patch("dhis2w_core.v43.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
         result = runner.invoke(
             build_app(),
             [
@@ -208,7 +208,7 @@ def test_audit_succeeds_on_every_version_tree(
 def test_audit_sharing_graph_emits_explorer_bundle(runner: CliRunner, tmp_path: Path) -> None:
     """`security audit --checks sharing --sharing-graph` writes the self-contained explorer bundle."""
     ctx = _make_fake_ctx()
-    with patch("dhis2w_core.v42.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
+    with patch("dhis2w_core.v43.plugins.security.audit.open_client", lambda *args, **kwargs: ctx):
         result = runner.invoke(
             build_app(),
             [

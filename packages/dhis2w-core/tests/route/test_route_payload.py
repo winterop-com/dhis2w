@@ -18,8 +18,8 @@ from dhis2w_client import (
     WebMessageResponse,
 )
 from dhis2w_core.profile import Profile
-from dhis2w_core.v42.plugins.route import service
-from dhis2w_core.v42.plugins.route.service import RoutePayload
+from dhis2w_core.v43.plugins.route import service
+from dhis2w_core.v43.plugins.route.service import RoutePayload
 from pydantic import ValidationError
 
 
@@ -35,7 +35,7 @@ def _mock_connect_preamble() -> None:
     """Mock the canonical-URL + `/api/system/info` probes `Dhis2Client.connect()` performs."""
     respx.get("http://mock.example/").mock(return_value=httpx.Response(200, text="ok"))
     respx.get("http://mock.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.4"}),
+        return_value=httpx.Response(200, json={"version": "2.43.1"}),
     )
 
 

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_client.generated.v42.schemas import ProgramRule, ProgramRuleVariable
-from dhis2w_client.v42.validation import ExpressionDescription
+from dhis2w_client.v43.validation import ExpressionDescription
 from typer.testing import CliRunner
 
 
@@ -50,7 +50,7 @@ def _rule() -> ProgramRule:
 
 def test_program_rule_show_renders_action_table(pat_profile: None) -> None:  # noqa: ARG001
     """Program rule show renders action table."""
-    with patch("dhis2w_core.v42.plugins.metadata.service.show_program_rule", new=AsyncMock(return_value=_rule())):
+    with patch("dhis2w_core.v43.plugins.metadata.service.show_program_rule", new=AsyncMock(return_value=_rule())):
         result = CliRunner().invoke(build_app(), ["metadata", "program-rules", "get", "PrAnc000001"])
     assert result.exit_code == 0, result.output
     assert "ANC visit count implausibly high" in result.output
@@ -70,7 +70,7 @@ def test_program_rule_vars_for_surfaces_source_type(pat_profile: None) -> None: 
         ),
     ]
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.list_program_rule_variables",
+        "dhis2w_core.v43.plugins.metadata.service.list_program_rule_variables",
         new=AsyncMock(return_value=variables),
     ):
         result = CliRunner().invoke(build_app(), ["metadata", "program-rules", "vars-for", "PROG"])
@@ -86,7 +86,7 @@ def test_program_rule_validate_expression_exits_1_on_error(pat_profile: None) ->
         {"status": "ERROR", "message": "Expression is not valid"},
     )
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.validate_program_rule_expression",
+        "dhis2w_core.v43.plugins.metadata.service.validate_program_rule_expression",
         new=AsyncMock(return_value=bad),
     ):
         result = CliRunner().invoke(
@@ -104,7 +104,7 @@ def test_program_rule_where_de_is_used_exits_1_on_miss(pat_profile: None) -> Non
         return []
 
     with patch(
-        "dhis2w_core.v42.plugins.metadata.service.program_rules_using_data_element",
+        "dhis2w_core.v43.plugins.metadata.service.program_rules_using_data_element",
         new=AsyncMock(side_effect=_no_matches),
     ):
         result = CliRunner().invoke(

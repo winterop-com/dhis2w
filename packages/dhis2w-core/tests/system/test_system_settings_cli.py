@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from dhis2w_cli.main import build_app
-from dhis2w_client.v42 import Me
-from dhis2w_core.v42.plugins.system.models import SystemSettingsSnapshot
+from dhis2w_client.v43 import Me
+from dhis2w_core.v43.plugins.system.models import SystemSettingsSnapshot
 from typer.testing import CliRunner
 
 _runner = CliRunner()
@@ -39,7 +39,7 @@ token = "d2p_test"
 def test_settings_set_writes_single_key(pat_profile: None) -> None:  # noqa: ARG001
     """`d2w system settings set KEY VALUE` routes to service.set_system_setting."""
     mock = AsyncMock(return_value=None)
-    with patch("dhis2w_core.v42.plugins.system.service.set_system_setting", new=mock):
+    with patch("dhis2w_core.v43.plugins.system.service.set_system_setting", new=mock):
         result = _runner.invoke(build_app(), ["system", "settings", "set", "applicationTitle", "MoH"])
     assert result.exit_code == 0, result.output
     assert "set applicationTitle" in result.output
@@ -52,7 +52,7 @@ def test_settings_set_many_applies_object(pat_profile: None, tmp_path: Path) -> 
     file = tmp_path / "s.json"
     file.write_text('{"applicationTitle": "MoH", "keyApplicationFooter": "bye"}', encoding="utf-8")
     mock = AsyncMock(return_value=["applicationTitle", "keyApplicationFooter"])
-    with patch("dhis2w_core.v42.plugins.system.service.set_system_settings", new=mock):
+    with patch("dhis2w_core.v43.plugins.system.service.set_system_settings", new=mock):
         result = _runner.invoke(build_app(), ["system", "settings", "set-many", str(file)])
     assert result.exit_code == 0, result.output
     assert "set applicationTitle" in result.output
@@ -68,7 +68,7 @@ def test_settings_set_many_coerces_json_scalars(pat_profile: None, tmp_path: Pat
         encoding="utf-8",
     )
     mock = AsyncMock(return_value=["keyAnalyticsBool"])
-    with patch("dhis2w_core.v42.plugins.system.service.set_system_settings", new=mock):
+    with patch("dhis2w_core.v43.plugins.system.service.set_system_settings", new=mock):
         result = _runner.invoke(build_app(), ["system", "settings", "set-many", str(file)])
     assert result.exit_code == 0, result.output
     assert mock.await_args is not None
@@ -95,7 +95,7 @@ def test_whoami_json_emits_parseable_object(pat_profile: None) -> None:  # noqa:
     import json
 
     me = Me.model_validate({"id": "abc123XYZ", "username": "admin", "displayName": "Admin User"})
-    with patch("dhis2w_core.v42.plugins.system.service.whoami", new=AsyncMock(return_value=me)):
+    with patch("dhis2w_core.v43.plugins.system.service.whoami", new=AsyncMock(return_value=me)):
         result = _runner.invoke(build_app(), ["--json", "system", "whoami"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["id"] == "abc123XYZ"
@@ -114,7 +114,7 @@ def test_whoami_plain_shows_named_refs(pat_profile: None) -> None:  # noqa: ARG0
             "organisationUnits": [{"id": "ou1", "displayName": "Sierra Leone"}],
         }
     )
-    with patch("dhis2w_core.v42.plugins.system.service.whoami", new=AsyncMock(return_value=me)):
+    with patch("dhis2w_core.v43.plugins.system.service.whoami", new=AsyncMock(return_value=me)):
         result = _runner.invoke(build_app(), ["system", "whoami"])
     assert result.exit_code == 0, result.output
     assert "superuser" in result.output  # ALL authority -> hint
@@ -126,7 +126,7 @@ def test_whoami_plain_shows_named_refs(pat_profile: None) -> None:  # noqa: ARG0
 
 def test_settings_get_prints_value(pat_profile: None) -> None:  # noqa: ARG001
     """`system settings get <key>` prints the value from service.get_setting."""
-    with patch("dhis2w_core.v42.plugins.system.service.get_setting", new=AsyncMock(return_value="MoH")):
+    with patch("dhis2w_core.v43.plugins.system.service.get_setting", new=AsyncMock(return_value="MoH")):
         result = _runner.invoke(build_app(), ["system", "settings", "get", "applicationTitle"])
     assert result.exit_code == 0, result.output
     assert "MoH" in result.output
@@ -134,7 +134,7 @@ def test_settings_get_prints_value(pat_profile: None) -> None:  # noqa: ARG001
 
 def test_settings_get_missing_exits_nonzero(pat_profile: None) -> None:  # noqa: ARG001
     """`system settings get <key>` exits non-zero when the key is unset."""
-    with patch("dhis2w_core.v42.plugins.system.service.get_setting", new=AsyncMock(return_value=None)):
+    with patch("dhis2w_core.v43.plugins.system.service.get_setting", new=AsyncMock(return_value=None)):
         result = _runner.invoke(build_app(), ["system", "settings", "get", "noSuchKey"])
     assert result.exit_code != 0
     assert "not set" in result.output
@@ -143,7 +143,7 @@ def test_settings_get_missing_exits_nonzero(pat_profile: None) -> None:  # noqa:
 def test_settings_list_prints_pairs(pat_profile: None) -> None:  # noqa: ARG001
     """`system settings list` prints each key = value pair from the snapshot."""
     snapshot = SystemSettingsSnapshot.model_validate({"applicationTitle": "MoH", "keyDateFormat": "yyyy-MM-dd"})
-    with patch("dhis2w_core.v42.plugins.system.service.list_settings", new=AsyncMock(return_value=snapshot)):
+    with patch("dhis2w_core.v43.plugins.system.service.list_settings", new=AsyncMock(return_value=snapshot)):
         result = _runner.invoke(build_app(), ["system", "settings", "list"])
     assert result.exit_code == 0, result.output
     assert "applicationTitle = MoH" in result.output

@@ -22,9 +22,9 @@ from dhis2w_client import AnalyticsMetaData, Grid
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_core.v42.plugins.analytics import service as analytics_service
-from dhis2w_core.v42.plugins.maintenance import service as maintenance_service
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_core.v43.plugins.analytics import service as analytics_service
+from dhis2w_core.v43.plugins.maintenance import service as maintenance_service
 
 
 async def main() -> None:

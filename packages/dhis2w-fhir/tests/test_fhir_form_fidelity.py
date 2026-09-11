@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from dhis2w_client.generated.v42.schemas import DataSet
+from dhis2w_client.generated.v43.schemas import DataSet
 from dhis2w_fhir import (
     AttributeCodeIndex,
     CategoryAxisIn,

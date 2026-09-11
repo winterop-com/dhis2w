@@ -29,8 +29,8 @@ import sys
 from _runner import run_example
 from dhis2w_core.profile import Profile, profile_from_env, resolve_profile
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_core.v42.plugins.metadata import service
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_core.v43.plugins.metadata import service
 
 
 async def drift(resource_types: list[str], profile_a: Profile, profile_b: Profile, *, fields: str = ":owner") -> int:

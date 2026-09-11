@@ -6,7 +6,7 @@ import json
 from datetime import date
 from typing import Any
 
-from dhis2w_client.generated.v42.schemas import OrganisationUnit
+from dhis2w_client.generated.v43.schemas import OrganisationUnit
 from dhis2w_fhir import service
 from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitIn
 

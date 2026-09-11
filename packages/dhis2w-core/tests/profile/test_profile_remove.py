@@ -25,7 +25,7 @@ def _isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[N
 def test_profile_remove_confirm_accept() -> None:
     """Answering `y` at the prompt proceeds to remove the profile."""
     remove = MagicMock(return_value=Path("/tmp/profiles.toml"))
-    with patch("dhis2w_core.v42.plugins.profile.service.remove_profile", new=remove):
+    with patch("dhis2w_core.v43.plugins.profile.service.remove_profile", new=remove):
         result = CliRunner().invoke(build_app(), ["profile", "remove", "stale"], input="y\n")
     assert result.exit_code == 0, result.output
     assert "removed 'stale'" in result.output
@@ -35,7 +35,7 @@ def test_profile_remove_confirm_accept() -> None:
 def test_profile_remove_confirm_abort_skips_service() -> None:
     """Answering `n` aborts before removal; the credential-loss warning is shown."""
     remove = MagicMock()
-    with patch("dhis2w_core.v42.plugins.profile.service.remove_profile", new=remove):
+    with patch("dhis2w_core.v43.plugins.profile.service.remove_profile", new=remove):
         result = CliRunner().invoke(build_app(), ["profile", "remove", "stale"], input="n\n")
     assert result.exit_code != 0
     assert "cannot be recovered" in result.output
@@ -45,7 +45,7 @@ def test_profile_remove_confirm_abort_skips_service() -> None:
 def test_profile_remove_yes_flag_skips_prompt() -> None:
     """`--yes` removes without prompting."""
     remove = MagicMock(return_value=Path("/tmp/profiles.toml"))
-    with patch("dhis2w_core.v42.plugins.profile.service.remove_profile", new=remove):
+    with patch("dhis2w_core.v43.plugins.profile.service.remove_profile", new=remove):
         result = CliRunner().invoke(build_app(), ["profile", "remove", "stale", "--yes"])
     assert result.exit_code == 0, result.output
     assert "removed 'stale'" in result.output

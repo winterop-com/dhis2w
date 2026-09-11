@@ -8,7 +8,7 @@ import httpx
 import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, RelativePeriod, VisualizationSpec
-from dhis2w_client.generated.v42.enums import VisualizationType
+from dhis2w_client.generated.v43.enums import VisualizationType
 
 
 def _auth() -> BasicAuth:

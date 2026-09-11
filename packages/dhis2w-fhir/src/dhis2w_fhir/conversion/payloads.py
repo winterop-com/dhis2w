@@ -42,7 +42,7 @@ import datetime
 import random
 from typing import TYPE_CHECKING
 
-from dhis2w_client.generated.v42.oas import (
+from dhis2w_client.generated.v43.oas import (
     DataValue,
     DataValueSet,
     EnrollmentStatus,
@@ -50,10 +50,10 @@ from dhis2w_client.generated.v42.oas import (
     TrackerAttribute,
     TrackerDataValue,
     TrackerEnrollment,
-    TrackerEvent,
     TrackerTrackedEntity,
 )
-from dhis2w_client.v42.aggregate import CompleteDataSetRegistration
+from dhis2w_client.generated.v43.tracker import TrackerEvent
+from dhis2w_client.v43.aggregate import CompleteDataSetRegistration
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir.conversion.schemas import (

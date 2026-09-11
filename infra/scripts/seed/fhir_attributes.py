@@ -45,13 +45,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from dhis2w_client.generated.v42.enums import ValueType
-from dhis2w_client.generated.v42.oas import Sharing
-from dhis2w_client.generated.v42.schemas import Attribute
-from dhis2w_client.v42.sharing import ACCESS_READ_WRITE_DATA
+from dhis2w_client.generated.v43.enums import ValueType
+from dhis2w_client.generated.v43.oas import Sharing
+from dhis2w_client.generated.v43.schemas import Attribute
+from dhis2w_client.v43.sharing import ACCESS_READ_WRITE_DATA
 
 if TYPE_CHECKING:
-    from dhis2w_client.v42.client import Dhis2Client
+    from dhis2w_client.v43.client import Dhis2Client
 
 # Fixed UIDs — hand-chosen so the FHIR fixtures can pin them, and distinct from
 # `AtrSNOMED01` (the option-level attribute `workspace_fixtures` seeds).

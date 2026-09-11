@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from _runner import run_example
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.v42.tasks import TaskTimeoutError
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.v43.tasks import TaskTimeoutError
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 

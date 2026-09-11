@@ -39,7 +39,7 @@ def _invoke(
     args: list[str],
     payload: Any,
     *,
-    tree: str = "v42",
+    tree: str = "v43",
     monkeypatch: pytest.MonkeyPatch | None = None,
 ) -> Any:
     """Invoke `d2w security authorities ...` against `tree` with a fake client returning `payload`."""

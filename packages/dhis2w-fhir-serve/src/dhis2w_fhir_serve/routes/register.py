@@ -207,7 +207,7 @@ from dhis2w_fhir_serve.routes.read import (
 from dhis2w_fhir_serve.store import IdentifierToken
 
 if TYPE_CHECKING:
-    from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+    from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 
 #: The one search parameter the facade answers a register lookup on.
 IDENTIFIER_SEARCH_PARAMETER = "identifier"

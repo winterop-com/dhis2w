@@ -22,9 +22,9 @@ from datetime import datetime
 from _runner import run_example
 from dhis2w_client import NoProfileError, generate_uid, open_client, profile_from_env_raw
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.schemas import OrganisationUnit
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.schemas import OrganisationUnit
 
 PARENT_UID = "ImspTQPwCqd"  # seeded in infra/v42/dump.sql.gz — "Sierra Leone"
 

@@ -17,8 +17,9 @@ def _auth() -> BasicAuth:
 async def test_top_level_error_class_catches_a_v41_bound_client_error() -> None:
     """Errors are shared across trees: the top-level Dhis2ApiError catches a v41-bound client's error.
 
-    Regression for the per-version-exception-class footgun — each tree used to define its own
-    Dhis2ClientError, so `except dhis2w_client.Dhis2ApiError` silently missed v41/v43 errors.
+    One shared exception hierarchy lives at `dhis2w_client.errors`; no tree defines
+    a Dhis2ClientError of its own, so `except dhis2w_client.Dhis2ApiError` catches
+    every tree's errors.
     """
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
@@ -29,7 +30,7 @@ async def test_top_level_error_class_catches_a_v41_bound_client_error() -> None:
     )
     async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
         assert client.version_key == "v41"
-        with pytest.raises(Dhis2ApiError) as exc_info:  # top-level (v42-baseline) class
+        with pytest.raises(Dhis2ApiError) as exc_info:  # top-level (v43-homed) class
             await client.data_elements.get("MISSING")
     assert exc_info.value.status_code == 404
 
@@ -40,8 +41,8 @@ def _mock_redirect_probe() -> None:
 
 
 @respx.mock
-async def test_top_level_client_against_v42_keeps_v42_accessors() -> None:
-    """Default Dhis2Client (== v42 class) talking to a v42 server keeps its v42 accessors."""
+async def test_top_level_client_against_v42_dispatches_to_v42_accessors() -> None:
+    """Default Dhis2Client talking to a v42 server gets its accessors swapped to v42 classes."""
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": "2.42.0"})
@@ -53,8 +54,8 @@ async def test_top_level_client_against_v42_keeps_v42_accessors() -> None:
 
 
 @respx.mock
-async def test_top_level_client_against_v43_dispatches_to_v43_accessors() -> None:
-    """Default Dhis2Client talking to a v43 server gets its accessors swapped to v43 classes."""
+async def test_top_level_client_against_v43_keeps_v43_accessors() -> None:
+    """Default Dhis2Client (== the v43 class) talking to a v43 server keeps its v43 accessors."""
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": "2.43.0"})
@@ -79,15 +80,15 @@ async def test_top_level_client_against_v41_dispatches_to_v41_accessors() -> Non
 
 @respx.mock
 async def test_connect_primes_system_cache_with_bound_tree_model() -> None:
-    """After a rebind to v43, the primed system-info cache holds v43's SystemInfo, not the v42 baseline's."""
+    """After a rebind to v42, the primed system-info cache holds v42's SystemInfo, not the home tree's."""
     _mock_redirect_probe()
     info_route = respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.43.0"})
+        return_value=httpx.Response(200, json={"version": "2.42.0"})
     )
     async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
         info = await client.system.info()
     assert info_route.call_count == 1  # connect's fetch primed the cache; info() was a free read
-    assert type(info).__module__.startswith("dhis2w_client.generated.v43")
+    assert type(info).__module__.startswith("dhis2w_client.generated.v42")
 
 
 @respx.mock
@@ -104,31 +105,33 @@ async def test_connect_primes_system_cache_with_v41_tree_model() -> None:
 
 
 @respx.mock
-async def test_v43_client_class_against_v42_server_raises() -> None:
-    """Direct use of `dhis2w_client.v43.client.Dhis2Client` against a v42 server is a hard error."""
+async def test_v43_client_class_against_v42_server_rebinds_to_v42_accessors() -> None:
+    """`dhis2w_client.v43.client.Dhis2Client` against a v42 server swaps its accessors to v42 classes."""
     from dhis2w_client.v43.client import Dhis2Client as V43Client
 
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.0"})
+        return_value=httpx.Response(200, json={"version": "2.42.4"})
     )
-    with pytest.raises(RuntimeError, match="v43.client.Dhis2Client connected to"):
-        async with V43Client("https://dhis2.example", auth=_auth(), version=None):
-            pass
+    async with V43Client("https://dhis2.example", auth=_auth(), version=None) as client:
+        assert client.version_key == "v42"
+        assert client.category_combos.__class__.__module__ == "dhis2w_client.v42.category_combos"
+        assert client.maintenance.__class__.__module__ == "dhis2w_client.v42.maintenance"
 
 
 @respx.mock
-async def test_v41_client_class_against_v42_server_raises() -> None:
-    """Direct use of `dhis2w_client.v41.client.Dhis2Client` against a v42 server is a hard error."""
+async def test_v41_client_class_against_v42_server_rebinds_to_v42_accessors() -> None:
+    """`dhis2w_client.v41.client.Dhis2Client` against a v42 server swaps its accessors to v42 classes."""
     from dhis2w_client.v41.client import Dhis2Client as V41Client
 
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.42.0"})
+        return_value=httpx.Response(200, json={"version": "2.42.4"})
     )
-    with pytest.raises(RuntimeError, match="v41.client.Dhis2Client connected to"):
-        async with V41Client("https://dhis2.example", auth=_auth(), version=None):
-            pass
+    async with V41Client("https://dhis2.example", auth=_auth(), version=None) as client:
+        assert client.version_key == "v42"
+        assert client.category_combos.__class__.__module__ == "dhis2w_client.v42.category_combos"
+        assert client.maintenance.__class__.__module__ == "dhis2w_client.v42.maintenance"
 
 
 @respx.mock

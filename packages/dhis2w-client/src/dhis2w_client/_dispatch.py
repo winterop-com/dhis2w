@@ -1,12 +1,13 @@
 """Per-version accessor binding for `Dhis2Client`.
 
-`Dhis2Client.__init__` (in `dhis2w_client.v42.client`) wires v42 accessor
-instances onto `self.X` as a default. When `connect()` detects the live
-server is v41 or v43, it calls `rebind_accessors_for_version()` from
-this module to swap each accessor with the matching class from the
-`dhis2w_client.v{N}.<module>` tree. The result is that a Dhis2Client
-talking to a v43 server uses the v43 hand-written code path, not the
-v42 default — even though the class itself is the v42 `Dhis2Client`.
+Each `dhis2w_client.v{41,42,43}.client.Dhis2Client.__init__` wires the
+accessor instances of its own tree — its *home* major — onto `self.X`.
+When `connect()` reads `/api/system/info` and the live server reports a
+different major, it calls `rebind_accessors_for_version()` from this
+module to swap each accessor with the matching class from the detected
+`dhis2w_client.v{N}.<module>` tree. A client class therefore always runs
+the hand-written code path of the server it talks to; only its static
+accessor *types* stay those of its home tree.
 """
 
 from __future__ import annotations
@@ -71,19 +72,23 @@ _ACCESSOR_BINDINGS: list[tuple[str, str, str]] = [
 ]
 
 
-def rebind_accessors_for_version(client: Any, version_key: str) -> None:
+_KNOWN_VERSION_KEYS = frozenset({"v41", "v42", "v43"})
+
+
+def rebind_accessors_for_version(client: Any, version_key: str, *, home: str) -> None:
     """Swap each accessor on `client` to the matching class from `v{version_key}/`.
 
-    `__init__` binds the v42 defaults; this runs from `connect()` once the
-    actual server version is known. v42 servers are a no-op (the defaults
-    already match). Unknown version keys fall through silently and keep
-    the v42 defaults.
+    `home` is the version key of the tree whose accessors `__init__` bound.
+    This runs from `connect()` once the actual server version is known: a
+    `version_key` equal to `home` is a no-op, since the bound accessors
+    already match. Unknown version keys fall through silently and keep the
+    home tree's accessors.
 
     `client` is typed as `Any` because all three `dhis2w_client.v{N}.client.Dhis2Client`
     classes call this — mypy treats them as unrelated. At runtime the
     function only needs duck-typed attribute access (`setattr`).
     """
-    if version_key not in ("v41", "v43"):
+    if version_key == home or version_key not in _KNOWN_VERSION_KEYS:
         return
     for attr_name, module_name, class_name in _ACCESSOR_BINDINGS:
         module = importlib.import_module(f"dhis2w_client.{version_key}.{module_name}")

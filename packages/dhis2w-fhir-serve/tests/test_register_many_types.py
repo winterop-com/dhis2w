@@ -32,7 +32,7 @@ import httpx
 import httpx2
 import pytest
 import respx
-from dhis2w_client.generated.v42.oas import TrackerTrackedEntity
+from dhis2w_client.generated.v43.oas import TrackerTrackedEntity
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import Profile
 from dhis2w_fhir.config import FhirProject, TrackedEntitiesConfig

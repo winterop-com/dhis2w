@@ -18,15 +18,15 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_client import Dhis2Client, generate_uids
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.enums import AggregationType, DataElementDomain, ValueType
-from dhis2w_client.generated.v42.oas import AtomicMode, ImportStrategy
-from dhis2w_client.generated.v42.schemas import DataElement
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import AggregationType, DataElementDomain, ValueType
+from dhis2w_client.generated.v43.oas import AtomicMode, ImportStrategy
+from dhis2w_client.generated.v43.schemas import DataElement
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.plugins.metadata import service
-from dhis2w_core.v42.plugins.metadata.models import MetadataBundle
+from dhis2w_core.v43.plugins.metadata import service
+from dhis2w_core.v43.plugins.metadata.models import MetadataBundle
 
 
 async def _default_category_combo(client: Dhis2Client) -> str:

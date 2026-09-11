@@ -46,7 +46,7 @@ def _invoke(accessor: _FakeAccessor, args: list[str]) -> Any:
     ctx.__aexit__.return_value = None
     head = [a for a in args if a in _GLOBAL_FLAGS]
     tail = [a for a in args if a not in _GLOBAL_FLAGS]
-    with patch("dhis2w_core.v42.plugins.metadata.service.open_client", lambda _profile: ctx):
+    with patch("dhis2w_core.v43.plugins.metadata.service.open_client", lambda _profile: ctx):
         return CliRunner().invoke(build_app(), [*head, "metadata", "list", "dataElements", *tail])
 
 

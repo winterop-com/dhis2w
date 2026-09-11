@@ -559,7 +559,7 @@ def requested_cursor(stated: str | None) -> SpoolCursor:
 def new_response_id() -> str:
     """Mint a receipt id: a uuid4 hex, which is 32 characters of `[a-f0-9]` and so a valid FHIR id.
 
-    Deliberately not a DHIS2 UID (`dhis2w_client.v42.uids.generate_uid`). A receipt is a resource the
+    Deliberately not a DHIS2 UID (`dhis2w_client.v43.uids.generate_uid`). A receipt is a resource the
     facade owns, not a DHIS2 object, and an 11-character DHIS2-shaped id would read as one. The hex
     form drops the dashes a uuid string carries so the id is safe in a path segment and a file name.
     """

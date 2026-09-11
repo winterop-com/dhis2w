@@ -20,9 +20,9 @@ from __future__ import annotations
 from _runner import run_example
 from dhis2w_client import Dhis2Client, generate_uid
 
-# v42 is the canonical baseline: swap `.v42` for `.v41` / `.v43` to pin another major.
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.schemas import Indicator
+# v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.schemas import Indicator
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
@@ -37,7 +37,7 @@ async def _ensure_indicator_type(client: Dhis2Client) -> str:
         return str(types[0].id)
     # Seed fixture didn't ship one; create a minimal IndicatorType so the rest
     # of the demo has something to reference. No cleanup — it's harmless leftover.
-    from dhis2w_client.generated.v42.schemas import IndicatorType
+    from dhis2w_client.generated.v43.schemas import IndicatorType
 
     type_uid = generate_uid()
     await client.resources.indicator_types.create(
