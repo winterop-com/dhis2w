@@ -430,7 +430,7 @@ def test_pyproject_resolves_the_toolchain_from_pypi() -> None:
     assert "tool" not in parsed
     assert "resolve from PyPI" in body
     assert "wheel ships the\n# capture UI" in body
-    assert '# dhis2w-cli = { git = "https://github.com/winterop-com/dhis2w-utils"' in body
+    assert '# dhis2w-cli = { git = "https://github.com/winterop-com/dhis2w"' in body
     assert "uv lock --upgrade" in body
 
 
@@ -562,7 +562,7 @@ def test_makefile_drives_d2w_through_the_projects_own_environment() -> None:
     """`uv run d2w` is the default, with the checkout override on one comment line; the guide holds the rest."""
     makefile = _by_path()["Makefile"]
     assert "D2W ?= uv run d2w" in makefile
-    assert 'D2W="uv run --project /path/to/dhis2w-utils d2w"' in makefile
+    assert 'D2W="uv run --project /path/to/dhis2w d2w"' in makefile
     assert "uvx" not in makefile
 
 

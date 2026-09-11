@@ -60,6 +60,6 @@ async with open_client(profile_from_env()) as client:
     )
 ```
 
-Property-based round-trip tests of `generate_uid` / `generate_uids` / `is_valid_uid` live in [`packages/dhis2w-client/tests/test_parser_properties.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/packages/dhis2w-client/tests/test_parser_properties.py).
+Property-based round-trip tests of `generate_uid` / `generate_uids` / `is_valid_uid` live in [`packages/dhis2w-client/tests/test_parser_properties.py`](https://github.com/winterop-com/dhis2w/blob/main/packages/dhis2w-client/tests/test_parser_properties.py).
 
 ::: dhis2w_client.v42.uids

@@ -249,7 +249,7 @@ capture-then-reread pattern.
 - The full list of stages, sources, sinks, and pushdown rules: [d2ql reference](d2ql.md).
 - The expression language inside every stage: [d2path](d2path.md).
 - Ready-to-run programs for every pattern above: the
-  [`examples/d2ql/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/d2ql) library —
+  [`examples/d2ql/`](https://github.com/winterop-com/dhis2w/tree/main/examples/d2ql) library —
   `d2w query run examples/d2ql/<name>.d2ql`.
 - More recipes (FHIR Bundle/CodeSystem/ValueSet/Questionnaire, GeoJSON): [Cookbook](cookbook.md).
 - Programmatic use: [`dhis2w_ql` API](../api/query.md).

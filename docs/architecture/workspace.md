@@ -13,7 +13,7 @@ Three reasons:
 ## Layout
 
 ```
-dhis2w-utils/
+dhis2w/
 ├── pyproject.toml                # virtual workspace root + shared tool config
 ├── uv.lock                       # single workspace-wide lock
 ├── Makefile                      # drives install/lint/test/docs/build/publish

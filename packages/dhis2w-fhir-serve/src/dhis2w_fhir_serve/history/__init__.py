@@ -17,7 +17,7 @@ into exactly that shape (`dhis2w_fhir.resources.examples.documents`). Serving th
 shape would mean this project published two readings of one event and left a client to reconcile
 them. Whether a DHIS2 event is additionally an `Encounter`, or its values additionally `Observation`s,
 is the SDC `$extract` line that
-[the enrollment resource](https://winterop-com.github.io/dhis2w-utils/fhir/design/enrollment-resource/)
+[the enrollment resource](https://winterop-com.github.io/dhis2w/fhir/design/enrollment-resource/)
 leaves open, and `$extract` runs over a QuestionnaireResponse - so the form-faithful document is the
 substrate that line needs rather than a rival to it.
 

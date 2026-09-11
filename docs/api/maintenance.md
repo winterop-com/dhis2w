@@ -65,8 +65,8 @@ async with open_client(profile_from_env()) as client:
 
 ## Related examples
 
-- [`examples/client/analytics_tables_poll_once.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/analytics_tables_poll_once.py) — `run_analytics_tables` followed with `client.tasks.poll_once`, one poll per tick.
-- [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/task_await.py) — `run_analytics_tables` blocked on with `client.tasks.await_completion`.
-- [`examples/client/integrity_issues_stream.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/integrity_issues_stream.py) — `iter_integrity_issues` + severity histogram + early-break scan.
+- [`examples/client/analytics_tables_poll_once.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/analytics_tables_poll_once.py) — `run_analytics_tables` followed with `client.tasks.poll_once`, one poll per tick.
+- [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/task_await.py) — `run_analytics_tables` blocked on with `client.tasks.await_completion`.
+- [`examples/client/integrity_issues_stream.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/integrity_issues_stream.py) — `iter_integrity_issues` + severity histogram + early-break scan.
 
 ::: dhis2w_client.v42.maintenance

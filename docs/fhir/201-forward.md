@@ -845,10 +845,10 @@ you working out which two it reached.
 | an event DHIS2 will not delete | Named as `refused`, and the receipt **stays in `forwarded/`** with the import report that says what it landed. The run exits 1. |
 
 A whole worked run is at
-[`examples/fhir/cli/withdraw.sh`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/cli/withdraw.sh),
+[`examples/fhir/cli/withdraw.sh`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/cli/withdraw.sh),
 and the three `[forward]` postures a project takes towards data that already
 reached DHIS2 are read back in
-[`examples/fhir/client/read_forward_dials.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/read_forward_dials.py).
+[`examples/fhir/client/read_forward_dials.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/read_forward_dials.py).
 
 ## When the answer is no verdict at all
 

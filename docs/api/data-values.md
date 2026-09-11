@@ -137,9 +137,9 @@ async with open_client(profile_from_env()) as client:
 
 ## Related examples
 
-- [`examples/client/stream_data_values.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/stream_data_values.py) — four streaming shapes (bytes, sync generator, Path/CSV, 1000-row file with timing).
-- [`examples/client/aggregate_bulk_grouped.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/aggregate_bulk_grouped.py) — the grouped path against a v43 stack.
-- [`examples/client/data_values_import_atomic.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/data_values_import_atomic.py) — the same partly invalid payload under `ALL` and `OBJECT`.
-- [`examples/client/data_values_export.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/data_values_export.py) — `export` as a typed envelope, then `client.stream` to a Path, a BytesIO, and a callable.
+- [`examples/client/stream_data_values.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/stream_data_values.py) — four streaming shapes (bytes, sync generator, Path/CSV, 1000-row file with timing).
+- [`examples/client/aggregate_bulk_grouped.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/aggregate_bulk_grouped.py) — the grouped path against a v43 stack.
+- [`examples/client/data_values_import_atomic.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/data_values_import_atomic.py) — the same partly invalid payload under `ALL` and `OBJECT`.
+- [`examples/client/data_values_export.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/data_values_export.py) — `export` as a typed envelope, then `client.stream` to a Path, a BytesIO, and a callable.
 
 ::: dhis2w_client.v42.data_values

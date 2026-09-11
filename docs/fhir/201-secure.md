@@ -341,9 +341,9 @@ copy](201-serve.md#serve-from-a-synced-copy)).
 Every `[serve]` key here, `auth` and `auth_scope` and the whole `[serve.jwt]`
 table, is documented in full at [Configure serving](301-serving.md). The four
 postures run end to end in
-[`examples/fhir/cli/serve_auth_postures.sh`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/cli/serve_auth_postures.sh),
+[`examples/fhir/cli/serve_auth_postures.sh`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/cli/serve_auth_postures.sh),
 and the register read as the caller in
-[`examples/fhir/client/read_register_as_yourself.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/read_register_as_yourself.py).
+[`examples/fhir/client/read_register_as_yourself.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/read_register_as_yourself.py).
 
 Next: [Forward captures into DHIS2](201-forward.md) - what the facade does
 with what it accepted. [Run a secured facade](201-run-a-secured-facade.md) is

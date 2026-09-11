@@ -27,6 +27,6 @@ Each plugin lives at `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/<
 
 ## Documentation
 
-Full architecture: https://winterop-com.github.io/dhis2w-utils/architecture/overview/.
+Full architecture: https://winterop-com.github.io/dhis2w/architecture/overview/.
 
-`dhis2w-core` is one member of the [`dhis2w-utils`](https://github.com/winterop-com/dhis2w-utils) workspace.
+`dhis2w-core` is one member of the [`dhis2w`](https://github.com/winterop-com/dhis2w) workspace.

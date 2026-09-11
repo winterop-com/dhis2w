@@ -525,7 +525,7 @@ def _list_project_templates() -> None:
     _hint(
         "note",
         "a bundled template rides the installed package; a checkout one is read from "
-        "examples/fhir/igs/ of the dhis2w-utils repository and exists only in a clone of it",
+        "examples/fhir/igs/ of the dhis2w repository and exists only in a clone of it",
     )
 
 

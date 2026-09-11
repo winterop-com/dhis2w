@@ -10,7 +10,7 @@ Templates come from two places, and the difference is visible to whoever asks fo
 - **Bundled.** The payloads under `projects/` ride the wheel, so they work in every install.
   `projects/manifest.toml` beside them is the one file that names them, and the listing is read
   straight off it.
-- **Checkout.** The full example catalog at `examples/fhir/igs/` of the dhis2w-utils repository,
+- **Checkout.** The full example catalog at `examples/fhir/igs/` of the dhis2w repository,
   found by walking up from this file. A wheel carries no `examples/`, so these exist only in a
   checkout; asking for one anywhere else is refused by name, naming the bundled ones instead.
 
@@ -57,7 +57,7 @@ _CHECKOUT_ONLY_KEY = "checkout_only"
 #: The tree a template lays down, relative to the project root.
 _PAYLOAD_RELATIVE_ROOT = "ig/input"
 
-#: Where the full example catalog sits in a dhis2w-utils checkout, relative to the repository root.
+#: Where the full example catalog sits in a dhis2w checkout, relative to the repository root.
 _CHECKOUT_CATALOG = Path("examples/fhir/igs")
 
 _BUNDLED_DIRECTORY = Path(__file__).parent / "projects"
@@ -97,7 +97,7 @@ class UnknownTemplateError(LookupError):
         bundled = ", ".join(template.name for template in available) or "none"
         if checkout_only:
             message = (
-                f"template `{name}` belongs to the example catalog, which ships in the dhis2w-utils "
+                f"template `{name}` belongs to the example catalog, which ships in the dhis2w "
                 f"repository rather than in an installed package. This install carries {bundled}. "
                 f"Run `d2w fhir init` from a clone of the repository to scaffold from `{name}`."
             )
@@ -229,7 +229,7 @@ def _checkout_templates() -> list[ProjectTemplate]:
 
 
 def _checkout_catalog() -> Path | None:
-    """The example catalog of the surrounding dhis2w-utils checkout, or None when there is no checkout."""
+    """The example catalog of the surrounding dhis2w checkout, or None when there is no checkout."""
     for parent in Path(__file__).resolve().parents:
         candidate = parent / _CHECKOUT_CATALOG
         if candidate.is_dir():

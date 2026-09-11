@@ -41,7 +41,7 @@ security-relevant fields; Pydantic's default `extra="ignore"` drops the rest of 
 declares every field here. We don't reuse the full generated model for this read
 because it can't validate a live `/api/systemSettings` response: the endpoint returns
 `keyAnalysisDisplayProperty` lowercase (`"name"`), which the OAS `DisplayProperty`
-enum rejects ([BUGS.md #42](https://github.com/winterop-com/dhis2w-utils/blob/main/BUGS.md)).
+enum rejects ([BUGS.md #42](https://github.com/winterop-com/dhis2w/blob/main/BUGS.md)).
 The projection omits that one field, so it parses. The clean long-term fix is an OAS
 spec-patch widening that enum, then a `client.system.settings() -> SystemSettings`
 accessor the plugin can call — at which point this projection can shrink to a render

@@ -93,12 +93,12 @@ the toolchain `uv.lock` pinned. To drive a checkout or a git ref instead,
 spell the source into the command:
 
 ```bash
-# From a local checkout of dhis2w-utils:
-uv run --project /path/to/dhis2w-utils d2w fhir generate
+# From a local checkout of dhis2w:
+uv run --project /path/to/dhis2w d2w fhir generate
 
 # Straight from a git ref, nothing installed, no uv sync:
-uvx --from 'git+ssh://git@github.com/winterop-com/dhis2w-utils.git@main#subdirectory=packages/dhis2w-cli' \
-    --with 'dhis2w-fhir @ git+ssh://git@github.com/winterop-com/dhis2w-utils.git@main#subdirectory=packages/dhis2w-fhir' \
+uvx --from 'git+ssh://git@github.com/winterop-com/dhis2w.git@main#subdirectory=packages/dhis2w-cli' \
+    --with 'dhis2w-fhir @ git+ssh://git@github.com/winterop-com/dhis2w.git@main#subdirectory=packages/dhis2w-fhir' \
     d2w fhir generate
 ```
 

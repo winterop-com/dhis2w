@@ -1711,7 +1711,7 @@ described, and the git history is where it was built. What is left:
   FHIR-version-neutral, with the release reaching them as a `FhirVersionBinding`
   value out of `dhis2w_fhir_engine.r4`. The four
   [501 guides](../501-cql.md) teach it and
-  [`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/fhir/engine)
+  [`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w/tree/main/examples/fhir/engine)
   runs it, including an end-to-end example that maps a seeded Child Programme
   cohort into FHIR and scores a measure over it.
 

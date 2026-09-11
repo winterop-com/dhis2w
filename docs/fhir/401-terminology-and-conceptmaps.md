@@ -596,7 +596,7 @@ wrote into the instance.
 
 **The order is the locale tag, always.** DHIS2 holds translations in a set and
 answers them in a different order on every read
-([BUGS.md #83](https://github.com/winterop-com/dhis2w-utils/blob/main/BUGS.md)),
+([BUGS.md #83](https://github.com/winterop-com/dhis2w/blob/main/BUGS.md)),
 so every emitted list is sorted by the normalised tag and deduplicated on it. A
 regenerate of unchanged metadata therefore produces an unchanged file.
 

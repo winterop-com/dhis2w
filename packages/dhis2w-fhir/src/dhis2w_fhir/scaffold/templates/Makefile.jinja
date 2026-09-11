@@ -7,7 +7,7 @@ TX_SERVER ?= http://tx.fhir.org
 # The publisher JVM heap. Keep the docker VM at JAVA_HEAP + ~2G - 10 GB at this default - or the
 # kernel OOM-kills the build (exit 137). Drop to 4g or 2g on a smaller VM.
 JAVA_HEAP ?= 8g
-# The toolchain uv.lock pins. Override to run a checkout: D2W="uv run --project /path/to/dhis2w-utils d2w"
+# The toolchain uv.lock pins. Override to run a checkout: D2W="uv run --project /path/to/dhis2w d2w"
 D2W ?= uv run d2w
 # Named volume for the FHIR package cache - the bulk of a cold build's wall clock.
 CACHE_VOLUME := fhir-ig-cache

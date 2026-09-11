@@ -9,9 +9,9 @@ name: Publish docs
 #
 # Uses GitHub's actions/deploy-pages flow (not the older `mkdocs gh-deploy`
 # branch push). Configure once at
-# https://github.com/winterop-com/dhis2w-utils/settings/pages — set Source =
+# https://github.com/winterop-com/dhis2w/settings/pages — set Source =
 # "GitHub Actions". After the first successful run the site is live at
-# https://winterop-com.github.io/dhis2w-utils/.
+# https://winterop-com.github.io/dhis2w/.
 
 on:
   push:

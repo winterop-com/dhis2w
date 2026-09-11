@@ -268,7 +268,7 @@ down to a field on the resources it selected:
 | Born after a cut-off | `Bundle.entry.resource.ofType(Patient).where(birthDate > @2023-06-01).id` | `['child-3', 'child-4']` |
 
 The runnable version of that table is
-[`examples/fhir/engine/fhirpath_over_bundle.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/fhirpath_over_bundle.py),
+[`examples/fhir/engine/fhirpath_over_bundle.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/fhirpath_over_bundle.py),
 which prints each question, its expression, and its answer.
 
 ## From Python
@@ -348,9 +348,9 @@ server failure.
 
 | Run it | What it shows |
 | --- | --- |
-| [`examples/fhir/client/evaluate_stored_resource.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/evaluate_stored_resource.py) | The `stored` context: one form's sections, data elements and category-combination cells, each from one line, plus the 404 a resource nobody holds earns |
-| [`examples/fhir/client/evaluate_via_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/evaluate_via_facade.py) | The `inline` context, a CQL library beside it, and a parse failure keeping its position |
-| [`examples/fhir/cli/evaluate.sh`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/cli/evaluate.sh) | The same two addresses from curl, against a facade the script stands up itself |
+| [`examples/fhir/client/evaluate_stored_resource.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/evaluate_stored_resource.py) | The `stored` context: one form's sections, data elements and category-combination cells, each from one line, plus the 404 a resource nobody holds earns |
+| [`examples/fhir/client/evaluate_via_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/evaluate_via_facade.py) | The `inline` context, a CQL library beside it, and a parse failure keeping its position |
+| [`examples/fhir/cli/evaluate.sh`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/cli/evaluate.sh) | The same two addresses from curl, against a facade the script stands up itself |
 
 [Serve the guide](201-serve.md) is how the facade those talk to gets started.
 
@@ -368,8 +368,8 @@ have just read is the navigation a CQL expression uses inside a retrieve. Read
 
 | File | Shows |
 | --- | --- |
-| [`examples/fhir/engine/fhirpath_basics.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/fhirpath_basics.py) | Every expression on this page over one Patient, with the reason for each in the margin |
-| [`examples/fhir/engine/fhirpath_over_bundle.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/fhirpath_over_bundle.py) | `ofType()` and the Bundle table above, question by question |
+| [`examples/fhir/engine/fhirpath_basics.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/fhirpath_basics.py) | Every expression on this page over one Patient, with the reason for each in the margin |
+| [`examples/fhir/engine/fhirpath_over_bundle.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/fhirpath_over_bundle.py) | `ofType()` and the Bundle table above, question by question |
 
 Both run with `uv run python examples/fhir/engine/<name>.py` and need nothing
 running.

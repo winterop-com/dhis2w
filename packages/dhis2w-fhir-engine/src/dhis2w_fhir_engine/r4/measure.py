@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from ..engine.cql.library import CQLLibrary
 
 EVALUATION_ERROR_EXTENSION_URL = (
-    "https://winterop-com.github.io/dhis2w-utils/fhir/StructureDefinition/measure-evaluation-errors"
+    "https://winterop-com.github.io/dhis2w/fhir/StructureDefinition/measure-evaluation-errors"
 )
 """Extension URL on a MeasureReport pointing at the contained OperationOutcome of failed definitions."""
 

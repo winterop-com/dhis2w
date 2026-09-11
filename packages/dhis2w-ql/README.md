@@ -101,14 +101,14 @@ operator) to keep the two unambiguous.
 
 ## Documentation
 
-- [d2ql tutorial](https://winterop-com.github.io/dhis2w-utils/query/d2ql-tutorial/) and
-  [reference](https://winterop-com.github.io/dhis2w-utils/query/d2ql/)
-- [d2path reference](https://winterop-com.github.io/dhis2w-utils/query/d2path/) and the
-  [generated example catalog](https://winterop-com.github.io/dhis2w-utils/query/d2path-examples/)
+- [d2ql tutorial](https://winterop-com.github.io/dhis2w/query/d2ql-tutorial/) and
+  [reference](https://winterop-com.github.io/dhis2w/query/d2ql/)
+- [d2path reference](https://winterop-com.github.io/dhis2w/query/d2path/) and the
+  [generated example catalog](https://winterop-com.github.io/dhis2w/query/d2path-examples/)
   — 140 examples covering every function, each parsed and evaluated in CI against this engine
-- [Language semantics](https://winterop-com.github.io/dhis2w-utils/query/semantics/) and the
-  [cookbook](https://winterop-com.github.io/dhis2w-utils/query/cookbook/)
-- Runnable sample programs: [`examples/d2ql/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/d2ql)
+- [Language semantics](https://winterop-com.github.io/dhis2w/query/semantics/) and the
+  [cookbook](https://winterop-com.github.io/dhis2w/query/cookbook/)
+- Runnable sample programs: [`examples/d2ql/`](https://github.com/winterop-com/dhis2w/tree/main/examples/d2ql)
   in the repository — every file is parse-tested in CI
 
 The curated catalogs ship in the package: `dhis2w_ql.SAMPLES` (sample programs) and

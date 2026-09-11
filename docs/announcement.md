@@ -49,4 +49,4 @@ uv tool install dhis2w-cli
 d2w --help
 ```
 
-Source, docs, and runnable examples: https://github.com/winterop-com/dhis2w-utils
+Source, docs, and runnable examples: https://github.com/winterop-com/dhis2w

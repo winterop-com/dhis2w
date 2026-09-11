@@ -20,7 +20,7 @@ example below passes no binding at all.
 The four guides that teach what these names do are
 [FHIRPath](501-fhirpath.md), [CQL](501-cql.md), [Quality measures](501-measures.md), and
 [The FHIR version binding](501-version-binding.md). Nine runnable examples live in
-[`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/fhir/engine).
+[`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w/tree/main/examples/fhir/engine).
 
 ## When to reach for it
 

@@ -186,7 +186,7 @@ def test_the_manifest_names_the_whole_example_catalog() -> None:
     """Bundled plus checkout-only is exactly what the checkout holds, so no refusal denies a real guide."""
     catalog = _checkout_catalog()
     if catalog is None:
-        pytest.skip("no dhis2w-utils checkout around this install")
+        pytest.skip("no dhis2w checkout around this install")
     on_disk = {path.name for path in catalog.iterdir() if (path / "fhir.toml").is_file()}
     bundled = {template.name for template in list_templates() if template.origin is TemplateOrigin.BUNDLED}
     assert bundled | checkout_only_names() == on_disk

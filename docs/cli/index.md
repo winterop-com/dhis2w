@@ -67,8 +67,8 @@ Inside that project shell, `uv run d2w …` uses the pinned version.
 If you cloned `dhis2-utils` to hack on the CLI:
 
 ```bash
-git clone git@github.com:winterop-com/dhis2w-utils.git
-cd dhis2w-utils
+git clone git@github.com:winterop-com/dhis2w.git
+cd dhis2w
 make install                          # uv sync --all-packages
 uv run d2w --version
 ```

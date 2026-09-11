@@ -24,6 +24,6 @@ async with Dhis2Client(...) as client:
     )
 ```
 
-Works against every resource that has an `attributeValues` field (the bulk of `/api/{resource}` endpoints). Worked example: [`examples/client/attribute_values.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/attribute_values.py).
+Works against every resource that has an `attributeValues` field (the bulk of `/api/{resource}` endpoints). Worked example: [`examples/client/attribute_values.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/attribute_values.py).
 
 ::: dhis2w_client.v42.attribute_values

@@ -55,7 +55,7 @@ export const JWT_BEARER_TOKEN_SECURITY_TEXT = 'JWT bearer token'
 
 /** Where the JWT posture states which issuer it takes tokens from - see this module's own note. */
 export const JWT_ISSUER_EXTENSION_URL =
-    'https://winterop-com.github.io/dhis2w-utils/fhir/StructureDefinition/serve-jwt-issuer'
+    'https://winterop-com.github.io/dhis2w/fhir/StructureDefinition/serve-jwt-issuer'
 
 /**
  * What `GET /facade/whoami` answers a caller this server accepts.

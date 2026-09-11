@@ -32,9 +32,9 @@ dependencies = [
 d2w-fhir-engine = "dhis2w_fhir_engine.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/winterop-com/dhis2w-utils"
-Documentation = "https://winterop-com.github.io/dhis2w-utils/"
-Repository = "https://github.com/winterop-com/dhis2w-utils"
+Homepage = "https://github.com/winterop-com/dhis2w"
+Documentation = "https://winterop-com.github.io/dhis2w/"
+Repository = "https://github.com/winterop-com/dhis2w"
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]

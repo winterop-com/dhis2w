@@ -769,9 +769,9 @@ DHIS2 pages one tracked entity type at a time, so a page of a register serving
 several types never mixes them: the last page of one type carries whatever it
 had left, and the `next` link crosses to the first page of the next. Following
 the links is all a client has to do to see the whole union.
-[`examples/fhir/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/cli/registers_many_types.sh)
+[`examples/fhir/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/cli/registers_many_types.sh)
 walks it end to end against a live instance, and
-[`examples/fhir/client/register_any_type.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/register_any_type.py)
+[`examples/fhir/client/register_any_type.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/register_any_type.py)
 is the same walk with no resource type written down anywhere.
 
 `[serve.tracked_entities]` is how a project offers *less* than all of that, and
@@ -1154,7 +1154,7 @@ would read as "nobody holds that value".
 `filter=<attribute>:eq:<value>` on the tracker query DHIS2 already answers;
 under the synced backend it is read out of the projection's own index of every
 attribute value it holds. The same question gets the same records either way.
-[`examples/fhir/cli/serve_attribute_filter.sh`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/cli/serve_attribute_filter.sh)
+[`examples/fhir/cli/serve_attribute_filter.sh`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/cli/serve_attribute_filter.sh)
 walks it against a live instance.
 
 ### The data set values: the `[serve.data_sets]` table { #data_sets }

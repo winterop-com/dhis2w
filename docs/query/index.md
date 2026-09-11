@@ -70,7 +70,7 @@ grain:
   operator or function behaves.
 - **[Cookbook](cookbook.md)** — whole-program recipes (FHIR Bundle / CodeSystem / ValueSet /
   Questionnaire, GeoJSON FeatureCollection, reports) you can adapt end to end.
-- **[`examples/d2ql/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/d2ql)** — the
+- **[`examples/d2ql/`](https://github.com/winterop-com/dhis2w/tree/main/examples/d2ql)** — the
   runnable sample library shipped in the repo; run any with `d2w query run examples/d2ql/<name>.d2ql`
   or load it from Python with `parse(open(<file>).read())`.
 

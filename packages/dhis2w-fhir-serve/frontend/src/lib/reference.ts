@@ -58,7 +58,7 @@ export interface ReferenceReading {
 }
 
 /** Where this project's documentation is published, which is the site every reading below is on. */
-export const DOCUMENTATION_SITE = 'https://winterop-com.github.io/dhis2w-utils/'
+export const DOCUMENTATION_SITE = 'https://winterop-com.github.io/dhis2w/'
 
 /** One language's reference: what it is, how it answers, and the shelves. */
 export interface LanguageReference {

@@ -1012,5 +1012,5 @@ rows read yesterday has those as two different instants.
   findings this page's section 3.4 measures the sync-visibility half of.
 - [Serve a project](../201-serve.md) - "Stored responses are receipts", the
   storage position section 4 extends.
-- [Upstream DHIS2 quirks](https://github.com/winterop-com/dhis2w-utils/blob/main/BUGS.md) -
+- [Upstream DHIS2 quirks](https://github.com/winterop-com/dhis2w/blob/main/BUGS.md) -
   entries #90, #91, #98, and #99, all of which a syncer has to know.

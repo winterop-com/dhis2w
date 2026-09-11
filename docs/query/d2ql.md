@@ -49,7 +49,7 @@ returns to the log. The tree is structural, so it renders json and ndjson result
 Without the extra, `repl` falls back to a line-mode prompt that runs on a blank line or a trailing `;`.
 
 A library of runnable, commented programs lives in
-[`examples/d2ql/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/d2ql) — run any
+[`examples/d2ql/`](https://github.com/winterop-com/dhis2w/tree/main/examples/d2ql) — run any
 with `d2w query run examples/d2ql/<name>.d2ql`, inspect with `d2w query ast "$(cat <file>)"`, or load
 from Python via `parse(open(<file>).read())`.
 

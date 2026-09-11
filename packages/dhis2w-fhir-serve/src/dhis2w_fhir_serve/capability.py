@@ -179,7 +179,7 @@ TRANSLATE_DOCUMENTATION = (
 #: it describes what this server does, not what a guide this server publishes contains.
 #: `docs/fhir/401-consume-the-fhir-api.md` is where it is defined.
 EVALUATE_OPERATION_NAME = "evaluate"
-EVALUATE_OPERATION_DEFINITION = "https://winterop-com.github.io/dhis2w-utils/fhir/OperationDefinition/serve-evaluate"
+EVALUATE_OPERATION_DEFINITION = "https://winterop-com.github.io/dhis2w/fhir/OperationDefinition/serve-evaluate"
 
 #: What the `$evaluate` operation states about what it evaluates, and over what.
 EVALUATE_DOCUMENTATION = (
@@ -398,7 +398,7 @@ DHIS2_PERSONAL_ACCESS_TOKEN_SECURITY_TEXT = "DHIS2 personal access token"
 #: this project defines - `docs/fhir/301-serving.md` is where it is defined. THE ISSUER AND NOTHING
 #: ELSE crosses: never a key, never an audience, never a claim name. The issuer is the one fact a
 #: caller needs and the one fact that was never secret - it is printed on every token it signs.
-JWT_ISSUER_EXTENSION_URL = "https://winterop-com.github.io/dhis2w-utils/fhir/StructureDefinition/serve-jwt-issuer"
+JWT_ISSUER_EXTENSION_URL = "https://winterop-com.github.io/dhis2w/fhir/StructureDefinition/serve-jwt-issuer"
 
 #: What each posture says about itself. The `none` statement exists so an absence is never inferred.
 NO_AUTHENTICATION_DESCRIPTION = (

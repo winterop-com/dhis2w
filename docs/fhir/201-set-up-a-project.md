@@ -112,7 +112,7 @@ $ d2w fhir init --list-templates
 │tracker-registration    │ checkout │ Tracker registration example guide         │
 └────────────────────────┴──────────┴────────────────────────────────────────────┘
 note: a bundled template rides the installed package; a checkout one is read from
-examples/fhir/igs/ of the dhis2w-utils repository and exists only in a clone of it
+examples/fhir/igs/ of the dhis2w repository and exists only in a clone of it
 ```
 
 The listing comes off the template manifest, so it names what this install
@@ -121,15 +121,15 @@ template's line is written for it; a checkout one's is its guide's own title.
 
 **Bundled or checkout.** A bundled template rides the installed package and
 works anywhere `d2w` does. A checkout one is read from
-[`examples/fhir/igs/`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/igs/README.md)
-of the dhis2w-utils repository, which no wheel carries, so it scaffolds only
+[`examples/fhir/igs/`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/igs/README.md)
+of the dhis2w repository, which no wheel carries, so it scaffolds only
 from a clone. Three of the nine ride the wheel; asking an installed package for
 one of the other six is refused by saying where it lives:
 
 ```console
 $ d2w fhir init demo --template facility-mixed
 error: template `facility-mixed` belongs to the example catalog, which ships in the
-dhis2w-utils repository rather than in an installed package. This install carries
+dhis2w repository rather than in an installed package. This install carries
 aggregate-minimal, event-program, patient-summary. Run `d2w fhir init` from a clone
 of the repository to scaffold from `facility-mixed`.
 ```

@@ -58,6 +58,6 @@ async with Dhis2Client("https://dhis2.example.org", auth=auth) as client:
 
 ## Documentation
 
-Full docs at https://winterop-com.github.io/dhis2w-utils/.
+Full docs at https://winterop-com.github.io/dhis2w/.
 
-The `dhis2w-client` package is one member of the [`dhis2w-utils`](https://github.com/winterop-com/dhis2w-utils) workspace. The CLI (`dhis2w-cli`), MCP server (`dhis2w-mcp`), and Playwright helpers (`dhis2w-browser`) all build on this client.
+The `dhis2w-client` package is one member of the [`dhis2w`](https://github.com/winterop-com/dhis2w) workspace. The CLI (`dhis2w-cli`), MCP server (`dhis2w-mcp`), and Playwright helpers (`dhis2w-browser`) all build on this client.

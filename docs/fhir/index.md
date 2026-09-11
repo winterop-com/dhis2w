@@ -148,7 +148,7 @@ logic against a served project or a seeded instance, and says so.
 
 ## Reference
 
-- [Runnable examples](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/fhir) -
+- [Runnable examples](https://github.com/winterop-com/dhis2w/tree/main/examples/fhir) -
   `examples/fhir/`, the whole surface as scripts you can run: `cli/` for the
   commands each 201 page describes, `client/` for the Python library path
   (generate a guide, consume a facade, drain a spool), and `engine/` for the

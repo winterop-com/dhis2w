@@ -62,7 +62,7 @@ runs on its own, so a level can be read cold without the three below it.
 
 ## Level one: minimal
 
-[`examples/fhir/client/minimal_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/minimal_facade.py) -
+[`examples/fhir/client/minimal_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/minimal_facade.py) -
 one file, one route, and a `__main__` that drives it in-process. This section
 walks it in the order the code reads.
 
@@ -209,7 +209,7 @@ the parameter.
 
 ## Level two: basic
 
-[`examples/fhir/client/basic_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/basic_facade.py) -
+[`examples/fhir/client/basic_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/basic_facade.py) -
 the same one route, in the shape a deployment runs it in. Four changes, no new
 guarantees about the capture itself.
 
@@ -253,7 +253,7 @@ only place it exists.
 
 ## Level three: complex
 
-[`examples/fhir/client/complex_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/complex_facade.py) -
+[`examples/fhir/client/complex_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/complex_facade.py) -
 where a capture starts surviving. The route's answer stops being DHIS2's verdict
 and becomes a receipt id.
 
@@ -325,7 +325,7 @@ again at the end, so a run leaves the instance as it found it.
 
 ## Level four: advanced
 
-[`examples/fhir/client/advanced_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/advanced_facade.py) -
+[`examples/fhir/client/advanced_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/advanced_facade.py) -
 the durable level plus the four things it lacked.
 
 **Tracker routing.** `post_payload` branches on which field the translation
@@ -378,7 +378,7 @@ served chain already does:
 | a drain that is its own process | `d2w fhir forward` runs on its own schedule, so a slow or unreachable instance cannot hold up the process that is receiving captures |
 | the five form kinds, all of them | every profile of [the capture contract](401-capture-contract.md), including registration and stage forms |
 | completeness registration | a `completed` aggregate response also registers the data set complete, after DHIS2 takes the values - [Data set completeness](201-forward.md#data-set-completeness) |
-| a drain report | `ForwardReport` - counts, per-receipt outcomes, rejection reasons rolled up by cause - [`forward_spool.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/forward_spool.py) |
+| a drain report | `ForwardReport` - counts, per-receipt outcomes, rejection reasons rolled up by cause - [`forward_spool.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/forward_spool.py) |
 
 **The rule of thumb.** Take your own route while the answer to the request is
 the whole of what the sender needs, and the durability lives in your
@@ -390,10 +390,10 @@ CapabilityStatement, a requeue command - stop: you are rebuilding
 ## Next
 
 Read the four files, in order:
-[`minimal_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/minimal_facade.py),
-[`basic_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/basic_facade.py),
-[`complex_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/complex_facade.py),
-[`advanced_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/advanced_facade.py).
+[`minimal_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/minimal_facade.py),
+[`basic_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/basic_facade.py),
+[`complex_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/complex_facade.py),
+[`advanced_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/advanced_facade.py).
 Each runs with `uv run python examples/fhir/client/<name>.py`. What counts as a
 valid submission - the five form kinds, the required extensions, and every rule a
 response must meet before any of this applies - is

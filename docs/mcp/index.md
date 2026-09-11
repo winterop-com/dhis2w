@@ -79,8 +79,8 @@ The host launches it as `uv run --directory /path/to/project dhis2w-mcp` (see th
 If you cloned `dhis2-utils` to hack on the server:
 
 ```bash
-git clone git@github.com:winterop-com/dhis2w-utils.git
-cd dhis2w-utils
+git clone git@github.com:winterop-com/dhis2w.git
+cd dhis2w
 make install                               # uv sync --all-packages
 uv run dhis2w-mcp --version
 ```

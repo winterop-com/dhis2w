@@ -8,7 +8,7 @@
 # which is only sound because the two are the same address.
 
 # The rest of the example catalog, by name alone. These are guides `d2w fhir init --template`
-# scaffolds from a dhis2w-utils checkout and cannot scaffold anywhere else, and naming them here
+# scaffolds from a dhis2w checkout and cannot scaffold anywhere else, and naming them here
 # is what lets an installed package refuse one by saying where it lives instead of denying it
 # exists. A checkout is the authority on the list: `test_fhir_init_templates.py` fails when this
 # array and `examples/fhir/igs/` disagree.
