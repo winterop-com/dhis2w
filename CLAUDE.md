@@ -14,7 +14,7 @@ These reshape every decision. Re-read them when in doubt.
 2. **DHIS2 v41 / v42 / v43 supported via per-version subpackages.** Each major has its own hand-written tree under `dhis2w_client.v{41,42,43}` + `dhis2w_core.v{41,42,43}.plugins.*`; the client auto-detects via `/api/system/info` on connect and binds the matching tree (v43 is the canonical baseline). No compatibility shims for DHIS2 versions older than v41.
 3. **Auth is pluggable; ship three kinds of provider: Basic, PAT, OAuth2/OIDC.** `dhis2w-client` defines an `AuthProvider` Protocol. The client never touches auth internals. OAuth2 uses the OAuth 2.1 authorization-code flow with PKCE against `/oauth2/authorize` and `/oauth2/token`. Future providers (service-account JWT, OIDC federation, proxy-injected headers) land as new files in `dhis2w-client/auth/` without touching the client.
 4. **Playwright UI automation is isolated in `dhis2w-browser`.** API-only installs must not pull Chromium. The screenshot plugin is the first consumer; future UI-update plugins layer on the same helpers.
-5. **`uv` for everything Python, organized as a `uv` workspace.** Twelve members under `packages/`: the ten publishable ones — `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (first published in 1.2.0), `dhis2w-fhir`, `dhis2w-fhir-serve` (first published in 1.5.0), `dhis2w-fhir-engine` (first published in 1.7.0) — plus the workspace-only `dhis2w-codegen` and `dhis2w-bench` (not published). Single `uv.lock` at the workspace root, `uv_build` backend. Every member uses the `src/` layout. Shared code lives in a workspace member (never a floating `src/` outside a package). **Never edit `pyproject.toml` deps by hand — use `uv add` / `uv add --dev`.**
+5. **`uv` for everything Python, organized as a `uv` workspace.** Eleven members under `packages/`: the ten publishable ones — `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (first published in 1.2.0), `dhis2w-fhir`, `dhis2w-fhir-serve` (first published in 1.5.0), `dhis2w-fhir-engine` (first published in 1.7.0) — plus the workspace-only `dhis2w-codegen` (not published). Single `uv.lock` at the workspace root, `uv_build` backend. Every member uses the `src/` layout. Shared code lives in a workspace member (never a floating `src/` outside a package). **Never edit `pyproject.toml` deps by hand — use `uv add` / `uv add --dev`.**
 6. **FastAPI for any HTTP service, FastMCP for any MCP service.** No Flask, no bare `http.server`, no hand-rolled stdio loops.
 7. **Pydantic for ALL structured data. No `dict`s. No `@dataclass`es.** Every type that carries domain meaning — DHIS2 resources, service return values, CLI output shapes, MCP tool returns, error bodies, configuration, view-models, command options — is a `pydantic.BaseModel`. DHIS2 resource models (Me, SystemInfo, DataElement, Indicator, …) live in `dhis2w-client/models/` so PyPI users of the client get them. Plugin-internal view-models (reports, job state, summaries) live in the plugin's `models.py`. `Dhis2Client` returns parsed models, not raw dicts.
 
@@ -31,7 +31,7 @@ These reshape every decision. Re-read them when in doubt.
 10. **If any persistent storage is needed, default to SQLAlchemy + SQLite over asyncio** — `sqlalchemy[asyncio]` with `aiosqlite`, typed `Mapped[...]` columns, Alembic for migrations. DB files live beside the active profile (`.dhis2/tokens.sqlite`, `.dhis2/cache.sqlite`). No Postgres, no ORM-free raw SQL, no pickled files.
 11. **Typer for every CLI** — root CLI, plugin sub-apps, anything in `examples/`. No `argparse`, no `click` directly, no `sys.argv` parsing.
 12. **CLI surface is heavily preferred.** New capabilities expose a CLI command first and an MCP tool second, both calling the same `service.py`. Plugins without a `cli.py` need explicit justification; plugins without an `mcp.py` are fine (e.g. `profile` is CLI-only).
-13. **Makefile drives every workflow.** Core targets: `make install / lint / test / test-slow / coverage / docs / docs-serve / docs-build / build / clean / clean-artifacts`, plus target families for the local DHIS2 stack (`dhis2-*`), codegen (`dhis2-codegen-*`), model benchmarking (`bench-*`), and PyPI releases (`publish-<member>` / `publish-all`) — `make help` lists them all. CI calls make targets, not raw commands.
+13. **Makefile drives every workflow.** Core targets: `make install / lint / test / test-slow / coverage / docs / docs-serve / docs-build / build / clean / clean-artifacts`, plus target families for the local DHIS2 stack (`dhis2-*`), codegen (`dhis2-codegen-*`), and PyPI releases (`publish-<member>` / `publish-all`) — `make help` lists them all. CI calls make targets, not raw commands.
 14. **Docs use mkdocs-material.** `mkdocs.yml` mirrors chapkit's. Docs live in `docs/`; build output in `site/` (gitignored). API reference uses `mkdocstrings` to auto-generate from pydantic models and service docstrings.
 15. **Per-version subpackages — every behaviour-changing edit considers v41 / v42 / v43.** Hand-written code in `dhis2w-client` lives under `dhis2w_client.v{41,42,43}.*`; the plugin tree in `dhis2w-core` lives under `dhis2w_core.v{41,42,43}.plugins.*`. The generated trees at `dhis2w_client.generated.v{41,42,43}.*` are already split. **When you add, rename, or remove a public symbol, an example, or a CLI command, you must apply the same edit to all three trees** — sed-sweep, then re-read the diff to confirm. A new file lands in three locations; a fix lands in three locations; a deletion lands in three locations. Tests cover all three. **Examples do not**: they live version-neutral at `examples/{cli,client,mcp}/` in one copy that runs against all three majors, with `examples/fhir/{cli,client}/` beside them for the version-agnostic FHIR packages, and a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run. A client example needing a version-pinned import is written against v43 and says to swap the module for another major. Every example is small, about one feature, and verified by `make verify-examples`. When v41 and v43 diverge from v42 because the wire shape genuinely differs, fold that divergence into the same PR with a BUGS.md entry — don't ship "fixed in v42 only, v43 follow-up later".
 
@@ -51,7 +51,6 @@ Dependency arrows (no cycles):
 
 ```mermaid
 graph LR
-    bench["dhis2w-bench"]
     bridge["dhis2w-mcp-bridge"]
     cli["dhis2w-cli"]
     mcp["dhis2w-mcp"]
@@ -73,8 +72,6 @@ graph LR
     fhirserve --> fhir
     fhirserve --> fhirengine
     bridge --> cli
-    bench --> cli
-    bench --> router
     core --> client
     browser --> client
     codegen --> client
