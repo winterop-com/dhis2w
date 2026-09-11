@@ -2,7 +2,7 @@
 
 Typed instance models returned by `/api/tracker/*` reads: `TrackerTrackedEntity`, `TrackerEnrollment`, `TrackerEvent`, `TrackerRelationship` + nested value types + `EventStatus` / `EnrollmentStatus` StrEnums.
 
-Tracker models are version-scoped because `/api/tracker/*` shapes drift across DHIS2 majors. Import from the version your client is pinned to: `from dhis2w_client.generated.v42.tracker import TrackerBundle, TrackerEvent, ...`. The matching write path lives on `client.tracker` (register / enroll / add_event / outstanding) — see [the tracker plugin architecture](../architecture/tracker.md).
+Tracker models are version-scoped because `/api/tracker/*` shapes drift across DHIS2 majors. Import from the version your client is pinned to: `from dhis2w_client.generated.v43.tracker import TrackerBundle, TrackerEvent, ...`. The matching write path lives on `client.tracker` (register / enroll / add_event / outstanding) — see [the tracker plugin architecture](../architecture/tracker.md).
 
 ## When to reach for it
 
@@ -17,7 +17,7 @@ Tracker models are version-scoped because `/api/tracker/*` shapes drift across D
 The page envelope is returned as parsed JSON: the rows live under `instances` on current majors, and under the resource's own name on older minors, beside the paging fields. Parse a row with the generated model when a typed view is wanted:
 
 ```python
-from dhis2w_client.generated.v42.tracker import TrackerEvent
+from dhis2w_client.generated.v43.tracker import TrackerEvent
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
@@ -80,4 +80,4 @@ async with open_client(profile_from_env()) as client:
 - [`examples/client/tracker_clinic_intake.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_clinic_intake.py) — canonical tracker-program intake via `client.tracker.register / add_event / outstanding`.
 - [`examples/client/tracker_event_program.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_event_program.py) — WITHOUT_REGISTRATION event-only flow.
 
-::: dhis2w_client.generated.v42.tracker
+::: dhis2w_client.generated.v43.tracker

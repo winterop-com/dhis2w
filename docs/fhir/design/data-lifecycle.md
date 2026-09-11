@@ -277,7 +277,7 @@ holds the event of is refused as an object that exists, rather than filing a sec
 one visit. Confirmed on the wire as `E1030` / 409 (T2 above).
 
 **DHIS2-side deletion is fully built, outside the FHIR path.** `d2w data aggregate delete`
-(`packages/dhis2w-core/src/dhis2w_core/v42/plugins/aggregate/service.py:171`) and
+(`packages/dhis2w-core/src/dhis2w_core/v43/plugins/aggregate/service.py:171`) and
 `d2w data tracker delete` (`.../tracker/service.py:343`) exist in all three version trees, the
 tracker ones behind a confirmation prompt. The absence this page is about is specific to the
 FHIR surface.

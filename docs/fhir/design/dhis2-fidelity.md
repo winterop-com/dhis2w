@@ -20,7 +20,7 @@ The inventory was built from the platform outward rather than from the guide out
 so the audit could not be blinded by what the generator already happens to emit.
 
 1. **What DHIS2 says about itself.** The exhaustive field-level truth is the generated
-   OpenAPI tree at `packages/dhis2w-client/src/dhis2w_client/generated/v42/oas/` - one
+   OpenAPI tree at `packages/dhis2w-client/src/dhis2w_client/generated/v43/oas/` - one
    module per DHIS2 schema, every field DHIS2 puts on the wire. Every concept below was
    read off that tree first, before any guide code was opened.
 2. **What the guide carries.** The carrier inventory is the emitter itself: the

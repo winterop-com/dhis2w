@@ -20,4 +20,4 @@ The `sync()` helper diffs the desired option list against the live set and issue
 
 Worked example: [`examples/client/options_integration.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/options_integration.py).
 
-::: dhis2w_client.v42.option_sets
+::: dhis2w_client.v43.option_sets

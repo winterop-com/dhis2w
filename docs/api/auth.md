@@ -4,20 +4,20 @@ Every auth method implements the same `AuthProvider` Protocol (`headers()` + `re
 
 ## The Protocol
 
-::: dhis2w_client.v42.auth.base
+::: dhis2w_client.v43.auth.base
 
 ## Basic
 
-::: dhis2w_client.v42.auth.basic
+::: dhis2w_client.v43.auth.basic
 
 ## Personal Access Token
 
-::: dhis2w_client.v42.auth.pat
+::: dhis2w_client.v43.auth.pat
 
 ## OAuth2 / OIDC
 
-::: dhis2w_client.v42.auth.oauth2
+::: dhis2w_client.v43.auth.oauth2
 
 ## Session cookie
 
-::: dhis2w_client.v42.auth.session
+::: dhis2w_client.v43.auth.session

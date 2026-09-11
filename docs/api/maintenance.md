@@ -69,4 +69,4 @@ async with open_client(profile_from_env()) as client:
 - [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/task_await.py) — `run_analytics_tables` blocked on with `client.tasks.await_completion`.
 - [`examples/client/integrity_issues_stream.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/integrity_issues_stream.py) — `iter_integrity_issues` + severity histogram + early-break scan.
 
-::: dhis2w_client.v42.maintenance
+::: dhis2w_client.v43.maintenance

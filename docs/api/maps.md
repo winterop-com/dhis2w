@@ -35,4 +35,4 @@ Same reason as `Visualization`: a direct `PUT /api/maps/{uid}` with nested `mapV
 - [Analytics](analytics.md) — sanity-check the data path with `client.get_raw("/api/analytics", params={...})` before saving a map.
 - CLI surface: `d2w metadata list maps / get / create / clone / delete` + `d2w browser map screenshot <uid>`.
 
-::: dhis2w_client.v42.maps
+::: dhis2w_client.v43.maps

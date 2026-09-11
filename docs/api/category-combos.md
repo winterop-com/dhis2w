@@ -24,4 +24,4 @@ Worked example: [`examples/client/v43/category_combo_coc_regen.py`](https://gith
 
 For the higher-level "build everything in one call" helper see [Category combo builder](category-combo-builder.md).
 
-::: dhis2w_client.v42.category_combos
+::: dhis2w_client.v43.category_combos

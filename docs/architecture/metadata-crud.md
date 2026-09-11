@@ -21,8 +21,8 @@ class _DataElementResource:
 
 ```python
 from dhis2w_client import BasicAuth, Dhis2Client
-from dhis2w_client.generated.v42.enums import AggregationType, DataElementDomain, ValueType
-from dhis2w_client.generated.v42.schemas.data_element import DataElement, Reference
+from dhis2w_client.generated.v43.enums import AggregationType, DataElementDomain, ValueType
+from dhis2w_client.generated.v43.schemas.data_element import DataElement, Reference
 
 async with Dhis2Client(
     base_url="https://play.im.dhis2.org/dev",

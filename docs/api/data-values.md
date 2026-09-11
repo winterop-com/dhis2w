@@ -142,4 +142,4 @@ async with open_client(profile_from_env()) as client:
 - [`examples/client/data_values_import_atomic.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/data_values_import_atomic.py) — the same partly invalid payload under `ALL` and `OBJECT`.
 - [`examples/client/data_values_export.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/data_values_export.py) — `export` as a typed envelope, then `client.stream` to a Path, a BytesIO, and a callable.
 
-::: dhis2w_client.v42.data_values
+::: dhis2w_client.v43.data_values

@@ -1,10 +1,10 @@
 # Tracker plugin
 
-`dhis2w-core/v42/plugins/tracker/` wraps the DHIS2 tracker API at `/api/tracker/*`. This covers the full case-management surface — tracked entities, enrollments, events (both event programs and tracker programs), relationships, and bulk import.
+`dhis2w-core/v43/plugins/tracker/` wraps the DHIS2 tracker API at `/api/tracker/*`. This covers the full case-management surface — tracked entities, enrollments, events (both event programs and tracker programs), relationships, and bulk import.
 
 ## Typed returns
 
-Read services return typed pydantic models from `dhis2w_client.generated.v42.tracker` (tracker shapes drift between DHIS2 majors, so models are version-scoped):
+Read services return typed pydantic models from `dhis2w_client.generated.v43.tracker` (tracker shapes drift between DHIS2 majors, so models are version-scoped):
 
 | Service | Returns |
 |---|---|
@@ -139,7 +139,7 @@ async with open_client(profile) as client:
 All date arguments (`enrolled_at`, `occurred_at`) accept ISO strings,
 `datetime.date`, or `datetime.datetime` — the accessor normalises them to
 DHIS2's ISO-8601 wire format. Type alias: `DateLike = str | date |
-datetime`, re-exported from `dhis2w_client.v42.tracker`.
+datetime`, re-exported from `dhis2w_client.v43.tracker`.
 
 ### Why the UIDs are pre-generated client-side
 

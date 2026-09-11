@@ -2,6 +2,12 @@
 
 Running list of architectural choices and the reasoning behind them. Each entry is a terse "we decided X because Y, alternatives were Z". This file is a first stop when you're wondering "why is it done that way?".
 
+## 2026-09-11 — Plugin packs release at the host version
+
+**Decision:** a plugin pack that lives in its own repository — `dhis2w-security` is the first — carries the `major.minor` of the dhis2w release it was verified against plus its own patch number. A pack verified against dhis2w 1.18 releases as `1.18.0`, then `1.18.1`, `1.18.2` as the pack itself changes; the next verification against 1.19 starts `1.19.0`. The pack pins `dhis2w-core>=X.Y.0,<(X+1).0` — `dhis2w-core>=1.18.0,<2.0` for that example. The workspace members keep their lockstep version: every package under `packages/` releases the same number on the same day, and a pack's number is not part of that lockstep.
+
+**Why:** the version answers the question a pack's user actually has — which dhis2w this was tested against — without a compatibility matrix to look up. The patch digit stays the pack's own, so a pack can ship four fixes against one host release. The floor-and-ceiling pin lets the pack take host patch and minor releases, and stops at the major where the plugin contract may move.
+
 ## 2026-09-10 — HTTP client is httpx2
 
 **Decision:** every workspace member speaks HTTP through `httpx2`, Pydantic's continuation of httpx forked from httpx 0.28.1. Nothing shipped imports `httpx`, and a ruff `TID251` rule bans `httpx`, `httpcore`, and `urllib.request` outside `**/tests/**`. `dhis2w-fhir-engine` carries `httpx2` as a runtime dependency of its own, for the synchronous `httpx2.Client` behind `FHIRTerminologyService` — synchronous because the terminology protocol the evaluator drives is.
@@ -88,7 +94,7 @@ Running list of architectural choices and the reasoning behind them. Each entry 
 
 **Decision:** `dhis2w-codegen` emits from both sources into the same per-version directory. `/api/schemas` drives `generated/v{N}/schemas/` + `resources.py` + `enums.py` (the metadata resources). `/api/openapi.json` drives `generated/v{N}/oas/` (the instance-side shapes `/api/schemas` can't describe — `WebMessage` envelopes, tracker read/write, `DataValue` / `DataValueSet`, auth-scheme leaves, data-integrity checks, `SystemInfo`).
 
-Top-level domain modules (`dhis2w_client.v42.envelopes`, `.aggregate`, `.system`, `.maintenance`, `.auth_schemes`, `.generated.v42.tracker`) shim over the OAS output. They add caller-friendly helpers (`WebMessageResponse.created_uid()` / `task_ref()` / `conflicts()` etc., the `AuthScheme` discriminated union, `TrackerBundle`) that OpenAPI doesn't express on its own.
+Top-level domain modules (`dhis2w_client.v43.envelopes`, `.aggregate`, `.system`, `.maintenance`, `.auth_schemes`, `.generated.v43.tracker`) shim over the OAS output. They add caller-friendly helpers (`WebMessageResponse.created_uid()` / `task_ref()` / `conflicts()` etc., the `AuthScheme` discriminated union, `TrackerBundle`) that OpenAPI doesn't express on its own.
 
 Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarchy upstream, not an enum), `analytics.py` (OpenAPI's `Grid` shape differs from our current accessors — a behaviour-changing migration left for a future touch), `Notification` (OpenAPI ships typed `category` / `dataType` / `level` enums; caller churn to thread them through).
 
@@ -222,7 +228,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 ## 2026-04-17 — Plugin runtime in `dhis2w-core`, both CLI and MCP mount it
 
-**Decision:** plugins live in `dhis2w-core/v42/plugins/<name>/` with `service.py` + `cli.py` + `mcp.py`. `dhis2w-cli` and `dhis2w-mcp` discover them at startup via module walk + entry points.
+**Decision:** plugins live in `dhis2w-core/v43/plugins/<name>/` with `service.py` + `cli.py` + `mcp.py`. `dhis2w-cli` and `dhis2w-mcp` discover them at startup via module walk + entry points.
 
 **Why:** MCP tool calls should never subprocess the CLI (latency, lost typing, text parsing). Sharing `service.py` across both surfaces gives parity for free and lets tests cover both through one code path.
 
@@ -311,7 +317,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 **Decision:** `/api/system/info` and `/api/me` get pydantic models in `dhis2w_client/system.py`. `client.system.info()` and `client.system.me()` are accessors on the client.
 
-**Why:** these aren't metadata types, so `/api/schemas` doesn't describe them. `SystemInfo` was hand-written initially; it now re-exports from the OAS codegen output at `generated/v42/oas/system_info.py` (46 fields where we'd hand-maintained 9). `Me` stays hand-written because `/api/me` isn't a component schema in the OpenAPI spec.
+**Why:** these aren't metadata types, so `/api/schemas` doesn't describe them. `SystemInfo` was hand-written initially; it now re-exports from the OAS codegen output at `generated/v43/oas/system_info.py` (46 fields where we'd hand-maintained 9). `Me` stays hand-written because `/api/me` isn't a component schema in the OpenAPI spec.
 
 ## 2026-04-17 — Integration tests use string fixtures, not shared dataclass
 

@@ -99,8 +99,8 @@ The generated `Route.auth` stays typed as `Any | None` because DHIS2's `/api/sch
 
 | Class | Endpoint | Shape | Source |
 |---|---|---|---|
-| `Grid` | `/api/analytics*` envelope | `{headers: [GridHeader] \| None, rows: [[Any]] \| None, metaData: dict \| None, width, height, headerWidth, rowContext, …}` | OAS (`generated/v42/oas/grid.py`) |
-| `GridHeader` | (column) | `{name, column, valueType, type, hidden, meta, legendSet, optionSet, programStage, stageOffset, repeatableStageParams}` | OAS (`generated/v42/oas/grid_header.py`) |
+| `Grid` | `/api/analytics*` envelope | `{headers: [GridHeader] \| None, rows: [[Any]] \| None, metaData: dict \| None, width, height, headerWidth, rowContext, …}` | OAS (`generated/v43/oas/grid.py`) |
+| `GridHeader` | (column) | `{name, column, valueType, type, hidden, meta, legendSet, optionSet, programStage, stageOffset, repeatableStageParams}` | OAS (`generated/v43/oas/grid_header.py`) |
 | `AnalyticsMetaData` | (parser helper over `Grid.metaData`) | `{items: dict, dimensions: dict[str, list[str]]}` | hand-written |
 
 `analytics_service.query_analytics(...)` returns `Grid | DataValueSet` — the union reflects that `--shape dvs` (the `/api/analytics/dataValueSet.json` variant) returns a `DataValueSet` shape instead of the standard `headers + rows` envelope.
@@ -120,7 +120,7 @@ match response:
 
 ## 4. Tracker instance models
 
-`/api/tracker/*` returns runtime instance data (enrollments, events, etc.), not metadata definitions — these shapes are in OpenAPI only. The OAS codegen emits the classes under `dhis2w_client.generated.v42.oas.*`; `dhis2w_client.generated.v42.tracker` is a shim that re-exports them (plus the hand-written `TrackerBundle` write envelope, which isn't in OpenAPI under that name):
+`/api/tracker/*` returns runtime instance data (enrollments, events, etc.), not metadata definitions — these shapes are in OpenAPI only. The OAS codegen emits the classes under `dhis2w_client.generated.v43.oas.*`; `dhis2w_client.generated.v43.tracker` is a shim that re-exports them (plus the hand-written `TrackerBundle` write envelope, which isn't in OpenAPI under that name):
 
 | Class | Endpoint | Key fields |
 |---|---|---|
@@ -135,7 +135,7 @@ Nested value types — `TrackerAttribute`, `TrackerDataValue`, `TrackerNote`, `T
 Status enums use `StrEnum` so they round-trip through JSON cleanly:
 
 ```python
-from dhis2w_client.generated.v42.tracker import EnrollmentStatus, EventStatus
+from dhis2w_client.generated.v43.tracker import EnrollmentStatus, EventStatus
 
 EnrollmentStatus.ACTIVE  # "ACTIVE"  -> "ACTIVE" in JSON
 EventStatus("SCHEDULE")  # parses from DHIS2's wire value
@@ -157,7 +157,7 @@ Join via `TrackerTrackedEntity.trackedEntityType` (UID) → `client.resources.tr
 Every CONSTANT property across every DHIS2 schema resolves to a `StrEnum` in `dhis2w_client.generated.v{N}.enums`:
 
 ```python
-from dhis2w_client.generated.v42.enums import (
+from dhis2w_client.generated.v43.enums import (
     AggregationType,
     DataElementDomain,
     PeriodType,
@@ -178,6 +178,6 @@ Because `StrEnum` subclasses `str`, passing a bare string still validates: `Data
 - **`/api/schemas` codegen** — generates the 100+ metadata resources (DataElement, DataSet, Program, …) plus their CONSTANT-property StrEnums. Output lands in `generated/v{N}/schemas/` + `generated/v{N}/enums.py` + `generated/v{N}/resources.py`. This is what `client.resources.data_elements.list()` returns.
 - **`/api/openapi.json` codegen** — generates the instance-side shapes `/api/schemas` can't describe: `WebMessage` envelopes, tracker read/write models, `DataValue` / `DataValueSet`, auth-scheme leaves, data-integrity checks, `SystemInfo`. Output lands in `generated/v{N}/oas/`. Entry points: `d2w dev codegen oas-rebuild --version v{N}`.
 
-The top-level domain modules (`dhis2w_client.v42.envelopes`, `.aggregate`, `.system`, `.maintenance`, `.auth_schemes`, `.generated.v42.tracker`) are thin shims over the OAS output. They add caller-friendly helpers (`WebMessageResponse.created_uid()`, `TrackerBundle`, the `AuthScheme` discriminated union) that OpenAPI doesn't express on its own.
+The top-level domain modules (`dhis2w_client.v43.envelopes`, `.aggregate`, `.system`, `.maintenance`, `.auth_schemes`, `.generated.v43.tracker`) are thin shims over the OAS output. They add caller-friendly helpers (`WebMessageResponse.created_uid()`, `TrackerBundle`, the `AuthScheme` discriminated union) that OpenAPI doesn't express on its own.
 
 Items that stay hand-written entirely: `Me` (not in OpenAPI), `PeriodType` (Java class hierarchy upstream, not an enum), and `analytics.py` (OpenAPI ships `Grid` / `GridHeader` / `GridResponse` which differ in shape from our current analytics accessors — a behaviour-changing migration left for a future touch).

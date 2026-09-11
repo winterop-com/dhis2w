@@ -14,7 +14,7 @@ Auto-generated from the `dhis2w-client` source via `mkdocstrings`. Every class, 
 - [Route auth schemes](auth-schemes.md) — the 5-variant discriminated `AuthScheme` union
 - [Sharing](sharing.md) — typed `SharingObject` + `SharingBuilder` + `get_sharing` / `apply_sharing` helpers over `/api/sharing`
 - [Generated-model helpers](generated.md) — `Dhis2` enum, `available_versions`, `load`
-- [OpenAPI-derived models](oas.md) — the 562+ classes emitted under `generated/v42/oas/` from `/api/openapi.json`
+- [OpenAPI-derived models](oas.md) — the 980+ classes emitted under `generated/v43/oas/` from `/api/openapi.json`
 - [System module](system.md) — `Me`, `SystemInfo`, `SystemModule`
 - [Tracker reads](tracker.md) — instance models, status enums
 - [Aggregate](aggregate.md) — `DataValue`, `DataValueSet`, completeness registrations + their read accessor
