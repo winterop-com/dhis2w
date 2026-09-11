@@ -315,8 +315,6 @@ BUGS.md #15 (undiscriminated `JobConfiguration.jobParameters` + `WebMessage.resp
 
 ### Chosen for the next cycle: a small core plus pluginkit plugins
 
-**Step zero, before any pluginkit work: rename the repository from `dhis2w` to `dhis2w`.** `dhis2w` is the name; the packages already carry it. The rename touches: the GitHub repository (redirects keep old clones working, but every checkout's `origin` and the `gh` defaults should move), the PyPI Trusted Publishers of all eleven projects (each is keyed on owner and repository name and has to be re-registered as `winterop-com/dhis2w` before the next tag publishes), `mkdocs.yml`'s `site_url` and the GitHub Pages address, the README badges and links, every `github.com/winterop-com/dhis2w` link in `docs/`, `BUGS.md` and the release notes, the workflow files, and the CLAUDE.md sentence that names the workspace. A short PR, one weekend, done before the seam lands so nothing pluginkit-shaped is ever named `dhis2w`.
-
 The workspace carries every domain for every install and about 18,000 tests across thirteen members, while usage concentrates in `dhis2w-client` and `dhis2w-core`. The next big piece of work splits it the way `dirigent` is built: a small core with extension points on [`pluginkit`](https://pypi.org/project/pluginkit/) (strictly typed, generics-first, `ExtensionPoint` / `Extension` / `PluginManager`, entry-point discovery, no runtime dependencies), with FHIR, security, MCP and similar domains as plugins.
 
 - `dhis2w-client` and `dhis2w-core` stay central; every other domain becomes a plugin that installs on its own.
