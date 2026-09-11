@@ -21,7 +21,7 @@ Each shippable unit of code is a `uv` workspace member under `packages/`:
 | `dhis2w-codegen` | Version-aware client generator. | _workspace-only_ |
 | `dhis2w-bench` | Local-LLM benchmark harness (coding, mcp-bridge, full-mcp suites). | _workspace-only_ |
 | `dhis2w-mcp-router` | Domain-neutral MCP router: search + dispatch meta-tools over upstream MCP servers. | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) |
-| `dhis2w-fhir` | FHIR IG generation from DHIS2 metadata. Builds on `dhis2w-core` and mounts `d2w fhir` plus the `fhir_*` MCP tools through the `dhis2.plugins` entry point. | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
+| `dhis2w-fhir` | FHIR IG generation from DHIS2 metadata. Builds on `dhis2w-core` and mounts `d2w fhir` through the `dhis2w.plugins.v1` entry point. | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
 | `dhis2w-fhir-serve` | FastAPI FHIR facade over a generated IG: serves its resources and receives QuestionnaireResponse captures. Runs behind `d2w fhir serve`, installed through the `dhis2w-cli[serve]` extra. | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
 
 New surfaces land as new members, with no edits required to existing ones. `dhis2w-fhir-serve` is the worked example: `d2w fhir serve` needs FastAPI and uvicorn, the generator needs neither, so the HTTP surface is its own member and an API-only install of `dhis2w-fhir` stays free of both.
@@ -32,7 +32,7 @@ Each DHIS2 domain (metadata, tracker, analytics, screenshots, indicator validati
 
 ```
 <name>/
-├── __init__.py        # exports `plugin = Plugin(name="<name>", ...)`
+├── __init__.py        # exports `plugin = _MyPlugin()`, whose `contribute()` returns a `Contribution`
 ├── models.py          # plugin-internal pydantic view-models (reports, summaries, job state)
 ├── service.py         # async pure functions — single source of truth for the domain
 ├── cli.py             # Typer sub-app wrapping service.py
@@ -42,10 +42,10 @@ Each DHIS2 domain (metadata, tracker, analytics, screenshots, indicator validati
 
 The CLI and MCP surfaces both call into the same `service.py`. They never drift out of parity because neither is primary.
 
-Plugins are discovered two ways:
+The plugin machinery is [pluginkit](https://pypi.org/project/pluginkit/): `load_plugin_host(version_key)` collects a `Contribution` from every plugin it can find, from two sources:
 
 - **Built-ins** — iterate the plugin tree `resolve_startup_version()` picks at startup, `dhis2w_core.v43.plugins.*` on the default.
-- **External** — `importlib.metadata.entry_points(group="dhis2.plugins")`. An external package (like `dhis2w-codegen`) can add commands/tools without a PR.
+- **External** — the `dhis2w.plugins.v1` entry-point group. An external package (like `dhis2w-fhir`) can add commands/tools without a PR.
 
 ### 3. Auth providers inside `dhis2w-client`
 

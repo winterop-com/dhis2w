@@ -13,8 +13,9 @@ from typer.testing import CliRunner
 
 def test_plugin_descriptor() -> None:
     """Plugin descriptor."""
-    assert plugin.name == "analytics"
-    assert "analytics" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "analytics"
+    assert "analytics" in contribution.description.lower()
 
 
 def test_invalid_shape_renders_cleanly_without_traceback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

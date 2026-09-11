@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _UserPlugin(BaseModel):
+class _UserPlugin:
     """Plugin descriptor for the DHIS2 user administration surface."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "user"
-    description: str = "List + administer DHIS2 users (invite, reinvite, password reset)."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount the user sub-app under `d2w user`."""
-        from dhis2w_core.v43.plugins.user import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register user tools on the MCP server."""
-        from dhis2w_core.v43.plugins.user import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w user` and the user MCP tools."""
+        return Contribution(
+            name="user",
+            description="List + administer DHIS2 users (invite, reinvite, password reset).",
+            cli_module="dhis2w_core.v43.plugins.user.cli",
+            mcp_module="dhis2w_core.v43.plugins.user.mcp",
+        )
 
 
 plugin = _UserPlugin()

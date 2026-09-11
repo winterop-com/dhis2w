@@ -2,33 +2,24 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _DatastorePlugin(BaseModel):
+class _DatastorePlugin:
     """Plugin descriptor for the DHIS2 key-value data store."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "datastore"
-    description: str = (
-        "DHIS2 key-value data store: namespaced get/set/delete over /api/dataStore (shared) and "
-        "/api/userDataStore (per-user, --user)."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount the datastore sub-app under `d2w datastore`."""
-        from dhis2w_core.v41.plugins.datastore import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register the `datastore_*` MCP tools."""
-        from dhis2w_core.v41.plugins.datastore import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w datastore` and the `datastore_*` MCP tools."""
+        return Contribution(
+            name="datastore",
+            description=(
+                "DHIS2 key-value data store: namespaced get/set/delete over /api/dataStore (shared) and "
+                "/api/userDataStore (per-user, --user)."
+            ),
+            cli_module="dhis2w_core.v41.plugins.datastore.cli",
+            mcp_module="dhis2w_core.v41.plugins.datastore.mcp",
+        )
 
 
 plugin = _DatastorePlugin()

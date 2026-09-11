@@ -2,33 +2,24 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _DoctorPlugin(BaseModel):
+class _DoctorPlugin:
     """Plugin descriptor for `d2w doctor`."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "doctor"
-    description: str = (
-        "Probe a DHIS2 instance for known BUGS.md gotchas + workspace hard requirements. "
-        "One command, pure reads, pass/warn/fail per probe with BUGS.md cross-refs."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount under `d2w doctor`."""
-        from dhis2w_core.v43.plugins.doctor import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `doctor_run` MCP tool."""
-        from dhis2w_core.v43.plugins.doctor import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w doctor` and the `doctor_run` MCP tool."""
+        return Contribution(
+            name="doctor",
+            description=(
+                "Probe a DHIS2 instance for known BUGS.md gotchas + workspace hard requirements. One command, pure "
+                "reads, pass/warn/fail per probe with BUGS.md cross-refs."
+            ),
+            cli_module="dhis2w_core.v43.plugins.doctor.cli",
+            mcp_module="dhis2w_core.v43.plugins.doctor.mcp",
+        )
 
 
 plugin = _DoctorPlugin()

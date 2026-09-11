@@ -2,28 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _UserRolePlugin(BaseModel):
+class _UserRolePlugin:
     """Plugin descriptor for the DHIS2 user-role administration surface."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "user-role"
-    description: str = "List + administer DHIS2 user roles (authorities, user membership)."
-
-    def register_cli(self, app: Any) -> None:
-        """CLI is mounted by the `user` plugin under `d2w user role`; no top-level mount."""
-        return None
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register user-role tools on the MCP server."""
-        from dhis2w_core.v42.plugins.user_role import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute the user-role MCP tools; the `user` plugin mounts the CLI under `d2w user role`."""
+        return Contribution(
+            name="user-role",
+            description="List + administer DHIS2 user roles (authorities, user membership).",
+            cli_module=None,
+            mcp_module="dhis2w_core.v42.plugins.user_role.mcp",
+        )
 
 
 plugin = _UserRolePlugin()

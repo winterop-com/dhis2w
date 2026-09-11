@@ -731,9 +731,14 @@ def test_degenerate_ring_falls_back_to_the_vertex_mean() -> None:
 
 
 def test_entry_point_plugin_is_discovered() -> None:
-    """The `dhis2.plugins` entry point exposes the fhir plugin to core discovery on every tree."""
-    from dhis2w_core.plugin import discover_plugins
+    """The `dhis2w.plugins.v1` entry point exposes the fhir plugin to the plugin host on every tree."""
+    from dhis2w_core.plugin import load_plugin_host
 
     for version_key in ("v41", "v42", "v43"):
-        names = {plugin.name for plugin in discover_plugins(version_key)}
-        assert "fhir" in names
+        host = load_plugin_host(version_key)
+        assert "fhir" in host.names
+        assert host.failures == ()
+        fhir = host.get("fhir")
+        assert fhir is not None
+        assert fhir.cli_module == "dhis2w_fhir.cli"
+        assert fhir.mcp_module is None

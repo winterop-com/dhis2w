@@ -9,17 +9,19 @@ d2w security settings        # password policy, credential expiry, registration,
 d2w --json security settings # the same data as a typed JSON object
 ```
 
-The plugin is **CLI-only** today: the descriptor's `register_mcp` is a no-op and
-there is no `mcp.py`. That is a valid plugin shape (see
+The full audit runner is **CLI-only**: `mcp.py` registers the three cheap
+read-only tools (`security_settings`, `security_authorities`, `security_version`)
+and nothing else. A plugin may name either surface or both (see
 [plugin runtime](plugins.md)), and the [extension recipe](#adding-the-next-security-command)
-below covers adding an MCP surface when a command warrants one.
+below covers adding a tool when a command warrants one.
 
 ## Layout
 
 ```
 packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/
-├── __init__.py    # plugin descriptor — name "security", register_cli, no-op register_mcp
+├── __init__.py    # plugin object — contributes name "security" plus the cli and mcp modules
 ├── cli.py         # Typer sub-app + register(app); render helpers (_number / _months / _flag)
+├── mcp.py         # register(server) for the three cheap read-only tools
 ├── service.py     # async pure functions taking a Profile, returning typed models
 └── models.py      # SecuritySettings view-model
 ```
@@ -166,13 +168,11 @@ The plugin is a teaching-sized template. Adding a command — say
 
 When a read command is worth exposing to MCP clients:
 
-1. Create `v{41,42,43}/plugins/security/mcp.py` with a `register(mcp)` that wraps the
-   same `service.py` function as a FastMCP tool (model the file on
-   `user_group/mcp.py`). Tools dump the typed model at the MCP edge — never return a
-   `dict` from the service layer.
-2. Flip the descriptor's `register_mcp` in `__init__.py` from the no-op to
-   `mcp_module.register(mcp)` and import `mcp as mcp_module`.
-3. `make docs-mcp` regenerates `docs/mcp-reference.md`; the surface test in
+1. Add the tool to `v{41,42,43}/plugins/security/mcp.py`, wrapping the same
+   `service.py` function as a FastMCP tool (model it on `user_group/mcp.py`).
+   Tools dump the typed model at the MCP edge — never return a `dict` from the
+   service layer.
+2. `make docs-mcp` regenerates `docs/mcp-reference.md`; the surface test in
    `packages/dhis2w-mcp/tests/test_mcp_surface.py` will see the new tools.
 
 ## Candidate next commands

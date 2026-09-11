@@ -20,8 +20,7 @@ After `uv sync --all-packages`, a `dhis2w-mcp` console script is available. An a
 # packages/dhis2w-mcp/src/dhis2w_mcp/server.py
 def build_server() -> FastMCP:
     server = FastMCP(name="dhis2")
-    for plugin in discover_plugins(resolve_startup_version()):
-        plugin.register_mcp(server)
+    load_plugin_host(resolve_startup_version()).register_mcp(server)
     _eager_rebuild_tool_return_types(server)
     return server
 
@@ -148,7 +147,7 @@ MCP tool "whoami"              → @mcp.tool() in dhis2w_core/plugins/system/mcp
                                → returns pydantic Me to the agent
 ```
 
-If we change `service.whoami()`, both surfaces change. If we add a new plugin, both surfaces pick it up (assuming the plugin implements both `register_cli` and `register_mcp`).
+If we change `service.whoami()`, both surfaces change. If we add a new plugin, both surfaces pick it up (assuming its `Contribution` names both a `cli_module` and an `mcp_module`).
 
 ## Why not OpenAPI / REST?
 

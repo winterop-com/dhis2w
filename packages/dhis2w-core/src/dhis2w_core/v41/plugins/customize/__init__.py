@@ -8,33 +8,24 @@ alongside the other rarely-run setup utilities (`dev pat`, `dev oauth2`,
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _CustomizePlugin(BaseModel):
+class _CustomizePlugin:
     """Plugin descriptor for DHIS2 branding + theming."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "customize"
-    description: str = (
-        "DHIS2 branding + theming: login-page logos, system-setting copy, CSS stylesheet. "
-        "Applies preset directories so `d2w dev customize apply DIR` re-brands an instance."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount the customize sub-app under `d2w customize`."""
-        from dhis2w_core.v41.plugins.customize import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `customize_*` tools on the MCP server."""
-        from dhis2w_core.v41.plugins.customize import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute the customize CLI sub-app and the `customize_*` MCP tools."""
+        return Contribution(
+            name="customize",
+            description=(
+                "DHIS2 branding + theming: login-page logos, system-setting copy, CSS stylesheet. Applies preset "
+                "directories so `d2w dev customize apply DIR` re-brands an instance."
+            ),
+            cli_module="dhis2w_core.v41.plugins.customize.cli",
+            mcp_module="dhis2w_core.v41.plugins.customize.mcp",
+        )
 
 
 plugin = _CustomizePlugin()

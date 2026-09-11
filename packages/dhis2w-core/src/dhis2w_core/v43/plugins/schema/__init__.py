@@ -2,29 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _SchemaPlugin(BaseModel):
+class _SchemaPlugin:
     """Plugin descriptor for the offline, read-only `schema` command."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "schema"
-    description: str = "Describe a generated type's fields (metadata or instance-side)."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount the `schema` command on the root CLI."""
-        from dhis2w_core.v43.plugins.schema import (
-            cli as cli_module,
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute the `schema` command; the plugin has no MCP surface."""
+        return Contribution(
+            name="schema",
+            description="Describe a generated type's fields (metadata or instance-side).",
+            cli_module="dhis2w_core.v43.plugins.schema.cli",
+            mcp_module=None,
         )
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """No MCP surface yet — CLI-only plugin."""
 
 
 plugin = _SchemaPlugin()

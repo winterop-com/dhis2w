@@ -16,7 +16,7 @@ from importlib import import_module
 import httpx
 import pytest
 import respx
-from dhis2w_core.plugin import discover_plugins
+from dhis2w_core.plugin import load_plugin_host
 from dhis2w_core.security_core import releases
 from fastmcp import Client, FastMCP
 
@@ -28,8 +28,7 @@ _HOST = "https://dhis2.example"
 def _server_for(tree: str) -> FastMCP:
     """Register one version tree's plugins onto a fresh FastMCP server."""
     server: FastMCP = FastMCP("security-mcp-test")
-    for plugin in discover_plugins(tree):
-        plugin.register_mcp(server)
+    load_plugin_host(tree).register_mcp(server)
     return server
 
 

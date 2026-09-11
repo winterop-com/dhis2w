@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _DevPlugin(BaseModel):
+class _DevPlugin:
     """Plugin descriptor for developer + operator tools."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "dev"
-    description: str = "Developer/operator tools: codegen, UID generation, sample data."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount under `d2w dev`."""
-        from dhis2w_core.v42.plugins.dev import (
-            cli as cli_module,
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w dev`; the developer tools are CLI-only."""
+        return Contribution(
+            name="dev",
+            description="Developer/operator tools: codegen, UID generation, sample data.",
+            cli_module="dhis2w_core.v42.plugins.dev.cli",
+            mcp_module=None,
         )
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Dev tools are CLI-only — no MCP surface."""
-        return None
 
 
 plugin = _DevPlugin()

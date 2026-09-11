@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _DataPlugin(BaseModel):
+class _DataPlugin:
     """Plugin descriptor for DHIS2 data values (aggregate + tracker)."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "data"
-    description: str = "DHIS2 data values — aggregate (dataValueSets) and tracker (entities, events, ...)."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount under `d2w data`."""
-        from dhis2w_core.v42.plugins.data import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `data_aggregate_*` and `data_tracker_*` tools on the MCP server."""
-        from dhis2w_core.v42.plugins.data import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w data` and the `data_aggregate_*` / `data_tracker_*` MCP tools."""
+        return Contribution(
+            name="data",
+            description="DHIS2 data values — aggregate (dataValueSets) and tracker (entities, events, ...).",
+            cli_module="dhis2w_core.v42.plugins.data.cli",
+            mcp_module="dhis2w_core.v42.plugins.data.mcp",
+        )
 
 
 plugin = _DataPlugin()

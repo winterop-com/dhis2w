@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _AnalyticsPlugin(BaseModel):
+class _AnalyticsPlugin:
     """Plugin descriptor for DHIS2 analytics queries."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "analytics"
-    description: str = "Run DHIS2 analytics queries (aggregated, raw, dataValueSet) and trigger refresh."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount under `d2w analytics`."""
-        from dhis2w_core.v41.plugins.analytics import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register analytics tools on the MCP server."""
-        from dhis2w_core.v41.plugins.analytics import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w analytics` and the analytics MCP tools."""
+        return Contribution(
+            name="analytics",
+            description="Run DHIS2 analytics queries (aggregated, raw, dataValueSet) and trigger refresh.",
+            cli_module="dhis2w_core.v41.plugins.analytics.cli",
+            mcp_module="dhis2w_core.v41.plugins.analytics.mcp",
+        )
 
 
 plugin = _AnalyticsPlugin()

@@ -18,8 +18,9 @@ _runner = CliRunner()
 
 def test_plugin_descriptor() -> None:
     """The dev plugin exposes name + description + a non-trivial CLI mount."""
-    assert plugin.name == "dev"
-    assert "developer" in plugin.description.lower() or "operator" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "dev"
+    assert "developer" in contribution.description.lower() or "operator" in contribution.description.lower()
 
 
 def test_dev_help_lists_subcommands() -> None:

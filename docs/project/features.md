@@ -180,9 +180,14 @@ package rather than a plugin in its own row.
 
 ### External Plugin Discovery
 
-Plugins register via `importlib.metadata.entry_points(group="dhis2.plugins")`
-and are discovered automatically at startup. The in-repo `dhis2w-fhir` package
-is the first-party example of this mechanism.
+A plugin is a plain class with one `@extension` method, `contribute(version_key)`,
+returning a `Contribution` that names the plugin and the modules exposing
+`register(app)` and `register(server)` for its CLI and MCP surfaces. A pack
+advertises that object under the `dhis2w.plugins.v1` entry-point group, and the
+pluginkit host in `dhis2w_core.plugin` loads it alongside the built-ins at
+startup. A pack that fails to import is reported in `PluginHost.failures`
+rather than taking the CLI down; the in-repo `dhis2w-fhir` package is the
+first-party example.
 
 An out-of-repo plugin gets the same test environment from `dhis2w_core.testing`, a pytest
 plugin shipped by `dhis2w-core[testing]` and loaded with
