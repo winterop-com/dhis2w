@@ -24,20 +24,67 @@ Convention across all plugins:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
 import typer
 from pydantic import BaseModel, ConfigDict
 from rich.console import Console
 from rich.table import Table
 
-if TYPE_CHECKING:
-    # Annotation-only — these render helpers receive already-parsed instances,
-    # so the classes are needed for typing, not at runtime. Keeping them out of
-    # the runtime import graph keeps `main.py` off the heavy generated OAS tree.
-    from dhis2w_client import ConflictRow, WebMessageResponse
+
+class ConflictRowLike(Protocol):
+    """One conflict or error report row, as every version tree's `ConflictRow` shapes it."""
+
+    resource: str | None
+    uid: str | None
+    property: str | None
+    value: str | None
+    error_code: str | None
+    message: str | None
+
+
+class ImportCountLike(Protocol):
+    """The imported / updated / ignored / deleted counters of an import summary."""
+
+    imported: int | None
+    updated: int | None
+    ignored: int | None
+    deleted: int | None
+
+
+class WebMessageLike(Protocol):
+    """The parsed WebMessage envelope of any version tree, seen through the members the renderers read.
+
+    Every `dhis2w_client.v{41,42,43}.envelopes.WebMessageResponse` satisfies this structurally, so
+    one renderer serves every plugin tree without importing a tree's classes.
+    """
+
+    httpStatus: str | None
+    message: str | None
+
+    @property
+    def created_uid(self) -> str | None:
+        """The uid of the created object, when the envelope carries one."""
+        ...
+
+    def task_ref(self) -> tuple[str, str] | None:
+        """The `(job_type, task_uid)` pair of a kicked-off background job, when the envelope is one."""
+        ...
+
+    def import_count(self) -> ImportCountLike | None:
+        """The import counters, when the envelope is an import summary."""
+        ...
+
+    def conflict_rows(self) -> Sequence[ConflictRowLike]:
+        """Every conflict or error report flattened to rows."""
+        ...
+
+    def model_dump_json(self, *, indent: int | None = None, exclude_none: bool = False) -> str:
+        """The envelope as JSON text."""
+        ...
+
 
 _console = Console()
 
@@ -58,7 +105,7 @@ def is_json_output() -> bool:
 
 
 def render_webmessage(
-    envelope: WebMessageResponse,
+    envelope: WebMessageLike,
     *,
     as_json: bool | None = None,
     action: str = "",
@@ -117,7 +164,7 @@ def render_webmessage(
             render_conflicts(rows, limit=max_conflicts)
 
 
-def render_conflicts(rows: list[ConflictRow], *, limit: int = 25, console: Console | None = None) -> None:
+def render_conflicts(rows: Sequence[ConflictRowLike], *, limit: int = 25, console: Console | None = None) -> None:
     """Render a list of `ConflictRow` as a Rich table grouped by resource + errorCode.
 
     Useful both on metadata imports (each `ErrorReport` becomes a row) and

@@ -8,8 +8,7 @@ from typing import Annotated, Any
 
 import typer
 
-from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v41.cli_output import (
+from dhis2w_core.cli_output import (
     ColumnSpec,
     DetailRow,
     format_access_string,
@@ -19,6 +18,7 @@ from dhis2w_core.v41.cli_output import (
     render_detail,
     render_list,
 )
+from dhis2w_core.profile import profile_from_env
 
 app = typer.Typer(
     help="Inspect + administer DHIS2 user groups (list, members, sharing).",
@@ -115,7 +115,7 @@ def create_command(
     uid: Annotated[str | None, typer.Option("--uid", help="Explicit 11-char UID.")] = None,
 ) -> None:
     """Create a user group (then add members with `add-member`)."""
-    from dhis2w_core.v41.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v41.plugins.user_group import service
 
     response = asyncio.run(service.create_user_group(profile_from_env(), name=name, code=code, uid=uid))

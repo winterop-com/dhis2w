@@ -1,7 +1,7 @@
-"""DHIS2 v41 plugin tree for dhis2w-core.
+"""DHIS2 v41 tree of dhis2w-core: the plugins and the client binding for a 2.41 server.
 
-Mirror of `dhis2w_core.v42.plugins` (today's canonical baseline). Plugin
-files still import from `dhis2w_client.generated.v42` until individual
-files diverge to handle v41-specific wire shapes (e.g. OAuth2 client
-`cid` vs `clientId`, missing `OAuth2ClientCredentialsAuthScheme`).
+`plugins/` holds one folder per DHIS2 domain and `client_context` opens a connected
+`dhis2w_client.v41.Dhis2Client` from a resolved profile. Everything a tree does not need to
+bind to its client (CLI output, error rendering, the token store, PAT and OAuth2 registration,
+task watching) lives once at `dhis2w_core.*` and is typed structurally.
 """

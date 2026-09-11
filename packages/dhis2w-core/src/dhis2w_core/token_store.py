@@ -5,8 +5,8 @@ from __future__ import annotations
 import contextlib
 import os
 from pathlib import Path
+from typing import Any, Protocol, Self
 
-from dhis2w_client.v43.auth.oauth2 import OAuth2Token
 from sqlalchemy import Float, String, select
 from sqlalchemy import inspect as sqlalchemy_inspect
 from sqlalchemy.engine import Connection
@@ -46,8 +46,26 @@ def _drop_table_without_identity_columns(connection: Connection) -> None:
     _Base.metadata.tables[_TokenRow.__tablename__].drop(connection)
 
 
-class SqliteTokenStore:
-    """File-backed TokenStore conforming to `dhis2w_client.v43.auth.oauth2.TokenStore`.
+class OAuth2TokenLike(Protocol):
+    """The persisted shape of an OAuth2 token, as every version tree's `OAuth2Token` declares it."""
+
+    access_token: str
+    refresh_token: str | None
+    expires_at: float
+    base_url: str | None
+    client_id: str | None
+
+    @classmethod
+    def model_validate(cls, obj: Any) -> Self:
+        """Build a token from its persisted fields."""
+        ...
+
+
+class SqliteTokenStore[TokenT: OAuth2TokenLike]:
+    """File-backed TokenStore conforming to every tree's `dhis2w_client.v{41,42,43}.auth.oauth2.TokenStore`.
+
+    The store is neutral; `token_type` names the tree's `OAuth2Token` class the rows are read back
+    as, so a `SqliteTokenStore[OAuth2Token]` satisfies that tree's `TokenStore` protocol exactly.
 
     Creates the parent directory and DB file lazily on first access. After the
     DB file exists, perms are forced to 0600.
@@ -59,9 +77,10 @@ class SqliteTokenStore:
     next call runs the login flow again.
     """
 
-    def __init__(self, db_path: Path) -> None:
-        """Build an engine bound to `db_path` (not yet created)."""
+    def __init__(self, db_path: Path, *, token_type: type[TokenT]) -> None:
+        """Build an engine bound to `db_path` (not yet created); rows are read back as `token_type`."""
         self._db_path = db_path
+        self._token_type = token_type
         self._initialized = False
         self._engine = create_async_engine(
             f"sqlite+aiosqlite:///{db_path}",
@@ -87,7 +106,7 @@ class SqliteTokenStore:
                 os.chmod(self._db_path, 0o600)
         self._initialized = True
 
-    async def get(self, key: str) -> OAuth2Token | None:
+    async def get(self, key: str) -> TokenT | None:
         """Return the stored token for `key`, or None if absent."""
         await self._ensure_init()
         async with self._session_maker() as session:
@@ -95,15 +114,17 @@ class SqliteTokenStore:
             row = result.scalar_one_or_none()
             if row is None:
                 return None
-            return OAuth2Token(
-                access_token=row.access_token,
-                refresh_token=row.refresh_token,
-                expires_at=row.expires_at,
-                base_url=row.base_url,
-                client_id=row.client_id,
+            return self._token_type.model_validate(
+                {
+                    "access_token": row.access_token,
+                    "refresh_token": row.refresh_token,
+                    "expires_at": row.expires_at,
+                    "base_url": row.base_url,
+                    "client_id": row.client_id,
+                }
             )
 
-    async def set(self, key: str, token: OAuth2Token) -> None:
+    async def set(self, key: str, token: TokenT) -> None:
         """Upsert the token for `key`."""
         await self._ensure_init()
         async with self._session_maker() as session:
@@ -144,8 +165,12 @@ class SqliteTokenStore:
         await self._engine.dispose()
 
 
-def token_store_for_scope(scope: str, *, start: Path | None = None) -> SqliteTokenStore:
+def token_store_for_scope[TokenT: OAuth2TokenLike](
+    scope: str, *, token_type: type[TokenT], start: Path | None = None
+) -> SqliteTokenStore[TokenT]:
     """Return a `SqliteTokenStore` sited next to the profile file for the given scope.
+
+    `token_type` is the calling tree's `OAuth2Token` class, so the store hands back that tree's tokens.
 
     - `scope="project"`: nearest `.dhis2/tokens.sqlite` walking up from `start` (or
       `$PWD`), or `./.dhis2/tokens.sqlite` if no project profiles file exists yet.
@@ -154,7 +179,7 @@ def token_store_for_scope(scope: str, *, start: Path | None = None) -> SqliteTok
     if scope == "project":
         profiles_path = find_project_profiles_file(start)
         base = profiles_path.parent if profiles_path is not None else (start or Path.cwd()) / ".dhis2"
-        return SqliteTokenStore(base / TOKENS_FILENAME)
+        return SqliteTokenStore(base / TOKENS_FILENAME, token_type=token_type)
     if scope == "global":
-        return SqliteTokenStore(global_profiles_path().parent / TOKENS_FILENAME)
+        return SqliteTokenStore(global_profiles_path().parent / TOKENS_FILENAME, token_type=token_type)
     raise ValueError(f"unknown scope {scope!r}; expected 'project' or 'global'")

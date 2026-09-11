@@ -11,8 +11,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from dhis2w_core.cli_output import is_json_output
 from dhis2w_core.profile import Profile, profile_from_env
-from dhis2w_core.v43.cli_output import is_json_output
 
 if TYPE_CHECKING:
     from dhis2w_client.v43 import NotificationLevel, WebMessageResponse
@@ -150,7 +150,7 @@ def task_watch_command(
     timeout: Annotated[float | None, typer.Option("--timeout", help="Abort after N seconds (default 600).")] = 600.0,
 ) -> None:
     """Poll a task until it reports `completed=true`, streaming each new notification."""
-    from dhis2w_core.v43.cli_task_watch import stream_task_to_stdout
+    from dhis2w_core.cli_task_watch import stream_task_to_stdout
 
     asyncio.run(
         stream_task_to_stdout(profile_from_env(), task_type, task_uid, interval=interval, timeout=timeout),
@@ -291,8 +291,8 @@ def dataintegrity_run_command(
     ] = 600.0,
 ) -> None:
     """Kick off a data-integrity run; with --watch, stream progress to completion."""
-    from dhis2w_core.v43.cli_output import render_webmessage
-    from dhis2w_core.v43.cli_task_watch import stream_task_to_stdout
+    from dhis2w_core.cli_output import render_webmessage
+    from dhis2w_core.cli_task_watch import stream_task_to_stdout
     from dhis2w_core.v43.plugins.maintenance import service
 
     profile = profile_from_env()
@@ -501,8 +501,8 @@ def _kick_off_and_maybe_watch(
     Reused by all three refresh commands — the kickoff closure picks which
     service function + params to call.
     """
-    from dhis2w_core.v43.cli_output import render_webmessage
-    from dhis2w_core.v43.cli_task_watch import stream_task_to_stdout
+    from dhis2w_core.cli_output import render_webmessage
+    from dhis2w_core.cli_task_watch import stream_task_to_stdout
 
     profile = profile_from_env()
     response = asyncio.run(kickoff(profile))

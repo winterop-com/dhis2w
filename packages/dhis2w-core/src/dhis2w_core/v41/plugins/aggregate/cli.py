@@ -9,8 +9,8 @@ from typing import Annotated, Any
 
 import typer
 
+from dhis2w_core.cli_output import is_json_output, render_webmessage
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v41.cli_output import is_json_output, render_webmessage
 
 app = typer.Typer(
     help="Aggregate data values — DHIS2 /api/dataValueSets and /api/dataValues.",
@@ -81,7 +81,7 @@ def get_command(
     if is_json_output():
         typer.echo(envelope.model_dump_json(indent=2, exclude_none=True))
         return
-    from dhis2w_core.v41.cli_output import ColumnSpec, render_list
+    from dhis2w_core.cli_output import ColumnSpec, render_list
 
     rows = envelope.dataValues or []
     render_list(

@@ -43,7 +43,7 @@ from _runner import run_example
 from dhis2w_client import Dhis2Client
 
 # v43 is the canonical baseline: swap `.v43` for `.v41` / `.v42` to pin another major.
-from dhis2w_client.v43.auth.oauth2 import OAuth2Auth, capture_code
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth, OAuth2Token, capture_code
 from dhis2w_core.token_store import SqliteTokenStore
 
 
@@ -62,7 +62,7 @@ async def main() -> None:
     username = os.environ.get("DHIS2_USERNAME")
     password = os.environ.get("DHIS2_PASSWORD")
     open_browser_env = os.environ.get("DHIS2_OAUTH_NO_BROWSER", "0") == "0"
-    token_store = SqliteTokenStore(Path("./tokens.sqlite"))
+    token_store = SqliteTokenStore(Path("./tokens.sqlite"), token_type=OAuth2Token)
 
     # Playwright-driven path: concurrent receiver + IdP form automation.
     # Only available when DHIS2_USERNAME + DHIS2_PASSWORD are set AND the

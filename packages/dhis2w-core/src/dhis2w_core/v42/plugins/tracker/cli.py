@@ -18,8 +18,7 @@ from typing import Annotated, Any
 import typer
 from pydantic import BaseModel
 
-from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.cli_output import (
+from dhis2w_core.cli_output import (
     ColumnSpec,
     DetailRow,
     format_reflist,
@@ -27,6 +26,7 @@ from dhis2w_core.v42.cli_output import (
     render_detail,
     render_list,
 )
+from dhis2w_core.profile import profile_from_env
 
 app = typer.Typer(
     help="DHIS2 tracker — tracked entities by type, enrollments, events, relationships.",
@@ -401,7 +401,7 @@ def push_command(
     """Bulk import via POST /api/tracker."""
     from dhis2w_client.generated.v42.tracker import TrackerBundle
 
-    from dhis2w_core.v42.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v42.plugins.tracker import service
 
     bundle = TrackerBundle.model_validate(json.loads(file.read_text(encoding="utf-8")))
@@ -427,7 +427,7 @@ def delete_command(
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation.")] = False,
 ) -> None:
     """Delete tracked entities by UID (cascades to their enrollments + events)."""
-    from dhis2w_core.v42.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v42.plugins.tracker import service
 
     if not yes:
@@ -450,7 +450,7 @@ def event_delete_command(
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation.")] = False,
 ) -> None:
     """Delete events by UID."""
-    from dhis2w_core.v42.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v42.plugins.tracker import service
 
     if not yes:
@@ -470,7 +470,7 @@ def enrollment_delete_command(
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip confirmation.")] = False,
 ) -> None:
     """Delete enrollments by UID (cascades to their events)."""
-    from dhis2w_core.v42.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v42.plugins.tracker import service
 
     if not yes:
@@ -562,7 +562,7 @@ def register_command(
     if is_json_output():
         typer.echo(result.model_dump_json(indent=2, exclude_none=True))
         return
-    from dhis2w_core.v42.cli_output import DetailRow, render_detail
+    from dhis2w_core.cli_output import DetailRow, render_detail
 
     render_detail(
         f"registered {result.tracked_entity} (enrollment {result.enrollment})",
@@ -601,7 +601,7 @@ def enrollment_create_command(
     if is_json_output():
         typer.echo(result.model_dump_json(indent=2, exclude_none=True))
         return
-    from dhis2w_core.v42.cli_output import DetailRow, render_detail
+    from dhis2w_core.cli_output import DetailRow, render_detail
 
     render_detail(
         f"enrolled {tracked_entity} in {program}",
@@ -674,7 +674,7 @@ def event_create_command(
     if is_json_output():
         typer.echo(result.model_dump_json(indent=2, exclude_none=True))
         return
-    from dhis2w_core.v42.cli_output import DetailRow, render_detail
+    from dhis2w_core.cli_output import DetailRow, render_detail
 
     render_detail(
         f"logged event {result.event}",
@@ -714,7 +714,7 @@ def outstanding_command(
     repeatable stages (weekly checkups, periodic screenings) don't have
     a single outstanding semantic and are skipped.
     """
-    from dhis2w_core.v42.cli_output import ColumnSpec, render_list
+    from dhis2w_core.cli_output import ColumnSpec, render_list
     from dhis2w_core.v42.plugins.tracker import service
 
     rows = asyncio.run(

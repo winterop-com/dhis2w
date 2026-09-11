@@ -15,8 +15,7 @@ from pydantic import ValidationError
 if TYPE_CHECKING:
     from dhis2w_client.v42.auth_schemes import AuthScheme
 
-from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.cli_output import (
+from dhis2w_core.cli_output import (
     ColumnSpec,
     DetailRow,
     format_disabled,
@@ -25,6 +24,7 @@ from dhis2w_core.v42.cli_output import (
     render_list,
     render_webmessage,
 )
+from dhis2w_core.profile import profile_from_env
 
 app = typer.Typer(
     help="DHIS2 Route API — register + run integration routes (proxies to external services).",

@@ -852,10 +852,10 @@ For the rare case where you need `OAuth2Auth` without going through a profile â€
 
 ```python
 from dhis2w_client import Dhis2Client
-from dhis2w_client.v43.auth.oauth2 import OAuth2Auth
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth, OAuth2Token
 from dhis2w_core.token_store import token_store_for_scope
 
-store = token_store_for_scope("global")
+store = token_store_for_scope("global", token_type=OAuth2Token)
 token = await store.get("my-oauth-profile")
 
 auth = OAuth2Auth(

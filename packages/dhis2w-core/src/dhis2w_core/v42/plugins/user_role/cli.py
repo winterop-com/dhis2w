@@ -8,8 +8,7 @@ from typing import Annotated, Any
 
 import typer
 
-from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.cli_output import (
+from dhis2w_core.cli_output import (
     ColumnSpec,
     DetailRow,
     format_reflist,
@@ -17,6 +16,7 @@ from dhis2w_core.v42.cli_output import (
     render_detail,
     render_list,
 )
+from dhis2w_core.profile import profile_from_env
 
 app = typer.Typer(
     help="Inspect + administer DHIS2 user roles (list, authority-list, grant/revoke users).",
