@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary bench-list bench-round bench-bridge bench-general bench-mcp bench-router bench-claude-general bench-claude-mcp bench-claude-bridge bench-validate bench-matrix bench-composite bench-longcontext refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -70,21 +70,6 @@ help:
 	@echo "  verify-examples       Run every non-interactive example + print PASS/FAIL summary"
 	@echo "  verify-igs            Refresh, validate, generate + dockerized SUSHI compile every example IG (on demand; needs docker)"
 	@echo "  publisher-check-summary  Summarise an IG publisher QA report: version, counts, error families (QA=<path to qa.json>)"
-	@echo ""
-	@echo "Model testing (local LLMs; reads -> play42, writes -> local_basic; no model defaults):"
-	@echo "  bench-list       List the models the backend has installed (pick from these)"
-	@echo "  bench-validate   Validate ONE model across both axes: general + bridge (MODEL= required)"
-	@echo "  bench-general    Axis 1 — general capability: python+cli+tooling, no DHIS2 (MODELS= required; BENCH_MAX_TOKENS=, BENCH_ORACLE=)"
-	@echo "  bench-bridge     Axis 2 — benchmark named models over the bridge: read+write+perf (MODELS= required; BENCH_ORACLE=)"
-	@echo "  bench-mcp        Full dhis2-mcp server (~311 tools), read+write (MODELS= required; BENCH_CONTEXT=128K)"
-	@echo "  bench-router     Local models over the dhis2w-mcp-router (search+dispatch), read suite at small context (MODELS= required; BENCH_CONTEXT=16K)"
-	@echo "  bench-claude-general Cloud Claude on the coding suite: python+cli+tooling, no DHIS2 (MODELS= optional; ambient subscription auth)"
-	@echo "  bench-claude-mcp Cloud Claude over full dhis2-mcp via Agent SDK, read suite on play42 (MODELS= optional; ambient subscription auth)"
-	@echo "  bench-claude-bridge Cloud Claude over the dhis2_cli bridge: read+write+composite (MODELS= optional; RUNS= composite reps; needs make dhis2-run)"
-	@echo "  bench-round      Drive dhis2w-mcp-bridge with one local model (MODEL= required; ROUND=read|write|bench, PROFILE=)"
-	@echo "  bench-matrix     Command x model matrix: how each model handles every CLI command (ARGS= to slice)"
-	@echo "  bench-composite  Hard multi-object writes (data set+elements, program+stages): no MODELS = oracle; MODELS= drives models (RUNS=3, pass-rate)"
-	@echo "  bench-longcontext Needle-in-a-haystack retrieval at increasing lengths (MODELS= required; BENCH_CONTEXT= target, default 256K capped per model)"
 	@echo ""
 	@echo "  For niche targets (versions, wait, status, logs, pat) use 'make -C infra help'."
 
@@ -235,9 +220,9 @@ build:
 #
 # The publishable workspace members, in dependency order: each one is uploaded
 # after everything it imports, so a resolver reading PyPI mid-release never meets
-# a package naming a sibling version the index has not seen yet. The two
-# workspace-only members — dhis2w-codegen and dhis2w-bench — are absent on
-# purpose: they are internal tools with nothing to offer a PyPI consumer.
+# a package naming a sibling version the index has not seen yet. The workspace-only
+# member dhis2w-codegen is absent on purpose: it is an internal tool with nothing
+# to offer a PyPI consumer.
 #
 # Names here are the suffix after `dhis2w-`; the targets are `publish-<suffix>`.
 PUBLISHABLE_MEMBERS := client core browser fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
@@ -359,98 +344,6 @@ verify-igs:
 publisher-check-summary:
 	@test -n "$(QA)" || { echo "usage: make publisher-check-summary QA=<path to ig/output/qa.json>"; exit 2; }
 	@$(UV) run python -u infra/scripts/publisher_qa_summary.py --qa $(QA)
-
-bench-list:
-	@echo ">>> Installed models (the backend's view; MODEL_BACKEND= to switch)"
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.backend
-
-bench-round:
-	@test -n "$(MODEL)" || { echo "usage: make bench-round MODEL=<key> [ROUND=read|write|bench] [PROFILE=]  (see 'make bench-list')"; exit 2; }
-	@echo ">>> Bridge test round: MODEL=$(MODEL) ROUND=$(or $(ROUND),read) PROFILE=$(or $(PROFILE),play42)"
-	@echo "    (reads -> play42 readonly; writes -> local_basic. See docs/notes/small-model-bridge.md)"
-	@lms server start >/dev/null 2>&1 || true
-	@lms ps 2>/dev/null | grep -qF "$(MODEL)" || lms load $(MODEL) --gpu max --ttl 3600 -y
-	@$(UV) run python -u -m dhis2w_bench.round \
-		--model $(MODEL) \
-		--round $(or $(ROUND),read) \
-		--profile $(or $(PROFILE),$(if $(filter write,$(ROUND)),local_basic,play42))
-
-bench-bridge:
-	@test -n "$(MODELS)" || { echo "usage: make bench-bridge MODELS=\"<key> [<key> ...]\"  (no default; see 'make bench-list')"; exit 2; }
-	@echo ">>> Bridge model benchmark: read -> play42 (read-only), write -> local_basic; one model at a time."
-	@echo "    The write round needs local_basic up — run 'make dhis2-run' first if it isn't."
-	@echo "    Name an oracle with BENCH_ORACLE=<key> to enable the SUSPECT-task check."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.bridge $(MODELS)
-
-bench-general:
-	@test -n "$(MODELS)" || { echo "usage: make bench-general MODELS=\"<key> [<key> ...]\"  (no default; see 'make bench-list')"; exit 2; }
-	@echo ">>> General-capability benchmark (axis 1: python + cli + tooling; no DHIS2). One model = single test;"
-	@echo "    several = side-by-side comparison. BENCH_MAX_TOKENS= tightens the budget; BENCH_ORACLE= sets an oracle."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.general $(MODELS)
-
-bench-mcp:
-	@test -n "$(MODELS)" || { echo "usage: make bench-mcp MODELS=\"<key> [<key> ...]\"  (no default; see 'make bench-list')"; exit 2; }
-	@echo ">>> Full-MCP benchmark: the model drives the whole dhis2-mcp server (~311 tools) read + write."
-	@echo "    Loads each model at BENCH_CONTEXT (default 128K) — the tool payload is ~49k tokens."
-	@echo "    Read round = play42 with READ-ONLY tools only (the server has no readonly guard); write = local_basic."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.mcp $(MODELS)
-
-bench-router:
-	@test -n "$(MODELS)" || { echo "usage: make bench-router MODELS=\"<key> [<key> ...]\"  (no default; see 'make bench-list')"; exit 2; }
-	@echo ">>> Router benchmark: local models drive the full dhis2-mcp surface via the router (search_tools + call_tool)."
-	@echo "    Loads each model at BENCH_CONTEXT (default 16K) — the router payload is 2 tools, not the ~49k full surface."
-	@echo "    Read suite on play42 with the router read-only. Compare against bench-mcp (full payload) and bench-bridge."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.router $(MODELS)
-
-bench-claude-general:
-	@echo ">>> Cloud Claude on the coding suite (python + cli + tooling), the cloud peer of bench-general."
-	@echo "    Auth is AMBIENT (logged-in Claude Code subscription) — no API key read or stored; costs subscription budget."
-	@echo "    MODELS optional: 'make bench-claude-general MODELS=\"opus sonnet\"' compares; empty = session-default model."
-	@$(UV) run python -u -m dhis2w_bench.claude_general $(MODELS)
-
-bench-claude-mcp:
-	@echo ">>> Cloud Claude drives the full dhis2-mcp server via the Agent SDK (read suite on play42)."
-	@echo "    Auth is AMBIENT (logged-in Claude Code subscription) — no API key read or stored; costs subscription budget."
-	@echo "    MODELS optional: 'make bench-claude-mcp MODELS=\"opus sonnet\"' compares; empty = session-default model."
-	@$(UV) run python -u -m dhis2w_bench.claude_mcp $(MODELS)
-
-bench-claude-bridge:
-	@echo ">>> Cloud Claude drives the dhis2_cli bridge via the Agent SDK: read (play42) + write + composite (local_basic)."
-	@echo "    Auth is AMBIENT (logged-in Claude Code subscription) — no API key read or stored; costs subscription budget."
-	@echo "    Write + composite rounds need local_basic up (make dhis2-run). MODELS optional; RUNS= repeats the flaky composite."
-	@$(UV) run python -u -m dhis2w_bench.claude_bridge $(MODELS) $(if $(RUNS),--runs $(RUNS))
-
-bench-validate:
-	@test -n "$(MODEL)" || { echo "usage: make bench-validate MODEL=<key>   (e.g. google/gemma-4-12b-qat)"; exit 2; }
-	@echo ">>> Validate $(MODEL) across both axes"
-	@echo ">>> Axis 1 — general (python + cli + tooling)"
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.general $(MODEL)
-	@echo ">>> Axis 2 — bridge (read + write); write round needs local_basic up (make dhis2-run)"
-	@$(UV) run python -u -m dhis2w_bench.bridge $(MODEL)
-
-bench-composite:
-	@echo ">>> Composite write-workflow scenarios on local_basic (data set+elements, program+stages)."
-	@echo "    No MODELS: run the deterministic oracle. MODELS=\"<key> ...\": drive each model via the bridge."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.composite $(if $(MODELS),--models $(MODELS)) $(if $(RUNS),--runs $(RUNS)) $(ARGS)
-
-bench-longcontext:
-	@test -n "$(MODELS)" || { echo "usage: make bench-longcontext MODELS=\"<key> ...\"  (no default; see 'make bench-list')"; exit 2; }
-	@echo ">>> Long-context retrieval (needle-in-a-haystack) at increasing lengths; each model loads at min(BENCH_CONTEXT, its max), default target 256k."
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.longcontext $(MODELS)
-
-bench-matrix:
-	@echo ">>> CLI command x model matrix (how each roster model handles every command; read-only on play42)"
-	@echo "    Streaming + resumable. Slice it: make bench-matrix ARGS=\"--group metadata --models google/gemma-4-12b-qat\""
-	@lms server start >/dev/null 2>&1 || true
-	@$(UV) run python -u -m dhis2w_bench.matrix $(ARGS)
 
 refresh-setup:
 	@echo ">>> [1/2] Rebuilding e2e dump (wipes + reseeds the stack)"

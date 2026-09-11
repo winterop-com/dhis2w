@@ -132,7 +132,7 @@ avoids DHIS2 coupling.
 - **Ranking quality** — embeddings (shipped) fix the worst keyword mis-ranks but a small local embedder
   is weak on terse queries; a larger embedder or a keyword+embedding hybrid is the next step.
 - **Capability floor** — the search→dispatch indirection is a step the weakest models don't take
-  (`bench-router` shows `gemma-4-e4b` never calls `search_tools`); better ranking does not fix that.
+  (the router benchmark lane shows `gemma-4-e4b` never calls `search_tools`); better ranking does not fix that.
 - **Per-tool allow/deny lists** beyond read-only could layer on the same `call_tool` chokepoint.
 - **Federation in anger** — the multi-upstream case (DHIS2 + non-DHIS2 servers) is built but not yet
   exercised end to end.

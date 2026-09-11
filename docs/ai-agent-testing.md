@@ -13,34 +13,34 @@ logs are linked at the bottom.
   command. This is the structural 100% baseline (`packages/dhis2w-cli/tests/test_cli_surface.py::test_every_command_renders_help`).
 - A **capable agent is the oracle**: Claude Code / Codex should form every command correctly. Any
   command a capable agent *can't* drive is a real CLI defect (bad help, undiscoverable) — not a model
-  limitation. Composite write workflows (`make bench-composite`) are proven oracle-first.
+  limitation. Composite write workflows are proven oracle-first.
 
 **2. Which local models can drive it, and how well?** — measured as a gradient (small local models
 will never be 100%). This is the privacy use case: a small model on-box, against data that can't
 leave the machine, driving the bridge.
 
-## The harnesses
+## Where the harness lives
 
-All runnable from the `Makefile`; the model roster lives in `packages/dhis2w-bench/src/dhis2w_bench/bridge.py`
-(`ROSTER`). Reads run against `play42` (read-only); writes against `local_basic` (self-cleaning).
+The benchmark harness lives in
+[`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the ecosystem's control
+center, as `dhis2w_integration.bench`. A benchmark measures the *assembled* surface — this
+workspace's CLI, bridge, MCP server and router plus every plugin pack, installed side by side — and
+the integration is the only repository that holds all of it at once.
 
-| Command | What it measures |
-| --- | --- |
-| `make bench-list` | List the installed models (with context window + tool-use flag) available to benchmark. |
-| `make bench-bridge` | The roster over the single-tool bridge — **read + write + performance**, the primary capability benchmark. |
-| `make bench-matrix` | A **command × model grid**: does each model find and form each CLI command. |
-| `make bench-composite` | Multi-object **write workflows** (data set + elements, program + stages), oracle reference. |
-| `make bench-round` | Drive one model through a read / write / benchmark round interactively. |
-| `make bench-general` | **Coding axis** (python + cli + multi-turn tooling, no DHIS2) — predicts tool competence. |
-| `make bench-mcp` | The **full dhis2-mcp server** (~311 typed tools): read + write at a configurable load context. |
-| `make bench-longcontext` | **Effective context** (needle-in-a-haystack): how many tokens a model can actually use. |
-| `make bench-validate` | One model across **both** the coding and bridge axes in a single run. |
-| `make bench-claude-general` | **Cloud Claude** on the coding suite (python + cli + tooling) — the cloud peer of `bench-general`. |
-| `make bench-claude-mcp` | **Cloud Claude** over the full dhis2-mcp server via the Agent SDK (read + write + composite). |
-| `make bench-claude-bridge` | **Cloud Claude** over the single-tool bridge via the Agent SDK (read + write + composite). |
+Run one lane there:
 
-The cloud `bench-claude-*` lanes use ambient Claude Code subscription auth (no API key) and exist so
-local-vs-cloud is directly comparable on the same tasks. See `docs/notes/benchmark-plan.md` and
+```sh
+make bench MODULE=general ARGS="google/gemma-4-26b-a4b-qat"
+```
+
+`MODULE` names a module of `dhis2w_integration.bench`, each its own entry point. `backend` lists the
+models the local backend has installed. `general` measures coding capability with no DHIS2 in the
+loop; `bridge` and `round` drive the mcp-bridge; `mcp` and `router` drive the full MCP surface and
+the router over it; `matrix` is the command × model discovery grid; `composite` is the hard
+multi-object writes and `longcontext` the needle-in-a-haystack retrieval. The `claude_general`,
+`claude_mcp` and `claude_bridge` modules are the cloud peers of the same suites, on ambient Claude
+Code subscription auth (no API key), so local-vs-cloud is directly comparable on the same tasks.
+`ARGS` carries the model keys the module takes. See `docs/notes/benchmark-plan.md` and
 `docs/notes/benchmark-results.md` for the full methodology and latest numbers.
 
 ## Headline findings
@@ -54,10 +54,10 @@ local-vs-cloud is directly comparable on the same tasks. See `docs/notes/benchma
   (correlating many just-created UIDs) is the wall, and more turns don't help (it's a coherence
   limit, not a budget one). The capable-agent oracle does the same write 100%. That gap is the story:
   trivial for a capable agent, a wall for local models.
-- **The command×model grid is a stress-test, not a leaderboard.** On the 1,230-cell `bench-matrix`,
+- **The command×model grid is a stress-test, not a leaderboard.** On the 1,230-cell matrix,
   "found the right command" sits at ~10% for everyone, and the best driver (`26b-a4b-qat`) scored
   *near the bottom* — because the metric is "pick the exact command among ~200 siblings from a vague
-  one-line goal", which is interpretation noise, not capability. Judge models with `bench-bridge`;
+  one-line goal", which is interpretation noise, not capability. Judge models with the bridge lane;
   read the grid as a discoverability stress-test of the help surface.
 
 ## Why this shapes the design

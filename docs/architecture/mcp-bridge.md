@@ -107,17 +107,19 @@ this page is the *why* behind the bridge half.
 ## How we know it works
 
 The single-tool pattern is only as good as the model's ability to drive the CLI, so the approach is
-backed by a deliberate test apparatus (all runnable from the `Makefile`):
+backed by a deliberate test apparatus: a structural guard here, and the benchmark lanes in
+[`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), which assembles this
+workspace and every plugin pack into the one environment a benchmark can measure.
 
 - **Deterministic structural guard** — a test renders `--help` for every one of the ~363 leaf
   commands (exit 0). No broken or unregistered command. This is the 100% baseline.
 - **Capable-agent oracle** — a capable agent (Claude Code / Codex) should form every command
   correctly; any command it *can't* is a real CLI defect (bad help, undiscoverable), not a model
-  limitation. Composite write workflows (`make bench-composite`) are proven oracle-first.
-- **Local-model gradient** — the models will never be 100%; we measure where they land:
-  - `make bench-bridge` — the model roster over read + write + performance.
-  - `make bench-matrix` — a command x model matrix: does each model find and form each command.
-  - `make bench-round` — drive one model through a round interactively.
+  limitation. Composite write workflows are proven oracle-first.
+- **Local-model gradient** — the models will never be 100%; we measure where they land, with
+  `make bench MODULE=<module>` in the integration: `bridge` runs the model roster over read + write
+  + performance, `matrix` a command x model grid (does each model find and form each command), and
+  `round` drives one model through a round interactively.
 
 The full methodology, headline findings, and links to every run log are consolidated in
 [AI agent testing](../ai-agent-testing.md).

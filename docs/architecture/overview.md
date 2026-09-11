@@ -19,7 +19,6 @@ Each shippable unit of code is a `uv` workspace member under `packages/`:
 | `dhis2w-mcp-bridge` | Single-tool MCP bridge exposing the `d2w` CLI to small local models. | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) |
 | `dhis2w-browser` | Playwright helpers for UI automation. | [`dhis2w-browser`](https://pypi.org/project/dhis2w-browser/) |
 | `dhis2w-codegen` | Version-aware client generator. | _workspace-only_ |
-| `dhis2w-bench` | Local-LLM benchmark harness (coding, mcp-bridge, full-mcp suites). | _workspace-only_ |
 | `dhis2w-mcp-router` | Domain-neutral MCP router: search + dispatch meta-tools over upstream MCP servers. | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) |
 | `dhis2w-fhir` | FHIR IG generation from DHIS2 metadata. Builds on `dhis2w-core` and mounts `d2w fhir` through the `dhis2w.plugins.v1` entry point. | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
 | `dhis2w-fhir-serve` | FastAPI FHIR facade over a generated IG: serves its resources and receives QuestionnaireResponse captures. Runs behind `d2w fhir serve`, installed through the `dhis2w-cli[serve]` extra. | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
@@ -55,7 +54,6 @@ The plugin machinery is [pluginkit](https://pypi.org/project/pluginkit/): `load_
 
 ```mermaid
 graph LR
-    bench["dhis2w-bench"]
     bridge["dhis2w-mcp-bridge"]
     cli["dhis2w-cli"]
     mcp["dhis2w-mcp"]
@@ -74,8 +72,6 @@ graph LR
     fhir --> core
     fhirserve --> fhir
     bridge --> cli
-    bench --> cli
-    bench --> router
     core --> client
     browser --> client
     codegen --> client
