@@ -218,7 +218,7 @@ Every audit surface answered empty after roughly a dozen mutations:
 `changeLogs` endpoints returned `[]`; and `/api/tracker/enrollments/{uid}/changeLogs` is
 **404 - not a resource on 2.43.1 at all**.
 
-That is not a DHIS2 default. It is this repository's own development stack, `infra/home/dhis.conf`:
+That is not a DHIS2 default. It is this repository's own development stack, `infra/v{41,42,43}/dhis.conf`:
 
 ```ini
 # DHIS2 stores immutable audit rows on every data/metadata change, which blocks

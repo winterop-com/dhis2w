@@ -121,29 +121,48 @@ def _patch_auth_scheme_discriminators(components: dict[str, dict[str, Any]]) -> 
     return any_patched
 
 
-# DHIS2 v41's `openapi.json` leaks Spring-internal types — `ApplicationContext`,
-# `JsonValue`, `JsonObject`, `InputStreamResource` — that aren't part of the
-# DHIS2 API surface. They reference types not in `components/schemas`
-# (`BeanFactory`, `JsonTypedAccessStore`, `File`, etc.) so the emitted modules
-# can't be imported. v42 removed them from the spec output. We strip them
-# locally so v41's OAS tree is importable.
+# DHIS2 v41's `openapi.json` carries twelve Spring- and Jackson-internal types
+# that describe the server's own plumbing rather than any part of the DHIS2 API
+# surface: `ApplicationContext` with the `BeanFactory` /
+# `AutowireCapableBeanFactory` / `Environment` / `GrantedAuthority` types it
+# drags in, the JVM handles `File` and `InputStream`, the `JsonValue` /
+# `JsonObject` / `JsonTypedAccessStore` family, and Spring MVC's `RedirectView`.
+# Two properties let the whole graph in: `Notification.value`, typed as
+# `JsonValue`, and `RedirectView.applicationContext`. Every one of those names
+# resolves inside `components/schemas` on 2.41.10 — the spec is complete, it
+# just describes the wrong thing. v42 and v43 carry one of them, `GrantedAuthority`,
+# and the patch runs against every tree, so that name leaves all three.
+#
+# Dropping the whole set, and rewriting each `$ref` into it to `dict[str, Any]`,
+# leaves the emitted tree to the API surface: the `dict` is the right shape for
+# the two properties above, and the rest of the graph is unreachable from any
+# DHIS2 resource.
 _V41_LEAKED_INTERNAL_CLASSES: frozenset[str] = frozenset(
     {
         "ApplicationContext",
+        "AutowireCapableBeanFactory",
+        "BeanFactory",
+        "Environment",
+        "File",
+        "GrantedAuthority",
+        "InputStream",
         "InputStreamResource",
         "JsonObject",
+        "JsonTypedAccessStore",
         "JsonValue",
+        "RedirectView",
     },
 )
 
 
 def _drop_v41_internal_classes(components: dict[str, dict[str, Any]]) -> bool:
-    """Strip the Spring-internal classes leaked into v41's `/api/openapi.json`.
+    """Strip the Spring- and Jackson-internal classes v41's `/api/openapi.json` carries.
 
     Also rewrites every `$ref: #/components/schemas/<name>` that points at one
     of the dropped classes into `{}` (untyped object) — the emitter resolves
-    that to `dict[str, Any]`, which is a reasonable fallback for the small
-    handful of API-surface classes that referenced these Spring internals.
+    that to `dict[str, Any]`, which is the right shape for the two API-surface
+    properties that reach into the graph, `Notification.value` and
+    `RedirectView.applicationContext`.
     """
     dropped = False
     for name in _V41_LEAKED_INTERNAL_CLASSES:

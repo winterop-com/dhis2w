@@ -93,7 +93,6 @@ class MeDto(_BaseModel):
     education: str | None = None
     email: str | None = None
     employer: str | None = None
-    externalAccess: bool | None = None
     facebookMessenger: str | None = None
     favorites: list[str] | None = None
     firstName: str | None = None

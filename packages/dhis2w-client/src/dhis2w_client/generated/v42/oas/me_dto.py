@@ -42,7 +42,6 @@ class MeDto(_BaseModel):
     email: str | None = None
     emailVerified: bool | None = None
     employer: str | None = None
-    externalAccess: bool | None = None
     facebookMessenger: str | None = None
     favorites: list[str] | None = None
     firstName: str | None = None

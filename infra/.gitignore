@@ -43,3 +43,5 @@ __pycache__/
 
 # Stray uv-init placeholder
 main.py
+# Docker creates this empty file as the mount target for v{N}/dhis.conf inside the home bind mount.
+home/dhis.conf

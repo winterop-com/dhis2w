@@ -150,6 +150,7 @@ The installer is idempotent: if `home/glowroot/glowroot.jar` already exists, it 
 | `PGADMIN_DEFAULT_PASSWORD` | `root` | pgAdmin master password (invisible in desktop mode) |
 | `DHIS2_USER` | `admin` | Used only for display / logging; `initdb.sh` resets *every* row in `userinfo` regardless |
 | `DHIS2_PASSWORD` | `district` | Bcrypt-hashed at init time and applied to every DHIS2 user |
+| `DHIS2_CONF` | `./$(DHIS2_VERSION)/dhis.conf` | The `dhis.conf` mounted at `/opt/dhis2/dhis.conf`. Each major keeps its own copy beside its dump; point this at a generated file outside the repository to run a one-off variant (an audit or OAuth2 setting under test) without editing a tracked file |
 
 ## File layout
 
@@ -159,16 +160,18 @@ compose.pgadmin.yml       # pgadmin4 overlay (always included by Makefile target
 Dockerfile                # postgis/postgis:17-3.5 + wal2json + python3-bcrypt
 initdb.sh                 # one-shot init: loads dump, resets passwords, enables accounts
 v41/dump.sql.gz           # committed e2e dump for DHIS2 41 (Sierra Leone immunization seed)
+v41/dhis.conf             # DHIS2 config for the v41 stack (committed)
 v42/dump.sql.gz           # committed e2e dump for DHIS2 42
+v42/dhis.conf             # DHIS2 config for the v42 stack (committed)
 v43/dump.sql.gz           # committed e2e dump for DHIS2 43
-v{N}/dump.sql.gz          # add a per-version subdir + dump for any other DHIS2 major
+v43/dhis.conf             # DHIS2 config for the v43 stack (committed)
+v{N}/                     # add a per-version subdir with dump + dhis.conf for any other DHIS2 major
 
 glowroot/admin.json       # committed seed for glowroot auth config
 pgadmin4/servers.json     # pgAdmin pre-registered server entry
 pgadmin4/pgpass           # chmod-600 pgpass (referenced from servers.json via PassFile)
 
-home/                     # bind-mounted into dhis2 container as /opt/dhis2
-├── dhis.conf             # DHIS2 config (committed)
+home/                     # bind-mounted into dhis2 container as /opt/dhis2 (dhis.conf comes from v{N}/, see DHIS2_CONF)
 ├── dhis-google-auth.json # gitignored
 ├── files/                # DHIS2 runtime files (gitignored)
 ├── logs/                 # DHIS2 logs (gitignored, wiped by make up-fresh)

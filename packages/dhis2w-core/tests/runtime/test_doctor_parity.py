@@ -241,10 +241,9 @@ async def test_run_doctor_bugs_parity(
 
     categories = {probe.category for probe in report.probes}
     assert categories == {"bugs"}
-    by_name = {probe.name: probe for probe in report.probes}
-    # `dhis2-version` is gated on the wire version (v41 < 2.42), so exclude it from the
-    # all-pass check — every other bug-drift probe lands on `pass` with the canned responses.
-    assert all(probe.status == "pass" for name, probe in by_name.items() if name != "dhis2-version")
+    # Every bug-drift probe, the version floor included, lands on `pass` with the canned responses
+    # on all three supported majors.
+    assert all(probe.status == "pass" for probe in report.probes)
 
 
 @respx.mock

@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
+if TYPE_CHECKING:
+    from .pager import Pager
+    from .two_factor_audit_entry import TwoFactorAuditEntry
 
-class Environment(_BaseModel):
-    """OpenAPI schema `Environment`."""
+
+class TwoFactorAuditList(_BaseModel):
+    """OpenAPI schema `TwoFactorAuditList`."""
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
-    activeProfiles: list[str] | None = None
-    defaultProfiles: list[str] | None = None
+    pager: Pager | None = None
+    users: list[TwoFactorAuditEntry] | None = None

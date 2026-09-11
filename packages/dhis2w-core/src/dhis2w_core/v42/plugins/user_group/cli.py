@@ -13,7 +13,6 @@ from dhis2w_core.v42.cli_output import (
     ColumnSpec,
     DetailRow,
     format_access_string,
-    format_bool,
     format_ref,
     format_reflist,
     is_json_output,
@@ -177,7 +176,6 @@ def sharing_get_command(
     rows = [
         DetailRow("id", str(sharing.id or "-")),
         DetailRow("publicAccess", format_access_string(sharing.publicAccess)),
-        DetailRow("externalAccess", format_bool(sharing.externalAccess)),
         DetailRow("owner", format_ref(sharing.user) if sharing.user else "-"),
         DetailRow(f"userAccesses ({len(user_accesses)})", "" if user_accesses else "-"),
     ]
@@ -213,7 +211,6 @@ def sharing_grant_user_command(
     current = asyncio.run(service.get_group_sharing(profile, group_uid))
     builder = SharingBuilder(
         public_access=current.publicAccess or ACCESS_READ_METADATA,
-        external_access=current.externalAccess or False,
         owner_user_id=current.user.id if current.user else None,
     )
     for user_access in current.userAccesses or []:

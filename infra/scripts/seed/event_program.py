@@ -82,7 +82,7 @@ _DE_BCG = "s46m5MS0hxu"
 _DE_MEASLES = "YtbsuPPo010"
 _ICON_KEY = "clinical_a_outline"  # Ships with DHIS2 core icon set.
 
-_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, external=False, users={}, userGroups={})
+_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, users={}, userGroups={})
 
 
 async def _level_four_org_units(client: Dhis2Client) -> list[dict[str, str]]:

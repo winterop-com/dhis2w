@@ -12955,6 +12955,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -13651,6 +13665,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -14319,6 +14347,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -14999,6 +15041,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -15667,6 +15723,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -16347,6 +16417,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -17015,6 +17099,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -17921,6 +18019,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -18617,6 +18729,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -19285,6 +19411,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -19965,6 +20105,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -20633,6 +20787,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -21313,6 +21481,20 @@
         },
         {
 
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
+
+          }
+
+        },
+        {
+
           "name":"ouMode",
           "in":"query",
           "description":"[no description yet]",
@@ -21981,6 +22163,20 @@
           "schema":{
 
             "type":"string"
+
+          }
+
+        },
+        {
+
+          "name":"limit",
+          "in":"query",
+          "description":"[no description yet]",
+          "required":false,
+          "schema":{
+
+            "type":"integer",
+            "format":"int32"
 
           }
 
@@ -38192,12 +38388,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -38507,12 +38699,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -38809,12 +38997,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -39111,12 +39295,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -39413,12 +39593,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -39715,12 +39891,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -40017,12 +40189,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -42196,12 +42364,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -42902,12 +43066,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -43586,12 +43746,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -44270,12 +44426,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -44954,12 +45106,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -45638,12 +45786,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -46322,12 +46466,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -68126,6 +68266,98 @@
 
           },
           "400":{
+
+            "description":"[no description yet]",
+            "content":{
+
+              "application/json":{
+
+                "schema":{
+
+                  "$ref":"#/components/schemas/WebMessage"
+
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+
+    },
+    "/auth/updatePassword":{
+
+      "post":{
+
+        "description":"[no description yet]",
+        "operationId":"UserAccount.updatePassword",
+        "tags":[
+
+        "user"
+
+        ],
+        "requestBody":{
+
+          "description":"[no description yet]",
+          "required":true,
+          "content":{
+
+            "application/json":{
+
+              "schema":{
+
+                "$ref":"#/components/schemas/UpdatePasswordRequest"
+
+              }
+
+            }
+
+          }
+
+        },
+        "responses":{
+
+          "200":{
+
+            "description":"[no description yet]",
+            "content":{
+
+              "application/json":{
+
+                "schema":{
+
+                  "type":"object"
+
+                }
+
+              }
+
+            }
+
+          },
+          "400":{
+
+            "description":"[no description yet]",
+            "content":{
+
+              "application/json":{
+
+                "schema":{
+
+                  "$ref":"#/components/schemas/WebMessage"
+
+                }
+
+              }
+
+            }
+
+          },
+          "403":{
 
             "description":"[no description yet]",
             "content":{
@@ -191631,60 +191863,6 @@
       }
 
     },
-    "/externalFileResources/{accessToken}":{
-
-      "get":{
-
-        "description":"[no description yet]",
-        "operationId":"ExternalFileResource.getExternalFileResource",
-        "tags":[
-
-        "system"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"accessToken",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/FileResource"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
     "/externalMapLayers/":{
 
       "get":{
@@ -244125,7 +244303,7 @@
 
       "get":{
 
-        "description":"List all MapViews",
+        "description":"[no description yet]",
         "operationId":"MapView.getObjectList",
         "tags":[
 
@@ -244138,7 +244316,7 @@
 
           "name":"fields",
           "in":"query",
-          "description":"`<field-name>[,<field-name>...]`",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -244156,7 +244334,7 @@
 
           "name":"filter",
           "in":"query",
-          "description":"Apply filter operations to the returned list of metadata.   \nSee [Metadata-object-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_object_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -244201,7 +244379,7 @@
 
           "200":{
 
-            "description":"The _list_ of MapViews",
+            "description":"[no description yet]",
             "content":{
 
               "application/json":{
@@ -244275,272 +244453,6 @@
 
         }
 
-      },
-      "post":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.postJsonObject+postXmlObject",
-        "tags":[
-
-        "metadata",
-        "synthetic"
-
-        ],
-        "parameters":[
-
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.async"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.atomicMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.flushMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.identifier"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importReportMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importStrategy"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.metadataSyncImport"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.preheatMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipSharing"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipTranslation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipValidation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.user"
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            },
-            "application/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            },
-            "text/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
       }
 
     },
@@ -244575,7 +244487,7 @@
 
           "name":"fields",
           "in":"query",
-          "description":"Limit the response to specific field(s).   \nSee [Metadata-field-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_field_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -244593,7 +244505,7 @@
 
           "name":"filter",
           "in":"query",
-          "description":"Apply filter operations to the returned list of metadata.   \nSee [Metadata-object-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_object_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -245297,170 +245209,11 @@
       }
 
     },
-    "/mapViews/sharing":{
-
-      "patch":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.bulkSharing",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.async"
-
-        },
-        {
-
-          "name":"atomic",
-          "in":"query",
-          "description":"[no description yet]",
-          "required":false,
-          "schema":{
-
-            "type":"boolean",
-            "default":false
-
-          }
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.atomicMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.flushMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.identifier"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importReportMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importStrategy"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.metadataSyncImport"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.page"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.pageSize"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.paging"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.preheatMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.rootJunction"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipSharing"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipTranslation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipValidation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.user"
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json-patch+json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/BulkJsonPatch"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
     "/mapViews/{uid}":{
 
       "get":{
 
-        "description":"View a MapView",
+        "description":"[no description yet]",
         "operationId":"MapView.getObject",
         "tags":[
 
@@ -245473,7 +245226,7 @@
 
           "name":"fields",
           "in":"query",
-          "description":"Limit the response to specific field(s).   \nSee [Metadata-field-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_field_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -245491,7 +245244,7 @@
 
           "name":"filter",
           "in":"query",
-          "description":"Apply filter operations to the returned list of metadata.   \nSee [Metadata-object-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_object_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -245605,633 +245358,6 @@
 
         }
 
-      },
-      "put":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.putJsonObject+putXmlObject",
-        "tags":[
-
-        "metadata",
-        "synthetic"
-
-        ],
-        "parameters":[
-
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.async"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.atomicMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.flushMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.identifier"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importReportMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importStrategy"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.metadataSyncImport"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.preheatMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipSharing"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipTranslation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipValidation"
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.user"
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            },
-            "application/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            },
-            "text/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/MapView"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "text/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "patch":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.patchObject",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.async"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.atomicMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.flushMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.identifier"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importReportMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.importStrategy"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.metadataSyncImport"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.page"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.pageSize"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.paging"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.preheatMode"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/WebOptions.rootJunction"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipSharing"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipTranslation"
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.skipValidation"
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        },
-        {
-
-          "$ref":"#/components/parameters/MetadataImportParams.user"
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json-patch+json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/JsonPatch"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "delete":{
-
-        "description":"Deletes the MapView provided by ID.",
-        "operationId":"MapView.deleteObject",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"A message envelop containing the report detailing the deletion outcome.",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
       }
 
     },
@@ -246309,194 +245435,6 @@
           "200":{
 
             "description":"[no description yet]"
-
-          }
-
-        }
-
-      }
-
-    },
-    "/mapViews/{uid}/favorite":{
-
-      "post":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.setAsFavorite",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "delete":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.removeAsFavorite",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
 
           }
 
@@ -246878,417 +245816,6 @@
       }
 
     },
-    "/mapViews/{uid}/sharing":{
-
-      "put":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.setSharing",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/Sharing"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "204":{
-
-            "description":"[no description yet]"
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
-    "/mapViews/{uid}/subscriber":{
-
-      "post":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.subscribe",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "delete":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.unsubscribe",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
-    "/mapViews/{uid}/translations":{
-
-      "put":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.replaceTranslations",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "type":"object",
-                "required":[
-
-                "translations"
-
-                ],
-                "properties":{
-
-                  "translations":{
-
-                    "type":"array",
-                    "items":{
-
-                      "$ref":"#/components/schemas/Translation"
-
-                    }
-
-                  }
-
-                }
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "204":{
-
-            "description":"[no description yet]"
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
     "/mapViews/{uid}/{property}":{
 
       "get":{
@@ -247306,7 +245833,7 @@
 
           "name":"fields",
           "in":"query",
-          "description":"Limit the response to specific field(s).   \nSee [Metadata-field-filter](https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/metadata.html#webapi_metadata_field_filter).",
+          "description":"[no description yet]",
           "required":false,
           "schema":{
 
@@ -247552,1023 +246079,6 @@
             "content":{
 
               "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "post":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.addCollectionItemsJson+addCollectionItemsXml",
-        "tags":[
-
-        "metadata",
-        "synthetic"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"property",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "enum":[
-
-            "access",
-            "aggregationType",
-            "areaRadius",
-            "attributeDimensions",
-            "attributeValues",
-            "categoryDimensions",
-            "categoryOptionGroupSetDimensions",
-            "classes",
-            "code",
-            "colSubTotals",
-            "colTotals",
-            "colorHigh",
-            "colorLow",
-            "colorScale",
-            "columnDimensions",
-            "columns",
-            "completedOnly",
-            "config",
-            "created",
-            "createdBy",
-            "cumulativeValues",
-            "dataDimensionItems",
-            "dataElementDimensions",
-            "dataElementGroupSetDimensions",
-            "description",
-            "digitGroupSeparator",
-            "displayBaseLineLabel",
-            "displayDescription",
-            "displayFormName",
-            "displayName",
-            "displayShortName",
-            "displaySubtitle",
-            "displayTargetLineLabel",
-            "displayTitle",
-            "endDate",
-            "eventClustering",
-            "eventCoordinateField",
-            "eventPointColor",
-            "eventPointRadius",
-            "eventStatus",
-            "favorite",
-            "favorites",
-            "filterDimensions",
-            "filters",
-            "followUp",
-            "formName",
-            "hidden",
-            "hideEmptyRowItems",
-            "hideEmptyRows",
-            "hideLegend",
-            "hideSubtitle",
-            "hideTitle",
-            "href",
-            "id",
-            "interpretations",
-            "itemOrganisationUnitGroups",
-            "labelFontColor",
-            "labelFontSize",
-            "labelFontStyle",
-            "labelFontWeight",
-            "labelTemplate",
-            "labels",
-            "lastUpdated",
-            "lastUpdatedBy",
-            "layer",
-            "legend",
-            "legendSet",
-            "method",
-            "noDataColor",
-            "noSpaceBetweenColumns",
-            "opacity",
-            "orgUnitField",
-            "orgUnitFieldDisplayName",
-            "organisationUnitColor",
-            "organisationUnitGroupSet",
-            "organisationUnitGroupSetDimensions",
-            "organisationUnitLevels",
-            "organisationUnitSelectionMode",
-            "organisationUnits",
-            "parentGraph",
-            "parentGraphMap",
-            "parentLevel",
-            "percentStackedValues",
-            "periods",
-            "program",
-            "programIndicatorDimensions",
-            "programStage",
-            "programStatus",
-            "radiusHigh",
-            "radiusLow",
-            "rawPeriods",
-            "regressionType",
-            "relativePeriods",
-            "renderingStrategy",
-            "rowSubTotals",
-            "rowTotals",
-            "rows",
-            "sharing",
-            "shortName",
-            "showData",
-            "showDimensionLabels",
-            "showHierarchy",
-            "skipRounding",
-            "sortOrder",
-            "startDate",
-            "styleDataItem",
-            "subscribed",
-            "subscribers",
-            "subtitle",
-            "thematicMapType",
-            "timeField",
-            "title",
-            "topLimit",
-            "trackedEntityType",
-            "translations",
-            "user",
-            "userOrgUnitType",
-            "userOrganisationUnit",
-            "userOrganisationUnitChildren",
-            "userOrganisationUnitGrandChildren"
-
-            ]
-
-          }
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            },
-            "application/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "put":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.replaceCollectionItemsJson+replaceCollectionItemsXml",
-        "tags":[
-
-        "metadata",
-        "synthetic"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"property",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "enum":[
-
-            "access",
-            "aggregationType",
-            "areaRadius",
-            "attributeDimensions",
-            "attributeValues",
-            "categoryDimensions",
-            "categoryOptionGroupSetDimensions",
-            "classes",
-            "code",
-            "colSubTotals",
-            "colTotals",
-            "colorHigh",
-            "colorLow",
-            "colorScale",
-            "columnDimensions",
-            "columns",
-            "completedOnly",
-            "config",
-            "created",
-            "createdBy",
-            "cumulativeValues",
-            "dataDimensionItems",
-            "dataElementDimensions",
-            "dataElementGroupSetDimensions",
-            "description",
-            "digitGroupSeparator",
-            "displayBaseLineLabel",
-            "displayDescription",
-            "displayFormName",
-            "displayName",
-            "displayShortName",
-            "displaySubtitle",
-            "displayTargetLineLabel",
-            "displayTitle",
-            "endDate",
-            "eventClustering",
-            "eventCoordinateField",
-            "eventPointColor",
-            "eventPointRadius",
-            "eventStatus",
-            "favorite",
-            "favorites",
-            "filterDimensions",
-            "filters",
-            "followUp",
-            "formName",
-            "hidden",
-            "hideEmptyRowItems",
-            "hideEmptyRows",
-            "hideLegend",
-            "hideSubtitle",
-            "hideTitle",
-            "href",
-            "id",
-            "interpretations",
-            "itemOrganisationUnitGroups",
-            "labelFontColor",
-            "labelFontSize",
-            "labelFontStyle",
-            "labelFontWeight",
-            "labelTemplate",
-            "labels",
-            "lastUpdated",
-            "lastUpdatedBy",
-            "layer",
-            "legend",
-            "legendSet",
-            "method",
-            "noDataColor",
-            "noSpaceBetweenColumns",
-            "opacity",
-            "orgUnitField",
-            "orgUnitFieldDisplayName",
-            "organisationUnitColor",
-            "organisationUnitGroupSet",
-            "organisationUnitGroupSetDimensions",
-            "organisationUnitLevels",
-            "organisationUnitSelectionMode",
-            "organisationUnits",
-            "parentGraph",
-            "parentGraphMap",
-            "parentLevel",
-            "percentStackedValues",
-            "periods",
-            "program",
-            "programIndicatorDimensions",
-            "programStage",
-            "programStatus",
-            "radiusHigh",
-            "radiusLow",
-            "rawPeriods",
-            "regressionType",
-            "relativePeriods",
-            "renderingStrategy",
-            "rowSubTotals",
-            "rowTotals",
-            "rows",
-            "sharing",
-            "shortName",
-            "showData",
-            "showDimensionLabels",
-            "showHierarchy",
-            "skipRounding",
-            "sortOrder",
-            "startDate",
-            "styleDataItem",
-            "subscribed",
-            "subscribers",
-            "subtitle",
-            "thematicMapType",
-            "timeField",
-            "title",
-            "topLimit",
-            "trackedEntityType",
-            "translations",
-            "user",
-            "userOrgUnitType",
-            "userOrganisationUnit",
-            "userOrganisationUnitChildren",
-            "userOrganisationUnitGrandChildren"
-
-            ]
-
-          }
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            },
-            "application/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "delete":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.deleteCollectionItemsJson+deleteCollectionItemsXml",
-        "tags":[
-
-        "metadata",
-        "synthetic"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"property",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "enum":[
-
-            "access",
-            "aggregationType",
-            "areaRadius",
-            "attributeDimensions",
-            "attributeValues",
-            "categoryDimensions",
-            "categoryOptionGroupSetDimensions",
-            "classes",
-            "code",
-            "colSubTotals",
-            "colTotals",
-            "colorHigh",
-            "colorLow",
-            "colorScale",
-            "columnDimensions",
-            "columns",
-            "completedOnly",
-            "config",
-            "created",
-            "createdBy",
-            "cumulativeValues",
-            "dataDimensionItems",
-            "dataElementDimensions",
-            "dataElementGroupSetDimensions",
-            "description",
-            "digitGroupSeparator",
-            "displayBaseLineLabel",
-            "displayDescription",
-            "displayFormName",
-            "displayName",
-            "displayShortName",
-            "displaySubtitle",
-            "displayTargetLineLabel",
-            "displayTitle",
-            "endDate",
-            "eventClustering",
-            "eventCoordinateField",
-            "eventPointColor",
-            "eventPointRadius",
-            "eventStatus",
-            "favorite",
-            "favorites",
-            "filterDimensions",
-            "filters",
-            "followUp",
-            "formName",
-            "hidden",
-            "hideEmptyRowItems",
-            "hideEmptyRows",
-            "hideLegend",
-            "hideSubtitle",
-            "hideTitle",
-            "href",
-            "id",
-            "interpretations",
-            "itemOrganisationUnitGroups",
-            "labelFontColor",
-            "labelFontSize",
-            "labelFontStyle",
-            "labelFontWeight",
-            "labelTemplate",
-            "labels",
-            "lastUpdated",
-            "lastUpdatedBy",
-            "layer",
-            "legend",
-            "legendSet",
-            "method",
-            "noDataColor",
-            "noSpaceBetweenColumns",
-            "opacity",
-            "orgUnitField",
-            "orgUnitFieldDisplayName",
-            "organisationUnitColor",
-            "organisationUnitGroupSet",
-            "organisationUnitGroupSetDimensions",
-            "organisationUnitLevels",
-            "organisationUnitSelectionMode",
-            "organisationUnits",
-            "parentGraph",
-            "parentGraphMap",
-            "parentLevel",
-            "percentStackedValues",
-            "periods",
-            "program",
-            "programIndicatorDimensions",
-            "programStage",
-            "programStatus",
-            "radiusHigh",
-            "radiusLow",
-            "rawPeriods",
-            "regressionType",
-            "relativePeriods",
-            "renderingStrategy",
-            "rowSubTotals",
-            "rowTotals",
-            "rows",
-            "sharing",
-            "shortName",
-            "showData",
-            "showDimensionLabels",
-            "showHierarchy",
-            "skipRounding",
-            "sortOrder",
-            "startDate",
-            "styleDataItem",
-            "subscribed",
-            "subscribers",
-            "subtitle",
-            "thematicMapType",
-            "timeField",
-            "title",
-            "topLimit",
-            "trackedEntityType",
-            "translations",
-            "user",
-            "userOrgUnitType",
-            "userOrganisationUnit",
-            "userOrganisationUnitChildren",
-            "userOrganisationUnitGrandChildren"
-
-            ]
-
-          }
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "requestBody":{
-
-          "description":"[no description yet]",
-          "required":false,
-          "content":{
-
-            "application/json":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            },
-            "application/xml":{
-
-              "schema":{
-
-                "$ref":"#/components/schemas/IdentifiableObjects"
-
-              }
-
-            }
-
-          }
-
-        },
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              },
-              "application/xml":{
 
                 "schema":{
 
@@ -249233,566 +246743,6 @@
             "content":{
 
               "text/csv":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      }
-
-    },
-    "/mapViews/{uid}/{property}/{itemId}":{
-
-      "post":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.addCollectionItem",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"itemId",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string"
-
-          }
-
-        },
-        {
-
-          "name":"property",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "enum":[
-
-            "access",
-            "aggregationType",
-            "areaRadius",
-            "attributeDimensions",
-            "attributeValues",
-            "categoryDimensions",
-            "categoryOptionGroupSetDimensions",
-            "classes",
-            "code",
-            "colSubTotals",
-            "colTotals",
-            "colorHigh",
-            "colorLow",
-            "colorScale",
-            "columnDimensions",
-            "columns",
-            "completedOnly",
-            "config",
-            "created",
-            "createdBy",
-            "cumulativeValues",
-            "dataDimensionItems",
-            "dataElementDimensions",
-            "dataElementGroupSetDimensions",
-            "description",
-            "digitGroupSeparator",
-            "displayBaseLineLabel",
-            "displayDescription",
-            "displayFormName",
-            "displayName",
-            "displayShortName",
-            "displaySubtitle",
-            "displayTargetLineLabel",
-            "displayTitle",
-            "endDate",
-            "eventClustering",
-            "eventCoordinateField",
-            "eventPointColor",
-            "eventPointRadius",
-            "eventStatus",
-            "favorite",
-            "favorites",
-            "filterDimensions",
-            "filters",
-            "followUp",
-            "formName",
-            "hidden",
-            "hideEmptyRowItems",
-            "hideEmptyRows",
-            "hideLegend",
-            "hideSubtitle",
-            "hideTitle",
-            "href",
-            "id",
-            "interpretations",
-            "itemOrganisationUnitGroups",
-            "labelFontColor",
-            "labelFontSize",
-            "labelFontStyle",
-            "labelFontWeight",
-            "labelTemplate",
-            "labels",
-            "lastUpdated",
-            "lastUpdatedBy",
-            "layer",
-            "legend",
-            "legendSet",
-            "method",
-            "noDataColor",
-            "noSpaceBetweenColumns",
-            "opacity",
-            "orgUnitField",
-            "orgUnitFieldDisplayName",
-            "organisationUnitColor",
-            "organisationUnitGroupSet",
-            "organisationUnitGroupSetDimensions",
-            "organisationUnitLevels",
-            "organisationUnitSelectionMode",
-            "organisationUnits",
-            "parentGraph",
-            "parentGraphMap",
-            "parentLevel",
-            "percentStackedValues",
-            "periods",
-            "program",
-            "programIndicatorDimensions",
-            "programStage",
-            "programStatus",
-            "radiusHigh",
-            "radiusLow",
-            "rawPeriods",
-            "regressionType",
-            "relativePeriods",
-            "renderingStrategy",
-            "rowSubTotals",
-            "rowTotals",
-            "rows",
-            "sharing",
-            "shortName",
-            "showData",
-            "showDimensionLabels",
-            "showHierarchy",
-            "skipRounding",
-            "sortOrder",
-            "startDate",
-            "styleDataItem",
-            "subscribed",
-            "subscribers",
-            "subtitle",
-            "thematicMapType",
-            "timeField",
-            "title",
-            "topLimit",
-            "trackedEntityType",
-            "translations",
-            "user",
-            "userOrgUnitType",
-            "userOrganisationUnit",
-            "userOrganisationUnitChildren",
-            "userOrganisationUnitGrandChildren"
-
-            ]
-
-          }
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          }
-
-        }
-
-      },
-      "delete":{
-
-        "description":"[no description yet]",
-        "operationId":"MapView.deleteCollectionItem",
-        "tags":[
-
-        "metadata"
-
-        ],
-        "parameters":[
-
-        {
-
-          "name":"itemId",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string"
-
-          }
-
-        },
-        {
-
-          "name":"property",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "enum":[
-
-            "access",
-            "aggregationType",
-            "areaRadius",
-            "attributeDimensions",
-            "attributeValues",
-            "categoryDimensions",
-            "categoryOptionGroupSetDimensions",
-            "classes",
-            "code",
-            "colSubTotals",
-            "colTotals",
-            "colorHigh",
-            "colorLow",
-            "colorScale",
-            "columnDimensions",
-            "columns",
-            "completedOnly",
-            "config",
-            "created",
-            "createdBy",
-            "cumulativeValues",
-            "dataDimensionItems",
-            "dataElementDimensions",
-            "dataElementGroupSetDimensions",
-            "description",
-            "digitGroupSeparator",
-            "displayBaseLineLabel",
-            "displayDescription",
-            "displayFormName",
-            "displayName",
-            "displayShortName",
-            "displaySubtitle",
-            "displayTargetLineLabel",
-            "displayTitle",
-            "endDate",
-            "eventClustering",
-            "eventCoordinateField",
-            "eventPointColor",
-            "eventPointRadius",
-            "eventStatus",
-            "favorite",
-            "favorites",
-            "filterDimensions",
-            "filters",
-            "followUp",
-            "formName",
-            "hidden",
-            "hideEmptyRowItems",
-            "hideEmptyRows",
-            "hideLegend",
-            "hideSubtitle",
-            "hideTitle",
-            "href",
-            "id",
-            "interpretations",
-            "itemOrganisationUnitGroups",
-            "labelFontColor",
-            "labelFontSize",
-            "labelFontStyle",
-            "labelFontWeight",
-            "labelTemplate",
-            "labels",
-            "lastUpdated",
-            "lastUpdatedBy",
-            "layer",
-            "legend",
-            "legendSet",
-            "method",
-            "noDataColor",
-            "noSpaceBetweenColumns",
-            "opacity",
-            "orgUnitField",
-            "orgUnitFieldDisplayName",
-            "organisationUnitColor",
-            "organisationUnitGroupSet",
-            "organisationUnitGroupSetDimensions",
-            "organisationUnitLevels",
-            "organisationUnitSelectionMode",
-            "organisationUnits",
-            "parentGraph",
-            "parentGraphMap",
-            "parentLevel",
-            "percentStackedValues",
-            "periods",
-            "program",
-            "programIndicatorDimensions",
-            "programStage",
-            "programStatus",
-            "radiusHigh",
-            "radiusLow",
-            "rawPeriods",
-            "regressionType",
-            "relativePeriods",
-            "renderingStrategy",
-            "rowSubTotals",
-            "rowTotals",
-            "rows",
-            "sharing",
-            "shortName",
-            "showData",
-            "showDimensionLabels",
-            "showHierarchy",
-            "skipRounding",
-            "sortOrder",
-            "startDate",
-            "styleDataItem",
-            "subscribed",
-            "subscribers",
-            "subtitle",
-            "thematicMapType",
-            "timeField",
-            "title",
-            "topLimit",
-            "trackedEntityType",
-            "translations",
-            "user",
-            "userOrgUnitType",
-            "userOrganisationUnit",
-            "userOrganisationUnitChildren",
-            "userOrganisationUnitGrandChildren"
-
-            ]
-
-          }
-
-        },
-        {
-
-          "name":"uid",
-          "in":"path",
-          "description":"[no description yet]",
-          "required":true,
-          "schema":{
-
-            "type":"string",
-            "format":"uid",
-            "pattern":"^[0-9a-zA-Z]{11}$",
-            "minLength":11,
-            "maxLength":11,
-            "example":"mT38EN5Pm4B",
-            "description":"A UID for an MapView object  \n(Java name `org.hisp.dhis.mapping.MapView`)"
-
-          }
-
-        }
-
-        ],
-        "responses":{
-
-          "200":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "400":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "403":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "404":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
-
-                "schema":{
-
-                  "$ref":"#/components/schemas/WebMessage"
-
-                }
-
-              }
-
-            }
-
-          },
-          "409":{
-
-            "description":"[no description yet]",
-            "content":{
-
-              "application/json":{
 
                 "schema":{
 
@@ -317665,12 +314615,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -317903,12 +314849,8 @@
           "required":false,
           "schema":{
 
-            "type":"array",
-            "items":{
-
-              "type":"string"
-
-            }
+            "type":"boolean",
+            "default":false
 
           }
 
@@ -431931,7 +428873,7 @@
       "get":{
 
         "description":"[no description yet]",
-        "operationId":"StaticContent.getStaticImages+getStaticContent+getStaticImages",
+        "operationId":"StaticContent.getStaticImages+getStaticContent",
         "tags":[
 
         "system",
@@ -495993,11 +492935,6 @@
             "type":"boolean"
 
           },
-          "externalize":{
-
-            "type":"boolean"
-
-          },
           "manage":{
 
             "type":"boolean"
@@ -510304,7 +507241,6 @@
             "E3003",
             "E3004",
             "E3005",
-            "E3006",
             "E3008",
             "E3009",
             "E3010",
@@ -510392,6 +507328,11 @@
             "E4053",
             "E4057",
             "E4058",
+            "E4059",
+            "E4089",
+            "E4090",
+            "E4091",
+            "E4092",
             "E4060",
             "E4061",
             "E4062",
@@ -510521,6 +507462,7 @@
             "E7133",
             "E7134",
             "E7135",
+            "E7136",
             "E7137",
             "E7138",
             "E7139",
@@ -521716,11 +518658,6 @@
             "type":"string"
 
           },
-          "externalAccess":{
-
-            "type":"boolean"
-
-          },
           "facebookMessenger":{
 
             "type":"string"
@@ -522647,11 +519584,6 @@
         "type":"object",
         "properties":{
 
-          "allowExternalAccess":{
-
-            "type":"boolean"
-
-          },
           "allowPublicAccess":{
 
             "type":"boolean"
@@ -535512,6 +532444,11 @@
             "type":"boolean"
 
           },
+          "transient":{
+
+            "type":"boolean"
+
+          },
           "translatable":{
 
             "type":"boolean"
@@ -538795,11 +535732,6 @@
         "type":"object",
         "properties":{
 
-          "external":{
-
-            "type":"boolean"
-
-          },
           "owner":{
 
             "type":"string"
@@ -538856,21 +535788,11 @@
       "SharingObject":{
 
         "type":"object",
-        "required":[
-
-        "externalAccess"
-
-        ],
         "properties":{
 
           "displayName":{
 
             "type":"string"
-
-          },
-          "externalAccess":{
-
-            "type":"boolean"
 
           },
           "id":{
@@ -545266,6 +542188,30 @@
         }
 
       },
+      "UpdatePasswordRequest":{
+
+        "type":"object",
+        "properties":{
+
+          "newPassword":{
+
+            "type":"string"
+
+          },
+          "oldPassword":{
+
+            "type":"string"
+
+          },
+          "username":{
+
+            "type":"string"
+
+          }
+
+        }
+
+      },
       "User":{
 
         "type":"object",
@@ -549717,7 +546663,6 @@
             "E3003",
             "E3004",
             "E3005",
-            "E3006",
             "E3008",
             "E3009",
             "E3010",
@@ -549805,6 +546750,11 @@
             "E4053",
             "E4057",
             "E4058",
+            "E4059",
+            "E4089",
+            "E4090",
+            "E4091",
+            "E4092",
             "E4060",
             "E4061",
             "E4062",
@@ -549934,6 +546884,7 @@
             "E7133",
             "E7134",
             "E7135",
+            "E7136",
             "E7137",
             "E7138",
             "E7139",

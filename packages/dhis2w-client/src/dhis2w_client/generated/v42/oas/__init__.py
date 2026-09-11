@@ -245,6 +245,7 @@ from ._enums import (
     TrackerStatus,
     TrackerType,
     Transform,
+    TwoFactorAuditStatus,
     TwoFactorType,
     TypeOfNumber,
     UserGroupPropertyNames,
@@ -670,7 +671,6 @@ from .geo_json_import_report import GeoJsonImportReport
 from .gist_pager import GistPager
 from .gist_preferences import GistPreferences
 from .google_access_token import GoogleAccessToken
-from .granted_authority import GrantedAuthority
 from .grid import Grid
 from .grid_header import GridHeader
 from .grid_response import GridResponse
@@ -960,6 +960,7 @@ from .predictor_params import (
     PredictorParamsOutputCombo,
     PredictorParamsPredictorGroups,
 )
+from .privileged_user_stats import PrivilegedUserStats
 from .process import Process
 from .process_info import ProcessInfo
 from .profile_item import ProfileItem
@@ -1288,10 +1289,14 @@ from .tracker_type_report import TrackerTypeReport
 from .tracker_user import TrackerUser
 from .translation import Translation
 from .trigram_summary import TrigramSummary
+from .two_factor_audit_entry import TwoFactorAuditEntry
+from .two_factor_audit_list import TwoFactorAuditList
+from .two_factor_audit_summary import TwoFactorAuditSummary
 from .two_factor_methods import TwoFactorMethods
 from .type_report import TypeReport
 from .update_follow_up_for_data_values_request import UpdateFollowUpForDataValuesRequest
 from .update_icon_request import UpdateIconRequest
+from .update_password_request import UpdatePasswordRequest
 from .user import User
 from .user_access import UserAccess
 from .user_details import UserDetails
@@ -1754,7 +1759,6 @@ _classes = {
     "GistPager": GistPager,
     "GistPreferences": GistPreferences,
     "GoogleAccessToken": GoogleAccessToken,
-    "GrantedAuthority": GrantedAuthority,
     "Grid": Grid,
     "GridHeader": GridHeader,
     "GridResponse": GridResponse,
@@ -2019,6 +2023,7 @@ _classes = {
     "PredictorParamsOutputCombo": PredictorParamsOutputCombo,
     "PredictorParamsPredictorGroups": PredictorParamsPredictorGroups,
     "PredictorParams": PredictorParams,
+    "PrivilegedUserStats": PrivilegedUserStats,
     "Process": Process,
     "ProcessInfo": ProcessInfo,
     "ProfileItem": ProfileItem,
@@ -2294,10 +2299,14 @@ _classes = {
     "TrackerUser": TrackerUser,
     "Translation": Translation,
     "TrigramSummary": TrigramSummary,
+    "TwoFactorAuditEntry": TwoFactorAuditEntry,
+    "TwoFactorAuditList": TwoFactorAuditList,
+    "TwoFactorAuditSummary": TwoFactorAuditSummary,
     "TwoFactorMethods": TwoFactorMethods,
     "TypeReport": TypeReport,
     "UpdateFollowUpForDataValuesRequest": UpdateFollowUpForDataValuesRequest,
     "UpdateIconRequest": UpdateIconRequest,
+    "UpdatePasswordRequest": UpdatePasswordRequest,
     "User": User,
     "UserAccess": UserAccess,
     "UserDetails": UserDetails,
@@ -2581,7 +2590,6 @@ _submodule_names = {
     "gist_pager",
     "gist_preferences",
     "google_access_token",
-    "granted_authority",
     "grid",
     "grid_header",
     "grid_response",
@@ -2741,6 +2749,7 @@ _submodule_names = {
     "predictor_group_params",
     "predictor_job_parameters",
     "predictor_params",
+    "privileged_user_stats",
     "process",
     "process_info",
     "profile_item",
@@ -2895,10 +2904,14 @@ _submodule_names = {
     "tracker_user",
     "translation",
     "trigram_summary",
+    "two_factor_audit_entry",
+    "two_factor_audit_list",
+    "two_factor_audit_summary",
     "two_factor_methods",
     "type_report",
     "update_follow_up_for_data_values_request",
     "update_icon_request",
+    "update_password_request",
     "user",
     "user_access",
     "user_details",
@@ -3422,7 +3435,6 @@ __all__ = [
     "GistPager",
     "GistPreferences",
     "GoogleAccessToken",
-    "GrantedAuthority",
     "Grid",
     "GridHeader",
     "GridResponse",
@@ -3773,6 +3785,7 @@ __all__ = [
     "PredictorPropertyNames",
     "PreheatIdentifier",
     "PreheatMode",
+    "PrivilegedUserStats",
     "Process",
     "ProcessInfo",
     "ProfileItem",
@@ -4107,12 +4120,17 @@ __all__ = [
     "Transform",
     "Translation",
     "TrigramSummary",
+    "TwoFactorAuditEntry",
+    "TwoFactorAuditList",
+    "TwoFactorAuditStatus",
+    "TwoFactorAuditSummary",
     "TwoFactorMethods",
     "TwoFactorType",
     "TypeOfNumber",
     "TypeReport",
     "UpdateFollowUpForDataValuesRequest",
     "UpdateIconRequest",
+    "UpdatePasswordRequest",
     "User",
     "UserAccess",
     "UserDetails",

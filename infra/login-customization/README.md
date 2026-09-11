@@ -16,7 +16,7 @@ the build, so the committed fixture dump already carries these settings
 
 The `Local OIDC` button on the login page exists so the CLI OAuth2 flow
 (`d2w profile login local_oidc`) has a live end-to-end provider to
-authenticate against. Its `redirect_url` in `infra/home/dhis.conf` is
+authenticate against. Its `redirect_url` in `infra/v{41,42,43}/dhis.conf` is
 `http://localhost:8765` — the ephemeral localhost listener our CLI spins
 up for the `/oauth2/authorize` callback.
 

@@ -83,10 +83,11 @@ class SharingBuilder(BaseModel):
     to the list". The builder hides that boilerplate while producing the exact
     wire shape `POST /api/sharing` wants.
 
-    v43 dropped the `externalAccess` field on `SharingObject` (the v42
-    sibling at `dhis2w_client.v42.sharing` still carries it). The
-    concept is gone from the v43 server's data model, so this v43
-    builder doesn't expose `external_access` either.
+    DHIS2 defines no `externalAccess` on `SharingObject`: the field is absent
+    from the OpenAPI document on every supported major, and a write that
+    carries it answers 200 `"Access control set"` while discarding the value.
+    The builder exposes no `external_access` knob and the materialised wire
+    shape names no `externalAccess` (BUGS.md #38).
     """
 
     model_config = ConfigDict(extra="allow")
@@ -107,7 +108,7 @@ class SharingBuilder(BaseModel):
         )
 
     def to_sharing_object(self) -> SharingObject:
-        """Materialise the builder into the v43 `SharingObject` wire shape."""
+        """Materialise the builder into the `SharingObject` wire shape."""
         return SharingObject(
             publicAccess=self.public_access,
             user=SharingUser(id=self.owner_user_id) if self.owner_user_id else None,

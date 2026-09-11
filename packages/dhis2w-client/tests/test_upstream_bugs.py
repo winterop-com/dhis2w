@@ -152,50 +152,55 @@ async def test_bug_34_workaround_uses_categories_payload() -> None:
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #38 — v43 dropped `SharingObject.externalAccess` from the wire schema.
+# BUGS.md #38 — `SharingObject.externalAccess` is absent from the wire schema.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
-def test_bug_38_v43_sharing_object_lacks_external_access_field() -> None:
-    """BUGS.md #38 — bug-still-present: v43 OAS does not declare `externalAccess` on `SharingObject`.
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
+    """BUGS.md #38 — bug-still-present: no tree's OAS declares `externalAccess` on `SharingObject`.
 
-    DHIS2 v43 dropped the field from the schema entirely. The generated
-    `SharingObject` class on v43 doesn't carry it (and the wire silently
-    ignores it). This test asserts the v43 OAS class lacks the field —
-    if DHIS2 re-adds it, codegen would regenerate the class with the
-    field, and this assertion would fail.
+    DHIS2 carries no `externalAccess` on the sharing schema on any
+    supported major, so the generated `SharingObject` class has no such
+    field and the wire ignores the key. If DHIS2 adds it, codegen emits
+    the field and this assertion fails.
     """
-    from dhis2w_client.generated.v43.oas.sharing_object import SharingObject
+    import importlib
 
-    assert "externalAccess" not in SharingObject.model_fields, (
-        "BUGS.md #38: v43 SharingObject still lacks externalAccess in OAS. "
-        "If this fails, regenerate codegen and revisit `dhis2w_client.v43.sharing`."
+    sharing_object_module = importlib.import_module(f"dhis2w_client.generated.{tree}.oas.sharing_object")
+
+    assert "externalAccess" not in sharing_object_module.SharingObject.model_fields, (
+        f"BUGS.md #38: {tree} SharingObject still lacks externalAccess in OAS. "
+        f"If this fails, regenerate codegen and revisit `dhis2w_client.{tree}.sharing`."
     )
 
 
 @pytest.mark.upstream_bug
-def test_bug_38_workaround_v43_sharing_builder_drops_external_access() -> None:
-    """BUGS.md #38 — workaround-works: v43 SharingBuilder doesn't expose `external_access`.
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+def test_bug_38_workaround_sharing_builder_drops_external_access(tree: str) -> None:
+    """BUGS.md #38 — workaround-works: no tree's `SharingBuilder` exposes or emits `externalAccess`.
 
-    The materialised v43 wire payload doesn't carry `externalAccess`. The
-    v42 sibling keeps the field, which matches the released 2.42.4.1 image
-    this repo pins — that build declares and honours it. The 2.42 and 2.41
-    dev snapshots have already dropped it, so this sanity assertion flips
-    when the v42 pin moves to a released 2.42.5+.
+    Every supported major answers a write carrying `externalAccess` with
+    200 `"Access control set"` and discards the value, so the builder in
+    each tree omits the key from the payload it materialises.
     """
-    from dhis2w_client.v42.sharing import SharingBuilder as V42Builder
-    from dhis2w_client.v43.sharing import ACCESS_READ_METADATA
-    from dhis2w_client.v43.sharing import SharingBuilder as V43Builder
+    import importlib
 
-    assert "external_access" not in V43Builder.model_fields
-    assert "external_access" in V42Builder.model_fields  # sanity: sibling still has it
+    sharing = importlib.import_module(f"dhis2w_client.{tree}.sharing")
+
+    assert "external_access" not in sharing.SharingBuilder.model_fields, (
+        f"BUGS.md #38 workaround: `dhis2w_client.{tree}.sharing.SharingBuilder` must not "
+        f"declare `external_access` — DHIS2 discards the value."
+    )
     dumped = (
-        V43Builder(public_access=ACCESS_READ_METADATA).to_sharing_object().model_dump(by_alias=True, exclude_none=True)
+        sharing.SharingBuilder(public_access=sharing.ACCESS_READ_METADATA)
+        .to_sharing_object()
+        .model_dump(by_alias=True, exclude_none=True)
     )
     assert "externalAccess" not in dumped, (
-        "BUGS.md #38 workaround: v43 SharingBuilder must not emit externalAccess in the wire shape. "
-        "Regression points at `dhis2w_client.v43.sharing`."
+        f"BUGS.md #38 workaround: the {tree} SharingBuilder must not emit externalAccess in the "
+        f"wire shape. Regression points at `dhis2w_client.{tree}.sharing`."
     )
 
 
@@ -351,19 +356,17 @@ async def test_bug_34_v43_live_categorys_alias_silently_dropped(local_url: str) 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
-async def test_bug_38_v43_live_sharing_schema_lacks_external_access(local_url: str) -> None:
-    """BUGS.md #38 — bug-still-present (LIVE v43): the OpenAPI `SharingObject` does not declare `externalAccess`.
+async def test_bug_38_live_sharing_schema_lacks_external_access(local_url: str) -> None:
+    """BUGS.md #38 — bug-still-present (LIVE): the OpenAPI `SharingObject` does not declare `externalAccess`.
 
-    Requires `make dhis2-run DHIS2_VERSION=v43`. `sharingObject` is not an
-    `/api/schemas` type on any major (`404 E1005 Type sharingObject does
-    not exist`), so the OpenAPI component is the only introspection surface
-    that describes it. Reads it directly (no mutation needed) and asserts
-    the field is absent. Gated to v43 because the released 2.42.4.1 image
-    this repo pins still declares and honours the field.
+    Requires `make dhis2-run DHIS2_VERSION=v{41,42,43}`. `sharingObject` is
+    not an `/api/schemas` type on any major (`404 E1005 Type sharingObject
+    does not exist`), so the OpenAPI component is the only introspection
+    surface that describes it. Reads it directly (no mutation needed) and
+    asserts the field is absent, on whichever major the stack runs.
     """
     _skip_if_stack_unreachable(local_url)
-    async with Dhis2Client(local_url, auth=_live_auth()) as client:
-        _skip_unless_version(client, "v43")
+    async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
         document = await client.get_raw("/api/openapi/openapi.json", params={"path": "/api/sharing"})
         schemas = document.get("components", {}).get("schemas", {})
         sharing_object = schemas.get("SharingObject")
@@ -372,9 +375,9 @@ async def test_bug_38_v43_live_sharing_schema_lacks_external_access(local_url: s
             "find where the sharing wire shape moved before trusting this verifier."
         )
         assert "externalAccess" not in (sharing_object.get("properties") or {}), (
-            "BUGS.md #38: expected the v43 OpenAPI SharingObject to lack `externalAccess`. "
-            "DHIS2 may have re-added the field — regenerate codegen and revisit "
-            "`dhis2w_client.v43.sharing`."
+            f"BUGS.md #38: expected the {client.version_key} OpenAPI SharingObject to lack `externalAccess`. "
+            f"DHIS2 may have added the field — regenerate codegen and revisit "
+            f"`dhis2w_client.{client.version_key}.sharing`."
         )
 
 
@@ -1039,23 +1042,22 @@ async def test_bug_19_live_verifier(local_url: str) -> None:
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
-async def test_bug_20_live_verifier(local_url: str) -> None:
-    """BUGS.md #20 — `DELETE /api/options/{uid}` 200s but leaves the option in place.
+async def test_option_item_delete_removes_the_option(local_url: str) -> None:
+    """`DELETE /api/options/{uid}` removes the option on every supported major.
 
-    Originally cross-version (v41/v42/v43); fixed on v43 and on v42 from
-    2.42.6, where DELETE removes the option. Verifier targets v41 only; on
-    v42 and v43 it skips because the bug doesn't reproduce.
-    Creates an OptionSet + Option, DELETEs the option,
-    verifies it's still there. Cleans up at the end via the
-    OptionSet → remove-member path (the actual working delete route).
+    Creates a throwaway OptionSet + Option, DELETEs the option through its
+    own item route, and reads back an empty collection. Every major answers
+    the same way, so the check runs unrestricted by version. `PUT
+    /api/optionSets/{uid}` with the option omitted is the route that only
+    unlinks — the option survives as an orphan with no owning set — so the
+    client removes options through the item DELETE or the metadata bundle.
     """
     _skip_if_stack_unreachable(local_url)
     async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
-        _skip_unless_version(client, frozenset({"v41"}))
         # Create a throwaway OptionSet so we own its lifecycle.
         os_envelope = await client.post_raw(
             "/api/optionSets",
-            body={"name": "BUGS_20_OS", "valueType": "TEXT"},
+            body={"name": "OPTION_DELETE_OS", "valueType": "TEXT"},
         )
         os_uid = (os_envelope.get("response") or {}).get("uid")
         assert isinstance(os_uid, str), os_envelope
@@ -1063,25 +1065,23 @@ async def test_bug_20_live_verifier(local_url: str) -> None:
             opt_envelope = await client.post_raw(
                 "/api/options",
                 body={
-                    "code": "BUGS_20_OPT",
-                    "name": "BUGS_20_OPT",
+                    "code": "OPTION_DELETE_OPT",
+                    "name": "OPTION_DELETE_OPT",
                     "optionSet": {"id": os_uid},
                 },
             )
             opt_uid = (opt_envelope.get("response") or {}).get("uid")
             assert isinstance(opt_uid, str), opt_envelope
             delete_envelope = await client.delete_raw(f"/api/options/{opt_uid}")
-            # The bug: returns 200 OK but row stays.
-            still_there = await client.get_raw(
+            read_back = await client.get_raw(
                 "/api/options",
                 params={"filter": f"id:eq:{opt_uid}", "fields": "id"},
             )
-            options_after = still_there.get("options") or []
+            options_after = read_back.get("options") or []
             assert isinstance(delete_envelope, dict)
-            assert options_after, (
-                "BUGS.md #20: expected the option to still be present after DELETE (the bug), "
-                "got empty list. DHIS2 may have wired up real deletion — verify upstream + "
-                "drop any DELETE-via-optionSet workaround."
+            assert not options_after, (
+                f"expected `DELETE /api/options/{opt_uid}` to remove the option, got {options_after!r} "
+                f"on read-back. The item DELETE is the route `OptionSetsAccessor` relies on."
             )
         finally:
             # Best-effort cleanup. Drop the whole OptionSet which removes the option too.
@@ -1519,73 +1519,12 @@ async def test_bug_42_live_system_settings_lowercase_display_property(local_url:
         assert _BUG_42_FIELD in str(exc_info.value)
 
 
-# ---------------------------------------------------------------------------
-# BUGS.md #114 — 2.41.9.x cannot save a map layer with its references.
-# ---------------------------------------------------------------------------
-
-
 def _mock_v41_connect() -> None:
     """Mock the v41 server connect probes (canonical URL + /api/system/info)."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
     respx.get("https://dhis2.example/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": "2.41.9.1"}),
     )
-
-
-@pytest.mark.upstream_bug
-@respx.mock
-async def test_bug_114_v41_metadata_import_of_a_layer_answers_409() -> None:
-    """BUGS.md #114 — bug-still-present: the importer answers 409 for a layer naming an organisation unit."""
-    _mock_v41_connect()
-    respx.post("https://dhis2.example/api/metadata").mock(
-        return_value=httpx.Response(
-            409,
-            json={
-                "httpStatus": "Conflict",
-                "httpStatusCode": 409,
-                "status": "ERROR",
-                "message": (
-                    "org.hibernate.TransientObjectException: object references an unsaved transient instance"
-                    " - save the transient instance before flushing: org.hisp.dhis.organisationunit.OrganisationUnit"
-                ),
-            },
-        ),
-    )
-    body = {
-        "maps": [
-            {
-                "id": "W4cMapProb1",
-                "name": "probe",
-                "mapViews": [{"layer": "boundary", "organisationUnits": [{"id": "ImspTQPwCqd"}]}],
-            }
-        ]
-    }
-    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
-        with pytest.raises(Dhis2ApiError) as excinfo:
-            await client.post_raw("/api/metadata", body=body)
-    assert excinfo.value.status_code == 409
-    error_body = excinfo.value.body
-    assert isinstance(error_body, dict)
-    assert "TransientObjectException" in str(error_body.get("message")), (
-        "BUGS.md #114: a 2.41.9.x importer should still refuse a referenced layer with a Hibernate transient error. "
-        "If this changes, re-run the repro in BUGS.md #114 and restore the v41 map builder from the v42 tree."
-    )
-
-
-@pytest.mark.upstream_bug
-@respx.mock
-async def test_bug_114_workaround_v41_builder_refuses_before_the_wire() -> None:
-    """BUGS.md #114 — workaround-works: the v41 tree never sends the layer; it raises with the entry reference."""
-    from dhis2w_client import MapLayerSpec, MapSpec
-    from dhis2w_client.errors import Dhis2ClientError
-
-    _mock_v41_connect()
-    import_route = respx.post("https://dhis2.example/api/metadata").mock(return_value=httpx.Response(200, json={}))
-    async with Dhis2Client("https://dhis2.example", auth=_auth()) as client:
-        assert client.version_key == "v41"
-        with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
-            await client.maps.create_from_spec(MapSpec(name="probe", layers=[MapLayerSpec(data_elements=["DE1"])]))
-    assert not import_route.called
 
 
 # ---------------------------------------------------------------------------

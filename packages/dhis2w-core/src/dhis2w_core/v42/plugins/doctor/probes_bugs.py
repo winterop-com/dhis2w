@@ -11,7 +11,7 @@ from dhis2w_client.v42 import Dhis2ApiError, Dhis2Client
 
 from dhis2w_core.v42.plugins.doctor._models import ProbeResult
 
-_MIN_DHIS2_VERSION: tuple[int, int] = (2, 42)
+_MIN_DHIS2_VERSION: tuple[int, int] = (2, 41)
 
 
 async def probe_version(client: Dhis2Client) -> ProbeResult:
@@ -38,13 +38,13 @@ async def probe_version(client: Dhis2Client) -> ProbeResult:
             name="dhis2-version",
             category="bugs",
             status="fail",
-            message=f"DHIS2 {raw} < 2.42 — workspace requires 2.42+",
+            message=f"DHIS2 {raw} < 2.41 — the workspace supports DHIS2 v41, v42 and v43",
         )
     return ProbeResult(
         name="dhis2-version",
         category="bugs",
         status="pass",
-        message=f"{raw} (workspace requires 2.42+)",
+        message=f"{raw} (the workspace supports DHIS2 v41, v42 and v43)",
     )
 
 

@@ -1,6 +1,6 @@
 # Schema diff: v41 -> v42 -> v43
 
-Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.9.1`, v42 = `2.42.6.0`, v43 = `2.43.1.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
+Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.10.0`, v42 = `2.42.6.0`, v43 = `2.43.1.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
 
 - **`/api/schemas`** drives `dhis2w_client.generated.v{N}.schemas` (and the `client.resources.X` accessors). Run `d2w dev codegen diff v41 v42` or `d2w dev codegen diff v42 v43` to regenerate the schema-side diff.
 - **`/api/openapi.json`** drives `dhis2w_client.generated.v{N}.oas` (the request/response shapes used by tracker, auth schemes, data-value imports, etc.). Diff is a plain `ls` comparison of the per-version `oas/` trees — there is no dedicated CLI command for it yet.
@@ -13,9 +13,9 @@ If you only care about the workable patterns ("how do I read this v43 field"), j
 
 | Source | Added | Removed | Changed |
 | --- | ---: | ---: | ---: |
-| `/api/schemas` (resource models) | 4 | 9 | 83 |
+| `/api/schemas` (resource models) | 3 | 9 | 84 |
 
-v42 is a meaningful jump: the OAuth2 metadata stack (oauth2Authorization, oauth2AuthorizationConsent, oauth2Client) lands as first-class resources, `mapView` returns as a top-level schema (the `2.41.9.x` releases list no `mapView` at all, see BUGS.md #43), several deprecated v41 resources are dropped, and many surfaces gain `displayDescription` / `displayShortName` fields. The v41 -> v42 detail section covers each of those.
+v42 is a meaningful jump: the OAuth2 metadata stack (oauth2Authorization, oauth2AuthorizationConsent, oauth2Client) lands as first-class resources, several deprecated v41 resources are dropped, the `attributeValue` collection becomes the `attributeValues` complex on nearly every resource, and many surfaces gain `displayDescription` / `displayShortName` fields. The v41 -> v42 detail section covers each of those.
 
 ### v42 -> v43
 
@@ -30,41 +30,44 @@ Smaller surface change than v41 -> v42 but with concrete breaking-shape items (D
 
 ### Added schemas
 
-Four top-level resources are present in v42 and absent from the v41 release this repo pins. Three are the OAuth2 server-side metadata stack; the fourth is `mapView`, which `2.41.9.x` dropped from `/api/schemas` (BUGS.md #43):
+Three top-level resources are present in v42 and absent from the v41 release this repo pins — the OAuth2 server-side metadata stack:
 
 | Schema | Class | Role |
 | --- | --- | --- |
-| `mapView` | `org.hisp.dhis.mapping.MapView` | One layer of a `map`. Listed on v42 and v43; absent on `2.41.9.1`, so `dhis2w_client.v{N}.maps` carries `MapView` by hand. |
 | `oauth2Authorization` | `org.hisp.dhis.security.oauth2.authorization.Dhis2OAuth2Authorization` | Persisted OAuth2 authorization grants — the server-side store backing `/oauth2/authorize`. |
 | `oauth2AuthorizationConsent` | `org.hisp.dhis.security.oauth2.consent.Dhis2OAuth2AuthorizationConsent` | Per-user-per-client consent records. |
 | `oauth2Client` | `org.hisp.dhis.security.oauth2.client.Dhis2OAuth2Client` | Registered OAuth2 client metadata (replaces the older `oAuth2Client` resource). |
 
 ### Removed schemas
 
-| Schema | Notes |
-| --- | --- |
-| `oAuth2Client` | Superseded by `oauth2Client` (above). The new resource has the same surface but normalises naming. |
-| `programInstance` | Tracker enrollment; folded into the tracker API. Use `/api/tracker/enrollments` for v42+. |
-| `programStageInstance` | Tracker event; same story — use `/api/tracker/events`. |
-| `programStageInstanceFilter` | Replaced by `eventFilter`. |
-| `eventChart` (the metadata-resource form) | Still queryable via the analytics endpoints; the metadata resource was redundant. |
-| `legendDefinitions` | Folded into the per-resource `legendSet` field. |
-| `s_m_s_command` | SMS command admin moved out of the metadata resource list. |
-| `tracked_entity_instance` | Tracker tracked-entity; v42 routes through `/api/tracker/trackedEntities`. |
-| `tracked_entity_instance_filter` | Replaced by `trackedEntityFilter`. |
+Nine top-level resources are listed on v41 and gone on v42.
+
+| Schema | Class on the server | Notes |
+| --- | --- | --- |
+| `attributeValues` | `org.hisp.dhis.attribute.AttributeValue` | The per-value resource behind the v41 `attributeValue` collection; v42 carries the values inline as the `attributeValues` complex. |
+| `enrollment` | `org.hisp.dhis.program.Enrollment` | Tracker enrollment; reach it through `/api/tracker/enrollments`. |
+| `oAuth2Client` | `org.hisp.dhis.security.oauth2.OAuth2Client` | Superseded by `oauth2Client` (above). The new resource has the same surface but normalises naming. |
+| `relationship` | `org.hisp.dhis.relationship.Relationship` | Tracker relationship; reach it through `/api/tracker/relationships`. |
+| `relationshipItem` | `org.hisp.dhis.relationship.RelationshipItem` | The nested side of a relationship; inline on v42. |
+| `softDeletableObject` | `org.hisp.dhis.program.Event` | A base-class artefact of the v41 schema listing, not a resource anyone calls. |
+| `trackedEntityAttributeValue` | `org.hisp.dhis.trackedentityattributevalue.TrackedEntityAttributeValue` | Inline under the tracked entity on v42. |
+| `trackedEntityInstance` | `org.hisp.dhis.trackedentity.TrackedEntity` | Tracker tracked entity; reach it through `/api/tracker/trackedEntities`. |
+| `userCredentialsDto` | `org.hisp.dhis.user.UserCredentialsDto` | v42 folds the credentials fields into `user` itself. |
 
 ### Notable shape changes (selected)
 
 The full `d2w dev codegen diff v41 v42` output is in the appendix below; the high-signal items:
 
+- **`attributeValue` collection replaced by an `attributeValues` complex** on nearly every resource — the single largest source of changed schemas in this diff.
 - **`displayDescription` / `displayShortName` added** to many surfaces: dashboard, indicatorGroup, indicatorGroupSet, optionSet, program, programStage, validationRule. v41-pinned models miss these at typed-access time but they survive on `model_extra`.
-- **Tracker resources moved to the `/api/tracker` endpoint**: enrollments, events, trackedEntities, relationships. Code that hit the `/api/programInstance` or `/api/programStageInstance` routes on v41 needs to switch to the tracker routes on v42+.
+- **Tracker resources moved to the `/api/tracker` endpoint**: `enrollment`, `relationship`, `relationshipItem`, `trackedEntityInstance` and `trackedEntityAttributeValue` stop being metadata resources. Use `client.tracker.*` on v42+.
+- **`mapView` is a listed schema on all three majors**, so the generated tree carries it everywhere. Across v41 -> v42 it picks up `attributeValues` + `metaData`, tightens `name` and `shortName` bounds, and renames its `programStatus` class to `EnrollmentStatus`.
 - **`legendSet` / `legendSets` field added** to many resources (dataElement, indicator, programIndicator). Replaces the v41 `legendDefinitions` indirection.
 - **OAuth2 server-side metadata** — Dhis2OAuth2Authorization, Dhis2OAuth2AuthorizationConsent, Dhis2OAuth2Client — see Added schemas above.
 
 ### Working with v41 -> v42 differences
 
-- v41-pinned helpers reading a v42 instance: pure-additions land on `model_extra`; the dropped `programInstance` / `programStageInstance` resources are gone — use `client.tracker.*` accessors instead.
+- v41-pinned helpers reading a v42 instance: pure-additions land on `model_extra`; the dropped `enrollment` / `trackedEntityInstance` / `relationship` resources are gone — use `client.tracker.*` accessors instead.
 - v42-pinned helpers reading a v41 instance: the OAuth2 resources don't exist — calls return 404. Same fall-back patterns as the v42 -> v43 section apply.
 
 ## v42 -> v43
@@ -78,7 +81,7 @@ These resources are gone in v43 (`externalFileResource` is gone from the current
 | Schema | Class on the server | Notes |
 | --- | --- | --- |
 | `dataInputPeriods` | `org.hisp.dhis.dataset.DataInputPeriod` | Folded into `dataSet.dataInputPeriods` inline; no top-level resource. |
-| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.9.1`, `2.42.6.0`, `2.43.1.0`); use the `externalAccess` field on `fileResource` directly. |
+| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.10.0`, `2.42.6.0`, `2.43.1.0`); use the `externalAccess` field on `fileResource` directly. |
 | `pushanalysis` | `org.hisp.dhis.pushanalysis.PushAnalysis` | Push-analysis is removed in v43. |
 
 ### Schemas-side: breaking shape changes
@@ -127,7 +130,7 @@ Fields removed in v43, beyond the breaking-shape and resource removals above. Mo
 
 | Schema | Removed fields |
 | --- | --- |
-| `access` | `externalize` (also gone on `2.41.9.1` and `2.42.6.0`) |
+| `access` | `externalize` (also gone on `2.41.10.0` and `2.42.6.0`) |
 | `categoryCombo` | `favorite` |
 | `categoryOption` | `aggregationType`, `dimensionItem`, `dimensionItemType`, `favorite`, `legendSet`, `legendSets` |
 | `dashboard` | `displayFormName`, `displayShortName`, `formName`, `shortName` |
@@ -415,7 +418,8 @@ description = (group.model_extra or {}).get("description") if client.version_key
 ## Reproducing this diff
 
 ```bash
-# Schemas-side
+# Schemas-side — offline, over the committed schemas_manifest.json files
+uv run d2w dev codegen diff v41 v42
 uv run d2w dev codegen diff v42 v43
 
 # OAS-side (no CLI; plain ls comparison)
@@ -633,10 +637,9 @@ Raw output of `d2w dev codegen diff v41 v42`. Reproduced verbatim so the field-b
 
 ```text
 Schema diff: v41 -> v42
-  added schemas: 4   removed schemas: 9   changed schemas: 83
+  added schemas: 3   removed schemas: 9   changed schemas: 84
 
 ## Added in v42
-  + mapView  (122 props, klass=org.hisp.dhis.mapping.MapView)
   + oauth2Authorization  (34 props, klass=org.hisp.dhis.security.oauth2.authorization.Dhis2OAuth2Authorization)
   + oauth2AuthorizationConsent  (19 props, klass=org.hisp.dhis.security.oauth2.consent.Dhis2OAuth2AuthorizationConsent)
   + oauth2Client  (27 props, klass=org.hisp.dhis.security.oauth2.client.Dhis2OAuth2Client)
@@ -743,7 +746,6 @@ Schema diff: v41 -> v42
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
-      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ eventFilter
       + attributeValues  (COMPLEX)
@@ -753,14 +755,12 @@ Schema diff: v41 -> v42
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
-      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ eventVisualization
       + attributeValues  (COMPLEX)
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
       ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
-      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ expressionDimensionItem
       + attributeValues  (COMPLEX)
@@ -797,6 +797,13 @@ Schema diff: v41 -> v42
   ~ map
       + attributeValues  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
+      ~ shortName: max: 2147483647.0 -> 50.0
+  ~ mapView
+      + attributeValues  (COMPLEX)
+      + metaData  (COMPLEX)
+      - attributeValue  (COLLECTION collection of AttributeValue)
+      ~ name: owner: False -> True, persisted: False -> True, min: 0.0 -> 1.0, max: 2147483647.0 -> 230.0
+      ~ programStatus: klass: 'org.hisp.dhis.program.ProgramStatus' -> 'org.hisp.dhis.program.EnrollmentStatus'
       ~ shortName: max: 2147483647.0 -> 50.0
   ~ messageConversation
       + attributeValues  (COMPLEX)
@@ -965,6 +972,5 @@ Schema diff: v41 -> v42
       + attributeValues  (COMPLEX)
       + metaData  (COMPLEX)
       - attributeValue  (COLLECTION collection of AttributeValue)
-      ~ rawPeriods: max: 255.0 -> 3650.0
       ~ shortName: max: 2147483647.0 -> 50.0
 ```

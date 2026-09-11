@@ -3,15 +3,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any
 
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
 from ._enums import TwoFactorType
-
-if TYPE_CHECKING:
-    from .granted_authority import GrantedAuthority
 
 
 class UserDetails(_BaseModel):
@@ -22,7 +19,7 @@ class UserDetails(_BaseModel):
     accountNonExpired: bool | None = None
     accountNonLocked: bool | None = None
     allAuthorities: list[str] | None = None
-    authorities: list[GrantedAuthority] | None = None
+    authorities: list[Any] | None = None
     code: str | None = None
     credentialsNonExpired: bool | None = None
     dataViewMaxOrganisationUnitLevel: int | None = None

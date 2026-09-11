@@ -26,147 +26,496 @@ below.
 
 ## Index
 
-119 entries grouped by area. **Status tags** carry the result of the 2026-09-07 sweep
-(local `dhis2/core:2.41.9.1`, `2.42.6.0`, `2.43.1.0` plus the six play channels, see the
-retest log below): **[STILL]** confirmed present on every major the entry applies to,
-**[FIXED v42+]** fixed on v42 and v43 and still present on v41, **[PARTIAL]** where the
-behaviour changed on some major or the entry's premise moved, **[NOT RETESTED]** where the
-sweep could not exercise it (a visual symptom, a source reading, or a non-DHIS2 tool).
-Untagged entries were not reached; the retest log says why.
+126 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
+stacks `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0`, plus the play channels `stable-2-41-10`,
+`stable-2-42-6`, `stable-2-43-1`, `dev-2-41`, `dev-2-42` and `dev-2-43` (see the retest log below):
+
+- **[STILL]** — present on every major the entry applies to.
+- **[FIXED v41]**, **[FIXED v42+]**, **[FIXED v41 + v42]**, **[FIXED v41 + v43]** — fixed on the
+  majors named and present on the rest.
+- **[PARTIAL]** — the behaviour changed on some major, or the entry's premise moved in part.
+- **[INVERTED]** — the premise no longer holds anywhere; the entry now describes what does.
+- **[INCONCLUSIVE]** — the repro could not be staged on a seeded, long-running stack; each entry
+  says why.
+- **[NOT RETESTED]** — outside what this sweep can exercise: a visual symptom (#12), a source
+  reading (#57), or a non-DHIS2 tool (#103, #107).
+
+Every entry in the file is listed here, including the four that carried no Index line before.
 
 ### Schema / OAS / Filters
 
 - [#3](#3-blank-auditmetadata--audittracker--auditaggregate-in-dhisconf-silently-fall-back-to-audit-enabled-defaults) — Blank `audit.metadata` / `audit.tracker` / `audit.aggregate` silently fall back to defaults **[STILL]**
-- [#14](#14-oas-routeauth-is-a-oneof-with-no-discriminator--and-the-auth-scheme-schemas-are-missing-their-jackson-type-field) — OAS `Route.auth` is an undiscriminated `oneOf` **[STILL]**
-- [#15](#15-oas-emits-jobconfigurationjobparameters-and-webmessageresponse-as-undiscriminated-oneofs) — OAS emits `JobConfiguration.jobParameters` + `WebMessage.response` as undiscriminated `oneOf` **[STILL]**
-- [#19](#19-get-apivalidationresults-silently-ignores-fields-and-fieldsall) — `GET /api/validationResults` ignores `fields=*` **[STILL]**
-- [#21](#21-attribute-value-filters-path-property-is-the-attribute-uid-not-attributevaluesvalue) — Attribute-value filter path is Attribute UID, not `attributeValues.value` **[PARTIAL]**
+- [#14](#14-oas-routeauth-is-a-oneof-with-no-discriminator--and-the-auth-scheme-schemas-are-missing-their-jackson-type-field) — OAS `Route.auth` is an undiscriminated `oneOf`; v41 already declares the `type` field **[PARTIAL]**
+- [#15](#15-oas-emits-jobconfigurationjobparameters-and-webmessageresponse-as-undiscriminated-oneofs) — OAS emits `JobConfiguration.jobParameters` as an undiscriminated `oneOf`; `WebMessage.response` is untyped on v41 **[PARTIAL]**
+- [#19](#19-get-apivalidationresults-silently-ignores-fields-and-fieldsall) — `GET /api/validationResults` ignores `fields=*` **[INCONCLUSIVE]**
+- [#21](#21-attribute-value-filters-path-property-is-the-attribute-uid-not-attributevaluesvalue) — Attribute-value filter path is the Attribute UID on v42/v43 and the nested path on v41 **[PARTIAL]**
 - [#22c](#22c-apimetadata-bundle-import-drops-programruleactionprogramrule-link) — `/api/metadata` bundle import drops `ProgramRuleAction.programRule` link **[STILL]**
-- [#23](#23-single-pass-apimetadata-with-datasets--dependencies-trips-a-hibernate-flush-error) — Single-pass `/api/metadata` with DataSets trips Hibernate flush error **[PARTIAL]**
-- [#27](#27-fresh-dhis2-installs-are-flaky-during-first-metadata-import) — Fresh DHIS2 installs flaky during first metadata import **[PARTIAL]**
+- [#23](#23-single-pass-apimetadata-with-datasets--dependencies-trips-a-hibernate-flush-error) — Single-pass `/api/metadata` with DataSets trips Hibernate flush error **[INCONCLUSIVE]**
+- [#27](#27-fresh-dhis2-installs-are-flaky-during-first-metadata-import) — Fresh DHIS2 installs flaky during first metadata import **[INCONCLUSIVE]**
 - [#28](#28-openapi-relativeperiods-schema-exposes-45-boolean-fields-instead-of-an-enum) — OpenAPI `RelativePeriods` schema = 45 boolean fields, not an enum **[STILL]**
 - [#29](#29-apimetadatafilterrootjunctionor-silently-ignores-rootjunction-and-ands-multiple-filters) — `/api/metadata?...&rootJunction=OR` silently ANDs filters **[STILL]**
 - [#30](#30-apiapphub-returns-versionscreated-as-an-epoch-millis-integer-and-last_updated-as-null) — `/api/appHub` returns `created` as epoch-millis and `last_updated` as null **[STILL]**
-- [#42](#42-get-apisystemsettings-returns-keyanalysisdisplayproperty-name-lowercase--generated-systemsettings-enum-rejects-it) — `/api/systemSettings` returns lowercase `keyAnalysisDisplayProperty`; generated `SystemSettings` enum rejects it **[STILL]**
-- [#43](#43-mapview-schema-absent-from-apischemas-on-2419x) — `mapView` schema absent from `/api/schemas` on `2.41.9.x` (`MapView` is hand-written in every tree) **[STILL]**
-- [#46](#46-post-apiapphubversionid-returns-an-opaque-proxied-app-hub-404-when-given-an-app-id-instead-of-a-version-id) — `POST /api/appHub/{versionId}` with an app id → opaque proxied App Hub 404 **[STILL]**
-- [#51](#51-apitokenexpire-is-optional-in-the-openapi-document-and-required-by-apischemas-so-the-two-introspection-surfaces-disagree-on-whether-a-non-expiring-pat-is-representable): `ApiToken.expire` optional in the OpenAPI document, required by `/api/schemas` **[STILL]**
-- [#53](#53-the-audit-posture-lives-only-in-dhisconf-and-is-exposed-by-no-api-endpoint-so-it-cannot-be-verified-remotely): Audit posture is dhis.conf-only (not remotely verifiable) **[STILL]**
-- [#54](#54-dhis2-applies-create-update-delete-security-as-the-default-matrix-when-a-scope-key-is-absent-or-empty): Absent/empty audit scope matrix falls back to {CREATE, UPDATE, DELETE, SECURITY} **[STILL]**
-- [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only): v42/v43: no 2FA state on `/api/users` for other users (moved to `/api/users/twoFactor`) **[PARTIAL]**
-- [#59](#59-no-reliable-server-side-filter-for-non-default-sharing-publicaccessexternalaccess-are-unfilterable-sharingpublic-is-an-ineffective-volume-reducer): No reliable server-side filter for non-default sharing **[STILL]**
-- [#47](#47-metadata-get-with-a-malformed-uid-returns-http-405-instead-of-404) — malformed UID → HTTP 405 instead of 404 on `GET /api/{resource}/{uid}` **[PARTIAL]**
+- [#42](#42-get-apisystemsettings-returns-keyanalysisdisplayproperty-name-lowercase--generated-systemsettings-enum-rejects-it) — `/api/systemSettings` returns lowercase `keyAnalysisDisplayProperty`; v41 has no `SystemSettings` schema at all **[PARTIAL]**
+- [#46](#46-post-apiapphubversionid-returns-an-opaque-proxied-app-hub-404-when-given-an-app-id-instead-of-a-version-id) — `POST /api/appHub/{versionId}` with an app id gives an opaque proxied App Hub 404 **[STILL]**
+- [#51](#51-apitokenexpire-is-optional-in-the-openapi-document-and-required-by-apischemas-so-the-two-introspection-surfaces-disagree-on-whether-a-non-expiring-pat-is-representable) — `ApiToken.expire` optional in the OpenAPI document, required by `/api/schemas` **[STILL]**
+- [#53](#53-the-audit-posture-lives-only-in-dhisconf-and-is-exposed-by-no-api-endpoint-so-it-cannot-be-verified-remotely) — Audit posture is dhis.conf-only (not remotely verifiable) **[STILL]**
+- [#54](#54-dhis2-applies-create-update-delete-security-as-the-default-matrix-when-a-scope-key-is-absent-or-empty) — Absent/empty audit scope matrix falls back to {CREATE, UPDATE, DELETE, SECURITY} **[STILL]**
+- [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only) — v42/v43 moved 2FA state off `/api/users` to `/api/users/twoFactor`, which answers to an `ALL` holder **[FIXED v42+]**
+- [#59](#59-no-reliable-server-side-filter-for-non-default-sharing-publicaccessexternalaccess-are-unfilterable-sharingpublic-is-an-ineffective-volume-reducer) — No reliable server-side filter for non-default sharing **[PARTIAL]**
+- [#47](#47-metadata-get-with-a-malformed-uid-returns-http-405-instead-of-404) — malformed UID gives HTTP 405 instead of 404 on v42/v43; v41 answers 404 **[FIXED v41]**
 - [#48](#48-filtering-on-a-nested-geometry-path-geometrytype-returns-400-unknown-path-property) — nested `geometry.type` filter returns `400 Unknown path property` **[STILL]**
 - [#93](#93-programrules-is-not-a-field-on-the-program-schema-and-fields-drops-it-without-a-word) — `programRules` is not a field on the Program schema; `fields=` drops it silently **[STILL]**
 - [#94](#94-apiopenapiopenapijson-types-the-same-id-reference-under-two-different-component-names-on-243x) — 2.43.x OpenAPI names one `{id}` reference under two component names **[STILL]**
-- [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant) — `categoryOption.aggregationType` schema-typed BOOLEAN on 2.43.1 **[PARTIAL]**
-- [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing) — OpenAPI routes `PUT /api/<type>/{uid}/sharing` for 23 `shareable: false` types **[STILL]**
+- [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant) — `categoryOption.aggregationType` reads BOOLEAN only on an empty 2.43.1 database **[PARTIAL]**
+- [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing) — OpenAPI routes `PUT /api/<type>/{uid}/sharing` for types whose schema says `shareable: false` **[STILL]**
 
 ### Auth / OAuth2 / OIDC
 
-- [#4](#4-dhis2-oauth2-authorization-server-requires-10-undocumented-dhisconf-keys-all-set-together-or-authorizetoken-silently-degrade) — 10+ undocumented `dhis.conf` keys for OAuth2 AS **[STILL]**
-- [#4b](#4b-oauth2token-on-a-misconfigured-stack-returns-dhis2s-generic-401-instead-of-the-spring-as-error-json) — `/oauth2/token` 401 hides Spring-AS error JSON **[PARTIAL]**
-- [#4c](#4c-dhis2s-embedded-jwt-keystore-is-regenerated-on-every-startup-refresh-tokens-minted-before-a-restart-are-permanently-dead) — Embedded JWT keystore regenerated on startup → dead refresh tokens **[PARTIAL]**
+- [#4](#4-dhis2-oauth2-authorization-server-requires-10-undocumented-dhisconf-keys-all-set-together-or-authorizetoken-silently-degrade) — The OAuth2 authorization server's minimal block boots, and refuses its own token on the `username` mapping claim **[PARTIAL]**
+- [#4b](#4b-oauth2token-on-a-misconfigured-stack-returns-dhis2s-generic-401-instead-of-the-spring-as-error-json) — `/oauth2/token` 401 hides the Spring-AS error JSON; v41 answers a login redirect **[PARTIAL]**
+- [#4c](#4c-the-oauth2-signing-key-rotates-on-every-startup-so-every-outstanding-access-token-dies-v41-mints-an-opaque-token-and-issues-no-refresh-token-at-all) — The signing key rotates on every startup; v41 mints an opaque token with no refresh token **[INVERTED]**
 - [#4d](#4d-dhis2-conflates-oauth2-and-oidc-across-its-config-keys-docs-and-code-paths) — DHIS2 conflates "OAuth2" and "OIDC" **[STILL]**
-- [#4e](#4e-dhis2-route-api-api-token-auth-sends-authorization-apitoken-value--not-the-standard-bearer-scheme) — Route `api-token` auth uses non-standard `ApiToken` scheme **[STILL]**
-- [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id) — WebMessageResponse names created uid as `uid`, not `id` **[STILL]**
+- [#4e](#4e-dhis2-route-api-api-token-auth-sends-authorization-apitoken-value--not-the-standard-bearer-scheme) — Route `api-token` auth uses the non-standard `ApiToken` scheme **[STILL]**
+- [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id) — WebMessageResponse names the created uid as `uid`, not `id` **[STILL]**
 - [#4g](#4g-dhis2-accepts-whitespace-abusive-values-for-name-shortname-and-code-on-metadata-create) — DHIS2 accepts whitespace-abusive `name` / `shortName` / `code` **[STILL]**
-- [#4h](#4h-dhis2-rejects-its-own-oauth2-jwts-when-the-resolved-user-has-an-empty-openid) — DHIS2 rejects its own JWTs when the user has empty `openId` **[PARTIAL]**
-- [#9](#9-dhis2s-strict-oidc-property-parser-rejects-entire-provider-config-on-typos) — OIDC property parser rejects entire provider config on typos **[STILL]**
-- [#61](#61-keycorswhitelist-was-removed-from-systemsettings-the-cors-origin-list-is-only-readable-from-apiconfigurationcorswhitelist): `keyCorsWhitelist` removed; CORS origins only at `/api/configuration/corsWhitelist` **[STILL]**
-- [#52](#52-no-version-invariant-generated-oauth2-client-schema-v41-emits-only-the-array-typed-oauth2client-v42v43-only-the-comma-string-dhis2oauth2client): No version-invariant generated OAuth2-client schema (cross-ref #39) **[STILL]**
-- [#55](#55-dhis2-calls-spring-securitys-defaultsdisabled-and-never-emits-coop--coep--corp-so-cross-origin-isolation-headers-are-absent-on-every-stock-instance): Stock DHIS2 never emits COOP/COEP/CORP (`defaultsDisabled()`) **[STILL]**
-- [#57](#57-the-dhis2-public-route-authority-is-f_route_public_add-not-f_public_route_add): Public-route authority is `F_ROUTE_PUBLIC_ADD`, not `F_PUBLIC_ROUTE_ADD` **[NOT RETESTED]**
-- [#60](#60-hsts-presence-depends-on-the-proxy-in-front-of-dhis2-and-csp-state-is-observable-only-on-the-wire--where-the-header-itself-is-instance-dependent): HSTS presence depends on the fronting proxy; CSP is wire-only and instance-dependent **[STILL]**
-- [#96](#96-on-2431-the-oauth2-authorization-server-500s-for-any-registered-client-whose-settings-or-grant-types-are-empty-and-post-apioauth2clients-creates-exactly-that-client): 2.43.1 OAuth2 authorization server 500s for a client `POST /api/oAuth2Clients` accepted **[STILL]**
-- [#117](#117-2426-and-2431-post-apioauth2clients-answers-201-to-json-arrays-on-the-multi-valued-fields-and-stores-none-of-them): `2.42.6` and `2.43.1`: `POST /api/oAuth2Clients` answers 201 to JSON arrays on the multi-valued fields and stores none of them **[STILL]**
+- [#4h](#4h-dhis2-refuses-its-own-oauth2-jwts-with-invalid-mapping-claim-whatever-the-resolved-users-openid-says) — DHIS2 refuses its own JWTs with `Invalid mapping claim` whatever `openId` says **[INVERTED]**
+- [#9](#9-dhis2s-strict-oidc-property-parser-rejects-entire-provider-config-on-typos) — The OIDC property parser rejects a provider on a typo on v41 and keeps it silently on v42/v43 **[PARTIAL]**
+- [#61](#61-keycorswhitelist-was-removed-from-systemsettings-the-cors-origin-list-is-only-readable-from-apiconfigurationcorswhitelist) — `keyCorsWhitelist` removed; CORS origins only at `/api/configuration/corsWhitelist` **[STILL]**
+- [#52](#52-no-version-invariant-generated-oauth2-client-schema-v41-emits-only-the-array-typed-oauth2client-v42v43-only-the-comma-string-dhis2oauth2client) — No version-invariant generated OAuth2-client schema (cross-ref #39) **[STILL]**
+- [#55](#55-dhis2-calls-spring-securitys-defaultsdisabled-and-never-emits-coop--coep--corp-so-cross-origin-isolation-headers-are-absent-on-every-stock-instance) — Stock DHIS2 never emits COOP/COEP/CORP (`defaultsDisabled()`) **[STILL]**
+- [#57](#57-the-dhis2-public-route-authority-is-f_route_public_add-not-f_public_route_add) — Public-route authority is `F_ROUTE_PUBLIC_ADD`, not `F_PUBLIC_ROUTE_ADD` **[NOT RETESTED]**
+- [#60](#60-hsts-presence-depends-on-the-proxy-in-front-of-dhis2-and-csp-state-is-observable-only-on-the-wire--where-the-header-itself-is-instance-dependent) — HSTS presence depends on the fronting proxy; CSP is wire-only and instance-dependent **[STILL]**
+- [#96](#96-on-2431-the-oauth2-authorization-server-500s-for-any-registered-client-whose-settings-or-grant-types-are-empty-and-post-apioauth2clients-creates-exactly-that-client) — 2.43.1 OAuth2 authorization server 500s for a client `POST /api/oAuth2Clients` accepted **[STILL]**
+- [#117](#117-the-multi-valued-oauth2-client-fields-take-arrays-on-v41-and-comma-separated-strings-on-v42v43-and-each-major-fails-silently-or-loudly-on-the-other-shape) — `POST /api/oAuth2Clients` drops array fields silently on v42/v43 and 500s on comma strings on v41 **[PARTIAL]**
+- [#120](#120-serverbaseurl-is-logged-as-invalid-for-a-value-that-satisfies-the-messages-own-rule-and-the-authorization-server-then-stamps-a-slashed-iss) — `server.base.url` logged as invalid for a value the message's own rule allows; the `iss` is slashed **[STILL]**
 
 ### Analytics / Aggregate / Data Values
 
-- [#1](#1-apianalyticsrawdata-and-apianalyticsdatavalueset-require-the-json-url-suffix) — `/api/analytics/rawData` requires `.json` URL suffix **[STILL]**
+- [#1](#1-apianalyticsrawdata-and-apianalyticsdatavalueset-require-the-json-url-suffix) — `/api/analytics/rawData` requires the `.json` URL suffix **[STILL]**
 - [#2](#2-importstrategydelete-on-apidatavaluesets-is-a-soft-delete-that-still-blocks-parent-metadata-deletion) — `importStrategy=DELETE` is a soft-delete blocking parent metadata **[STILL]**
 - [#6](#6-bulk-apidatavaluesets-push-returns-409-even-when-every-rows-ignored-hiding-the-per-row-conflict-detail) — Bulk dataValueSets 409 even when every row ignored **[STILL]**
-- [#13](#13-outlierdetectionalgorithm-oas-enum-reports-mod_z_score-but-dhis2-rejects-that-value-at-runtime) — `OutlierDetectionAlgorithm` OAS enum disagrees with runtime **[STILL]**
-- [#31](#31-predictor-expression-parser-rejects-uppercase-aggregators-avg--sum) — Predictor expression parser rejects uppercase `AVG()` / `SUM()` **[PARTIAL]**
+- [#13](#13-outlierdetectionalgorithm-oas-enum-reports-mod_z_score-but-dhis2-rejects-that-value-at-runtime) — `OutlierDetectionAlgorithm` OAS enum disagrees with the runtime **[STILL]**
+- [#31](#31-apiexpressionsdescription-parses-no-aggregator-spelling-in-predictor_generator-context-while-the-predictor-engine-runs-the-expressions-it-refuses) — `/api/expressions/description` parses no aggregator spelling the predictor engine runs **[INVERTED]**
 - [#50](#50-post--delete-apidatavalues-has-no-attributeoptioncombo-query-param--the-attribute-option-combo-is-addressed-by-cc--cp) — `POST` / `DELETE /api/dataValues` has no `attributeOptionCombo` param (`cc` + `cp` instead) **[STILL]**
-- [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting) — `importStrategy=CREATE` overwrites a live value instead of conflicting **[STILL]**
-- [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction) — `importCount` never reports `imported`; a create looks like a correction **[STILL]**
-- [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets) — `""` erases a tracker data value and is refused (`E8120`) on `/api/dataValueSets` **[STILL]**
-- [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value) — `importStrategy=DELETE` of a never-written value materialises a tombstone **[STILL]**
-- [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted) — inline `"deleted": true` soft-deletes but is counted as `updated` **[STILL]**
+- [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting) — `importStrategy=CREATE` overwrites a live value on v43 and refuses silently on v41/v42 **[PARTIAL]**
+- [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction) — `importCount` never reports `imported` on v43; v41 and v42 report it **[FIXED v41 + v42]**
+- [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets) — `""` erases a tracker data value and is refused on `/api/dataValueSets` **[STILL]**
+- [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value) — `importStrategy=DELETE` of a never-written value materialises a tombstone on v43 **[FIXED v41 + v42]**
+- [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted) — inline `"deleted": true` is counted as `updated` on v43 **[FIXED v41 + v42]**
+- [#125](#125-a-top-level-dataset-key-on-a-apidatavaluesets-payload-makes-every-later-import-answer-409-e7644-with-the-period-rendered-as-null-and-a-freshly-created-data-set-is-invisible-to-the-open-periods-check-for-about-two-minutes) — A top-level `dataSet` key makes later imports answer `E7644` with a null period; a new data set is invisible for two minutes **[STILL]**
 
 ### Metadata / Sharing / UX
 
 - [#5](#5-organisationunits-post-inside-a-users-capture-scope-enforces-descendant-not-sibling-of-scope) — `organisationUnits` POST enforces DESCENDANT, not sibling-of-scope **[STILL]**
-- [#10](#10-login-page-system-setting-keys-are-a-mix-of-prefixed-and-unprefixed) — Login-page system-setting keys mix prefixed/unprefixed **[STILL]**
-- [#11](#11-post-apistaticcontentlogo_front-succeeds-but-dhis2-keeps-serving-the-built-in-default-until-keyusecustomlogofronttrue-is-also-set) — Logo upload needs `keyUseCustomLogoFront=true` flag flip **[STILL]**
-- [#12](#12-dhis2-login-app-leaves-html-transparent-so-browser-zoom--100-exposes-the-browsers-background-below-the-page) — Login app leaves `html` transparent; zoom exposes browser bg **[NOT RETESTED]**
-- [#16](#16-post-apidocuments-rejects-multipart-uploads-with-415-forcing-a-two-step-upload-flow) — `POST /api/documents` 415s on multipart → two-step upload **[STILL]**
-- [#17](#17-post-apimessageconversations-returns-the-new-uid-on-the-location-header-not-in-the-json-envelope) — `POST /api/messageConversations` returns UID on `Location` header only **[STILL]**
-- [#18](#18-post-apimessageconversationsuid-takes-textplain-body-send-requires-id-refs-for-attachments) — `POST /api/messageConversations/{uid}` reply: text/plain body, attachments need `{id}` refs **[STILL]**
-- [#18a](#18a-reply-endpoint-stores-the-request-body-verbatim-as-message-text) — Reply endpoint stores body verbatim **[STILL]**
+- [#10](#10-login-page-system-setting-keys-are-a-mix-of-prefixed-and-unprefixed) — Login-page system-setting keys mix prefixed/unprefixed; v41 refuses without an `errorCode` **[STILL]**
+- [#11](#11-post-apistaticcontentlogo_front-succeeds-but-dhis2-keeps-serving-the-built-in-default-until-keyusecustomlogofronttrue-is-also-set) — Logo upload needs the `keyUseCustomLogoFront=true` flag flip **[STILL]**
+- [#12](#12-dhis2-login-app-leaves-html-transparent-so-browser-zoom--100-exposes-the-browsers-background-below-the-page) — Login app leaves `html` transparent; zoom exposes the browser background **[NOT RETESTED]**
+- [#16](#16-post-apidocuments-rejects-multipart-uploads-with-415-forcing-a-two-step-upload-flow) — `POST /api/documents` 415s on multipart, forcing a two-step upload **[STILL]**
+- [#17](#17-post-apimessageconversations-returns-the-new-uid-on-the-location-header-not-in-the-json-envelope) — `POST /api/messageConversations` returns the UID on the `Location` header only **[STILL]**
+- [#18](#18-post-apimessageconversationsuid-takes-textplain-body-send-requires-id-refs-for-attachments) — Message reply takes a `text/plain` body; attachments need `{id}` refs **[STILL]**
+- [#18a](#18a-reply-endpoint-stores-the-request-body-verbatim-as-message-text) — Reply endpoint stores the request body verbatim **[STILL]**
 - [#18b](#18b-attachments-on-send-needs-id-refs-not-bare-uid-strings) — Message `attachments` need `{id}` refs, not bare UIDs **[STILL]**
-- [#20](#20-delete-apioptionsuid-returns-200-ok-but-leaves-the-option-in-place) — `DELETE /api/options/{uid}` is a no-op **[FIXED v42+]**
-- [#24](#24-fresh-installs-built-in-tet-person--teas-first-namelast-name-collide-with-imports-sharing-those-names) — Built-in TET `Person` + TEAs collide with imports **[PARTIAL]**
-- [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login) — Admin OU scope cached per session **[PARTIAL]**
+- [#24](#24-fresh-installs-built-in-tet-person--teas-first-namelast-name-collide-with-imports-sharing-those-names) — Built-in TET `Person` + TEAs collide with imports sharing those names **[PARTIAL]**
+- [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login) — Admin organisation-unit scope is cached per session on v42 **[FIXED v41 + v43]**
+- [#34](#34-v43-categorycombocategorys-legacy-alias-dropped--wire-writes-silently-no-op-without-categories) — `CategoryCombo.categorys` alias dropped on every major; writes silently no-op **[STILL]**
+- [#38](#38-sharingobjectexternalaccess-dropped-from-the-wire-schema-writes-that-carry-it-answer-200-and-discard-it) — `SharingObject.externalAccess` withdrawn on every major; writes carrying it are discarded **[STILL]**
+- [#62](#62-tracker-occurredat-and-datetime-data-values-are-zone-less-local-timestamps-under-fields-typed-instant) — Tracker `occurredAt` and `DATETIME` data values are zone-less local timestamps **[STILL]**
+- [#63](#63-datasetdatasetelements-is-serialised-in-a-different-order-on-every-request) — `DataSet.dataSetElements` is serialised in a different order on every request **[STILL]**
 - [#65](#65-optioncode-is-required-while-its-sibling-categoryoptioncode-is-optional-and--counts-as-missing) — `Option.code` required, `CategoryOption.code` optional; `""` counts as missing **[STILL]**
 - [#66](#66-an-empty-string-code-is-silently-stored-as-absent-rather-than-kept-or-rejected) — Empty-string `code` silently stored as absent **[STILL]**
 - [#82](#82-post-apitypeuidtranslations-is-refused-with-e1004-only-identifiable-object-collections-can-be-removed-from) — `POST /api/<type>/{uid}/translations` refused with a message about removal **[STILL]**
-- [#83](#83-an-objects-translations-come-back-in-a-content-derived-order-that-discards-the-order-they-were-written-in) — An object's `translations` come back in a content-derived order, not the write order **[STILL]**
+- [#83](#83-an-objects-translations-come-back-in-a-content-derived-order-that-discards-the-order-they-were-written-in) — An object's `translations` come back in a content-derived order **[STILL]**
 - [#67](#67-get-apitrackereventsprogramstageuid-demands-program-even-though-the-stage-pins-it) — `programStage` events read demands `program`; HTML 400 **[STILL]**
 - [#68](#68-a-tracker-event-naming-a-non-existent-enrollment-is-reported-as-e1079-different-program-not-as-a-missing-enrollment) — Event naming a non-existent enrollment reported as `E1079` "different Program" **[STILL]**
-- [#69](#69-get-apitrackereventsprogramxorgunity-filters-by-the-enrollment-owners-org-unit-not-the-events-own-orgunit) — Events listing `orgUnit=` filters by enrollment owner's unit, not the event's own **[STILL]**
+- [#69](#69-get-apitrackereventsprogramxorgunity-filters-by-the-enrollment-owners-org-unit-not-the-events-own-orgunit) — Events listing `orgUnit=` filters by the enrollment owner's unit, not the event's own **[STILL]**
 - [#70](#70-events-import-into-a-completed-enrollment-with-no-error-or-warning) — Events import into a `COMPLETED` enrollment with no error or warning **[STILL]**
 - [#71](#71-an-events-trackedentity-is-silently-ignored-when-it-contradicts-the-enrollments-owner) — Event `trackedEntity` silently ignored when it contradicts the enrollment's owner **[STILL]**
-- [#72](#72-entity-scoped-get-with-a-program-the-entity-is-not-enrolled-in-answers-404-trackedentity-could-not-be-found) — Entity-scoped `GET` with an unenrolled program answers 404 "could not be found" **[STILL]**
-- [#73](#73-create_and_update-enrolling-an-existing-tracked-entity-silently-rewrites-the-entitys-owning-org-unit) — `CREATE_AND_UPDATE` enrolling an existing entity rewrites its owning org unit **[STILL]**
-- [#74](#74-unique-tracked-entity-attributes-are-not-searched-instance-wide-by-apitrackertrackedentities) — Unique attributes not searched instance-wide when org-unit scoped **[STILL]**
+- [#72](#72-entity-scoped-get-with-a-program-the-entity-is-not-enrolled-in-answers-404-trackedentity-could-not-be-found) — Entity-scoped `GET` with an unenrolled program answers 404 on v42/v43; v41 answers 200 **[FIXED v41]**
+- [#73](#73-create_and_update-enrolling-an-existing-tracked-entity-silently-rewrites-the-entitys-owning-org-unit) — `CREATE_AND_UPDATE` enrolling an existing entity rewrites its owning organisation unit **[STILL]**
+- [#74](#74-unique-tracked-entity-attributes-are-not-searched-instance-wide-by-apitrackertrackedentities) — Unique attributes not searched instance-wide when organisation-unit scoped **[STILL]**
 - [#75](#75-e1302-puts-the-value-type---or-nothing-at-all---where-the-data-element-identifier-belongs) — `E1302` names the value type, or nothing, where the data element belongs **[STILL]**
 - [#76](#76-v43-aggregate-conflicts-no-longer-name-the-offending-object-e8122-drops-object-and-property) — v43 aggregate conflicts drop `object`/`property`; the failing data element is unnamed **[STILL]**
 - [#77](#77-a-tracked-entity-is-filterable-by-a-unique-program-attribute-it-does-not-carry-in-attributes) — A tracked entity is filterable by a unique program attribute absent from `attributes[]` **[STILL]**
-- [#78](#78-dryruntrue-on-apidatavaluesets-still-persists-the-completeness-registration) — `dryRun=true` data value set import persists the completeness registration (2.42) **[PARTIAL]**
-- [#79](#79-completeness-registers-off-completedate-even-when-every-data-value-is-refused) — Completeness registers off `completeDate` even when every value is refused (2.42) **[PARTIAL]**
+- [#78](#78-dryruntrue-on-apidatavaluesets-still-persists-the-completeness-registration) — `dryRun=true` data value set import persists the completeness registration on v41 and v42 **[STILL]**
+- [#79](#79-completeness-registers-off-completedate-even-when-every-data-value-is-refused) — Completeness registers off `completeDate` even when every value is refused, on v41 and v42 **[STILL]**
 - [#80](#80-apicompletedatasetregistrations-has-no-component-schema-in-the-openapi-document) — `/api/completeDataSetRegistrations` has no component schema **[STILL]**
-- [#81](#81-first-completeness-registration-for-a-never-persisted-period-fails-with-an-opaque-failed-to-flush-batchhandler-the-identical-retry-succeeds) — First registration for a virgin period fails opaquely; the retry succeeds (2.43.1) **[STILL]**
+- [#81](#81-first-completeness-registration-for-a-never-persisted-period-fails-with-an-opaque-failed-to-flush-batchhandler-the-identical-retry-succeeds) — First registration for a virgin period fails opaquely on 2.43.1; the retry succeeds **[STILL]**
 - [#89](#89-includedeletedtrue-is-honoured-by-the-tracker-collection-endpoints-and-ignored-by-the-item-endpoints) — `includeDeleted=true` works on tracker collections, ignored on item endpoints **[STILL]**
 - [#90](#90-attribute-filtered-tracked-entity-search-drops-soft-deleted-entities-even-with-includedeletedtrue-while-uid-addressed-listing-returns-them) — attribute-filtered entity search drops soft-deleted rows even with `includeDeleted=true` **[STILL]**
-- [#91](#91-get-apitrackerevents-demands-program-unconditionally-on-v43-and-the-singular-enrollment-filter-is-silently-ignored-on-every-major) — events read demands `program` on v43 (HTML 400); singular `enrollment=` ignored everywhere **[STILL]**
+- [#91](#91-get-apitrackerevents-demands-program-unconditionally-on-v43-and-the-singular-enrollment-filter-is-silently-ignored-on-every-major) — events read demands `program` on v43 (HTML 400); singular `enrollment=` ignored everywhere **[PARTIAL]**
 - [#92](#92-apimetadata-import-rewrites-optionsortorder-to-a-0-based-sequence) — `/api/metadata` import rewrites `Option.sortOrder` to a 0-based sequence **[STILL]**
-- [#97](#97-get-apitrackertrackedentities-answers-409-e7145-column-reference-uid-is-ambiguous-when-ordered-by-trackedentity) — tracked-entity read ordered by `trackedEntity` answers 409 E7145 (ambiguous `uid`) on 2.43.1 **[STILL]**
-- [#98](#98-get-apitrackertrackedentities-silently-ignores-every-unrecognised-query-parameter-so-the-singular-trackedentity-turns-a-uid-scoped-read-into-an-unscoped-page) — `/api/tracker/trackedEntities` ignores unrecognised parameters; singular `trackedEntity=` returns a full page **[STILL]**
-- [#99](#99-put-apitrackerownershiptransfer-binds-orgunit-while-the-documentation-gives-ou-and-the-refusal-is-a-tomcat-html-page) — ownership transfer binds `orgUnit`; the documentation gives `ou`, and the refusal is a Tomcat HTML page **[STILL]**
+- [#97](#97-get-apitrackertrackedentities-answers-409-e7145-column-reference-uid-is-ambiguous-when-ordered-by-trackedentity) — tracked-entity read ordered by `trackedEntity` answers 409 E7145 on 2.43.1 **[STILL]**
+- [#98](#98-get-apitrackertrackedentities-silently-ignores-every-unrecognised-query-parameter-so-the-singular-trackedentity-turns-a-uid-scoped-read-into-an-unscoped-page) — `/api/tracker/trackedEntities` ignores unrecognised parameters; v41 declares and honours the singular **[PARTIAL]**
+- [#99](#99-put-apitrackerownershiptransfer-binds-a-different-organisation-unit-parameter-on-each-major-and-the-unbound-spelling-draws-a-tomcat-html-page) — ownership transfer binds a different organisation-unit parameter on each major **[INVERTED]**
 - [#101](#101-get-apisharing-reports-no-metaallowexternalaccess-so-no-caller-can-discover-whether-a-type-permits-external-access-at-all) — `GET /api/sharing` reports no `meta.allowExternalAccess` **[STILL]**
+- [#102](#102-apitrackerenrollments-and-apitrackerevents-accept-no-scope-but-program-and-the-second-refuses-in-html-while-the-first-refuses-in-json) — enrollments and events accept no scope but `program`, and events refuse in HTML **[STILL]**
 - [#104](#104-post-apimetadataimportstrategydelete-sorts-a-bundle-in-creation-order-so-a-type-and-the-attribute-it-collects-cannot-be-removed-in-one-post) — `DELETE` metadata import sorts in creation order; a type + its attribute cannot go in one post **[STILL]**
-- [#105](#105-a-soft-deleted-tracked-entity-blocks-deletion-of-its-tracked-entity-type-and-no-tracker-query-will-show-the-row-that-is-blocking-it) — a soft-deleted tracked entity blocks its type's deletion and no query will show it **[STILL]**
-- [#106](#106-get-apitrackertrackedentitiestrackedentitytype-answers-an-empty-page-for-a-type-no-accessible-program-tracks-however-many-entities-of-it-the-instance-holds) — a type no program tracks reads back as an empty register, silently **[STILL]**
+- [#105](#105-a-soft-deleted-tracked-entity-blocks-deletion-of-its-tracked-entity-type-and-no-tracker-query-will-show-the-row-that-is-blocking-it) — a soft-deleted tracked entity blocks its type's deletion and no query will show it **[PARTIAL]**
+- [#106](#106-get-apitrackertrackedentitiestrackedentitytype-answers-an-empty-page-for-a-type-no-accessible-program-tracks-however-many-entities-of-it-the-instance-holds) — a type no program tracks reads back as an empty register, silently **[PARTIAL]**
+- [#108](#108-nested-enrollmentsevents-come-back-in-an-order-that-is-neither-the-events-date-nor-its-creation-and-order-is-accepted-and-ignored) — nested `enrollments[events[...]]` come back in an unexplained order and `order=` is ignored **[STILL]**
 - [#109](#109-filtertrackedentityattributeeqvalue-on-apitrackertrackedentities-matches-without-regard-to-case-so-eq-is-not-equality) — a tracked entity attribute `filter=...:eq:...` ignores case, so `eq` is not exact **[STILL]**
-- [#110](#110-a-program-stage-can-exist-with-program-null) — a program stage can exist with `program: null`, so the flat stage count disagrees with the walk through programs **[PARTIAL]**
-- [#111](#111-metadata-name-fields-hold-pre-escaped-html-entities) — metadata `name` fields hold pre-escaped HTML entities (`&lt;`, `&gt;`) as stored text **[PARTIAL]**
-- [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike) — `atomicMode` on `POST /api/dataValueSets` has no effect: a partly invalid import commits the valid rows under `ALL` and `OBJECT` alike **[STILL]**
-- [#113](#113-the-tracker-reads-take-the-organisation-units-as-orgunits-on-apitrackertrackedentities-and-apitrackerenrollments-but-orgunit-on-apitrackerevents-drop-or-refuse-the-other-spelling-and-only-read-the-mode-from-orgunitmode) — the tracker reads take `orgUnits` on tracked entities and enrollments but `orgUnit` on events, drop or refuse the other spelling, and read the mode only from `orgUnitMode` **[STILL]**
-- [#115](#115-get-apitrackerenrollments-ordered-by-createdat-or-updatedat-answers-409-column-reference-created-is-ambiguous-on-2419x-and-2426) — `GET /api/tracker/enrollments` ordered by `createdAt` or `updatedAt` answers 409 `column reference "created" is ambiguous` on `2.41.9.x` and `2.42.6` **[STILL]**
-- [#116](#116-2426-get-apitrackertrackedentitiestrackedentitytypeincludedeletedtrue-fails-inside-dhis2s-sql-trailing-junk-after-numeric-literal) — `2.42.6`: `GET /api/tracker/trackedEntities?trackedEntityType=...&includeDeleted=true` fails inside DHIS2's SQL (`trailing junk after numeric literal`) **[STILL]**
+- [#110](#110-a-program-stage-can-exist-with-program-null) — a program stage can exist with `program: null` **[INCONCLUSIVE]**
+- [#111](#111-metadata-name-fields-store-comparison-characters-literally-and-serve-them-unescaped) — metadata `name` fields store comparison characters literally and serve them unescaped **[INVERTED]**
+- [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike) — `atomicMode` on `POST /api/dataValueSets` has no effect **[STILL]**
+- [#113](#113-the-tracker-reads-take-the-organisation-units-as-orgunits-on-apitrackertrackedentities-and-apitrackerenrollments-but-orgunit-on-apitrackerevents-drop-or-refuse-the-other-spelling-and-only-read-the-mode-from-orgunitmode) — the tracker reads take `orgUnits` on some endpoints and `orgUnit` on others **[PARTIAL]**
+- [#115](#115-get-apitrackerenrollments-ordered-by-createdat-or-updatedat-answers-409-column-reference-created-is-ambiguous-on-2419x-and-2426) — `/api/tracker/enrollments` ordered by `createdAt` answers 409 on v41 and v42 **[STILL]**
+- [#116](#116-2426-get-apitrackertrackedentitiestrackedentitytypeincludedeletedtrue-fails-inside-dhis2s-sql-trailing-junk-after-numeric-literal) — `2.42.6` fails a type-scoped tracked entity read with `includeDeleted=true` inside its SQL **[STILL]**
 - [#118](#118-delete-apimessageconversationsuid-answers-200-and-leaves-the-conversation-in-place) — `DELETE /api/messageConversations/{uid}` answers 200 and leaves the conversation in place **[STILL]**
-- [#119](#119-a-multi-type-post-apimetadataimportstrategydelete-answers-500-transaction-silently-rolled-back-naming-no-object) — a multi-type `POST /api/metadata?importStrategy=DELETE` answers 500 `Transaction silently rolled back`, naming no object **[STILL]**
+- [#119](#119-a-multi-type-post-apimetadataimportstrategydelete-answers-500-transaction-silently-rolled-back-naming-no-object) — a multi-type `POST /api/metadata?importStrategy=DELETE` answers 500, naming no object **[STILL]**
+- [#126](#126-post-apimaintenance-answers-success-to-any-query-flag-name-real-or-invented-while-the-path-form-refuses-an-unknown-name) — `/api/maintenance` answers success to any query flag name, real or invented **[STILL]**
+- [#127](#127-file-resources-cannot-be-deleted-through-the-api-so-an-orphaned-document-resource-is-permanent) — file resources cannot be deleted through the API **[STILL]**
 
 ### v43-specific
 
-- [#34](#34-v43-categorycombocategorys-legacy-alias-dropped--wire-writes-silently-no-op-without-categories) — `CategoryCombo.categorys` alias dropped; writes silently no-op **[STILL]**
-- [#35](#35-v43-post-apidatavaluesets-aborts-the-whole-chunk-when-a-de-belongs-to-multiple-datasets) — dataValueSets aborts whole chunk on DE-in-multiple-datasets **[STILL]**
+- [#35](#35-v43-post-apidatavaluesets-aborts-the-whole-chunk-when-a-de-belongs-to-multiple-datasets) — dataValueSets aborts the whole chunk when a data element belongs to several data sets **[STILL]**
 - [#36](#36-v43-building-event-analytics-for-an-event-program-with-2024-data-fails-with-column-yearly-does-not-exist) — Event analytics build fails with `column "yearly" does not exist` **[STILL]**
-- [#38](#38-sharingobjectexternalaccess-dropped-from-the-wire-schema-writes-that-carry-it-answer-200-and-discard-it) — `SharingObject.externalAccess` dropped from the wire schema; writes carrying it are discarded **[STILL]**
 - [#40](#40-v43-e1055-enrollment-error-message-says-categorycombo-but-actually-fires-on-enrollmentcategorycombo) — `E1055` names `categoryCombo` but fires on `enrollmentCategoryCombo` **[STILL]**
 - [#41](#41-v43-e8023--e8024-strict-cocaoc-matching-on-post-apidatavaluesets--forcetrue-doesnt-bypass) — Strict `E8023` / `E8024` COC/AOC matching on dataValueSets; `force=true` doesn't bypass **[STILL]**
-- [#49](#49-v43-datavaluefollowuprequestperiod-is-typed-as-an-object-but-the-wire-accepts-a-string) — v43 OAS types `DataValueFollowUpRequest.period` as an object; wire accepts a string **[PARTIAL]**
-- [#62](#62-tracker-occurredat-and-datetime-data-values-are-zone-less-local-timestamps-under-fields-typed-instant) — Tracker `occurredAt` and `DATETIME` data values are zone-less local timestamps **[STILL]**
-- [#63](#63-datasetdatasetelements-is-serialised-in-a-different-order-on-every-request) — `DataSet.dataSetElements` is serialised in a different order on every request **[STILL]**
+- [#49](#49-v43-datavaluefollowuprequestperiod-is-typed-as-an-object-but-the-wire-accepts-a-string) — v43 OAS types `DataValueFollowUpRequest.period` as an object; v41 and v42 type it as a string **[STILL]**
+- [#122](#122-the-openapi-documents-infoversion-reads-242-on-a-2431-server) — the OpenAPI document's `info.version` reads `2.42` on a 2.43.1 server **[STILL]**
+- [#124](#124-preheatidentifiercode-does-not-resolve-code-keyed-references-and-names-a-uid-that-appears-nowhere-in-the-payload) — `preheatIdentifier=CODE` does not resolve code-keyed references and names an absent UID **[STILL]**
 
 ### v41-specific
 
-- [#39](#39-v41-oauth2-client-wire-shape--cid-not-clientid--strict-array-typed-multi-valued-fields) — OAuth2 client wire: `cid` not `clientId`, strict arrays **[STILL]**
-- [#45](#45-v41-get-apiauthorities-returns-500) — v41 `GET /api/authorities` returns 500 **[PARTIAL]**
-- [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field): v41 serves `passwordLastUpdated` flat AND nested; v42/v43 only flat **[STILL]**
-- [#114](#114-v41-24191-a-map-layer-cannot-be-saved-with-its-references-through-the-api) — `2.41.9.1`: a map layer cannot be saved with its references through the API (`/api/metadata` 409, `POST /api/maps` discards them) **[STILL]**
+- [#39](#39-v41-oauth2-client-wire-shape--cid-not-clientid--strict-array-typed-multi-valued-fields) — OAuth2 client wire: `cid` not `clientId`, strict arrays, 36-character secret **[STILL]**
+- [#45](#45-v41-get-apiauthorities-returns-500) — `GET /api/authorities` returns 500 in the API-only container and 200 on the same revision on play **[PARTIAL]**
+- [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field) — v41 serves `passwordLastUpdated` flat AND nested; v42/v43 only flat **[STILL]**
+- [#114](#114-v41-24191-a-map-layer-cannot-be-saved-with-its-references-through-the-api) — a map layer cannot be saved with its references through `POST /api/maps` on any major **[PARTIAL]**
+- [#121](#121-put-apitrackerownershiptransfer-answers-200-ownership-transferred-on-v41-for-a-tracked-entity-program-or-organisation-unit-that-does-not-exist) — ownership transfer answers `200 "Ownership transferred"` for objects that do not exist **[STILL]**
+- [#123](#123-the-v41-openapi-document-keeps-api-in-servers0url-and-spells-every-path-key-unprefixed-and-path-is-either-ignored-or-silently-empty) — the v41 OpenAPI document keeps `/api` in `servers[0].url`, and `?path=` is ignored or silently empty **[STILL]**
+
+### HL7 IG publisher
+
+- [#103](#103-the-ig-publisher-writes-a-resources-title--text--display-into-its-final-markdown-pass-without-escaping--and-dies-re-parsing-the-page-it-just-wrote) — the IG publisher dies re-parsing a page whose `<` it wrote unescaped **[NOT RETESTED]**
+- [#107](#107-the-ig-publishers-concept-anchor-slug-strips-whitespace-so-two-distinct-codes-render-one-duplicate-anchor-id) — the IG publisher's concept anchor slug strips whitespace, colliding two codes **[NOT RETESTED]**
+
+## OpenAPI document (v41 / v42 / v43)
+
+Every entry in this file that makes a claim about `/api/openapi/openapi.json` was re-checked on
+2026-09-10/11 against the **live** document of three pinned releases: `2.41.10` revision `1a3484f`
+(build `2026-09-08T07:37:45.000`), `2.42.6` revision `dd8bdbb` (build `2026-08-26T14:23:02.000`) and
+`2.43.1` revision `9cbfbf3` (build `2026-08-03T13:25:31.000`), each read from a stock
+`dhis2/core` container with `admin:district`. On each server both document URLs —
+`/api/openapi/openapi.json` and `/api/openapi.json` — answer 200 and are byte-identical (same size,
+same md5, same sha256), so either is fine in a repro. Every pointer below is written in its own
+major's spelling, because **v41 keys its paths without the `/api` prefix** (#123).
+
+### Document facts
+
+| fact | `2.41.10` (rev `1a3484f`) | `2.42.6` (rev `dd8bdbb`) | `2.43.1` (rev `9cbfbf3`) |
+| --- | --- | --- | --- |
+| `openapi` / `info.title` | `3.0.0` / `DHIS2 API` | `3.0.0` / `DHIS2 API` | `3.0.0` / `DHIS2 API` |
+| `info.version` | `2.41` | `2.42` | `2.42` — a 2.43.1 server labelling its document `2.42` (#122) |
+| `paths` | 1902 | 1775 | 1780 |
+| `components.schemas` | 594 | 931 | 925 |
+| `servers[0].url` | `http://localhost:8080/api` | `http://localhost:8080/` | `http://localhost:8080/` |
+| path-key prefix | none — `/dataValues/`, `/tracker/events/` | `/api` — `/api/dataValues/` | `/api` — `/api/dataValues/` |
+| `tags` | 13, all named and described (`analytics`, `data`, `integration`, `login`, `management`, `messaging`, `metadata`, `query`, `synthetic`, `system`, `tracker`, `ui`, `user`) | no `tags` key at all | `tags: []` |
+| Spring/JDK-internal schema names | 12 of the 594: `ApplicationContext`, `AutowireCapableBeanFactory`, `BeanFactory`, `Environment`, `File`, `GrantedAuthority`, `InputStream`, `InputStreamResource`, `JsonObject`, `JsonTypedAccessStore`, `JsonValue`, `RedirectView` — entering through two API-surface properties, `Notification.value` (`JsonValue`) and `RedirectView.applicationContext` (`ApplicationContext`); nine of them are placeholders carrying `"The actual type is unknown. (Java type was: …)"` | not observed | not observed |
+| document size | 9 704 603 bytes | 7 211 107 bytes | 6 938 836 bytes |
+
+v41's document is the largest of the three on the fewest schemas, because it inlines shapes the
+later majors hoist into named components — which is also why several entries below land on a
+different schema name, or on no name at all, when read on v41.
+
+### Findings
+
+`n/a` means the entry's premise does not exist on that major (a schema that is absent, a route that
+is not mounted, or the correct side of a per-major split).
+
+| n | v41 | v42 | v43 | what the document says | what the server does | pointer |
+| --- | --- | --- | --- | --- | --- | --- |
+| 13 | STILL | STILL | STILL | `algorithm` accepts `MOD_Z_SCORE` | `algorithm=MOD_Z_SCORE` answers `400 "Valid values are: [Z_SCORE, MIN_MAX, MODIFIED_Z_SCORE]"`; `MODIFIED_Z_SCORE` answers 200 | v42/v43 `#/components/schemas/OutlierDetectionAlgorithm/enum`; v41 has no such schema and inlines the enum at `#/components/schemas/OutlierDetectionMetadata/properties/algorithm` |
+| 14 | PARTIAL | STILL | STILL | a `oneOf` of auth schemes with no `discriminator`; on v42/v43 no variant declares a wire tag either | accepts and stores `{"type":"http-basic","username":…,"password":…}` | `#/components/schemas/Route/properties/auth`, `#/components/schemas/HttpBasicAuthScheme` — v41 declares `type` on all four variants and has no `OAuth2ClientCredentialsAuthScheme`; v42/v43 declare five variants and no `type` on any |
+| 15 | PARTIAL | STILL | STILL | `jobParameters` is a bare `oneOf` (23 variants on v41 and v42, 22 on v43) with no `discriminator`; `WebMessage.response` is a bare `oneOf` of 17 on v42/v43 and the bare `{"type":"object"}` on v41 | the wire carries one concrete shape per job type and per response | `#/components/schemas/JobConfiguration/properties/jobParameters`, `#/components/schemas/WebMessage/properties/response` |
+| 28 | STILL | STILL | STILL | 45 separate boolean properties, no singular `RelativePeriod` schema | a caller names one relative period | `#/components/schemas/RelativePeriods/properties`; `Visualization.relativePeriods`, `EventVisualization.relativePeriods` and (v41/v42) `MapView.relativePeriods` all `$ref` the bag |
+| 39 | STILL | n/a | n/a | `OAuth2Client.cid` is a string, `grantTypes` and `redirectUris` are arrays, and there is no `clientId` | the wire requires exactly that, and refuses `clientId` with `409 E4000 "Missing required property \`cid\`"` | `#/components/schemas/OAuth2Client` |
+| 42 | STILL | STILL | STILL | the display-property enum is `["NAME","SHORTNAME"]` | `GET /api/systemSettings` returns `"name"` | v42/v43 `#/components/schemas/DisplayProperty/enum`, `$ref`ed from `SystemSettings.keyAnalysisDisplayProperty`; v41 has neither `DisplayProperty` nor `SystemSettings` and lands the same enum on `#/components/schemas/UserSettings/properties/analysisDisplayProperty` |
+| 49 | n/a | n/a | STILL | v43 types the follow-up period as an inline object; v41 and v42 type it `{"type":"string","format":"period"}` | the wire accepts the ISO period string on every major | `#/components/schemas/DataValueFollowUpRequest/properties/period`; no `DataValueFollowUpRequestPeriod` component exists on any major |
+| 50 | STILL | STILL | STILL | parameters are `["cc","co","comment","cp","de","ds","followUp","force","ou","pe","value"]`, with nothing named `attributeOptionCombo` or `aoc` | the attribute option combo is addressable only through `cc` + `cp`; `attributeOptionCombo=` is ignored and the value lands on the default combo | v43 `#/paths/~1api~1dataValues~1/post/parameters`; v42 `#/paths/~1api~1dataValues~1%23saveDataValue/post/parameters`; v41 `#/paths/~1dataValues~1%23saveDataValue/post/parameters` (its plain `/dataValues/` `post` declares zero parameters) |
+| 51 | STILL | STILL | STILL | `expire` is an optional `{"type":"integer","format":"int64"}`; `required` is `["type"]` | `/api/schemas/apiToken` reports the same field `"required": true`, and a token posted without it is refused 409 | `#/components/schemas/ApiToken/required` |
+| 52 | STILL | STILL | STILL | two different schemas for one resource: `OAuth2Client` (v41, `cid`, array-typed) and `Dhis2OAuth2Client` (v42/v43, `clientId`, every multi-valued field `{"type":"string"}`); neither major declares the other | each wire matches its own major (#117) | v41 `#/components/schemas/OAuth2Client`; v42/v43 `#/components/schemas/Dhis2OAuth2Client` |
+| 80 | STILL | STILL | STILL | `post` carries no `requestBody`, and no schema name contains `CompleteDataSetRegistration` | the endpoint takes a registration payload with `dataSet`, `period`, `organisationUnit`, `attributeOptionCombo`, `date`, `storedBy`, `completed` | v42/v43 `#/paths/~1api~1completeDataSetRegistrations~1/post/requestBody`; v41 `#/paths/~1completeDataSetRegistrations~1/post/requestBody` (v41 carries only `CompleteStatusDto`, v42 also `CompletenessMethod`, v43 also `DataSetCompletionDto`, which belongs to another route) |
+| 91 | PARTIAL | PARTIAL | STILL | 40 parameters declared on v41 and 42 on v42/v43, **none** marked `required`; `enrollments` is declared and the singular `enrollment` is not | v43 refuses every request without `program` with a Tomcat `400 text/html`; v41 and v42 answer `200 application/json`. On all three, `enrollment=` is accepted and ignored — 200 events across 102 enrollments against 2 for `enrollments=` | v42/v43 `#/paths/~1api~1tracker~1events~1/get/parameters`; v41 `#/paths/~1tracker~1events~1/get/parameters` |
+| 94 | n/a | n/a | STILL | v43 types `ProgramRule.program` as `IdentifiableObject` and `programRuleActions.items` as `BaseIdentifiableObject`, and the two components genuinely differ; v42 uses `BaseIdentifiableObject` on both sides; v41 inlines an anonymous `{id}` object on both | the wire carries `{"program":{"id":"IpHINAT79UW"},"programRuleActions":[{"id":"v434s5YPDcP"}]}` on every major | `#/components/schemas/ProgramRule/properties/program` against `…/properties/programRuleActions/items` |
+| 95 | n/a | n/a | INCONCLUSIVE | every reachable instance types `aggregationType` as the shared aggregation enum (`$ref: AggregationType` on v42/v43, inlined on v41) | `/api/schemas/categoryOption` reports `propertyType: CONSTANT` with 21 constants on all three, identical to `dataElement`; the `BOOLEAN` reading needs `dhis2/core:2.43.1.0` on an empty Flyway-bootstrapped database and could not be staged on a seeded stack | `#/components/schemas/CategoryOption/properties/aggregationType` |
+| 98 | INVERTED | PARTIAL | PARTIAL | all three declare 37 parameters, 30 of them as `TrackedEntityRequestParams.*` `$ref`s; v41 additionally declares the **singular** `TrackedEntityRequestParams.trackedEntity`, which v42 and v43 do not | v41 honours the singular (1 entity where v42/v43 return the whole 50-row page); on every major an invented `totallyBogusParam=` is swallowed and returns the whole page | v42/v43 `#/paths/~1api~1tracker~1trackedEntities~1/get/parameters`; v41 `#/paths/~1tracker~1trackedEntities~1/get/parameters` |
+| 99 | INVERTED | FIXED | STILL | v41 declares `[["ou",true],["program",true],["trackedEntity",false],["trackedEntityInstance",false]]`, v42 `[["orgUnit",null],["ou",null],["program",true],["trackedEntity",true]]`, v43 `[["orgUnit",true],["program",true],["trackedEntity",true]]`; every one declares `application/json` for its `400` | each binder matches its own document, so the spelling that binds differs per major; on v41 and v43 the other spelling draws a Tomcat `400 text/html`, a body shape no document mentions | v42/v43 `#/paths/~1api~1tracker~1ownership~1transfer/put/parameters`; v41 `#/paths/~1tracker~1ownership~1transfer/put/parameters` |
+| 100 | STILL | STILL | STILL | `put <Type>.setSharing` routes with responses `["204","403","404"]` for types whose `/api/schemas` entry says `shareable: false` — 24 of 80 routed writes on v41 and v42, 23 of 79 on v43 | `GET /api/sharing?type=organisationUnit` answers `409 "Type organisationUnit is not supported."` and the routed `PUT` answers `409 E3016 "Data sharing is not enabled for this object"` for every access string | v42/v43 `#/paths/~1api~1organisationUnits~1{uid}~1sharing/put`; v41 `#/paths/~1organisationUnits~1{uid}~1sharing/put` |
+| 122 | n/a | n/a | STILL | `info.version` is `2.42` | the server is `2.43.1`; `/api/system/info` is the only surface that says so | `#/info/version` |
+| 123 | STILL | n/a | n/a | v41 puts `/api` in `servers[0].url` and spells every path key unprefixed; v42 and v43 put it in the path keys | `?path=/api/routes` on v41 answers a well-formed **empty** document (891 bytes) with 200 and no diagnostic, while `?path=/routes` is ignored and returns all 1902 paths; `?path=` is ignored on v42 as well | `#/servers/0/url` against the `#/paths` keys |
+
+### Repros
+
+Each block is paste-able against a stock container. `$U` is the instance base URL and
+`admin:district` the stock credentials.
+
+**13 — the outlier algorithm enum**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.OutlierDetectionAlgorithm.enum'
+# 2.42.6 / 2.43.1 -> ["Z_SCORE","MIN_MAX","MOD_Z_SCORE","INVALID_NUMERIC"]
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.OutlierDetectionMetadata.properties.algorithm'
+# 2.41.10 -> {"type":"string","enum":["Z_SCORE","MIN_MAX","MOD_Z_SCORE","INVALID_NUMERIC"]}
+curl -su admin:district "$U/api/outlierDetection?algorithm=MOD_Z_SCORE&ds=BfMAe6Itzgt&startDate=2024-01-01&endDate=2024-12-31"
+# -> 400 "Value 'MOD_Z_SCORE' is not valid for parameter algorithm. Valid values are: [Z_SCORE, MIN_MAX, MODIFIED_Z_SCORE]"
+```
+
+On v42 the long name is already in the same document, in the sibling `OutlierMethod` enum
+(`["IQR","STANDARD_Z_SCORE","MODIFIED_Z_SCORE"]`); v41 has no such sibling.
+
+**14 — `Route.auth` and the auth-scheme variants**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas|.Route.properties.auth,.HttpBasicAuthScheme'
+# all three -> {"oneOf":[ … ]}                       the only key is `oneOf`
+# 2.41.10   -> {"type":"object","required":["password","username"],
+#               "properties":{"password":{…},"type":{"type":"string"},"username":{…}}}
+# 2.42.6 / 2.43.1 -> the same schema with no `type` property
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '[.components.schemas.Route.properties.auth.oneOf[]["$ref"]]'
+# 2.41.10 -> 4 variants; 2.42.6 / 2.43.1 -> 5 (the extra one is OAuth2ClientCredentialsAuthScheme,
+#            which omits `scopes`)
+```
+
+`RouteParams.auth` and `WebhookTarget.auth` carry no `discriminator` either, on every major.
+
+**15 — `jobParameters` and `WebMessage.response`**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.components.schemas|(.JobConfiguration.properties.jobParameters|keys,(.oneOf|length)),.WebMessage.properties.response]'
+# 2.41.10 -> [["oneOf"],23,{"type":"object"}]        WebMessage.response is not a oneOf at all
+# 2.42.6  -> [["oneOf"],23,{"oneOf":[ …17… ]}]
+# 2.43.1  -> [["oneOf"],22,{"oneOf":[ …17… ]}]
+```
+
+`ImportOptions` appears twice in the v41 `jobParameters` list.
+
+**28 — `RelativePeriods`**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.components.schemas.RelativePeriods.properties|[length,(map(.type)|unique)]'
+# all three -> [45,["boolean"]]
+curl -su admin:district $U/api/openapi/openapi.json | jq '.components.schemas|has("RelativePeriod")'
+# all three -> false
+```
+
+**39 — the v41 OAuth2 client shape**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.OAuth2Client.properties|{cid,grantTypes,redirectUris}'
+# 2.41.10 -> {"cid":{"type":"string"},
+#             "grantTypes":{"type":"array","items":{"type":"string"}},
+#             "redirectUris":{"type":"array","items":{"type":"string"}}}
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.OAuth2Client|has("required")'
+# 2.41.10 -> false        while the wire refuses a body without `cid` with 409 E4000
+```
+
+The full v41 property list is `access, attributeValues, cid, code, created, createdBy, displayName,
+favorite, favorites, grantTypes, href, id, lastUpdated, lastUpdatedBy, name, redirectUris, secret,
+sharing, translations, user` — no `clientAuthenticationMethods`, no `scopes`.
+
+**42 — the display-property enum**
+
+```bash
+curl -su admin:district $U/api/systemSettings | jq .keyAnalysisDisplayProperty
+# all three -> "name"
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas|has("DisplayProperty"),has("SystemSettings")'
+# 2.42.6 / 2.43.1 -> true true     (DisplayProperty is ["NAME","SHORTNAME"])
+# 2.41.10         -> false false
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.UserSettings.properties.analysisDisplayProperty'
+# 2.41.10 -> {"type":"string","enum":["NAME","SHORTNAME"]}
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.paths."/systemSettings/".get.responses."200".content'
+# 2.41.10 -> a free map: {"type":"object","additionalProperties":{"oneOf":[string,number,boolean]}}
+```
+
+**49 — the follow-up request's period**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.components.schemas|.DataValueFollowUpRequest.properties.period,has("DataValueFollowUpRequestPeriod")'
+# 2.41.10 / 2.42.6 -> {"type":"string","format":"period"}  false
+# 2.43.1           -> {"type":"object","properties":{"id":{"type":"string","format":"period"}}}  false
+```
+
+**50 — no attribute option combo parameter on `/api/dataValues`**
+
+```bash
+# v43:
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '[.paths."/api/dataValues/".post.parameters[].name]'
+# v42:
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '[.paths."/api/dataValues/#saveDataValue".post.parameters[].name]'
+# v41:
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '[.paths."/dataValues/#saveDataValue".post.parameters[].name]'
+# all three -> ["cc","co","comment","cp","de","ds","followUp","force","ou","pe","value"]
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '[.components.parameters|keys[]|select(test("DataValueQueryParams"))]'
+# all three -> DataValueQueryParams.{cc,co,cp,de,ou,pe}
+```
+
+**51 — `ApiToken.expire`**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas.ApiToken|.required,.properties.expire'
+# all three -> ["type"]  {"type":"integer","format":"int64"}
+curl -su admin:district $U/api/schemas/apiToken.json | jq -c '.properties[]|select(.name=="expire")|{required,propertyType}'
+# all three -> {"required":true,"propertyType":"NUMBER"}
+```
+
+**52 — two schemas for one OAuth2 client resource**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.components.schemas|has("OAuth2Client"),has("Dhis2OAuth2Client")'
+# 2.41.10         -> true false
+# 2.42.6 / 2.43.1 -> false true
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.components.schemas.Dhis2OAuth2Client.properties|{clientId,authorizationGrantTypes,redirectUris}'
+# 2.42.6 / 2.43.1 -> every one {"type":"string"}
+```
+
+**80 — `/api/completeDataSetRegistrations` has no request body**
+
+```bash
+# v42/v43:
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '(.paths."/api/completeDataSetRegistrations/".post|has("requestBody")),[.components.schemas|keys[]|select(test("teDataSetReg"))]'
+# v41:
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '(.paths."/completeDataSetRegistrations/".post|has("requestBody")),[.components.schemas|keys[]|select(test("teDataSetReg"))]'
+# all three -> false []
+```
+
+**91 — `/api/tracker/events` parameters and the `program` demand**
+
+```bash
+curl -so/dev/null -w '%{http_code} %{content_type}\n' -su admin:district $U/api/tracker/events
+# 2.41.10 / 2.42.6 -> 200 application/json
+# 2.43.1           -> 400 text/html      (Tomcat: Required parameter 'program' is not present.)
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/api/tracker/events/".get.parameters[]|.name//.["$ref"]]|length'   # v42/v43 -> 42
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/tracker/events/".get.parameters[]|.required]|unique'              # v41 -> [null]
+for q in enrollment enrollments; do
+  curl -sgu admin:district "$U/api/tracker/events?program=IpHINAT79UW&$q=GIsJb4sB2XH&pageSize=200&fields=event" \
+    | jq "\"$q \"+(.events|length|tostring)"
+done
+# all three -> "enrollment 200"   "enrollments 2"
+```
+
+**94 — one `{id}` shape under two component names**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.components.schemas.ProgramRule.properties|{p:(.program["$ref"]//"inline"),a:(.programRuleActions.items["$ref"]//"inline")}'
+# 2.41.10 -> {"p":"inline","a":"inline"}
+# 2.42.6  -> both "#/components/schemas/BaseIdentifiableObject"
+# 2.43.1  -> {"p":".../IdentifiableObject","a":".../BaseIdentifiableObject"}
+```
+
+**95 — `categoryOption.aggregationType`**
+
+```bash
+curl -su admin:district $U/api/schemas/categoryOption.json \
+  | jq -c '.properties[]|select(.name=="aggregationType")|{propertyType,n:(.constants|length)}'
+# all three, every reachable instance -> {"propertyType":"CONSTANT","n":21}
+```
+
+The `BOOLEAN` reading needs `dhis2/core:2.43.1.0` booted against an **empty** database, before any
+metadata import.
+
+**98 — declared parameters on `/api/tracker/trackedEntities`**
+
+```bash
+# v42/v43:
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/api/tracker/trackedEntities/".get.parameters[]|.name//.["$ref"]|select(test("trackedEntit"))]'
+# v41:
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/tracker/trackedEntities/".get.parameters[]|.name//.["$ref"]|select(test("trackedEntit"))]'
+# 2.41.10 declares TrackedEntityRequestParams.trackedEntity (singular); v42/v43 do not
+curl -sgu admin:district "$U/api/tracker/trackedEntities?program=IpHINAT79UW&ouMode=ACCESSIBLE&trackedEntity=w9wDBv99aRt&fields=trackedEntity" | jq '.trackedEntities|length'
+# 2.41.10 -> 1 ;  2.42.6 / 2.43.1 -> 50
+curl -sgu admin:district "$U/api/tracker/trackedEntities?program=IpHINAT79UW&ouMode=ACCESSIBLE&totallyBogusParam=x&fields=trackedEntity" | jq '.trackedEntities|length'
+# all three -> 50
+```
+
+**99 — the ownership-transfer parameter**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/api/tracker/ownership/transfer".put.parameters[]|[.name,.required]]'   # v42/v43
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '[.paths."/tracker/ownership/transfer".put.parameters[]|[.name,.required]]'       # v41
+# 2.41.10 -> [["ou",true],["program",true],["trackedEntity",false],["trackedEntityInstance",false]]
+# 2.42.6  -> [["orgUnit",null],["ou",null],["program",true],["trackedEntity",true]]
+# 2.43.1  -> [["orgUnit",true],["program",true],["trackedEntity",true]]
+Q='trackedEntity=aaaaaaaaaaa&program=bbbbbbbbbbb'
+curl -so/dev/null -w '%{http_code} %{content_type}\n' -su admin:district -XPUT "$U/api/tracker/ownership/transfer?$Q&ou=ccccccccccc"
+curl -so/dev/null -w '%{http_code} %{content_type}\n' -su admin:district -XPUT "$U/api/tracker/ownership/transfer?$Q&orgUnit=ccccccccccc"
+# 2.43.1  -> ou: 400 text/html   orgUnit: 404 application/json
+# 2.41.10 -> ou: 200 application/json (#121)   orgUnit: 400 text/html
+# 2.42.6  -> both 404 application/json
+```
+
+**100 — sharing writes routed for non-shareable types**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.paths."/api/organisationUnits/{uid}/sharing".put|{operationId,r:(.responses|keys)}'   # v42/v43
+curl -su admin:district $U/api/openapi/openapi.json \
+  | jq -c '.paths."/organisationUnits/{uid}/sharing".put|{operationId,r:(.responses|keys)}'       # v41
+# all three -> {"operationId":"OrganisationUnit.setSharing","r":["204","403","404"]}
+curl -su admin:district $U/api/schemas/organisationUnit.json | jq .shareable          # all three -> false
+curl -su admin:district "$U/api/sharing?type=organisationUnit&id=ImspTQPwCqd"
+# all three -> 409 "Type organisationUnit is not supported."
+curl -su admin:district -XPUT -H 'Content-Type: application/json' \
+  "$U/api/organisationUnits/ImspTQPwCqd/sharing" -d '{"object":{"publicAccess":"--------"}}'
+# all three -> 409 E3016 "Data sharing is not enabled for this object"
+```
+
+Five of the routed plurals — `apiTokens`, `dimensions`, `identifiableObjects`, `messages`, `sms` —
+have no `/api/schemas` entry at all, so for those there is not even a `shareable` flag to check the
+route against.
+
+**122 / 123 — document identity and path-key spelling**
+
+```bash
+curl -su admin:district $U/api/openapi/openapi.json | jq -c '.info, .servers, (.paths|keys|.[0:2])'
+# 2.41.10 -> {"title":"DHIS2 API","version":"2.41"}  [{"url":"http://localhost:8080/api"}]
+#            ["/32/tracker/trackedEntities/{uid}","/access"]
+# 2.42.6  -> {"title":"DHIS2 API","version":"2.42"}  [{"url":"http://localhost:8080/"}]  ["/api/access", …]
+# 2.43.1  -> {"title":"DHIS2 API","version":"2.42"}  [{"url":"http://localhost:8080/"}]  ["/api/access", …]
+curl -su admin:district $U/api/system/info | jq -c '{version,revision}'
+# 2.43.1 -> {"version":"2.43.1","revision":"9cbfbf3"}
+
+curl -su admin:district "$U/api/openapi/openapi.json?path=/api/routes" | wc -c     # 2.41.10 -> 891 (empty, 200)
+curl -su admin:district "$U/api/openapi/openapi.json?path=/routes" | jq '.paths|length'          # 2.41.10 -> 1902
+curl -su admin:district "$U/api/openapi/openapi.json?path=/api/messageConversations" | jq '.paths|length'  # 2.42.6 -> 1775
+```
+
+### Root causes as far as they are visible from outside
+
+- **#14 and #15 are one generator gap.** springdoc is not projecting Jackson `@JsonTypeInfo` /
+  `@JsonSubTypes` into OpenAPI `discriminator` syntax, so every polymorphic property emits a bare
+  `oneOf`. The same absence shows on `Route.auth`, `RouteParams.auth`, `WebhookTarget.auth`,
+  `JobConfiguration.jobParameters` and `WebMessage.response`. One generator fix closes both entries
+  and all five properties. The `type` property that v41's auth schemes carry and v42/v43's do not is
+  a second, separate loss in the same area, and it runs forward in version order.
+- **#91, #98 and #99 are one binding gap.** Tracker query parameters are bound by Spring
+  `@RequestParam` binding that neither refuses an unknown name nor produces a DHIS2 `WebMessage` for
+  a missing required one. That yields all three symptoms at once: unknown names swallowed silently
+  (`totallyBogusParam`, the singular `enrollment=`), `required` flags in the document that do not
+  match what the binder enforces (42 parameters declared, none required, while the server refuses
+  every request without `program`), and a `MissingServletRequestParameterException` escaping the
+  handler chain so the servlet container writes an HTML page where the document promises
+  `application/json`. The per-major parameter names on the ownership endpoint are the same gap seen
+  from the naming side.
+- **The `/api` prefix moved between 2.41 and 2.42** — out of `servers[0].url` and into the path keys
+  — with nothing in the document announcing it, which is what makes a pointer written for one major
+  miss on another (#123).
+- **`info.version` is a constant, not a build fact.** A 2.43.1 server emits the same string a 2.42.6
+  server does (#122), so nothing in the document identifies the build that produced it; there is no
+  patch level in `info` on any major either.
 
 ## Retest log
 
@@ -174,6 +523,175 @@ Each entry's "Retested on" line records the exact version + revision the
 re-run hit, what was checked, and the outcome. Entries that need write
 access, custom `dhis.conf`, or a server restart are marked **not retested
 against play** — verify locally when a v43 e2e dump exists.
+
+### 2026-09-10/11 — full sweep (local `2.41.10.0` / `2.42.6.0` / `2.43.1.0` + play stable and dev channels)
+
+Every entry, three majors, one major at a time on its rebuilt seed dump (`make dhis2-build-e2e-dump`
+from an empty database). Each major ran the automated verifiers first
+(`pytest -m slow packages/dhis2w-client/tests/test_upstream_bugs.py`, `d2w doctor bugs`), then the
+manual repros in batches by setup class — write, tracker, metadata, fixture-dependent reads, scoped
+users, and a read-only batch that also covered that major's two play channels — then a dedicated
+OpenAPI audit of the live `/api/openapi/openapi.json`, and last the `dhis.conf` cycles, which need
+restarts and so run alone. Config variants were generated **outside** the repository and mounted
+through `DHIS2_CONF`, so no tracked file was edited; `systemId` was re-read at the start and the end
+of every major's cycles and never changed, so no database was reset mid-sweep. The v41 leg ran after
+its pin moved from `2.41.9.1` to `2.41.10.0`, with the v41 codegen tree regenerated and the seed
+dump rebuilt against the new image. Raw evidence stayed in the session scratchpad; the per-entry
+`**Status (2026-09-11)**` paragraphs carry what matters.
+
+Targets:
+
+| target | version | revision | build |
+| --- | --- | --- | --- |
+| local v41, `dhis2/core:2.41.10.0` | `2.41.10` | `1a3484f` | 2026-09-08T07:37:45.000 |
+| local v42, `dhis2/core:2.42.6.0` | `2.42.6` | `dd8bdbb` | 2026-08-26T14:23:02.000 |
+| local v43, `dhis2/core:2.43.1.0` | `2.43.1` | `9cbfbf3` | 2026-08-03T13:25:31.000 |
+| `play.im.dhis2.org/stable-2-41-10` | `2.41.10` | `1a3484f` | 2026-09-08T07:37:45.000 |
+| `play.im.dhis2.org/stable-2-42-6` | `2.42.6` | `dd8bdbb` | 2026-08-26T14:23:02.000 |
+| `play.im.dhis2.org/stable-2-43-1` | `2.43.1` | `9cbfbf3` | 2026-08-03T13:25:31.000 |
+| `play.im.dhis2.org/dev-2-41` | `2.41.11-SNAPSHOT` | `a7ae83f` | 2026-09-10T01:41:19.000 |
+| `play.im.dhis2.org/dev-2-42` | `2.42.7-SNAPSHOT` | `9ac7446` | 2026-09-10T09:38:38.000 |
+| `play.im.dhis2.org/dev-2-43` | `2.43.2-SNAPSHOT` | `a7919c8` | 2026-09-10T00:53:41.000 |
+
+Each play stable channel runs the same release **and the same revision** as its local stack, so a
+read-only verdict there is a verdict on the pinned release — which is exactly what makes #45
+decisive, since the same revision answers 500 locally and 200 on play.
+
+**Removed from the file (fixed on every supported major):** **#20** (`DELETE /api/options/{uid}` is a
+no-op) — the delete answers 200 and the option is gone on `2.41.10`, `2.42.6` and `2.43.1` alike:
+`GET` then answers `404`, `filter=code:eq:...` answers `total: 0`, and the owning set's `options` is
+`[]`. The v41 carve-out was the last thing holding the entry, and `2.41.10` closed it; the orphan
+half (`PUT /api/optionSets/{uid}` with the option omitted only unlinks it) is recorded in
+`option_sets.py`'s own comment rather than as an upstream defect. **#43** (`mapView` absent from
+`/api/schemas`) — `2.41.10` lists 124 schemas including `mapView`, and `GET
+/api/schemas/mapView.json` answers 200 on the local stack, on `stable-2-41-10` and on `dev-2-41`,
+which is the entry's own resolution criterion; `2.42.6` and `2.43.1` have listed it since 2026-09.
+`MapView` stays hand-written in all three `maps.py` trees so one layer shape spans the majors
+whatever a release's `/api/schemas` inventory holds, which each module's docstring now says in its
+own words.
+
+**New entries:** #120 (`server.base.url` logged as invalid for a value the message's own rule
+allows, and a slashed `iss` against an unslashed `issuer_uri`), #121 (v41 ownership transfer answers
+`200 "Ownership transferred"` for objects that do not exist), #122 (the OpenAPI document's
+`info.version` reads `2.42` on a 2.43.1 server), #123 (v41 keeps `/api` in `servers[0].url`, and
+`?path=` is ignored or silently empty), #124 (`preheatIdentifier=CODE` does not resolve `{"code":
+...}` references and names an absent UID), #125 (a top-level `dataSet` key makes later imports
+answer `E7644` with a null period, and a new data set is invisible to the open-periods check for
+about two minutes), #126 (`/api/maintenance` answers success to any query flag name), #127 (file
+resources cannot be deleted through the API).
+
+Smaller observations were folded into the entries they belong to rather than numbered: the `E4001`
+missing-space message into #117, the 36-character `OAuth2Client.secret` range into #39,
+`/api/audits/trackedEntityDataValue` answering 200 on v41 into #53, the refused
+`attributeValues.attribute.id:!null` into #21, v41's `errorCode`-less `409 "Key is not supported"`
+into #10, the five routed sharing plurals with no `/api/schemas` entry into #100, `order=notAField`
+being accepted into #108, and the v41 map importer emptying a layer's references when
+`columns` / `rows` / `filters` are explicit into #114.
+
+**Flips and sharpenings:**
+
+| # | finding |
+| --- | --- |
+| 4 | The minimal block is no longer fatal on `2.42.6` or `2.43.1`: it boots with zero `ERROR` lines, no `UnsatisfiedDependencyException`, `/api/me` 200 and the whole authorization server mounted. The refusal that remains names the default mapping claim: `Found no matching DHIS2 user for the mapping claim: 'username' with the value: 'null'`. Not applicable on `2.41.10`, which mounts no authorization server at all. |
+| 4b | Not applicable on `2.41.10`: there is no 401 to inspect — every form of `/oauth2/token` answers `302` to the login page with an empty body, identical with the server on and off. On v42/v43 unchanged, with `/.well-known/openid-configuration` (302 off, 200 on) making the state detectable. |
+| 4c | Inverted, and the entry is rewritten around it. On v42 and v43 the refresh token survives a restart and the access token does not, so "refresh tokens are permanently dead" holds nowhere; `2.41.10` has no embedded keystore at all, mints a one-segment opaque token that survives five container recreates, and issues no refresh token to rotate. |
+| 4h | Inverted on `2.42.6` and `2.43.1`, and the entry is rewritten around it: `openId` set to the JWT's `sub`, cleared, and restored all give byte-identical `Invalid mapping claim` refusals, so the `openId` lookup is not the refusing step. |
+| 6 | The far-future lever does fire on `2.43.1` after all — a data set with `openFuturePeriods: 0` refuses `209912` with `409` — but as `E8023` with every count zero. The 2026-09-07 reading that it was dead came from the type violation `E8122` standing in for it. |
+| 9 | Decisive at last, and it splits: `2.41.10` logs all three `GenericOidcProviderConfigParser` lines and drops the provider to `[]`, while `2.42.6` and `2.43.1` log nothing at all and keep the provider (a token on that boot reaches `Invalid mapping claim`, not `Invalid issuer`). |
+| 10 | Sharpened: the refusal for an unsupported key is `409 "Key is not supported: <name>"` with **no `errorCode`** on `2.41.10`, against `404 E1005 "Setting does not exist"` on the later majors. |
+| 14 | Half absent on `2.41.10`: every auth-scheme variant declares its Jackson `type` there, and there are four variants rather than five. The missing `discriminator` is uniform. The regression runs forward in version order. |
+| 15 | Half absent and half worse on `2.41.10`: `jobParameters` reproduces with 23 variants, and `WebMessage.response` is not a `oneOf` at all but the bare `{"type":"object"}`. |
+| 20 | Fixed on `2.41.10` as well, and the entry is out of the file. |
+| 21 | The premise moves in both directions. The nested path filters on `2.41.10` and `2.41.11-SNAPSHOT` and is refused on `2.42.6` / `2.43.1`; the bracket form is refused on every channel except the local v43 `/api/options` probe, so that difference tracks the endpoint rather than the release. Added: `attributeValues.attribute.id:!null` is refused while `:eq:<uid>` answers. |
+| 26 | Confirmed fixed on `2.41.10` under the strict form of the test — the next request on the stale session is the write itself, `200 imported:1`, no `/api/me` in between. `2.42.6` remains the only major that needs the re-connect. |
+| 31 | Inverted on all three, and the entry is rewritten around it: no aggregator spelling parses through `/api/expressions/description`, while the seeded lowercase predictors run. |
+| 34 | `2.41.10` drops the `categorys` alias exactly as `2.42.6` and `2.43.1` do, so the entry's "v42 accepted the alias" premise holds on no pinned release. Moved out of the v43-specific Index group. |
+| 38 | The withdrawal is complete: `2.41.10` and `2.42.6` also discard `externalAccess:true` at `200 "Access control set"`, and neither live document declares `SharingObject.externalAccess` or `Sharing.external`. Moved out of the v43-specific Index group; the v41 and v42 `SharingBuilder`s are aligned with v43 in this branch. |
+| 39 | Sharpened: `secret` is pinned to exactly 36 characters (`409 E4002 "Allowed length range for property secret is [36 to 36]"`), which the entry's own repro does not mention. |
+| 42 | The model half cannot exist on v41: the live `2.41.10` document carries no `SystemSettings` and no `DisplayProperty` at all, and the same enum mismatch lands on `UserSettings.analysisDisplayProperty` instead. |
+| 43 | Fixed on `2.41.10` (124 schemas with `mapView`, `/api/schemas/mapView.json` 200 on all three v41 channels) and the entry is out of the file. |
+| 45 | Deployment-dependent, not version-dependent: the same release **and revision** answers 500 in the API-only container and 200 on play, which mounts the legacy Struts apps. Both halves of the 2026-09-07 status were false. |
+| 47 | `2.41.10` answers a clean `404 E1005` for every malformed shape; `2.42.6` and `2.43.1` still answer 405 for a short UID. The entry is a v41-versus-later split, not a release-wide fix. |
+| 53 | Sharpened: `/api/audits/trackedEntityDataValue` answers 200 on all three v41 channels where `2.42.6` answers 404. The posture itself stays unverifiable on every major. |
+| 56 | One wording settled: the duplicate wrapper is intact on `2.41.10`, and `2.42.6` / `2.43.1` drop the nested selector with no key and no diagnostic. The split is the entry. |
+| 58 | The entry's own fix criterion is met on both released majors: probed as an `ALL` holder, `/api/users/twoFactor/summary` and `/api/users/twoFactor` answer 200 with real data. The 403 recorded in 2026-09-07 was play's admin lacking `ALL`. |
+| 59 | The volume-reducer half does not hold on these seeds — `sharing.public` narrows 77 to 10 on v41, 78 to 11 on v42, 75 to 8 on v43 — because the seed's default object sharing is private. The unfilterable half is untouched. |
+| 62 / 63 | Both reproduce on `2.42.6` and `2.41.10`, so neither is v43-specific; moved out of that Index group. Six identical `dataSetElements` reads gave six orders on v42 and on v41. |
+| 72 | Fixed on `2.41.10`: the entity-scoped read with an unenrolled program answers 200 with the full body. The 404 conflation is v42/v43-only, the same difference #106's item-read half records. |
+| 75 | Sharpened to three renderings: `2.41.10` leaves the identifier slot empty, `2.42.6` renders the value type, `2.43.1` renders `INTEGER`. |
+| 78 / 79 | The 2.42-only scope does not hold: `2.41.10` stores the registration under `dryRun=true` and registers `completed:true` off `completeDate` while every value is refused, exactly as `2.42.6` does. `2.43.1` does neither. |
+| 81 | The 2026-09-07 sharpening to "deterministic" does not survive: 20 of 20 virgin periods failed first, and ten others succeeded first try in the same session. `2.41.10` never fails. |
+| 84 | `2.41.10` and `2.42.6` do not overwrite — `200 SUCCESS {ignored:1}` with `conflicts: []`. The collision protection exists on those majors and the diagnostic does not. |
+| 85 / 87 / 88 | All three meet the entry's own fix criterion on `2.41.10` and `2.42.6` and fail it on `2.43.1`: `imported:1` on a virgin tuple, no tombstone for a `DELETE` of a never-written value, and `deleted:1` for an inline `"deleted": true`. |
+| 86 | The aggregate refusal is per-major: `E8120` on `2.43.1`, `E7618` with `object` and `property` populated on `2.42.6` and `2.41.10`. |
+| 91 | Leg (a) is v43-only — `2.42.6` and `2.41.10` answer `200 application/json` to every unscoped form. Leg (b) holds on all three, and the document declares no `required` parameter on any major. |
+| 95 | State-dependent, not release-dependent: every reachable `2.43.1` reports `CONSTANT` with 21 constants; the `BOOLEAN` reading belongs to an empty Flyway-bootstrapped database, which is what codegen sees. |
+| 96 | Drift on both sides: `2.42.6` now answers `500 text/html` on `POST /oauth2/token` after the settings-nulling `PUT`, and on `2.41.10` a registered and an unregistered `client_id` both draw the same login redirect, so `/oauth2/*` is not an OAuth2 surface there at all. |
+| 98 | Legs (a) and (b) are v42/v43-only: `2.41.10` declares **and honours** the singular `trackedEntity=`. Leg (c) is flipped everywhere — all three documents declare 37 parameters. Only the generic swallow of an unknown name survives cross-major. |
+| 99 | Inverted on `2.41.10` and absent on `2.42.6`; the entry is rewritten as a per-major binder split. v41 binds `ou` and refuses `orgUnit` with the Tomcat page, v42 binds both and answers JSON throughout, v43 binds `orgUnit` and refuses `ou` with the Tomcat page. What v41 does with the bound call became #121. |
+| 100 | Counts: 80 routed sharing writes with 24 `shareable: false` on v41 and v42, 79 with 23 on v43; the majors differ by the withdrawn `mapViews` routes. Five routed plurals have no `/api/schemas` entry at all. |
+| 102 | v43-only, confirmed: `2.41.10` answers `200 application/json` to all five requests. The Tomcat page the entry quotes only as far as its `<title>` carries `Message: Required parameter 'program' is not present.`, the same words the JSON sibling's `E1003` uses. On `2.42.6` none of it reproduces either: all five requests answer `200 application/json` (each a real paged collection with a `nextPage`), so the entry is v43-only. |
+| 105 | Three corrections. The entry's "how to know it's fixed" read passes on `2.41.10` and `2.43.1` for a type a program tracks, so the invisibility there is #106's; on `2.42.6` that read is refused by #116 instead. For an untracked type there is still no read that shows the row on any major. And `2.41.10` declares 18 maintenance flags and honours **both** `softDeletedTrackedEntityRemoval` and `softDeletedTrackedEntityInstanceRemoval`, so the query form now has a spelling portable across all three majors. |
+| 106 | Splits: the list half holds on all three, the item-read half is v42/v43-only — `2.41.10` answers 200 by UID before and after a program exists over the type. |
+| 108 | Reproduced on `2.41.10` and `2.43.1` on a purpose-built three-event fixture: the nested order matches neither `occurredAt` nor `createdAt` nor a reverse of either, repeats identically, and `&order=notAField:asc` answers `200` rather than refusing. On `2.42.6` the same fixture comes back A, C, B: each major answers its own stable order (v41 B, C, A; v42 A, C, B; v43 C, B, A), none of them `occurredAt` or `createdAt` in either direction, so the nested order is whatever the join emits. |
+| 111 | Inverted on all three, and the entry is rewritten around it: no pre-escaped entity exists in any name on any seed, while the literal `<` is stored and served unescaped. |
+| 112 | The HTTP code tracks whether any row landed rather than the strategy: `200 WARNING` on `2.43.1`, `409 WARNING` on `2.42.6` and `2.41.10`, all three committing the valid row under `ALL` and `OBJECT` alike. |
+| 113 | Nothing is silently dropped on `2.41.10`: it honours all four spelling combinations on tracked entities and enrollments and **refuses** the plural on events outright. The silent-drop half is v42/v43-only. |
+| 114 | Path 1 is fixed on `2.41.10` — the metadata bundle answers `200 created: 1` and the layer keeps its references — which is the entry's own fix criterion. Paths 2 and 3 are unchanged on every major. A separate mechanism surfaced: an explicit `columns` / `rows` / `filters` block empties the sibling collections. |
+| 117 | Exactly inverted on `2.41.10`, where the JSON-array body is the required shape and the comma strings answer 500; the entry is rewritten to carry both shapes. |
+
+**Confirmed with no change worth a row:** 1, 2, 3, 4d, 4e, 4f, 4g, 5, 11, 13, 16, 17, 18, 18a, 18b,
+22c, 28, 29, 30, 35, 36, 40, 41, 46, 48, 49, 50, 51, 52, 54, 55, 60, 61, 65, 66, 67, 68, 69, 70, 71,
+73, 74, 76, 77, 80, 82, 83, 89, 90, 92, 93, 94, 97, 101, 104, 109, 115, 116, 118, 119.
+
+**Unchanged in shape but still only half observable:** 24 — the name collision reproduces on every
+major, while the fresh-install half needs a database whose `Person` is the built-in `FsgEX4d3Fc5`
+rather than the demo `nEenWmSyUEp`.
+
+**Inconclusive on a seeded, long-running stack:** 19 (no instance in reach carries persisted
+validation results), 23 and 27 (both need a fresh empty-database bring-up, which no worker in this
+sweep may perform), 110 (no orphan program stage exists on any of the three seeds).
+
+**Not retested:** 12 (a visual symptom at browser zoom), 57 (a source reading), 103 and 107 (the HL7
+IG publisher, not DHIS2).
+
+**Repros that name fixtures the seed no longer carries** (each batch substituted and said so): the
+worker template's own root organisation unit `s46m5MS0hxu` — the seeds' root is `ImspTQPwCqd`
+("Sierra Leone", code `OU_525`), while `Prlt0C1RF0s` is the category option combo "Fixed, <1y" —
+plus `VrBCGPos001`, `VrBCGInf001`, `VrGImmun001`, `pq2XI5kz2BY` (#76's combo) and the lowercase
+`iphinat79uw` (the seed carries `IpHINAT79UW`), none of which exist on the rebuilt v41 and v43
+dumps. The ANC stage's real data elements are `DeAncVisNo1`, `DeAncBpSys1` and `DeAncDanger`, and
+the programme and stage are `PrAncCare01` / `PsAncVisit1`. Two periods had to move on v41 because
+that stack's open-future window reaches `202706`: #6's from `202604` to `202812` and #41's from
+`210701` to `202608`.
+
+#### Follow-ups
+
+- Live verifiers still unwritten: #3, #4, #5, #9, #12, #26 and #27 are `TODO: implement live
+  verifier`; #23 needs `infra/fixtures/play/full_bundle.json`; #29's verifier is skipped as a
+  test-design bug (`/api/metadata` does not accept `<type>:<prop>:<op>:<value>` filters); #19 skips
+  for want of persisted validation results; #30 skips when the App Hub has no egress; #36 is
+  infra-level only.
+- Verifier version targeting leaves most of the suite unrun on any one major: 17 of 33 collected
+  tests ran on v41, 16 on v42 and 19 on v43, the rest skipped because they target another major.
+  Several of those targets are now wrong — #47, #72, #84, #85, #87 and #88 all split differently
+  than the skips assume.
+- The #95 verifier has to key off the committed `generated/v43/schemas/category_option.py`, not off
+  a live instance: every reachable 2.43.1 reports `CONSTANT`, and `dev-2-43` doing so is the
+  tripwire for when the pin moves.
+- The #49 verifier must not key on a component name. No `DataValueFollowUpRequestPeriod` component
+  exists on any major, so a name-keyed check reads a false fix.
+- `infra/scripts/seed/loader.py::seed_play`'s `close()` + `connect()` is now needed for v42 alone
+  (#26 is fixed on `2.41.10` and `2.43.1`); it can be narrowed to that major.
+- `packages/dhis2w-codegen/src/dhis2w_codegen/spec_patches.py` still names its patch
+  `strip-v41-spring-internals` while it fires on all three trees, and the twelve leaked classes it
+  strips are a v41 observation. The name should say what it does.
+- `examples/client/oidc_playwright_login.py` registers a `playwright_oidc` profile in
+  `~/.config/dhis2/profiles.toml` and never removes it, so every run of the example leaves one
+  behind.
+- `d2w doctor bugs` no longer fails on a supported v41 (the probe floor is 2.41 in this branch), but
+  #45 shows that any probe keyed on a version rather than on the instance is testing the wrong
+  thing.
 
 ### 2026-09-07 — full sweep (local `2.41.9.1` / `2.42.6.0` / `2.43.1.0` + play stable and dev channels)
 
@@ -302,7 +820,7 @@ delete does. Both wrote their own throwaway data. Findings filed as #84 through 
 
 Also observed, and worth recording because they bound what a retest can check: every audit
 surface answered empty (`/api/audits/dataValue` `total:0` system-wide, event and
-tracked-entity `changeLogs` `[]`), because this stack disables auditing in `infra/home/dhis.conf`
+tracked-entity `changeLogs` `[]`), because this stack disables auditing in `infra/v{41,42,43}/dhis.conf`
 for the reason #3 and #53 describe; and `/api/tracker/enrollments/{uid}/changeLogs` is a
 `404` on `2.43.1` — not a resource at all. The design consequences are in
 `docs/fhir/design/data-lifecycle.md`.
@@ -460,9 +978,12 @@ and the local stack answer 200 with the `systemAuthorities` envelope); still 500
 `2.41.11-SNAPSHOT` nightly (`dev-2-41`, rev `476e0b6`), with `Cannot invoke
 "org.apache.struts2.dispatcher.Dispatcher.getConfigurationManager()"` in the body.
 
+**Status (2026-09-11):** the fault is deployment-dependent, not version-dependent, and both halves of the 2026-09-07 status above are false. Local `2.41.10` rev `1a3484f` answers `500 {"message":"Cannot invoke \"org.apache.struts2.dispatcher.Dispatcher.getConfigurationManager()\" because the return value of \"org.apache.struts2.dispatcher.Dispatcher.getInstance()\" is null"}` on three consecutive attempts, while `play.im.dhis2.org/stable-2-41-10` — the same release **and the same revision** — answers 200 with the `systemAuthorities` envelope, and `dev-2-41` (`2.41.11-SNAPSHOT` rev `a7ae83f`) answers 200 too. The difference is what the deployment mounts: the API-only container carries none of the legacy Struts apps the play image serves. Any check that skips on v41 by version is testing the wrong thing — a live taxonomy validation has to probe the instance.
+
 **Workaround:** none in this repo yet — no code reads `/api/authorities` today.
-If a live taxonomy-validation test lands (proposed in the PR #369 review), skip
-it on v41 and cite this entry.
+A live taxonomy-validation test probes the instance and treats a 500 here as a
+deployment fact, since the same release and revision answers 200 behind the play
+deployment and 500 in the API-only container.
 
 ---
 
@@ -472,9 +993,9 @@ A `Map` carries its layers inline as `mapViews[]`. On `2.41.9.1` the metadata
 importer refuses any layer that names an organisation unit or a data element,
 and the direct `/api/maps` route accepts the map while discarding every
 reference inside the layer. There is no third path: `POST /api/mapViews` is
-`405`. The release also lists no `mapView` schema (#43), which is what the
-importer's preheat walks to resolve nested references, so the two facts are
-one change.
+`405`. The release also lists no `mapView` schema, which is what the importer's
+preheat walks to resolve nested references, so the two facts are one change;
+`2.41.10` lists the schema again and the importer path works again with it.
 
 **Observed on:** `dhis2/core:2.41.9.1` (rev `7a50918`, build `2026-08-10T14:20:53Z`), local stack, admin/district, Sierra Leone seed. `GET /api/schemas/mapView.json` is `404` there. `play.im.dhis2.org/dev-2-41` (`2.41.11-SNAPSHOT`) lists `mapView` again; its write path was not exercised (play is read-only for this repo).
 
@@ -515,11 +1036,13 @@ curl -s -o /dev/null -w '%{http_code}\n' -u admin:district -H "$H" -X POST "$U/a
 
 **Impact:** every map-authoring path on v41: `MapsAccessor.create_from_spec` / `clone`, `d2w metadata maps create` / `clone`, the seed's dashboard maps, and `examples/client/map_create_choropleth.py` + `examples/cli/maps.sh`.
 
-**Workaround in this repo:** `dhis2w_client.v41.maps.MapsAccessor.create_from_spec` and `clone` (when the source carries layers) raise `Dhis2ClientError` citing this entry before touching the wire, so a caller learns the map was not written instead of finding an empty layer later. `infra/scripts/seed/maps.py` creates the dashboard maps without layers on v41 so every dashboard item still resolves. `infra/scripts/verify_examples.py` skips the two map-authoring examples on v41 (`SKIP_BY_VERSION`).
+**Workaround in this repo:** every map-authoring path goes through `/api/metadata` on every major — `dhis2w_client.v{41,42,43}.maps.MapsAccessor.create_from_spec` and `clone` post the bundle rather than `POST /api/maps`, which discards a layer's references on all three. `infra/scripts/seed/maps.py` seeds layered dashboard maps on v41 through that path, and `infra/scripts/verify_examples.py` runs the two map-authoring examples on every major. A payload built by `MapLayerSpec` carries no explicit `columns` / `rows` / `filters`, which is what keeps the layer's references on `2.41.10`.
 
-**Verifier:** `packages/dhis2w-client/tests/test_v41_divergence.py::test_v41_maps_accessor_refuses_layer_writes` (the refusal), `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_114_*` (mocked wire shape).
+**Status (2026-09-11):** the metadata path is fixed on `2.41.10` and the rest of the entry stands. Repro step 1 answers `HTTP 200 {"status":"OK","stats":{"created":1,...}}` and the layer reads back `{"organisationUnits":[{"id":"ImspTQPwCqd"}],"organisationUnitLevels":[2],"layer":"boundary"}`, and a thematic layer keeps `dataDimensionItems[].dataElement` with no `TransientPropertyValueException` — the entry's own fix criterion. Maps are authored through `/api/metadata` on every major now: `dhis2w_client.v41.maps` no longer refuses before the wire, `infra/scripts/seed/maps.py` seeds layered maps on v41, and `infra/scripts/verify_examples.py` no longer skips the two map examples there. Steps 2 and 3 are unchanged on `2.41.10`: `POST /api/maps` answers `201` and `PUT` `200`, both reading the layer back with `organisationUnits: []` and `organisationUnitLevels: []`, and `POST /api/mapViews` answers `405`. `POST /api/maps` discards the references on `2.42.6` and `2.43.1` too, so that half of the entry is cross-major. One mechanism the entry does not name: on `2.41.10` a layer carrying explicit `columns` / `rows` / `filters` dimension descriptors imports `200` and reads back with `organisationUnits: []` and `organisationUnitLevels: []`, while the identical payload without them keeps both — the empty `ou` / `dx` descriptors overwrite the sibling collections, and the `layer` value is not the discriminator.
 
-**How to know it's fixed:** a `2.41.x` release answers `200` for repro step 1 and reads the layer back with `organisationUnits` populated. Restore the v41 `create_from_spec` / `clone` bodies from the v42 tree and drop the seed and verifier branches.
+**Verifier:** none — the refusal the v41 accessor used to raise is gone with the metadata path, and `POST /api/maps` is not a route this repository takes on any major.
+
+**How to know it's fixed:** `POST /api/maps` keeps the layer's `organisationUnits` and `dataDimensionItems` instead of emptying them, on every major; step 1 already answers `200` with the references intact from `2.41.10` on.
 
 ---
 
@@ -558,6 +1081,8 @@ curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
 **Impact:** any enrollment poll that pages in creation order. `d2w fhir serve` walks a program's enrollments to find tracked entities whose projection is stale, and `d2w fhir sync` runs the same walk.
 
 **Workaround in this repo:** `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` orders the enrollment poll by `enrolledAt:asc`, the field every release accepts; the tracked entity poll keeps `createdAt:asc` (`POLL_ORDER`). The enrollment UID is not an order field on any major, so a total immutable order is not available for this read.
+
+**Status (2026-09-11):** STILL on `2.41.10` and `2.42.6`, absent on `2.43.1`. `2.41.10` answers `409 {"message":"ERROR: column reference \"created\" is ambiguous\n  Position: 1382"}` for `createdAt` and the same on `"lastupdated"` for `updatedAt`; `2.42.6` answers the identical pair at `Position: 1421`. Both are bare `WebMessage`s with no `errorCode` and no `devMessage`. `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` keeps ordering the enrollment poll by `enrolledAt` for both majors.
 
 **Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py` asserts the enrollment poll's `order`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_115_*` carries the mocked wire shape and the order constants.
 
@@ -604,9 +1129,128 @@ curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
 
 **Workaround in this repo:** `dhis2w_fhir_serve.register.wire.poll_tracked_entities` recognises this refusal, reads the page again without `includeDeleted`, and marks the page `tombstones_visible=False`; `run_sync` carries that onto `SyncReport.tombstones_visible` and `d2w fhir sync` prints a note, because a removal is then learned only when an enrollment of the person moves (the enrollment poll still carries the flag and answers 200) or when the projection is rebuilt.
 
+**Status (2026-09-11):** v42-only, as the entry says. Reproduced verbatim on `2.42.6` including `trailing junk after numeric literal at or near "1903ORDER"`, and a second type gave `"3676ORDER"`, so the number is the type's internal id concatenated with the `ORDER` keyword. The same type-scoped `includeDeleted=true` read answers `200` on `2.41.10` and on `2.43.1`, so the retry-without-`includeDeleted` branch in `dhis2w_fhir_serve` is needed on v42 alone.
+
 **Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py::test_a_refused_tombstone_read_is_retried_without_the_flag_and_reported`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_116_*`.
 
 **How to know it's fixed:** the first repro answers 200 on a `2.42.x` release; then the retry branch and the report field come out.
+
+---
+
+### 121. `PUT /api/tracker/ownership/transfer` answers `200 "Ownership transferred"` on v41 for a tracked entity, program or organisation unit that does not exist
+
+The endpoint validates the *shape* of every UID it is given and never checks
+that any of them resolves. Three invented UIDs draw `200 {"status":"OK",
+"message":"Ownership transferred"}`; so does a real tracked entity and program
+with an invented organisation unit. `2.42.6` and `2.43.1` answer `404 E1005`
+for the identical call. A caller on v41 cannot tell a transfer that happened
+from one that silently did nothing.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), local stack, `admin:district`.
+`2.42.6` (rev `dd8bdbb`) and `2.43.1` (rev `9cbfbf3`) are the contrast cases.
+
+**Repro** (read-only in effect — nothing resolves, so no ownership row can move; v41 spells its
+organisation-unit parameter `ou`, see #99):
+
+```bash
+U=http://localhost:8080
+
+# Three UIDs that exist nowhere:
+curl -s -w '\nHTTP %{http_code} %{content_type}\n' -u admin:district -X PUT \
+  "$U/api/tracker/ownership/transfer?trackedEntity=aaaaaaaaaaa&program=bbbbbbbbbbb&ou=ccccccccccc"
+# 2.41.10 -> HTTP 200 application/json
+#            {"httpStatus":"OK","httpStatusCode":200,"status":"OK","message":"Ownership transferred"}
+# 2.42.6 / 2.43.1 (with `orgUnit=`) ->
+#            HTTP 404 {"status":"ERROR","message":"Program with id bbbbbbbbbbb could not be found.",
+#                      "errorCode":"E1005"}
+
+# A real tracked entity and a real program with an invented organisation unit — also 200 on v41:
+curl -s -u admin:district -X PUT \
+  "$U/api/tracker/ownership/transfer?trackedEntity=w9wDBv99aRt&program=IpHINAT79UW&ou=zzzzzzzzzzz"
+# -> {"status":"OK","message":"Ownership transferred"}
+
+# The shape *is* validated, so the silence is not a missing validator:
+curl -s -u admin:district -X PUT \
+  "$U/api/tracker/ownership/transfer?trackedEntityInstance=x&program=IpHINAT79UW&ou=O6uvpzGd5pu"
+# -> 400 "Value 'x' is not valid for parameter trackedEntityInstance. UID must be an alphanumeric
+#         string of 11 characters..."
+```
+
+**Expected:** a transfer naming an object that does not exist is refused, as it is on `2.42.6` and
+`2.43.1` — `404 E1005` naming the first unresolvable object.
+
+**Actual:** `200 "Ownership transferred"` for any well-formed UID, resolved or not. The success
+message is indistinguishable from a real transfer.
+
+**Impact:** a v41 caller gets no signal from a transfer that moved nothing — a typo in any of the
+three UIDs reads as success. Any migration or reassignment script that trusts the status code
+silently under-transfers, and there is no counter in the response to reconcile against.
+
+**Workaround in this repo:** no shipped path transfers ownership. A future caller reads back the
+entity's owner after the call rather than trusting the 200, on v41 at least.
+
+**How to know it's fixed:** the first repro answers `404` naming the unresolvable object, as the
+later majors already do.
+
+**Status (2026-09-11):** new. Found by the v41 OpenAPI audit and reproduced independently by the v41 tracker batch, which added the mirror case (a real program with an invented entity, `program=IpHINAT79UW&trackedEntity=aaaaaaaaaaa&ou=O6uvpzGd5pu`, also `200`). v41-only: `2.42.6` and `2.43.1` answer `404 E1005` for the same call.
+
+---
+
+### 123. The v41 OpenAPI document keeps `/api` in `servers[0].url` and spells every path key unprefixed, and `?path=` is either ignored or silently empty
+
+`2.41.10` puts the `/api` prefix in the document's server URL, so its path keys
+read `/dataValues/`, `/tracker/events/`, `/organisationUnits/{uid}/sharing`.
+`2.42.6` and `2.43.1` moved the prefix into the path keys and left `servers` at
+the bare origin. Any tool that carries one JSON pointer across majors misses on
+v41. The document's own `path` filter makes that worse rather than better: given
+the v42-style prefix it answers a **well-formed empty document** with no
+diagnostic, and given the correct prefix it ignores the filter and returns
+everything.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), with `2.42.6.0` (rev `dd8bdbb`) and
+`2.43.1.0` (rev `9cbfbf3`) as the contrast cases. All three local stacks, `admin:district`.
+
+**Repro:**
+
+```bash
+U=http://localhost:8080
+
+curl -su admin:district "$U/api/openapi/openapi.json" | jq -c '.servers, (.paths|keys|.[0:3])'
+# 2.41.10 -> [{"url":"http://localhost:8080/api"}]
+#            ["/32/tracker/trackedEntities/{uid}","/access","/access/{type}/{uid}"]
+# 2.42.6 / 2.43.1 -> [{"url":"http://localhost:8080/"}]
+#            ["/api/access", ...]
+
+# The `path` filter, wrong prefix — 200, well-formed, empty, no diagnostic:
+curl -su admin:district "$U/api/openapi/openapi.json?path=/api/routes" | wc -c
+# 2.41.10 -> 891           (no `paths`, no `components`)
+
+# The `path` filter, right prefix — ignored, whole document:
+curl -su admin:district "$U/api/openapi/openapi.json?path=/routes" | jq '.paths|length'
+# 2.41.10 -> 1902          (the whole document)
+curl -su admin:district "$U/api/openapi/openapi.json?path=/api/messageConversations" | jq '.paths|length'
+# 2.42.6 -> 1775, 2.41.10 -> 1902    (the filter is ignored on both)
+```
+
+**Expected:** one path-key spelling across majors, or at least a document whose `path` filter
+either filters or refuses. An empty document answered with 200 is the worst of the three outcomes.
+
+**Actual:** the prefix moved between `2.41` and `2.42` with no signal in the document itself, and
+the `path` filter is a no-op for a prefix the document knows and a silent empty answer for one it
+does not.
+
+**Impact:** cross-major tooling — codegen, a client that resolves an operation by pointer, a
+maintainer pasting a v42 pointer at a v41 document — reads a well-formed OpenAPI document with
+nothing in it and no error to catch. That is indistinguishable from "this server exposes no
+routes".
+
+**Workaround in this repo:** `packages/dhis2w-codegen` reads whole documents and never uses the
+`path` filter; every pointer in this file is written in its own major's spelling.
+
+**How to know it's fixed:** `?path=` returns only the matching paths (or a `400` for a prefix that
+matches nothing) on every major, and the path-key spelling is the same across majors.
+
+**Status (2026-09-11):** new, from the v41 OpenAPI audit and the v41 and v42 metadata batches. The prefix split is v41-versus-v42/v43; the ignored filter reproduces on `2.41.10` and `2.42.6` alike, and the silently empty answer for the wrong prefix is a v41 observation because v41 is the only major whose keys lack the prefix.
 
 ---
 
@@ -673,6 +1317,8 @@ Revisit and remove when DHIS2 fixes the mapping.
 application/json`, no extension) returns `200 application/json`.
 
 **Status per major (local stacks and all six play channels, 2026-09-07):** STILL: `/api/analytics/rawData` and `/api/analytics/dataValueSet` without the `.json` suffix answer a Tomcat 404 HTML page whatever the `Accept` header, while `/api/analytics` honours the header.
+
+**Status (2026-09-11):** STILL on `2.41.10`, `2.42.6` and `2.43.1`: `/api/analytics/rawData` and `/api/analytics/dataValueSet` without the `.json` suffix answer a Tomcat `404 text/html` whatever the `Accept` header, and 200 with it, on every major.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_1_live_verifier`
 
@@ -754,6 +1400,8 @@ false` predicate. That missing predicate is probably a one-line fix.
 
 **Status per major (local stacks, 2026-09-07):** STILL on `2.41.9.1`, `2.42.6.0` and `2.43.1.0`, reproduced verbatim: the DELETE-strategy import answers 200 `deleted:1`, the row reads back with `deleted:true` and its value, and `DELETE /api/dataElements/{uid}` answers `409 E4030 "associated with another object: DataValue"`. Two refinements: the organisation unit the value sits on is blocked the same way (`DELETE /api/organisationUnits/{uid}` answers the same 409) while `DELETE /api/dataSets/{uid}` is unaffected; and on `2.42.6.0` the soft-delete leg is period-gated while the data set is still attached (`E7644` for a period outside the data set's open window), so the repro's period must sit inside the open window. The demonstration artefacts on the rebuilt stacks are `W4cDelDEv41` (v41), `W4cB2DE0001` / `W4cB2OU0001` (v42) and `W4cDelTest2` / `W4cDelOu001` (v43).
 
+**Status (2026-09-11):** STILL on all three, verbatim: the DELETE-strategy import soft-deletes, the row reads back with its value, and the organisation unit the value sits on is blocked exactly as the data element is (`409 E4030 "associated with another object: DataValue"` for both).
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_2_live_verifier`
 
 ---
@@ -806,7 +1454,7 @@ around bug #2 above, for instance) has to know that `key =` is not
 equivalent to `key = <empty scope>`. This is not documented in the
 `dhis.conf` template shipped with DHIS2.
 
-**Workaround in this repo:** `infra/home/dhis.conf` uses explicit
+**Workaround in this repo:** `infra/v{41,42,43}/dhis.conf` uses explicit
 `audit.metadata = DISABLED` (and the matching tracker + aggregate keys).
 The file has a comment pointing at this entry.
 
@@ -821,6 +1469,8 @@ DataValueAudit`.
 **Status per major (local stacks, 2026-09-07):** the premise holds and the blocking object differs. With every audit and changelog key removed from `dhis.conf` (the entry's "blanked out" state, restart included), `2.41.9.1` and `2.42.6.0` write `DataValueAudit` rows for an update and a DELETE-strategy import (`GET /api/audits/dataValue?de=...` lists `UPDATE` and `DELETE`); the data element then answers `409 E4030` naming `DataValueAudit` on `2.42.6.0` (the entry's wording) and `DataValue` on `2.41.9.1` (the #2 tombstone blocks first). With only the three matrix keys left blank beside `audit.database = off`, `changelog.aggregate = off` and the other switches this repo sets, no audit row is written on either, so "blank" and "absent" are not the same state. The `2.43.1.0` run is in the final pass below.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, with the data element inside a data set so the value is accepted: with every audit and changelog key removed, `/api/audits/dataValue` lists `CREATE`, `UPDATE` and `DELETE` after one create, one update and one DELETE-strategy import, and `DELETE /api/dataElements/{uid}` answers `409 E4030` naming `DataValueChangelog` (the object was `DataValueAudit` on 2.42.6.0 and `DataValue` on 2.41.9.1).
+
+**Status (2026-09-11):** STILL on all three, and the blocking class is per-major. With every audit and changelog key removed from `dhis.conf`, `2.43.1` captures `CREATE`, `UPDATE` and `DELETE` (3 rows) while `2.42.6` and `2.41.10` capture only `UPDATE` and `DELETE` (2 rows); the data element delete then names `DataValueChangelog` on `2.43.1`, `DataValueAudit` on `2.42.6`, and on `2.41.10` `DataValue` first (the #2 tombstone blocks ahead of the audit row) with `DataValueAudit` only once the tombstone is cleared. Blank matrix keys beside `audit.database = off` still write nothing on any major.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_3_live_verifier`
 
@@ -901,7 +1551,7 @@ config-load time.
 official docs list the flag but do not enumerate the full set of paired
 keys needed for a functional loop.
 
-**Workaround in this repo:** `infra/home/dhis.conf` lists all 14 keys in
+**Workaround in this repo:** `infra/v{41,42,43}/dhis.conf` lists all 14 keys in
 one labelled block with a one-line "why this exists" comment per key. See
 `packages/dhis2w-core/src/dhis2w_core/oauth2_preflight.py` for a startup
 check that verifies the server actually exposes the AS endpoints before
@@ -916,6 +1566,8 @@ guards the AS. The generic OIDC provider is parsed by
 currently does not.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, and the minimal configuration is now fatal rather than degraded: with `oauth2.server.enabled = on` as the only OAuth2 key (every `oidc.*` key and `server.base.url` commented out) DHIS2 does not finish starting; the log carries `UnsatisfiedDependencyException: Error creating bean with name 'OAuth2DynamicClientRegistrationController'` during context initialisation and `/api/me` never answers. With the full block in place the authorization server mounts (`/.well-known/openid-configuration` 200) and mints a token whose `iss` carries a trailing slash (`http://localhost:8080/`) that the configured `issuer_uri` does not, and the API refuses that token with `error_description="Invalid mapping claim"` whether or not the admin's `openId` is set (#4h); setting `issuer_uri` to the slashed form does not change the answer. Not applicable on `2.41.9.1`, which mounts no authorization server (`/oauth2/*` and the discovery document all redirect to the login page).
+
+**Status (2026-09-11):** PARTIAL on `2.42.6` and `2.43.1`; not applicable on `2.41.10`. The minimal block boots clean on both later majors: with `oauth2.server.enabled = on` plus `server.base.url` and every `oidc.*` line removed, the context starts with zero `ERROR` lines, no `UnsatisfiedDependencyException` and no `OAuth2DynamicClientRegistrationController` failure, `/api/me` answers 200, and the whole authorization server mounts (discovery 200, jwks 200, `/oauth2/authorize` 302 to the login form, `/oauth2/token` 400 `{"error":"invalid_grant"}`). The 2026-09-07 reading that the minimal configuration is fatal does not hold on either release. What remains is the refusal: a token minted through the login form on that block is refused `401 ... "Found no matching DHIS2 user for the mapping claim: 'username' with the value: 'null'"`, because the default mapping claim is `username` and DHIS2's own JWT does not carry it. On `2.41.10` there is no authorization server to misconfigure at all: the same cycle boots with 0 `ERROR` lines and `/oauth2/authorize`, `/oauth2/token` and `/oauth2/jwks` all answer `404 text/html`, while `/.well-known/openid-configuration` redirects to the login app.
 
 **How to know it's fixed:** A DHIS2 `dhis.conf` with only
 `oauth2.server.enabled = on` + `server.base.url = <url>` yields a
@@ -975,60 +1627,89 @@ error that points at the missing `dhis.conf` key.
 
 **Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** PARTIAL. With `oauth2.server.enabled = off` the token endpoint now answers `401` with `Content-Type: application/json` rather than the login HTML page, so a client can at least parse the refusal; the body is DHIS2's own envelope (`{"httpStatus":"Unauthorized","httpStatusCode":401,"status":"ERROR","message":"Unauthorized"}`), not the Spring `OAuth2Error` JSON the entry asks for. Not applicable on `2.41.9.1` (no authorization server).
 
+**Status (2026-09-11):** PARTIAL on `2.42.6` and `2.43.1`, byte-identical on the two majors, with one thing added: `/.well-known/openid-configuration` answers 302 with the authorization server off and 200 with it on, so the state is detectable even though the refusal is not. Not applicable on `2.41.10`, where there is no 401 to inspect — `GET` and `POST` on `/oauth2/token` and `/oauth2/token/`, with and without client basic credentials, all answer `302` to `http://localhost:8080/login` with an empty body, identical with `oauth2.server.enabled` on and off.
+
 **How to know it's fixed:** The repro above returns a JSON body with
 `error` field, even when the AS is off — so callers can distinguish
 states programmatically.
 
 ---
 
-### 4c. DHIS2's embedded JWT keystore is regenerated on every startup; refresh tokens minted before a restart are permanently dead
+### 4c. The OAuth2 signing key rotates on every startup, so every outstanding access token dies; v41 mints an opaque token and issues no refresh token at all
 
-**Observed on:** DHIS2 `2.42.4` with `oauth2.server.jwt.keystore.generate-if-missing` at its default (on).
+The embedded authorization server generates a fresh JWT keystore on every start.
+A refresh token minted before a restart still redeems afterwards, so a client
+that kept one recovers; every access token minted before the restart is refused,
+because the key that signed it no longer exists. `2.41.10` behaves differently
+again: it mounts no authorization server, its `/uaa/oauth/token` endpoint mints
+an **opaque** token that survives restarts, and it issues no refresh token to
+rotate.
 
-**Repro:**
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.41.10.0` (rev `1a3484f`), local stacks, `oauth2.server.jwt.keystore.generate-if-missing`
+at its default.
+
+**Repro (v42 / v43):**
 
 ```bash
-# 1. Start DHIS2. Drive an authorize-code flow end-to-end:
-# 2. Access token + refresh token get persisted by the caller.
-# 3. Restart DHIS2 (e.g. `make dhis2-down && make dhis2-up`).
-# 4. Try to use the refresh token:
-curl -s -u client:secret -X POST http://localhost:8080/oauth2/token/ \
-  -d "grant_type=refresh_token&refresh_token=$SAVED_REFRESH"
-# -> 400 {"error":"invalid_grant","error_description":"..."}
+U=http://localhost:8080
+# 1. Mint a pair through the authorization-code flow, keep both tokens.
+curl -s "$U/oauth2/jwks" | jq -r '.keys[0].kid'
+# -> 5b8c2be7-3a2e-479d-b3a6-c7a3a6bf4762
+
+docker compose -f infra/docker-compose.yml up -d --force-recreate dhis2
+
+curl -s "$U/oauth2/jwks" | jq -r '.keys[0].kid'
+# -> 77defe67-7e1e-4a08-ab10-846b617f6429        the key rotated
+
+curl -si -H "Authorization: Bearer $SAVED_ACCESS" "$U/api/me" | grep -i www-authenticate
+# -> error_description="An error occurred while attempting to decode the Jwt: Signed JWT rejected:
+#    Another algorithm expected, or no matching key(s) found"
+
+curl -s -u "$CLIENT:$SECRET" -X POST "$U/oauth2/token" \
+  -d "grant_type=refresh_token&refresh_token=$SAVED_REFRESH" | jq 'keys'
+# -> 200 with a fresh access_token + refresh_token, expires_in 299
 ```
 
-Every cached refresh token — whether it had expired or not — is dead
-after a restart. The newly-generated keystore can't decode signatures
-produced by the old one, and tracked `oauth2_authorizations` rows in
-the DB point at a dead signing key.
+**Repro (v41):**
 
-**Expected:** The keystore should be persistent by default (either
-written to disk alongside `dhis.conf`, or derivable from a seed). Then
-issued tokens should survive a graceful restart, which is the whole
-point of having refresh tokens in the first place.
+```bash
+U=http://localhost:8080
+curl -s -u "$CLIENT:$SECRET" -X POST "$U/uaa/oauth/token" \
+  -d 'grant_type=password&username=admin&password=district' | jq .
+# -> {"access_token":"oA_8cA1AW6uwR-eGZVRC0Ai9Mu0","token_type":"bearer","expires_in":43199,"scope":"ALL"}
+#    one segment, not a JWT; no refresh_token key at all
+curl -s -u "$CLIENT:$SECRET" -X POST "$U/uaa/oauth/token" -d 'grant_type=refresh_token&refresh_token=x'
+# -> {"error":"invalid_grant","error_description":"Invalid refresh token"}
+```
 
-**Actual:** On a stack with no explicit keystore config, every restart
-silently invalidates every cached token.
+The identical opaque string comes back from every later mint and still answers `/api/me` 200 after
+five `--force-recreate` cycles.
 
-**Impact:**
-- Local dev: every `make dhis2-down && make dhis2-up` cycle forces
-  re-authentication through every browser-based flow. Our
-  `examples/cli/profile_list_verify.sh` now shows `local_oidc: HTTPStatusError:
-  400` after any restart for exactly this reason.
-- Prod: any DHIS2 rolling restart (host maintenance, patch deploy)
-  terminates every OAuth2 session across every client app integrated
-  with it. Mobile apps, dashboards, LLMs-via-MCP — all get logged out.
+**Expected:** the keystore is persistent by default — written beside `dhis.conf` or derived from a
+seed — so tokens issued before a graceful restart keep working, which is the point of having
+refresh tokens. On v41, that a token endpoint issues a refresh token at all.
 
-**Workaround in this repo:** No code workaround; we document the
-"rerun `d2w profile login`" step for dev. A real fix is infrastructure:
-explicit keystore via `oauth2.server.jwt.keystore.*` keys, persisted in
-`infra/home/keystore.p12` or similar.
+**Actual:** on v42 and v43 the key rotates on every start and every outstanding access token dies
+with it; only a client holding the refresh token recovers. On v41 there is nothing to rotate and
+nothing to refresh: one opaque credential with a twelve-hour life and no rotation path. The
+client's stored `grantTypes` does not gate the grant either — a client whose `grantTypes` is `[]`
+is served both `password` and `client_credentials`.
+
+**Impact:** any rolling restart logs out every client that holds only an access token — mobile
+apps, dashboards, MCP sessions. On v41 a compromised credential cannot be rotated short of
+deleting the client.
+
+**Workaround in this repo:** none in code; `d2w profile login` is rerun after a restart. A real fix
+is infrastructure — an explicit persistent keystore through the `oauth2.server.jwt.keystore.*` keys.
+
+**How to know it's fixed:** the `kid` at `/oauth2/jwks` is unchanged across a restart and an access
+token minted before it still answers `/api/me` 200; on v41, `/uaa/oauth/token` returns a
+`refresh_token` alongside the access token.
 
 **Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** PARTIAL. A refresh token minted before `docker restart dhis2` is accepted after it: `POST /oauth2/token` with `grant_type=refresh_token` answers 200 with a new token pair on both releases. The access token minted before the restart is refused afterwards with `error_description="An error occurred while attempting to decode the Jwt: Signed JWT rejected: Another algorithm expected, or no matching key(s) found"`, so the signing key still changes on every start and every outstanding access token dies with it; a client that holds the refresh token recovers, one that holds only the access token does not. Not applicable on `2.41.9.1`.
 
-**How to know it's fixed:** After the repro above, the refresh-token
-call returns 200 with a fresh access token (assuming the refresh token
-itself hasn't expired).
+**Status (2026-09-11):** PARTIAL on `2.42.6` and `2.43.1`, byte-identical on the two majors: the `kid` rotates across a `--force-recreate`, the pre-restart access token 401s with the message above, and the pre-restart refresh token still redeems `200` with a fresh pair. Inverted on `2.41.10`, which is why the entry now carries both halves: there is no embedded JWT keystore on that major, `/uaa/oauth/token` mints the opaque single-segment token above, the identical string comes back from every later mint and still answers 200 after five container recreates, and no `refresh_token` is ever issued.
 
 ---
 
@@ -1054,6 +1735,8 @@ So a pure OAuth2 setup (no OIDC extras) still requires `oidc.*` keys set. The `o
 **Expectation:** DHIS2 config keys should split cleanly — `oauth2.*` for the Authorization Server, `oidc.*` only for the extra OIDC features. Right now you can't opt into OAuth2 without setting 10+ `oidc.*`-prefixed keys, which makes it look like you're configuring OIDC when you're not.
 
 **Status (2026-09-07):** unchanged terminology across `2.41.9.1`, `2.42.6.0` and `2.43.1.0`; the same `oidc.*` keys drive both the login provider and the API-side JWT validator.
+
+**Status (2026-09-11):** STILL on all three, and sharper than the entry states it. With the full typo-free block `/api/loginConfig` reports `"oidcProviders": []` — no login-side provider — while that same block is what makes the API-side validator resolve the issuer, which a cycle with the authorization server off but the block kept demonstrates by refusing a replayed token with `Invalid issuer`. On `2.41.10` the conflation is starker still: `oauth2.server.enabled` mounts nothing, and the ten `oidc.provider.dhis2.*` keys are the only configuration producing observable OAuth2 behaviour.
 
 **How to know it's fixed:** DHIS2 docs for "enable the embedded OAuth2 Authorization Server" give a minimal config block using only `oauth2.*` keys.
 
@@ -1094,6 +1777,8 @@ The header value is `ApiToken observed-value`, not `Bearer observed-value`.
 **Workaround in this repo:** None. Our `examples/cli/route_register_and_run.sh` targets httpbin.org/headers (which echoes whatever DHIS2 sends) instead of httpbin.org/bearer (which rejects the non-standard scheme).
 
 **Status per major (local stacks, 2026-09-07):** STILL on `2.41.9.1`, `2.42.6.0` and `2.43.1.0`: a route with `auth: {type: api-token, token: ...}` run against `https://httpbin.org/headers` echoes `Authorization: ApiToken <value>`.
+
+**Status (2026-09-11):** STILL on all three: the route echoes `"Authorization": "ApiToken <value>"`.
 
 **How to know it's fixed:** The curl repro above shows `"Authorization": "Bearer observed-value"`.
 
@@ -1138,6 +1823,8 @@ curl -s -u admin:district http://localhost:8080/api/routes/ujvQ0frIFA6
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: every create envelope names the identifier `uid` and every read names it `id`. The `responseType` value is `ObjectReport` on all three releases, not the `ObjectReportWebMessageResponse` the sample bodies above show.
 
+**Status (2026-09-11):** STILL on all three: every create envelope names the identifier `uid` and every read names it `id`.
+
 **How to know it's fixed:** The POST response above shows `"response": {"id": "..."}` — matching the GET shape.
 
 ---
@@ -1180,103 +1867,87 @@ Same behaviour on `DataElement` (`name`, `shortName`, `code`). No trimming, no c
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: `POST /api/trackedEntityTypes` with a leading-space, multi-space `name`, `shortName` and `code` answers 201 and reads back byte for byte.
 
+**Status (2026-09-11):** STILL on all three. On `2.41.10` the `trackedEntityTypes` schema carries no `shortName` property at all, so only `name` and `code` were probed there; both round-trip byte for byte.
+
 **How to know it's fixed:** The first repro POST either 400s with a validation error OR the read-back shows trimmed + collapsed values ("space hello workd", "ugly", "CODE WITH SPACES").
 
 ---
 
-### 4h. DHIS2 rejects its own OAuth2 JWTs when the resolved user has an empty `openId`
+### 4h. DHIS2 refuses its own OAuth2 JWTs with `Invalid mapping claim` whatever the resolved user's `openId` says
 
-**Observed on:** DHIS2 `2.42.4`. Reportedly fixed in `2.43+`.
+The API-side validator refuses a token the instance's own authorization server
+just minted, and the refusal does not move with the user's `openId`. Setting
+`openId` to the value the JWT carries, clearing it, and restoring it all produce
+the byte-identical `Invalid mapping claim`, so the `openId` lookup the original
+entry blamed is not what refuses. The message is also terse: it names neither
+the claim it looked for nor the value it read.
 
-**Repro:** Run the embedded Authorization Server end-to-end on a fresh stack
-where `admin.openId` is the JPA default (empty string), with `dhis.conf`
-configured per the standard 4-block above (`oauth2.server.enabled = on`,
-`oidc.provider.dhis2.mapping_claim = sub`, etc.).
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`) and `dhis2/core:2.42.6.0` (rev `dd8bdbb`),
+local stacks, the full `dhis.conf` OAuth2 block, `oidc.provider.dhis2.mapping_claim = sub`, the
+seeded client `dhis2w-utils-local`. Not applicable on `2.41.10`, which mounts no authorization
+server and so has neither the JWT nor the `mapping_claim` lookup.
+
+**Repro:**
 
 ```bash
-# 1. Mint a token via authorization_code+PKCE — fully successful:
-TOKEN=$(curl -s -X POST http://localhost:8080/oauth2/token \
-  -u dhis2-utils-local:<secret> \
-  -d "grant_type=authorization_code&code=<code>&redirect_uri=http://localhost:8765&code_verifier=<verifier>" \
-  | jq -r .access_token)
+U=http://localhost:8080; A=admin:district; ADMIN=M5zQapPyTZI
 
-# 2. Decode — `sub=admin`, `iss=http://localhost:8080`, signed by the kid DHIS2 publishes:
-echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
-# {
-#   "sub": "admin",
-#   "aud": "dhis2-utils-local",
-#   "iss": "http://localhost:8080",
-#   "scope": ["ALL"],
-#   ...
-# }
+# 1. Mint a token through the authorization-code flow. Its payload:
+#    {"sub":"admin","aud":"dhis2w-utils-local","iss":"http://localhost:8080/","scope":["ALL"], ...}
 
-# 3. Use it on /api/* — 401, with a specific RFC 6750 description:
-curl -sv -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/system/info 2>&1 | grep -i WWW-Authenticate
-# < WWW-Authenticate: Bearer error="invalid_token",
-#   error_description="Found no matching DHIS2 user for the mapping claim: 'sub' with the value: 'admin'",
-#   error_uri="https://tools.ietf.org/html/rfc6750#section-3.1"
+# 2. admin's openId already matches the JWT's `sub`:
+curl -s -u $A "$U/api/users/$ADMIN?fields=openId"        # -> {"openId":"admin"}
 
-# 4. Confirm the cause — admin's `openId` is empty:
-curl -s -u admin:district 'http://localhost:8080/api/users/M5zQapPyTZI?fields=id,username,openId'
-# {"username":"admin","id":"M5zQapPyTZI"}        <-- no openId field
+# 3. Use the token:
+curl -si -H "Authorization: Bearer $TOKEN" "$U/api/me" | grep -i www-authenticate
+# -> WWW-Authenticate: Bearer error="invalid_token", error_description="Invalid mapping claim", ...
 
-# 5. PATCH it once:
-curl -s -u admin:district -X PATCH \
-  -H 'Content-Type: application/json-patch+json' \
-  -d '[{"op":"add","path":"/openId","value":"admin"}]' \
-  http://localhost:8080/api/users/M5zQapPyTZI
-# 200 OK
+# 4. Clear openId and replay the same token — byte-identical refusal:
+curl -s -u $A -X PATCH -H 'Content-Type: application/json-patch+json' \
+  -d '[{"op":"replace","path":"/openId","value":""}]' "$U/api/users/$ADMIN"
+curl -si -H "Authorization: Bearer $TOKEN" "$U/api/me" | grep -i www-authenticate
+# -> identical
 
-# 6. Re-call /api/* with the same Bearer token — now 200:
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/system/info | jq .version
-# "2.42.4"
+# 5. Restore it — still identical.
 ```
 
-**Expected:** When DHIS2's own embedded AS issues a JWT whose `sub` claim is
-the username of an existing DHIS2 user, the API-side validator should
-authenticate that token without manual PATCHing of an out-of-band column.
-The AS knows the user (it just authenticated them through the login form
-and minted the JWT); the resource server should resolve the same user
-without a separate identity-mapping step. At minimum, the user-bootstrap
-that creates the admin account should set `openId = username` so the
-self-issuer / self-validator loop closes by default.
+For contrast, a boot with no provider configured at all refuses with the long form,
+`Found no matching DHIS2 user for the mapping claim: 'username' with the value: 'null'`, which is
+what a genuine user-lookup failure reads like.
 
-**Actual:** The OIDC user lookup matches the JWT's `mapping_claim` value
-(default `sub`) against `userinfo.openid`, which is `''` on every fresh
-account. Every minted token 401s on `/api/*` with the message above until
-an admin manually adds `openId`. The AS path and the resource-server path
-share no link in the user-resolution code, so DHIS2 ends up rejecting its
-own valid signatures.
+**Expected:** the resource server authenticates a token its own authorization server minted for a
+user it just logged in, without an out-of-band identity-mapping column. Failing that, the refusal
+names the claim it looked for and the value it read, the way the `Found no matching DHIS2 user`
+form does.
 
-**Impact:**
-- Every first-time OAuth2 setup walkthrough hits this after the celebratory
-  "I logged in! I got a token!" moment, then 401s on the first API call.
-- Easy to misdiagnose as a token / signing / issuer / clock-skew problem
-  because the JWT looks structurally valid and the WWW-Authenticate
-  description is hidden behind generic 401 reporting in most HTTP clients.
-- New users created via `/api/users` POST are equally broken until the
-  caller remembers to PATCH `openId` on each one.
+**Actual:** `401 error="invalid_token", error_description="Invalid mapping claim"` on every
+attempt, indifferent to `openId`. The token's `iss` carries a trailing slash
+(`http://localhost:8080/`) that the configured `issuer_uri` does not (#120), which is the nearest
+visible candidate for what actually refuses, but spelling `issuer_uri` with the slash does not
+change the answer either.
 
-**Workaround in this repo:**
-- `infra/scripts/seed_auth.py:80 ensure_user_openid_mapping` PATCHes
-  `admin.openId = "admin"` once, called from the standard seed +
-  `infra/scripts/build_e2e_dump.py`.
-- `packages/dhis2w-client/src/dhis2w_client/errors.py` parses the 401's
-  `WWW-Authenticate` header and surfaces the PATCH curl + `Fixed in DHIS2
-  v43+` footer so end users hit a clear, actionable error instead of a bare
-  "401 Unauthorized at GET /api/system/info".
+**Impact:** every OAuth2 walkthrough on these two majors stops at the first API call after a
+successful login and a structurally valid token. The message gives a caller nothing to act on: no
+claim name, no value, no hint that the issuer is involved.
+
+**Workaround in this repo:** none that reaches the API. `infra/scripts/seed_auth.py`'s
+`ensure_user_openid_mapping` still PATCHes `admin.openId = "admin"` once, which is correct and
+cheap but not sufficient on these releases;
+`packages/dhis2w-client/src/dhis2w_client/errors.py` parses the `WWW-Authenticate` header so the
+user sees the refusal rather than a bare 401. Profile login against `2.42.6` and `2.43.1` stops at
+the API.
 
 **Relevant DHIS2 source-side pointer:**
-`org.hisp.dhis.security.oidc.Dhis2JwtAuthenticationManagerResolver`
-(API-side JWT validator) does the `userinfo.openid` lookup. The error string
-"Found no matching DHIS2 user for the mapping claim" is grep-able in the
-source. The JPA default for `UserInfo.openid` is empty.
+`org.hisp.dhis.security.oidc.Dhis2JwtAuthenticationManagerResolver` holds both the
+`userinfo.openid` lookup and the mapping-claim branch; `Invalid mapping claim` and `Found no
+matching DHIS2 user for the mapping claim` are both grep-able there.
 
-**How to know it's fixed:** Step 3 of the repro (`curl -H "Authorization:
-Bearer $TOKEN" /api/system/info` against a fresh admin with empty
-`openId`) returns `200 OK` instead of `401 invalid_token`.
+**How to know it's fixed:** a token minted by the instance's own authorization server answers
+`/api/me` 200, or the refusal names the claim and the value it read.
 
-**Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** superseded by a different refusal. With the seeded client, the full `dhis.conf` block and `admin.openId = admin`, the headless code flow mints a token (`sub=admin`, `aud=dhis2w-utils-local`, `iss=http://localhost:8080/`) and `/api/system/info` answers `401 error="invalid_token", error_description="Invalid mapping claim"`; removing the admin's `openId` and restoring it changes nothing, and neither does spelling `issuer_uri` with the trailing slash the token carries. The "Found no matching DHIS2 user" symptom this entry describes is not reachable on these releases because the token is refused one step earlier. Follow-up: find which `mapping_claim` a 2.42.6 / 2.43.1 API accepts for its own tokens; until then the repo's OAuth2 login against these releases stops at the API. Not applicable on `2.41.9.1`.
+**Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** superseded by a different refusal. With the seeded client, the full `dhis.conf` block and `admin.openId = admin`, the headless code flow mints a token (`sub=admin`, `aud=dhis2w-utils-local`, `iss=http://localhost:8080/`) and `/api/system/info` answers `401 error="invalid_token", error_description="Invalid mapping claim"`; removing the admin's `openId` and restoring it changes nothing, and neither does spelling `issuer_uri` with the trailing slash the token carries. The "Found no matching DHIS2 user" symptom the entry then described is not reachable on these releases because the token is refused one step earlier.
+
+**Status (2026-09-11):** INVERTED on `2.42.6` and `2.43.1`, which is why the entry above now describes what holds rather than the empty-`openId` premise it was filed on. Three replays of one token, with `openId` set to `admin`, cleared, and restored, gave byte-identical `Invalid mapping claim` refusals on both majors, so the `openId` lookup is not the refusing step. Not applicable on `2.41.10`: `/api/me` answers `200` with `openId` set and after `PATCH replace /openId ""` alike, because that major has no authorization server and no JWT to validate.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_4_live_verifier`
 
@@ -1357,6 +2028,8 @@ reference page.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: a capture user scoped to one district cannot enter data at a sibling district's descendant, and the refusal names no ancestor. The error code differs: `E8011 "Current user cannot enter data for org unit(s)"` on `2.43.1.0` (the entry's text), `E7617 "Organisation unit ... not in hierarchy of current user"` on `2.41.9.1` and `2.42.6.0`. The check is only reached once the capture user can read the data element; with a data element the user cannot see, every unit answers `E7610 "Data element not found or not accessible"`, which would read as a false confirmation.
 
+**Status (2026-09-11):** STILL on all three: a capture user scoped to one district cannot enter data at a sibling district's descendant, and the conflict carries only `organisationUnit` and `user`, naming neither the scope nor the ancestor. The code is per-major — `E8011` on `2.43.1`, `E7617` on `2.42.6` and `2.41.10`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_5_live_verifier`
 
 ---
@@ -1395,6 +2068,8 @@ jq '{httpStatusCode, status, message, importCount: .response.importCount, reject
 **How to know it's fixed:** Either the status code changes, or the body-on-4xx convention lands in the API reference — and `dhis2w-client`'s `get_raw`/`post_raw` gains the matching parse-on-4xx branch.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three. On `2.43.1.0` the response `status` is `ERROR` rather than `WARNING`, and the future-period lever the repro uses does not fire: a data set with `openFuturePeriods: 0` accepted `202712` and `209912` at 200 (dry run), so the 409 had to be provoked with a type violation (`value:"not-a-number"` on a NUMBER data element, conflict `E8122` with no `object`/`property`, #76). On `2.41.9.1` and `2.42.6.0` the far-period lever still answers `409 E7641`.
+
+**Status (2026-09-11):** STILL on all three, and the far-future lever does fire on `2.43.1` after all: a data set with `openFuturePeriods: 0` refuses period `209912` with a `409`. It refuses as `E8023` with every `importCount` zero, not as the `E7641` with `ignored:1` that `2.42.6` and `2.41.10` still answer, which is why the 2026-09-07 run read the lever as dead — the 409 it saw came from the type violation `E8122`.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_6_live_verifier`
 
@@ -1435,13 +2110,15 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/system/info
 
 **Impact:** a single typo in the `oidc.provider.<id>.*` block silently breaks end-to-end auth without any runtime error after startup — the symptom surfaces much later (401 on every token-authed call) far from the cause (startup config parse). Easy to mis-diagnose as a token-signing or audience problem.
 
-**Workaround in this repo:** `infra/home/dhis.conf` now uses `login_image` / `login_image_padding` (the parser-accepted names, confirmed by GenericOidcProviderConfigParser.java's suggestion). Rebuilding the committed e2e dump picks up the fix. See docs/decisions.md for the original OIDC seed rationale.
+**Workaround in this repo:** `infra/v{41,42,43}/dhis.conf` now uses `login_image` / `login_image_padding` (the parser-accepted names, confirmed by GenericOidcProviderConfigParser.java's suggestion). Rebuilding the committed e2e dump picks up the fix. See docs/decisions.md for the original OIDC seed rationale.
 
 **Expected improvement:** either warn-and-continue on unknown properties (so a typo doesn't brick the provider), or surface the full failure louder than a single `ERROR` line during startup (and explicitly on 401 with `Invalid issuer` when the corresponding issuer is a known-but-unregistered-provider mismatch).
 
 **How to know it's fixed:** `logo_image` (or any other unknown key) in `oidc.provider.<id>.*` logs a warning at startup but the provider still registers. `curl -H "Authorization: Bearer <DHIS2-minted token>" /api/system/info` returns 200.
 
 **Status per major (local stacks, 2026-09-07):** STILL on `2.41.9.1`: one unknown key (`oidc.provider.dhis2.logo_image`) makes the parser log `contains an invalid property: 'logo_image', did you mean: 'login_image'` and `Failed to configure the provider successfully`, and `/api/loginConfig` lists no provider until the key is removed. Inconclusive on `2.42.6.0` and `2.43.1.0`: `/api/loginConfig` lists no `oidcProviders` on those releases with the full, typo-free block either, so the read that shows the provider vanishing on v41 shows nothing there; the parser's log lines were not captured on those two.
+
+**Status (2026-09-11):** STILL on `2.41.10`, and the split the 2026-09-07 run could not decide is now decided the other way on the later majors. On `2.41.10` a boot carrying a misspelled known key and an unknown one logs exactly the entry's three lines — `contains an invalid property: 'authorization_url', did you mean: 'authorization_uri' ?`, the same for `'logo_image'` / `'login_image'`, then `contains one or more invalid properties. Failed to configure the provider successfully!`, the only 3 `ERROR` lines of that boot — and `/api/loginConfig` drops from one `dhis2` provider to `[]`. On `2.42.6` and `2.43.1` the same two keys produce no `GenericOidcProviderConfigParser` line and no `ERROR` line at all, and the provider still registers: a token minted on that boot is refused `Invalid mapping claim`, the branch that needs a resolved provider, rather than the `Invalid issuer` a boot with no provider produces. So the strict parser rejects on v41 and silently keeps the provider on v42 and v43, where the warning the entry asks for is absent rather than logged.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_9_live_verifier`
 
@@ -1495,6 +2172,8 @@ curl -s -u admin:district http://localhost:8080/api/systemSettings \
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: four of the five login-page field names refuse as system-setting keys (`409 "Key is not supported"` on `2.41.9.1`, `404 E1005` on `2.42.6.0` and `2.43.1.0`). On `2.42.6.0` and `2.43.1.0` the `GET /api/systemSettings` listing no longer includes `applicationTitle`, `keyStyle` or `keyUseCustomLogoFront`, though each key still answers `GET` and `POST` individually.
 
+**Status (2026-09-11):** STILL on all three for the read half. The refusal shape is per-major: `2.41.10` answers `409 {"httpStatus":"Conflict","message":"Key is not supported: <name>"}` with **no `errorCode`**, where `2.42.6` and `2.43.1` answer `404 E1005 "Setting does not exist: <name>"` — a caller keying off `E1005` to detect an unsupported setting reads nothing on v41. Only `stable-2-43-1` could not exercise the write half, whose admin is refused `403 "Access is denied, requires one Authority from [F_SYSTEM_SETTING]"`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_10_live_verifier`
 
 ---
@@ -1538,6 +2217,8 @@ curl -sL -u admin:district http://localhost:8080/api/staticContent/logo_front.pn
 **How to know it's fixed:** after a single `POST /api/staticContent/logo_front` upload, `GET /api/staticContent/logo_front.png` serves the uploaded bytes (no 302 to `/dhis-web-commons/security/logo_front.png`) AND `/api/loginConfig.useCustomLogoFront` is `true`, without any additional `POST /api/systemSettings/keyUseCustomLogoFront` call.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: with `keyUseCustomLogoFront=false` the upload answers 204 and `GET /api/staticContent/logo_front` keeps serving the built-in default until the flag is set.
+
+**Status (2026-09-11):** STILL on all three: the upload answers `204` and the built-in 3082-byte logo keeps being served until `keyUseCustomLogoFront=true` is set.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_11_live_verifier`
 
@@ -1584,6 +2265,8 @@ body { padding: 0; margin: 0; background: #2a5298; }
 
 **Status (2026-09-07):** not retested; the symptom needs a visual check at browser zoom levels and no headless probe expresses it.
 
+**Status (2026-09-11):** not retested, for the same reason as on 2026-09-07: the symptom needs a visual check at browser zoom levels and no headless probe expresses it.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_12_live_verifier`
 
 ### 13. `OutlierDetectionAlgorithm` OAS enum reports `MOD_Z_SCORE` but DHIS2 rejects that value at runtime
@@ -1629,6 +2312,8 @@ curl -s -u admin:district \
 **Status on v41 (2.41.9-SNAPSHOT, dev-2-41):** NOT fixed, schema relocated — the standalone `OutlierDetectionAlgorithm` is absent from v41, and the same enum (still `{Z_SCORE, MIN_MAX, MOD_Z_SCORE, INVALID_NUMERIC}`) now lives inline on `OutlierDetectionMetadata.properties.algorithm`. Runtime mismatch is unchanged.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three: `MOD_Z_SCORE` answers `400 "Valid values are: [Z_SCORE, MIN_MAX, MODIFIED_Z_SCORE]"` while the document still emits `MOD_Z_SCORE`. On `2.41.10` the enum is inlined on `OutlierDetectionMetadata.algorithm`, since that major has no standalone `OutlierDetectionAlgorithm` schema and no sibling `OutlierMethod` enum carrying the long name.
 
 **Sharpening (2026-09-07):** `algorithm=MODIFIED_Z_SCORE` now answers 200 on every channel including v42 (the 2026-05-08 row recorded 409 there); `MOD_Z_SCORE`, the value the OAS emits, still answers 400 `Valid values are: [Z_SCORE, MIN_MAX, MODIFIED_Z_SCORE]` everywhere.
 
@@ -1730,6 +2415,8 @@ And every `*AuthScheme` schema should declare a required `type` property with a 
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
+**Status (2026-09-11):** STILL on `2.42.6` and `2.43.1`; half absent on `2.41.10`. The missing `discriminator` holds on all three — `Route.properties.auth` has the single key `oneOf` everywhere. The second half is v42/v43-only: every v41 `*AuthScheme` does declare its Jackson `type` property (`HttpBasicAuthScheme` is `['password','type','username']`, and the other three carry the same), and v41 lists 4 variants rather than 5 because `OAuth2ClientCredentialsAuthScheme` does not exist there. The regression runs forward in version order, which the entry's uniform wording does not say.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_14_live_verifier`
 
 ---
@@ -1779,6 +2466,8 @@ jq '.components.schemas.WebMessage.properties.response' \
 **Status on v41 (2.41.9-SNAPSHOT, dev-2-41):** NOT fixed, worse on the `WebMessage.response` side. `JobConfiguration.jobParameters` is unchanged (bare `oneOf`, no discriminator). `WebMessage.response` collapsed to a fully opaque `{"type": "object"}` — no `oneOf`, no variant list — so the OAS now communicates strictly less polymorphic info than v42/v43. Codegen still has to flatten to `dict[str, Any]`, and the hand-written `WebMessageResponse` typed accessors are still the only path consumers have to project the payload.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on `2.42.6` and `2.43.1`; half absent and half worse on `2.41.10`. `JobConfiguration.jobParameters` is a bare `oneOf` on every major — 22 variants on v43, 23 on v42 and 23 on v41, where `ImportOptions` is listed twice — with no `discriminator` anywhere. `WebMessage.response` is a 17-variant bare `oneOf` on v42 and v43 but is **not a `oneOf` at all** on `2.41.10`: it is the bare `{"type":"object"}`, so a generated client gets an untyped bag rather than an ambiguous union.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_15_live_verifier`
 
@@ -1857,6 +2546,8 @@ probe later, but the two-step path will keep working indefinitely.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: multipart `POST /api/documents` answers 415, the two-step `fileResources` then `documents` path works.
 
+**Status (2026-09-11):** STILL on all three: multipart `POST /api/documents` answers 415 and the two-step `fileResources` then `documents` path works. `2.41.10` words the refusal `Content type 'multipart/form-data;boundary=...' not supported`, the later majors `Content-Type '...' is not supported`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_16_live_verifier`
 
 ### 17. `POST /api/messageConversations` returns the new UID on the `Location` header, not in the JSON envelope
@@ -1924,6 +2615,8 @@ path — `messaging.send` can then mirror `files.upload_document` exactly.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: the 201 carries the new conversation's UID only on the `Location` header.
 
+**Status (2026-09-11):** STILL on all three: the 201 carries the new conversation's UID only on the `Location` header.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_17_live_verifier`
 
 ### 18. `POST /api/messageConversations/{uid}` takes `text/plain` body; `send` requires `{id}` refs for attachments
@@ -1932,6 +2625,8 @@ Two wire-shape quirks on DHIS2 v42's messaging surface, related enough to
 record together. Both surface on any client hitting `/api/messageConversations*`.
 
 **Observed on:** DHIS2 `2.42.4` (core image `dhis2/core:42`).
+
+**Status (2026-09-11):** STILL on all three; the umbrella holds, both halves reproduce on every major.
 
 ### 18a. Reply endpoint stores the request body verbatim as message text
 
@@ -1985,6 +2680,8 @@ encodes its `text` argument as UTF-8 bytes and sends `Content-Type: text/plain`.
 since they silently no-op — documented in the method docstring.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: a reply posted as `application/json` `{"text":"second"}` is stored with the JSON body as its text.
+
+**Status (2026-09-11):** STILL on all three: a reply posted as `application/json` `{"text":"second"}` is stored verbatim as `"{\"text\":\"second\"}"`.
 
 ### 18b. `attachments` on `send` needs `{id}` refs, not bare UID strings
 
@@ -2047,6 +2744,8 @@ each UID as `{"id": uid}` before serialisation. Callers pass plain UID
 lists; the accessor handles the wrapping. See `v{41,42,43}/messaging.py`.
 
 **Status per major (local stacks, 2026-09-07):** the quirk is unchanged everywhere (only `{"id": uid}` attachment references work). The refusal of a bare UID is `500` with the Jackson `Cannot construct instance of org.hisp.dhis.fileresource.FileResource` body on `2.41.9.1` and `2.42.6.0`, and `409` on `2.43.1.0`; the clean 409 noted on the 2.43.1 snapshot in June is v43-only. On `2.41.9.1` the OpenAPI document names the create body `MessageConversation` (not `MessageConversationParams`) and ignores `?path=/api/messageConversations`.
+
+**Status (2026-09-11):** STILL on all three, with the status split now covering v41 as well: a bare-UID `attachments[]` answers `500` on `2.41.10` and `2.42.6` and `409` on `2.43.1`. On `2.41.10` the OpenAPI document names the create body `MessageConversation` with 32 properties and no `attachments` at all.
 
 **How to know it's fixed:** `MessageConversationParams` declares an `attachments` property in
 the `array[{id}]` shape the handler accepts, or the handler accepts the bare-UID array the
@@ -2161,65 +2860,9 @@ since `BaseIdentifiableObject` doesn't type those fields.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three, once validation results are persisted (`POST /api/dataAnalysis/validationRules` with `persist=true` over the seeded rules and 2025 dates leaves 500 rows): `fields=*` and `fields=:all` return the same default projection as no `fields` at all. Play carries no persisted results, so the entry is not testable there.
 
+**Status (2026-09-11):** INCONCLUSIVE on all three and on every play channel: no instance in the sweep carries persisted validation results (`{"pager":{"total":0}}` everywhere), so the `fields=*` expansion is unobservable. Re-running it needs `POST /api/dataAnalysis/validationRules` with `persist=true` first, as the 2026-09-07 run did.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_19_live_verifier`
-
-### 20. `DELETE /api/options/{uid}` returns 200 OK but leaves the option in place
-
-**STATUS:** FIXED on v43 (verified 2026-05-12 on `dhis2/core:2.43.0.0`) and on v42 from `2.42.6.0` (verified 2026-09-07 on the local stack: `DELETE /api/options/{uid}` answers 200 and the option then answers 404). Still present on v41 (`2.41.9.1`, 2026-09-07). The verifier `test_bug_20_live_verifier` targets v41 only. On `2.42.6.0` and `2.43.1.0`, `DELETE /api/options/{uid}` and `POST /api/metadata?importStrategy=DELETE` both remove the row, while `PUT /api/optionSets/{uid}` with the option omitted only unlinks it: the option survives as an orphan with no owning set.
-
-**Observed on:** DHIS2 `2.42.4` (core image `dhis2/core:42`).
-
-**Repro:**
-
-```bash
-# Assume the seeded OptionSet OsVaccType1 with an "HPV" option (uid TnI3wDs1bKL).
-curl -s -u admin:district -X DELETE \
-  http://localhost:8080/api/options/TnI3wDs1bKL
-# {"httpStatus":"OK","httpStatusCode":200,"status":"OK",
-#  "response":{"uid":"TnI3wDs1bKL","klass":"org.hisp.dhis.option.Option",
-#              "errorReports":[],"responseType":"ObjectReportWebMessageResponse"}}
-
-# …but the option is still there:
-curl -s -u admin:district \
-  'http://localhost:8080/api/options?filter=code:eq:HPV&fields=id,code'
-# {"pager":{...},"options":[{"id":"TnI3wDs1bKL","code":"HPV",...}]}
-```
-
-**Expected:** `DELETE /api/options/{uid}` actually removes the option
-from the database (same semantics as `DELETE /api/dataElements/{uid}`
-etc.). Matches every other per-resource DELETE endpoint on DHIS2.
-
-**Actual:** The endpoint acknowledges the request with a full
-`ObjectReportWebMessageResponse` envelope + `status=OK` + empty
-`errorReports`, but the option row is untouched. Subsequent GETs still
-return it; it also still shows up under the owning OptionSet's
-`options` list. There's no 409, no conflict, no warning — the delete
-simply doesn't take effect.
-
-**Impact:** Any workflow that wants to shrink an OptionSet must route
-deletes through `POST /api/metadata?importStrategy=DELETE` with the
-options bundled there. Callers relying on the per-resource DELETE
-surface get a silently-broken path.
-
-**Workaround in this repo:**
-`packages/dhis2w-client/src/dhis2w_client/v{41,42,43}/option_sets.py::OptionSetsAccessor.upsert_options`
-routes removals through `client.metadata.delete_bulk("options", uids)`
-(which posts `POST /api/metadata?importStrategy=DELETE`). Tested
-end-to-end with a round-trip that adds two options and then rolls
-them back — removes do commit via this path.
-
-**Expected upstream fix:**
-`DELETE /api/options/{uid}` should actually delete the row, matching
-every other per-resource DELETE endpoint. At minimum it should return
-`409 Conflict` (or an envelope with a non-empty `errorReports`) if
-deletion via this route is intentionally not supported, so callers
-can't be fooled by a 200 status.
-
-**How to know it's fixed:**
-- `curl -X DELETE .../options/<uid>` → subsequent GET on the same UID
-  returns 404 (or the option's absent from the owning set's list).
-
-**Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_20_live_verifier`
 
 ### 21. Attribute-value filters: path property is the Attribute UID, not `attributeValues.value`
 
@@ -2295,6 +2938,8 @@ the API intends.
   returns the MEASLES option (and no others) instead of E1003.
 
 **Status per major (local stacks and play, 2026-09-07):** split by major. `2.41.9.1` accepts `attributeValues.value:eq:<value>` with 200 and the right single row; `2.42.6.0` and `2.43.1.0` (local and play, release and snapshot) refuse it with `400 E1003 "Unknown path property: attributeValues.value"`. On every release the UID shorthand `<attrUid>:eq:<value>` answers the same single row, `attributeValues.attribute.id:eq:<uid>` filters on presence only, and the bracket form `attributeValues[<uid>]:eq:<value>` is silently unfiltered on v42/v43 and refused with `E1003` on v41. The STATUS banner above that calls the nested path fixed on v42 and v43 was wrong; the shorthand workaround stays, and `test_bug_21_live_verifier` now asserts the split per major instead of an `xfail`.
+
+**Status (2026-09-11):** PARTIAL, and the premise has moved in both directions since the entry was filed. The nested path `attributeValues.value:eq:` genuinely **filters** on `2.41.10` and `2.41.11-SNAPSHOT` — `/api/options?filter=attributeValues.value:eq:386661006` answers 1 of 49 (`OptVacMes01` / `MEASLES`), `:eq:77656005` answers `OptVacBCG01`, and a bogus value answers `total: 0` — while `2.42.6` and `2.43.1` refuse it `400 E1003`. The bracket form `attributeValues[<uid>]:eq:` is refused `400 E1003 "Unknown path property: attributeValues[<uid>]"` on `2.42.6`, `2.42.7-SNAPSHOT`, all three v41 channels and both v43 play channels; only the local `2.43.1` `/api/options` probe still answers it silently unfiltered, so that difference tracks the endpoint rather than the release. One sharpening the entry does not carry: the attribute **presence** filter works only through `eq` — `attributeValues.attribute.id:!null` is refused `E1003` while `attributeValues.attribute.id:eq:<uid>` on the same path answers. The UID shorthand `<attrUid>:eq:<value>` remains the one filter every release honours, and the workaround stays.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_21_live_verifier`
 
@@ -2391,6 +3036,8 @@ action). Both directions of the link verify post-import.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: one `/api/metadata` bundle carrying `programRules` and `programRuleActions` that name them answers 200 and the action reads back without its `programRule`; a second post of the actions alone restores the link.
 
+**Status (2026-09-11):** STILL on all three: one bundle carrying `programRules` and `programRuleActions` answers `created: 2` (`status: OK` on v41) and the action reads back with `programRule` absent.
+
 **Verifier:** none yet.
 
 ---
@@ -2483,6 +3130,8 @@ three. Each pass uses `atomicMode=OBJECT` + `preheatIdentifier=CODE`.
 
 **Status per major (local stacks, 2026-09-07):** a small single-pass bundle (category options, categories, a category combo, data elements, an organisation unit, a data set with a section; `atomicMode=OBJECT`, `preheatIdentifier=CODE`) imports with 200 and `DataSet.stats.created: 1` on `2.41.9.1`, `2.42.6.0` and `2.43.1.0` alike, with no `DataSet.periodType` flush error. The entry's own repro (about 1300 organisation units on a fresh install) was not run; the seed's three-pass import stays until it is.
 
+**Status (2026-09-11):** INCONCLUSIVE on all three: the entry's ~1300-organisation-unit fresh-install repro cannot be staged on a seeded stack, and no worker may bring a stack up from an empty database. A small single-pass bundle imports `200` on every major (`created: 9` on `2.41.10`) with no `DataSet.periodType` flush error, as in the 2026-09-07 run. The seed's three-pass import stays.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_23_live_verifier`
 
 ---
@@ -2552,6 +3201,8 @@ stands in the way and every name imports clean.
   standard UID that every community maintainer targets.
 
 **Status (2026-09-07):** the name ladder in `infra/scripts/seed/loader.py` ran on three fresh installs today (`2.41.9.1`, `2.42.6.0`, `2.43.1.0`, each Flyway-bootstrapped from an empty database) and needed no suffixed fallback on any of them; the log does not record whether an `E5003` fired and was cleared, so the collision itself was not observed directly. The workaround stays.
+
+**Status (2026-09-11):** PARTIAL on all three, unchanged in shape: the name-collision half holds (`409 E5003 "Property `name` with value `Person` ... already exists on object nEenWmSyUEp"`, and the same on `shortName`), while the fresh-install half is unobservable because every seed's `Person` is the demo `nEenWmSyUEp`, not the fresh-install built-in `FsgEX4d3Fc5`.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_24_live_verifier`
 
@@ -2628,6 +3279,8 @@ data-value + tracker POSTs go through a fresh session.
 
 **Status per major (local stacks, 2026-09-07):** FIXED on `2.41.9.1` and `2.43.1.0`: after the admin's `organisationUnits` is widened on another connection, the pre-existing cookie session's next write at the newly reachable unit answers 200 with no re-login. STILL on `2.42.6.0`: the same session keeps answering 409 while a fresh session answers 200, and `GET /api/me` in the stale session already shows the new scope, so a `/api/me` read does not refresh it. The `close()` + `connect()` in `infra/scripts/seed/loader.py::seed_play` stays for v42. The pre-change refusal is `E7617` on v41/v42 and `E8011` on v43 (#5).
 
+**Status (2026-09-11):** FIXED on `2.41.10` and `2.43.1`, STILL on `2.42.6`. The v41 run was the strict form of the test: a session logged in while the scope was narrow, a pre-change write refused `409 E7617`, the scope widened on another connection, and the **next request on that session is the write itself** — `200 imported:1`, same `JSESSIONID`, no `/api/me` in between, so nothing had to refresh a cache because nothing is cached. `2.43.1` behaves the same way. `2.42.6` still answers `409 E7617` twelve seconds after the scope widened. The `close()` + `connect()` in `infra/scripts/seed/loader.py::seed_play` is earning its keep on v42 only.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_26_live_verifier`
 
 ---
@@ -2696,6 +3349,8 @@ against the same bundle.
 
 **Status (2026-09-07):** did not reproduce on the three fresh installs built today (one boot each of `2.41.9.1`, `2.42.6.0`, `2.43.1.0`): no metadata post needed a retry. The retry stays, since the entry describes intermittent behaviour and one boot per major is not a sample.
 
+**Status (2026-09-11):** INCONCLUSIVE on all three: the entry needs a fresh empty-database bring-up plus a large import inside the first minute, and no worker in this sweep may restart a stack. The retry stays.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_27_live_verifier`
 
 
@@ -2751,6 +3406,8 @@ Hand-written `RelativePeriod` StrEnum in `packages/dhis2w-client/src/dhis2w_clie
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
+**Status (2026-09-11):** STILL on all three and on every play channel: 45 boolean properties, no singular `RelativePeriod`. On `2.41.10` and `2.42.6` `MapView.relativePeriods` `$ref`s the same 45-flag bag alongside `Visualization` and `EventVisualization`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_28_live_verifier`
 
 
@@ -2802,6 +3459,8 @@ curl -s $AUTH "$BASE/api/dataElements?filter=id:eq:measles&filter=code:eq:measle
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
+**Status (2026-09-11):** STILL on all three: two filters with `rootJunction=OR` collapse while the same filters answer per-resource. One channel artefact: `stable-2-43-1` now refuses even a single-filter read with `409 "Unfiltered access to metadata export requires super user or 'F_METADATA_EXPORT' authority."`, which is that channel's configuration rather than the release.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_29_live_verifier`
 
 ---
@@ -2840,52 +3499,77 @@ print({k: sorted(v) for k, v in types.items()})
 
 **Status (2026-09-07):** STILL on `stable-2-42-6` and `dev-2-43` (`versions[*].created` epoch-millis, `last_updated` null); the local stacks reach the App Hub the same way.
 
+**Status (2026-09-11):** STILL on all three and on every play channel: 2633 version entries, `created` an `int`, `last_updated` `None`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_30_live_verifier`
 
 ---
 
-### 31. Predictor expression parser rejects uppercase aggregators (`AVG()` / `SUM()`)
+### 31. `/api/expressions/description` parses no aggregator spelling in `PREDICTOR_GENERATOR` context, while the predictor engine runs the expressions it refuses
 
-**Observed on:** DHIS2 `2.42.4` (core image `dhis2/core:42`).
+The description endpoint is the only surface a caller has for validating a
+predictor generator before saving it, and in `PREDICTOR_GENERATOR` context it
+refuses every aggregator spelling — `avg`, `AVG`, `sum`, `SUM` alike — with one
+generic message. A bare operand validates, so the endpoint is reachable and the
+operand syntax is understood; only the aggregator call is not. Predictors
+carrying exactly the refused expressions run and produce values.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks, and all six play channels.
+
+**Repro (any instance with a data element / category option combo pair):**
+
+```bash
+U=http://localhost:8080
+for e in 'avg(#{s46m5MS0hxu.Prlt0C1RF0s})' 'AVG(#{s46m5MS0hxu.Prlt0C1RF0s})' \
+         'sum(#{s46m5MS0hxu.Prlt0C1RF0s})' 'SUM(#{s46m5MS0hxu.Prlt0C1RF0s})'; do
+  curl -s -u admin:district -G "$U/api/expressions/description" \
+    --data-urlencode 'context=PREDICTOR_GENERATOR' --data-urlencode "expression=$e" | jq -c .
+done
+# -> {"status":"ERROR","message":"Expression is not well-formed"}   x4
+
+# The bare operand, same context:
+curl -s -u admin:district -G "$U/api/expressions/description" \
+  --data-urlencode 'context=PREDICTOR_GENERATOR' \
+  --data-urlencode 'expression=#{s46m5MS0hxu.Prlt0C1RF0s}' | jq -c .
+# -> {"status":"OK","description":"BCG doses given Fixed, <1y"}
+
+# And the predictor that carries the refused expression runs:
+curl -s -u admin:district "$U/api/predictors/PrdAvgBCG01?fields=generator[expression]"
+# -> {"generator":{"expression":"avg(#{s46m5MS0hxu.Prlt0C1RF0s})"}}
+```
+
+`POST /api/expressions/description` answers `405` on `2.41.10` and `2.42.6`, so the `GET` form is
+the only channel.
+
+**Expected:** the endpoint accepts the expressions the predictor engine executes, in whichever case
+the language defines, so a caller can validate a generator before saving it. Failing that, a
+message that names what it could not parse.
+
+**Actual:** every aggregator spelling is refused with `{"status":"ERROR","message":"Expression is
+not well-formed"}`, which names nothing, while the same expression stored on a predictor runs. The
+validation surface and the execution surface disagree about the language.
+
+**Impact:** a caller cannot validate a predictor generator at all. Any authoring path that checks
+the expression before writing it — the obvious defensive move — rejects expressions that work, and
+a path that skips the check has no way to catch a genuinely malformed one.
+
+**Workaround in this repo:** `infra/scripts/seed/workspace_fixtures.py` writes the seeded
+`PrdAvgBCG01` / `PrdSumBCG01` generators in lowercase and does not validate them through the
+description endpoint, because nothing can be validated there. The in-file comment pins the case
+choice.
+
+**How to know it's fixed:** `context=PREDICTOR_GENERATOR` with `avg(#{DE.COC})` answers
+`{"status":"OK", ...}`, and the case question can be asked again afterwards.
 
 **Status on every current release (2026-09-07):** the premise no longer holds anywhere. On
 `2.41.9.1`, `2.42.6.0` and `2.43.1.0` (local stacks) and on all six play channels,
 `GET /api/expressions/description?context=PREDICTOR_GENERATOR&expression=...` answers
 `{"status":"ERROR","message":"Expression is not well-formed"}` for `avg()`, `AVG()`, `sum()`,
 `SUM()` and every other aggregator in either case, while the bare operand
-`#{s46m5MS0hxu.Prlt0C1RF0s}` validates. `POST /api/expressions/description` answers 405 on
-`2.41.9.1` and `2.42.6.0`, so the GET form is the only channel. The seeded predictors
-(`PrdAvgBCG01`, lowercase `avg(...)`) still run, so the description endpoint refuses generator
-expressions the predictor engine accepts. The lowercase spelling in the seed stays; nothing can be
-verified through the description endpoint on any supported major.
+`#{s46m5MS0hxu.Prlt0C1RF0s}` validates.
 
-**Repro (against any v42 instance with a seeded DataElement + CategoryOptionCombo pair):**
-
-```bash
-# Uppercase — rejected.
-curl -s -u admin:district \
-  'http://localhost:8080/api/expressions/description?context=PREDICTOR_GENERATOR' \
-  --data-urlencode 'AVG(#{s46m5MS0hxu.Prlt0C1RF0s})' \
-  | jq .
-# { "status": "INVALID", "message": "Expression is not well-formed" }
-
-# Lowercase — accepted.
-curl -s -u admin:district \
-  'http://localhost:8080/api/expressions/description?context=PREDICTOR_GENERATOR' \
-  --data-urlencode 'avg(#{s46m5MS0hxu.Prlt0C1RF0s})' \
-  | jq .
-# { "status": "OK", "description": "avg(BCG doses given Fixed, <1y)" }
-```
-
-**Expected:** Either both case variants accepted (the rest of the DHIS2 expression language is case-insensitive for built-in functions) or consistent documentation. DHIS2's own predictor docs use uppercase in several places, so callers copying from the docs write invalid expressions.
-
-**Actual:** The `PREDICTOR_GENERATOR` parser accepts **only lowercase** aggregation functions (`avg`, `sum`, `min`, `max`, `median`, `stddev`, `percentileCont`). Uppercase variants fail parse with the generic "Expression is not well-formed" — no hint that the case is the problem.
-
-**Impact:** Silent "Generated 0 predictions" failures if a predictor was authored with `AVG(...)` via a path that didn't round-trip through `validate-expression`. The only way to notice is to manually validate the expression, which lots of scripted predictor-creation paths skip. Our seed hit this when porting `AVG(#{DE.COC})` + `SUM(#{DE.COC})` expressions — both rejected, silently producing zero outputs at run time.
-
-**Workaround in this repo:** `infra/scripts/seed/workspace_fixtures.py` uses lowercase `avg()` / `sum()` in the seeded `PrdAvgBCG01` + `PrdSumBCG01` predictors. In-file comment pins the case choice.
-
-**How to know it's fixed:** `/api/expressions/description?context=PREDICTOR_GENERATOR` accepts `AVG(#{DE.COC})` + `SUM(#{DE.COC})`, matching the case-insensitivity the rest of the expression language exhibits. Or DHIS2's predictor docs standardise on the case that actually parses.
+**Status (2026-09-11):** INVERTED on all three, which is why the entry above describes the refusal rather than the uppercase-only premise it was filed on. `2.41.10`, `2.42.6` and `2.43.1` each answer `{"status":"ERROR","message":"Expression is not well-formed"}` to all four spellings while the bare operand answers `{"status":"OK","description":"BCG doses given Fixed, <1y"}`, and the seeded lowercase predictors run on every major.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_31_live_verifier`
 
@@ -2917,6 +3601,8 @@ curl -s -u admin:district 'https://play.im.dhis2.org/dev-2-42/api/dataElements/a
 **How to know it's fixed:** `GET /api/dataElements/abc` returns `404`/`E1005` (or a `400` invalid-UID) instead of `405`.
 
 **Status (2026-09-07):** unchanged: `2.41.9.1` (both v41 channels) answers the correct 404, `2.42.6` and `2.43.1` (release and snapshot) answer 405.
+
+**Status (2026-09-11):** v42/v43-only. On `2.41.10` every malformed shape answers a clean `404 E1005 "DataElement with id <x> could not be found."` — `a`, `ab`, `abc`, `abcdefghijkl`, `1bcdefghijk`, `ab-cd` and the valid-length `abcdefghijk` alike — with no 405 anywhere, while `2.42.6` and `2.43.1` still answer `405 "Request method 'GET' is not supported"` for a short UID and `404 E1005` for an 11-character one.
 
 **Verifier:** none yet.
 
@@ -2956,6 +3642,8 @@ curl -s -u admin:district -X POST \
 **How to know it's fixed:** `POST /api/appHub/{appId}` (app id, not version id) returns a clear 400/404 naming the id-kind mismatch instead of a proxied apps.dhis2.org 404.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three. `2.41.9.1` relays the App Hub's own JSON body (`{"statusCode":404,"error":"Not Found","message":"Not Found"}`) rather than naming the proxied URL, so a caller sees even less than on 2.42.5.
+
+**Status (2026-09-11):** STILL on all three: an app id where a version id belongs draws an opaque proxied App Hub 404. Drift: `2.41.10` does not echo the proxied `apps.dhis2.org/api/v2/appVersions/...` URL that `2.42.6` and `2.43.1` include, so a v41 caller sees even less. On `stable-2-43-1` the request is refused before the proxy (`403 "... requires one Authority from [M_dhis-web-app-management]"`), a channel artefact.
 
 **Verifier:** none yet.
 
@@ -3012,6 +3700,8 @@ dropped) with an aggregate note, so a run never emits an invalid literal.
 timestamp ending in `Z` or an explicit `+HH:MM` / `-HH:MM` offset.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three, and wider than the v43-specific grouping implies: `occurredAt`, `createdAt` and a `DATETIME` data value are all zone-less on `2.42.6` and `2.41.10` too, under fields the document types `Instant`. The Index lists the entry with the cross-major ones for that reason.
 
 **Verifier:** none yet.
 
@@ -3072,6 +3762,8 @@ calls against an unchanged data set return the members in the same order.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
+**Status (2026-09-11):** STILL on all three, and wider than the v43-specific grouping implies: four identical `dataSetElements` reads gave four orders on `2.43.1`, six gave six on `2.42.6` and six gave six on `2.41.10`, while `sections[dataElements]` is byte-identical on all three. The Index lists the entry with the cross-major ones for that reason.
+
 **Verifier:** none yet.
 
 ---
@@ -3116,6 +3808,8 @@ out.
 
 **Status per major (local stacks, 2026-09-07):** STILL on `2.42.6.0` and `2.43.1.0`: under `atomicMode=ALL` and `atomicMode=OBJECT` alike the valid row is committed and the invalid one is `ignored`, read back after each leg. Not run on `2.41.9.1`.
 
+**Status (2026-09-11):** STILL in effect on all three, with the HTTP code tracking whether any row landed rather than the strategy: `2.43.1` answers `200 status: WARNING` on a mixed batch where `2.42.6` and `2.41.10` answer `409 status: WARNING` on the same shape, and all three commit the valid row under `atomicMode=ALL` and `atomicMode=OBJECT` alike.
+
 **Verifier:** `examples/client/data_values_import_atomic.py` prints both summaries.
 
 ### 113. The tracker reads take the organisation units as `orgUnits` on `/api/tracker/trackedEntities` and `/api/tracker/enrollments` but `orgUnit` on `/api/tracker/events`, drop or refuse the other spelling, and only read the mode from `orgUnitMode`
@@ -3154,6 +3848,8 @@ rather than dropped (entry #98 records the same silent drop on `trackedEntities`
 the key that differs per read is the organisation unit one, not the mode. Against Bo
 (`O6uvpzGd5pu`, 2097 of 19029 tracked entities in the Child Programme):
 
+**Status (2026-09-11):** STILL on `2.42.6` and `2.43.1`; on `2.41.10` nothing is silently dropped, because the events read refuses instead. `2.41.10` honours all four combinations of `orgUnit`/`orgUnits` against `ouMode`/`orgUnitMode` on tracked entities and on enrollments (66 rows each), honours the singular `orgUnit` on events with either mode key (126 rows), and **refuses** the plural on events outright with `400 "At least one org unit is required for orgUnitMode: DESCENDANTS. Please add one org unit or use a different orgUnitMode."` So the spelling split itself holds on every major and the silent-drop half is v42/v43-only. The client and core tracker reads and the fhir-serve polls send the per-endpoint keys already.
+
 ```
                                           2.41.9.1   2.42.6    2.43.1
 trackedEntities  orgUnits + orgUnitMode    2098       2097      2097     honoured
@@ -3184,19 +3880,22 @@ because 2.41.9.1 accepts the spelling the later releases require.
 
 ---
 
-### 117. `2.42.6` and `2.43.1`: `POST /api/oAuth2Clients` answers 201 to JSON arrays on the multi-valued fields and stores none of them
+### 117. The multi-valued OAuth2 client fields take arrays on v41 and comma-separated strings on v42/v43, and each major fails silently or loudly on the other shape
 
-`authorizationGrantTypes`, `redirectUris`, `scopes` and `clientAuthenticationMethods`
-are stored as comma-separated strings on v42 and v43 (the generated
-`Dhis2OAuth2Client` types them `str`, #52). A body that carries them as JSON
-arrays, the shape v41 requires (#39), is accepted with 201 and read back with
-every one of those fields null. The client exists, so a later `/oauth2/authorize`
-for it answers the #96 500 (`authorizationGrantTypes cannot be empty`), and the
-cause is one POST earlier.
+`authorizationGrantTypes`, `redirectUris`, `scopes` and
+`clientAuthenticationMethods` are stored as comma-separated strings on v42 and
+v43 (the generated `Dhis2OAuth2Client` types them `str`, #52) and as arrays on
+v41 (`OAuth2Client`, #39). Neither major refuses the other's shape usefully:
+v42 and v43 answer `201` to the array body and store **none** of those fields,
+while v41 answers `500` with a Jackson stack message to the comma-string body.
+The v42/v43 half is the dangerous one, because the client exists afterwards and
+the loss surfaces later as the #96 authorization-server 500.
 
-**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`) and `dhis2/core:2.42.6.0` (rev `dd8bdbb`), local stacks, admin/district. v41 `2.41.9.1` requires the arrays (#39). Play channels were not used (the repro writes).
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.41.10.0` (rev `1a3484f`), local stacks, admin/district. Play channels were not used
+(the repro writes).
 
-**Repro:**
+**Repro (v42 / v43 — silent loss):**
 
 ```bash
 U=http://localhost:8080; A=admin:district; H='Content-Type: application/json'
@@ -3218,17 +3917,47 @@ curl -s -u $A -H "$H" -X POST $U/api/oAuth2Clients -w '\nHTTP %{http_code}\n' -d
 # -> HTTP 201, read-back carries every field, /oauth2/authorize -> 302 to the login page
 ```
 
-**Expected:** a 400 naming the field whose JSON type the schema does not accept, or the array coerced to the stored string.
+**Repro (v41 — the exact inverse):**
 
-**Actual:** 201 and silent loss of every multi-valued field, which surfaces later as an authorization-server 500 with no reference to the write.
+```bash
+# The array body is the shape v41 requires, keyed off `cid` (#39):
+curl -s -u $A -H "$H" -X POST $U/api/oAuth2Clients -w '\nHTTP %{http_code}\n' -d '{
+  "name":"probe-arrays","cid":"probe-arrays","secret":"'"$(python3 -c 'print("x"*36)')"'",
+  "grantTypes":["authorization_code","refresh_token"],"redirectUris":["http://localhost:8765"]}'
+# -> HTTP 201; ?fields=:owner reads back both arrays populated
 
-**Impact:** any caller that registers a client with the v41 array shape against v42 or v43: `d2w` client registration, the seed, and every OAuth2 login on top of them.
+# The comma-string body fails loudly:
+# -> HTTP 500 "Cannot construct instance of java.util.ArrayList ... no String-argument constructor
+#    ... (through reference chain: org.hisp.dhis.security.oauth2.OAuth2Client[\"redirectUris\"])"
+```
 
-**Workaround in this repo:** `dhis2w_client.v42.oauth2_payload` and `dhis2w_client.v43.oauth2_payload` emit comma-separated strings; `dhis2w_client.v41.oauth2_payload` keeps the arrays; `dhis2w_core.oauth2_registration` dispatches on `client.version_key`, and `infra/scripts/_seed_auth_oauth2.py` uses the same builders. The seed also deletes and recreates its client rather than `PUT` it (#96).
+**Expected:** one wire shape for one resource across majors; failing that, a `400` naming the field
+whose JSON type the schema does not accept, on whichever major receives the wrong shape.
+
+**Actual:** the shape is inverted between v41 and v42/v43, and neither side refuses the other
+usefully — a silent `201` with four fields dropped on v42/v43, an untranslated Jackson `500` on
+v41.
+
+**Impact:** any caller that registers a client against more than one major: `d2w` client
+registration, the seed, and every OAuth2 login on top of them. On v42 and v43 the write appears to
+succeed and the failure arrives one authorization request later.
+
+**Workaround in this repo:** `dhis2w_client.v42.oauth2_payload` and
+`dhis2w_client.v43.oauth2_payload` emit comma-separated strings, `dhis2w_client.v41.oauth2_payload`
+emits arrays keyed off `cid`, and `dhis2w_core.oauth2_registration` dispatches on
+`client.version_key`; `infra/scripts/_seed_auth_oauth2.py` uses the same builders. The seed deletes
+and recreates its client rather than `PUT`ting it (#96).
+
+**Related:** #39 (the v41 wire shape and its `cid` key), #52 (no version-invariant generated
+schema for either shape), #96 (what an empty `authorizationGrantTypes` does to the authorization
+server).
+
+**How to know it's fixed:** one shape round-trips on all three majors, or the wrong shape answers
+`400` naming the field. Then the three `oauth2_payload` builders converge.
+
+**Status (2026-09-11):** STILL on `2.42.6` and `2.43.1` and exactly inverted on `2.41.10`, which is why the entry above carries both shapes. On the later majors the array body answers `201`, every multi-valued field reads back null, and `/oauth2/authorize` then answers `500 authorizationGrantTypes cannot be empty`. On `2.41.10` the array body is the one that works — `201`, and `?fields=:owner` reads back `"redirectUris":["http://localhost:8765"]` and `"grantTypes":["authorization_code","refresh_token"]`, both populated — while the comma-string body answers `500 "Cannot construct instance of java.util.ArrayList ... from String value"`. No field is silently lost on v41. One rendering detail worth a maintainer's eye while this is open: the sibling length refusal on the same resource reads `E4001 "Maximum length of property `id`is 11, but given length was 12"`, with no space before `is`.
 
 **Verifier:** `packages/dhis2w-client/tests/test_oauth2_payload_per_version.py` pins each tree's shape.
-
-**How to know it's fixed:** the first repro reads back the four fields populated (or answers 400); then the v42 and v43 builders may emit arrays again and the three trees converge.
 
 ---
 
@@ -3238,7 +3967,7 @@ The item delete on a message conversation is accepted and does nothing. The
 route that removes a conversation is the participant delete,
 `DELETE /api/messageConversations/{uid}/{userUid}`, which answers a different
 envelope and drops the conversation from the user's list, while the object
-itself still answers a direct `GET`. Same shape as #20 on options.
+itself still answers a direct `GET`.
 
 **Observed on:** `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and `dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks, admin/district. Not run on `2.41.9.1`.
 
@@ -3270,6 +3999,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -u $A "$U/api/messageConversations/$CON
 **Impact:** anything that cleans up conversations it created: `MessagingAccessor` callers and the sweep's own tidy-up.
 
 **Workaround in this repo:** none yet; `dhis2w_client.v{41,42,43}.messaging` exposes no delete. A caller that must remove a conversation uses the participant route.
+
+**Status (2026-09-11):** STILL on all three: the item `DELETE` answers 200 and changes nothing, the participant route removes the conversation from the user's list, and the object still answers a direct `GET`.
 
 **Verifier:** none yet.
 
@@ -3313,9 +4044,241 @@ curl -s -u $A -H "$H" -X POST "$U/api/metadata?importStrategy=DELETE" -d @delete
 
 **Workaround in this repo:** the examples delete one object per request in dependency order (`examples/fhir/cli/registers_many_types.sh` already does; #104 records the sort-order half).
 
+**Status (2026-09-11):** STILL on all three: `500 "Transaction silently rolled back because it has been marked as rollback-only"` naming no object, and the three-type sub-bundle commits partially (`deleted: 3, ignored: 1` on `2.41.10`).
+
 **Verifier:** none yet.
 
 **How to know it's fixed:** step 2 answers 200 with a `typeReports` list, or a 409 that names the blocking object without committing part of the bundle.
+
+---
+
+### 120. `server.base.url` is logged as invalid for a value that satisfies the message's own rule, and the authorization server then stamps a slashed `iss`
+
+Every boot that carries `server.base.url = http://localhost:8080` logs a WARN
+saying the value is not a valid URL and that an absolute URL **without a
+trailing slash** is expected — which is exactly what the value is. The same
+instance then stamps `iss` with a trailing slash on every token it mints, while
+`oidc.provider.dhis2.issuer_uri` carries the unslashed form the operator
+configured. Two surfaces disagree about a slash, and the one that complains is
+complaining about the spelling it asked for.
+
+**Observed on:** `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and `dhis2/core:2.43.1.0` (rev `9cbfbf3`),
+local stacks, on every boot of the sweep including the repository's own tracked `dhis.conf`. Absent
+on `dhis2/core:2.41.10.0`, which logs nothing of the kind.
+
+**Repro:**
+
+```bash
+# dhis.conf carries:
+#   server.base.url = http://localhost:8080
+#   oidc.provider.dhis2.issuer_uri = http://localhost:8080
+docker logs dhis2 2>&1 | grep -i 'base.url'
+# -> * WARN 'server.base.url' is not a valid URL: 'http://localhost:8080'. Expected an absolute URL
+#      without a trailing slash, for example: 'https://dhis2.example.org/dhis'. This value is
+#      important: features including password recovery, OIDC/OAuth2 redirects, notification emails,
+#      and interpretation sharing will not work correctly without it. See the 'Server base URL'
+#      section in the dhis.conf reference documentation. (ConfigurationPopulator.java [main])
+
+curl -s http://localhost:8080/.well-known/openid-configuration | jq -r .issuer
+# -> http://localhost:8080/            trailing slash, against the unslashed issuer_uri
+
+# and the minted token's payload:
+# {"sub":"admin","aud":"dhis2w-utils-local","scope":["ALL"],"iss":"http://localhost:8080/", ...}
+
+# On 2.41.10 the same grep over every boot returns only:
+# * INFO Executing startup routine [5 of 8, runlevel 12]: ConfigurationPopulator
+# * INFO Encryption is available (ConfigurationPopulator.java [main])
+```
+
+**Expected:** either the value is accepted silently, or the message names what is actually wrong
+with it. And the `iss` the authorization server stamps matches the `issuer_uri` an operator
+configured, character for character.
+
+**Actual:** a WARN whose own stated rule the value satisfies, and an `iss` that differs from
+`issuer_uri` by a trailing slash on the same instance.
+
+**Impact:** an operator reading the log changes a correct value, or ignores a warning class
+entirely. The slash is more than cosmetic: it is the nearest visible candidate for the
+`Invalid mapping claim` refusal in #4h, and spelling `issuer_uri` with the slash to match does not
+resolve that refusal either, so a reader is left unable to tell whether the slash matters.
+
+**Workaround in this repo:** none. `infra/v{41,42,43}/dhis.conf` keeps the unslashed form, which is
+what the message asks for; the WARN is accepted as noise on v42 and v43.
+
+**How to know it's fixed:** a boot with `server.base.url = http://localhost:8080` logs no WARN, and
+the discovery document's `issuer` is byte-identical to the configured `issuer_uri`.
+
+**Status (2026-09-11):** new, raised by the v43 config cycles and confirmed byte-for-byte by the v42 ones. Present on `2.42.6` and `2.43.1`; the validator that produces the warning does not exist on `2.41.10`, where six boots produced only the two INFO lines above.
+
+---
+
+### 125. A top-level `dataSet` key on a `/api/dataValueSets` payload makes every later import answer `409 E7644` with the period rendered as null, and a freshly created data set is invisible to the open-periods check for about two minutes
+
+Two ways to get the same misleading refusal out of the aggregate import. First,
+a payload that carries a top-level `"dataSet"` alongside per-value
+`dataElement` / `period` / `orgUnit` imports once and then refuses every later
+write to the same tuple with `E7644`, whose conflict renders the period as null
+even though the request carried one. Second, a data set created moments
+earlier is not yet visible to the open-periods check, so a write that just
+succeeded fails on its first update and succeeds again about two minutes later,
+or immediately after a cache clear.
+
+**Observed on:** `dhis2/core:2.42.6.0` (rev `dd8bdbb`), local stack. The null-period rendering also
+appears on `dhis2/core:2.41.10.0` (rev `1a3484f`), where the same conflict reads "Period: `null` is
+after latest open future period: `202706` for data element: `dU0GquGkGQr` and data set:
+`BfMAe6Itzgt`" for a request that named a period.
+
+**Repro:**
+
+```bash
+U=http://localhost:8080; A=admin:district; H='Content-Type: application/json'
+
+# (a) the top-level dataSet key
+curl -s -u $A -H "$H" -X POST "$U/api/dataValueSets" -d '{
+  "dataSet":"W4dGds00021",
+  "dataValues":[{"dataElement":"W4dGde00021","period":"202608","orgUnit":"ImspTQPwCqd","value":"10"}]}'
+# -> 200 imported: 1
+# repeat with "value":"11":
+# -> 409 E7644  "Period: `null` does not conform to the open periods of associated data sets"
+#    — the payload carried "period":"202608"
+# the same update without the top-level "dataSet" key:
+# -> 200 updated: 1
+
+# (b) a data set younger than the cache
+# create a data element + a Monthly data set, then immediately:
+#   write  -> 200 imported: 1
+#   update -> 409 E7644  "Period: `null` does not conform to the open periods of associated data sets"
+#   wait ~2 minutes, or:
+curl -s -u $A -X POST "$U/api/maintenance?cacheClear=true"      # -> 204
+#   update -> 200 updated: 1
+```
+
+**Expected:** the conflict names the period the request carried, and a data set is visible to the
+open-periods check as soon as it is readable through `/api/dataSets`.
+
+**Actual:** a conflict whose period reads `null`, on a request that named a period; and a window of roughly two minutes
+in which a freshly created data set exists for reads and does not exist for the period check.
+
+**Impact:** the message sends a caller looking for a missing `period` field that is present. The
+staleness window breaks any script that creates a data set and writes to it in the same run — the
+first write lands and the first correction does not, which reads as a data-dependent bug rather
+than a cache.
+
+**Workaround in this repo:** probe scripts that create a fixture data set call
+`POST /api/maintenance?cacheClear=true` between creating it and writing to it, and omit the
+top-level `dataSet` key from `/api/dataValueSets` payloads, naming the data set on each value
+instead.
+
+**How to know it's fixed:** the `E7644` conflict quotes the period from the request, and a data set
+created a second earlier is accepted by the open-periods check without a cache clear.
+
+**Status (2026-09-11):** new, from the v42 config batch, which lost a cycle's result to both traps before naming them. Observed on `2.42.6`; the null-period rendering also reproduces on `2.41.10`. Not probed on `2.43.1`.
+
+---
+
+### 126. `POST /api/maintenance` answers success to any query flag name, real or invented, while the path form refuses an unknown name
+
+The maintenance endpoint's query form accepts every parameter name it is given.
+A real flag, a flag that exists on another major, and a name invented for the
+probe all answer `204` (or `200`), and nothing in the response says which of
+them ran. The path form of the same endpoint does refuse an unknown name with a
+`404`, so the server knows the difference and the query form does not report it.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks.
+
+**Repro** (each call made against a fixture whose tracked entity type is blocked by one
+soft-deleted entity, re-attempting the type delete after each, so a success cannot be borrowed
+from a previous call):
+
+```bash
+U=http://localhost:8080; A=admin:district
+
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X POST "$U/api/maintenance?trackedEntityRemoval=true"
+# -> 204   and the type still refuses:   409 E4030 "... associated with another object: TrackedEntity"
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X POST "$U/api/maintenance?W4dGbogusFlag=true"
+# -> 204   and the type still refuses
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X POST "$U/api/maintenance?softDeletedTrackedEntityRemoval=true"
+# -> 204   and the type then deletes:    200
+
+# The path form does refuse an unknown name:
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X POST "$U/api/maintenance/W4eGbogusPath"
+# -> 404
+
+# And the document does not list every name the query form accepts:
+curl -su $A "$U/api/openapi/openapi.json" \
+  | jq -c '[.paths."/api/maintenance/".post.parameters[].name]'
+# 2.42.6 -> softDeletedDataValueRemoval, softDeletedEnrollmentRemoval, softDeletedEventRemoval,
+#           softDeletedRelationshipRemoval, softDeletedTrackedEntityRemoval, zeroDataValueRemoval, ...
+#           — neither `trackedEntityRemoval` nor `softDeletedTrackedEntityInstanceRemoval`, yet both 204
+```
+
+**Expected:** an unknown maintenance flag is refused, the way the path form refuses an unknown
+path; or the response says which tasks ran.
+
+**Actual:** `204` for every name. The caller cannot distinguish a flag that ran, a flag that
+exists and did nothing, and a name that means nothing at all.
+
+**Impact:** this is the cheapest way in the API to believe maintenance happened when it did not.
+It is exactly how the `trackedEntityRemoval` spelling in #105 survived so long: it answers `204`
+on every major and runs nothing on any of them. Per-major spelling differences compound it —
+`2.41.10` runs both `softDeletedTrackedEntityRemoval` and
+`softDeletedTrackedEntityInstanceRemoval`, `2.42.6` and `2.43.1` only the short one, and the wrong
+spelling is a silent `204` rather than a refusal.
+
+**Workaround in this repo:** nothing calls `/api/maintenance` in shipped code. A caller verifies
+the effect — re-attempt the delete the maintenance was meant to unblock — rather than the status
+code.
+
+**How to know it's fixed:** `POST /api/maintenance?somethingInvented=true` answers `400` or `404`,
+and the declared flag list matches what the endpoint accepts.
+
+**Status (2026-09-11):** new, from all three config batches. Present on `2.41.10`, `2.42.6` and `2.43.1`; the path-form contrast (`404` for an unknown path against `204` for an unknown flag) was probed on `2.41.10` and `2.42.6`.
+
+---
+
+### 127. File resources cannot be deleted through the API, so an orphaned `DOCUMENT` resource is permanent
+
+`/api/fileResources` exposes create and read and no delete.
+`DELETE /api/fileResources/{uid}` answers `405`. Because `POST /api/documents`
+refuses multipart (#16), every document upload is a two-step flow that creates
+a file resource first, and deleting the document afterwards leaves that resource
+behind with `assigned: false` and no route to remove it.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks.
+
+**Repro:**
+
+```bash
+U=http://localhost:8080; A=admin:district
+
+FR=$(curl -s -u $A -F 'file=@hello.txt' "$U/api/fileResources?domain=DOCUMENT" | jq -r '.response.fileResource.id')
+DOC=$(curl -s -u $A -H 'Content-Type: application/json' -X POST "$U/api/documents" \
+       -d "{\"name\":\"probe\",\"external\":false,\"url\":\"$FR\"}" | jq -r '.response.uid')
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X DELETE "$U/api/documents/$DOC"        # -> 200
+curl -s -u $A "$U/api/fileResources/$FR?fields=id,domain,assigned"
+# -> {"id":"HHpUosREARR","domain":"DOCUMENT","assigned":false}     the resource outlived its document
+curl -s -o /dev/null -w '%{http_code}\n' -u $A -X DELETE "$U/api/fileResources/$FR"      # -> 405
+```
+
+**Expected:** a resource a caller created through the API can be removed through the API, at least
+once nothing references it (`assigned: false`).
+
+**Actual:** `405 Method Not Allowed`, on every major. The row and its bytes stay.
+
+**Impact:** any automated flow that uploads documents accumulates unreferenced file resources
+permanently — the three stacks in this sweep each finished with two, from one probe apiece, and
+nothing short of database access removes them. There is also no listing of unassigned resources to
+reconcile against.
+
+**Workaround in this repo:** none possible from the API. Test and probe flows that upload a
+document record the orphaned resource UID rather than pretending to clean it up.
+
+**How to know it's fixed:** `DELETE /api/fileResources/{uid}` removes an `assigned: false` resource,
+or the document delete cascades to it.
+
+**Status (2026-09-11):** new, hit independently by the metadata batch on all three majors. Present on `2.41.10`, `2.42.6` and `2.43.1`.
 
 ---
 
@@ -3364,6 +4327,8 @@ curl -sf -u admin:district "http://localhost:8080/api/categoryCombos/<NEWUID>?fi
 **How to know it's fixed:** `POST /api/categoryCombos` with `{"categorys": [{"id": "..."}]}` either persists the categories list (alias re-instated) or fails with a 400 / unknown-property error on v43.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `categorys` answers 201 and the combo reads back with `categories: []`.
+
+**Status (2026-09-11):** STILL on all three, and wider than the v43-specific grouping implies: `2.41.10` and `2.42.6` drop `categorys` exactly as `2.43.1` does (`201`, then `{"categories":[]}` on read-back, with the correct spelling working), so the entry's premise that v42's wire accepted the alias holds on no pinned release. The Index lists it with the cross-major entries for that reason; the body stays in the section naming where it was first observed.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_34_v43_categorys_alias_silently_dropped`, `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_34_workaround_uses_categories_payload`, `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_34_v43_live_categorys_alias_silently_dropped`
 
@@ -3414,6 +4379,8 @@ curl -sf -u admin:district -X POST 'http://localhost:8080/api/dataValueSets' \
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL (`E8002 "Data set detection failed, found multiple sets"`), with one caveat for the repro: the rebuilt seed has two data sets and no data element in more than one, so the ambiguity has to be staged (a probe data set over an existing data element) before the import shows it. `DELETE /api/dataValues` answers the same 409 while the data element is ambiguous.
 
+**Status (2026-09-11):** v43-only, confirmed from both sides: `E8002 "Data set detection failed, found multiple sets"` on `2.43.1`, while the same envelope-less payload over a deliberately two-data-set data element imports `200 imported:1` on `2.42.6` and `2.41.10`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_35_live_verifier`
 
 ### 36. v43: building event analytics for an event-program with 2024 data fails with `column "yearly" does not exist`
@@ -3454,6 +4421,8 @@ The compose-time analytics-trigger sidecar (which runs once just after DHIS2 boo
 **How to know it's fixed:** `POST /api/resourceTables/analytics` against a v43 stack with seeded 2024 event data for `lxAQ7Zs9VYR` runs to completion without `bad SQL grammar` / `column "yearly" does not exist` in the task log.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: the server log carries `ERROR: column "yearly" does not exist`, `lastAnalyticsTableSuccess` stays at `1970-01-01`, the aggregate query for a seeded data element answers zero rows and the event analytics query answers `409 42P01 "a referenced table does not exist"`, while the `analytics-trigger` sidecar prints "Analytics tables completed successfully" because it reads the job's own notification rather than the table state.
+
+**Status (2026-09-11):** v43-only, confirmed: the `2.42.6` and `2.41.10` analytics builds are healthy (`lastAnalyticsTableSuccess` current on both, event analytics 200, zero `yearly` lines in the v41 log).
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_36_live_verifier`
 
@@ -3501,6 +4470,8 @@ Beware a second, separate mechanism that reads identically: on a released 2.42.4
 **How to know it's fixed:** the OpenAPI `SharingObject` component lists `externalAccess` again, or a write carrying the undeclared field is refused instead of accepted. When the v42 pin moves to a released 2.42.5+ that has dropped it, the v42 builder drops `external_access` too.
 
 **Status (2026-09-07):** the field symptom is unchanged on all six play channels and on the local `2.42.6.0` / `2.43.1.0` stacks (`fields=id,externalAccess,sharing` returns no `externalAccess`). The schema half no longer discriminates by channel: the released `2.42.6.0` and `2.41.9.1` generated trees drop `Sharing.external` and `Access.externalize` too, and on `2.41.9.1` the OpenAPI document at `?path=/api/sharing` names no sharing component at all. The v41 and v42 `SharingBuilder` still accept `external_access`; aligning them with v43 is a follow-up now that no pinned release declares the field.
+
+**Status (2026-09-11):** STILL on all three, and the withdrawal is now complete: `2.41.10` and `2.42.6` also accept `externalAccess:true` at `200 "Access control set"` and discard it, and neither live document declares `SharingObject.externalAccess` or `Sharing.external` any more. The Index lists the entry with the cross-major ones for that reason. The 2026-09-07 follow-up is discharged in this branch: `dhis2w_client.v41.sharing` and `dhis2w_client.v42.sharing` no longer build the field, matching `dhis2w_client.v43.sharing`.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_38_v43_live_sharing_schema_lacks_external_access`
 
@@ -3557,6 +4528,8 @@ curl -sf -u admin:district -X POST 'http://localhost:8080/api/oAuth2Clients' \
 
 **Status on v41 (`2.41.9.1`, local stack 2026-09-07):** STILL, with the refusal's shape moved a third time. The v42-shape body with comma-separated strings answers `500` (Jackson `Cannot construct instance of java.util.ArrayList ... from String value`, the failure the entry filed as a 400); `clientId` with arrays answers `409 E4000 "Missing required property cid"`; `cid` with arrays answers 201. The per-version builders stay. On `2.43.1.0` (control) the v42 shape with comma-separated strings answers 201 and round-trips, while the array shape answers 201 and stores none of the multi-valued fields (#117).
 
+**Status (2026-09-11):** STILL on `2.41.10`, confirmed on the local stack and on both v41 play channels: `clientId` with array fields answers `409 E4000 "Missing required property `cid`"`, and `cid` with array fields answers `201` with both arrays read back intact. The document agrees — `OAuth2Client.cid` is a `string` with no `clientId` property, and `grantTypes` and `redirectUris` are both `{"type":"array","items":{"type":"string"}}`. One constraint the repro does not mention: `secret` is pinned to exactly 36 characters, so a shorter one is refused `409 E4002 "Allowed length range for property secret is [36 to 36], but given length was 6"`.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_39_v41_oauth2_payload_with_clientid_persists_empty`, `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_39_workaround_v41_register_emits_cid_not_clientid`, `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_39_v41_live_oauth2_rejects_v42_shape`
 
 ### 40. v43: `E1055` enrollment error message says `categoryCombo` but actually fires on `enrollmentCategoryCombo`
@@ -3601,6 +4574,8 @@ curl -sf -u admin:district -X POST 'http://localhost:8080/api/tracker?async=fals
 **How to know it's fixed:** Either the `E1055` template is updated to mention `enrollmentCategoryCombo` when that's the field that triggered the check, or the check on `Program.enrollmentCategoryCombo` is removed / aligned with `Program.categoryCombo`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `E1055` fires on `enrollmentCategoryCombo` (reproduced on a program built for the run, with and without an explicit default attribute option combo) and names `categoryCombo`.
+
+**Status (2026-09-11):** v43-only: `enrollmentCategoryCombo` does not exist on `2.42.6` or `2.41.10` (`400 "Property enrollmentCategoryCombo does not exist on Schema"`), and the same enrollment answers `OK` there with no `E1055`.
 
 **Verifier:** None — bug is purely diagnostic (message wording); behaviour itself is consistent.
 
@@ -3652,6 +4627,8 @@ curl -sf -u admin:district -X POST 'http://localhost:8080/api/dataValueSets?forc
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL on all three legs with `force=true` and both `strict*` flags off.
 
+**Status (2026-09-11):** v43-only, confirmed: `2.42.6` and `2.41.10` accept the default COC and AOC at `200 imported:1` with no `E8024` / `E8023`.
+
 **Verifier:** None — covered indirectly by `examples/client/aggregate_bulk_grouped.py` passing on `make verify-examples DHIS2_VERSION=v43`.
 
 ### 42. `GET /api/systemSettings` returns `keyAnalysisDisplayProperty: "name"` (lowercase) — generated `SystemSettings` enum rejects it
@@ -3688,29 +4665,9 @@ SystemSettings.model_validate(raw)  # raw = the JSON above
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
+**Status (2026-09-11):** STILL on all three on the wire (`'name'` lowercase against a `["NAME","SHORTNAME"]` enum), and the model half cannot exist on v41: the live `2.41.10` document carries 594 components and **no `SystemSettings`** — `/systemSettings/` `get` is typed as a free map `{"type":"object","additionalProperties":{"oneOf":[string,number,boolean]}}` — so nothing in the v41 tree can reject the value. The same mismatch lands one schema over there, on `UserSettings.analysisDisplayProperty`, emitted as `Literal["NAME","SHORTNAME"]` at `packages/dhis2w-client/src/dhis2w_client/generated/v41/oas/user_settings.py:17`. On `stable-2-41-10` the wire answered `'shortName'`, an instance setting rather than a release difference.
+
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_42_generated_system_settings_rejects_lowercase_display_property` (mocked) + `::test_bug_42_live_system_settings_lowercase_display_property` (live, `-m slow`).
-
-### 43. `mapView` schema absent from `/api/schemas` on `2.41.9.x`
-
-**Observed on:** `dhis2/core:2.41.9.1` (rev `7a50918`, local stack) and `play.im.dhis2.org/stable-2-41-9-1`: `GET /api/schemas/mapView.json` answers 404 and `/api/schemas` lists 123 schemas. Present again on `2.42.6.0`, `2.43.1.0` and every dev channel (`2.41.11`, `2.42.7`, `2.43.2` snapshots) as of 2026-09-07. Earlier in 2026 the schema was missing from the released `2.42.5.0` and from every dev channel, which is when this entry was filed.
-
-**Repro:**
-
-```bash
-# Absent on all current play channels:
-curl -sf -u admin:district 'https://play.im.dhis2.org/dev-2-42/api/schemas/mapView.json'   # -> 404
-# Present on the pinned pre-removal images (e.g. dhis2/core:2.42.4.1) — schema count 119 vs 118.
-```
-
-**Expected:** `mapView` stays a top-level schema (it's a documented metadata type; `Map.mapViews[]` references it), so codegen keeps emitting `MapView` + the `OrganisationUnitSelectionMode` enum it carries.
-
-**Actual:** `/api/schemas` drops `mapView` entirely (v42 count 119 -> 118). Codegen then stops emitting `generated.v{N}.schemas.MapView` and `generated.v{N}.enums.OrganisationUnitSelectionMode` (the enum was only carried by mapView's `orgUnitSelectionMode` property). The removal is cross-major (gone on all three SNAPSHOTs) but landed first in a *released* tag on v42 (`2.42.5`); v41/v43 still ship it in their latest released tags.
-
-**Impact:** Hand-written `dhis2w_client.v{N}.maps` imports `MapView` + `OrganisationUnitSelectionMode` from the generated tree (the `MapViewLayer` builder + its `organisation_unit_selection_mode` default). Bumping a major's pin past the removal boundary deletes those generated symbols and breaks `import dhis2w_client` for that tree.
-
-**Workaround in this repo:** `MapView` and the enums only it carried (`ThematicMapType`, `OrganisationUnitSelectionMode`, `MapViewRenderingStrategy`) are hand-written in `dhis2w_client.v{41,42,43}.maps` (still valid wire shapes nested under `Map.mapViews[]`, just no longer enumerated by `/api/schemas` on every release), so no pin is held for this entry and `import dhis2w_client` survives whichever release drops the schema.
-
-**How to know it's resolved:** a `2.41.x` release answers 200 to `GET /api/schemas/mapView.json` again; the hand-written model can then go back to the generated one on every tree. Until a release does, the removal on `2.41.9.1` also breaks map authoring there (#114).
 
 ### 48. Filtering on a nested `geometry` path (`geometry.type`) returns `400 Unknown path property`
 
@@ -3731,6 +4688,8 @@ curl -s -u admin:district \
 **Workaround in this repo:** the d2ql planner treats a configurable set of field roots as non-pushable (`geometry`, `attributeValues`, `translations`) — predicates touching them stay local and run in the engine over the fetched rows instead of being pushed to `filter=`. See `SourceCapabilities.non_pushable_paths` (`packages/dhis2w-ql/src/dhis2w_ql/engine/plan.py`) and `Dhis2DataSource.capabilities` (`packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/query/datasource.py`).
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three: `400 E1003 "Unknown path property: geometry.type"`.
 
 **How to know it's fixed:** the repro returns `200` (filter honoured or ignored), at which point `geometry` can be removed from `non_pushable_paths`.
 
@@ -3754,6 +4713,8 @@ A live `PUT /api/dataValues/followup` with `{"dataElement":"...","period":"20240
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL with a changed layout: the live document still types `period` as an object, but inline (`{"type":"object","properties":{"id":{"type":"string","format":"period"}}}`) rather than through a named `DataValueFollowUpRequestPeriod` component; `dev-2-42` still says `{"type":"string","format":"period"}`. A verifier keyed on the component name would report a false fix.
 
+**Status (2026-09-11):** v43-only. `2.42.6` and `2.41.10` both declare `{"type":"string","format":"period"}` and carry no `DataValueFollowUpRequestPeriod` component, so both are the correct side of the split; `2.43.1` still types the field as an inline object. A verifier keyed on the component name would read a false fix, since no such component exists on any major.
+
 **How to know it's fixed:** the v43 OpenAPI types `DataValueFollowUpRequest.period` as `string`, at which point the typed generated model can replace the hand-built body dict.
 
 ---
@@ -3776,6 +4737,8 @@ A live `PUT /api/dataValues/followup` with `{"dataElement":"...","period":"20240
 **Workaround in this repo:** `set_data_value` / `delete_data_value` take `attribute_combo` (→ `cc`) + `attribute_options` (→ `cp`, `;`-joined) and require the two together; the CLI exposes `--attribute-combo`/`--cc` + `--attribute-option`/`--cp`, and the MCP tools mirror the pair (`packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/aggregate/{service,cli,mcp}.py`). The `/api/dataValueSets` push path is unaffected — its JSON body carries `attributeOptionCombo` directly.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three: the declared parameters are `["cc","co","comment","cp","de","ds","followUp","force","ou","pe","value"]` with nothing containing `attribute` or `aoc`. `2.42.6` and `2.41.10` show the wire consequence: `attributeOptionCombo=oawMLLH7OjA` answers `201` and the value lands on the default AOC `HllvX50cXC0`; only `cc` + `cp` reaches the intended combination.
 
 **How to know it's fixed:** `/api/dataValues` gains an `attributeOptionCombo` (or `aoc`) query param, at which point callers holding a resolved AOC UID can pass it without decomposing into `cc` + `cp`.
 
@@ -3807,36 +4770,165 @@ the guide serves, and that is the instance's inconsistency, not the projection's
 
 **Status (2026-09-07):** a property of the play database's content, not of the release. `programStages/VgsOuy9mXyZ` exists on `dev-2-43` and on `stable-2-43-1` (both answer the program-less body and the 29-versus-28 count); the local Sierra Leone seed on `2.43.1.0` has zero orphan stages. The entry can only be re-verified where such a stage exists.
 
-### 111. Metadata `name` fields hold pre-escaped HTML entities
+**Status (2026-09-11):** INCONCLUSIVE on all three: no orphan stage exists on any of the three seeds (7 stages on `2.41.10`, 8 on `2.42.6`, 5 on `2.43.1`, every one reachable through a program), and `programStages/VgsOuy9mXyZ`, the play object the entry names, answers 404 on the v41 seed. The entry is a property of the play database's content, and can only be re-verified where such a stage exists.
 
-**Observed on:** DHIS2 `2.43.2-SNAPSHOT` (`play.im.dhis2.org/dev-2-43`), login `admin/district`.
+### 111. Metadata `name` fields store comparison characters literally and serve them unescaped
+
+A metadata `name` can carry `<` and `>` as characters, and the API serves them
+as characters — `"Fixed, <1y"`, `"<5"` — with no escaping anywhere on the wire.
+That is the correct behaviour for a data field, and it is worth recording
+because a consumer that pipes a `name` into markup without escaping produces
+broken markup, and because the pre-escaped spelling this entry was originally
+filed on (`"Fixed, &lt;1y"`) exists on no instance in reach today.
+
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks; and the six play channels. Originally filed
+against `play.im.dhis2.org/dev-2-43` in 2026-06.
 
 **Repro:**
 
 ```bash
-curl -su admin:district "https://play.im.dhis2.org/dev-2-43/api/categoryOptionCombos.json?filter=name:like:lt;&fields=id,name&pageSize=3"
+U=http://localhost:8080
+# The literal character is what is stored:
+curl -su admin:district -G "$U/api/categoryOptionCombos" \
+  --data-urlencode 'filter=name:like:<' --data-urlencode 'fields=id,name' --data-urlencode 'pageSize=3'
+# -> {"categoryOptionCombos":[{"name":"Fixed, <1y","id":"Prlt0C1RF0s"}, ...]}
+
+# The entity spelling matches nothing, on any resource type:
+curl -su admin:district -G "$U/api/categoryOptionCombos" --data-urlencode 'filter=name:like:&lt;'
+# -> {"pager":{"total":0}, ...}
 ```
 
-**Expected.** A `name` field carries the name as text - `Fixed, <1y` - and any escaping is the
-consumer's business at render time.
+`categoryOptions`, `options`, `dataElements` and `indicators` answer the same way on every major.
 
-**Actual.** The stored value is the five-character sequence `&lt;` (and `&gt;` elsewhere):
-`"Fixed, &lt;1y"`, `"Mortality &lt; 5 years"`, option names like `"&gt;5km"`. The API returns
-pre-escaped markup inside a data field, so every consumer either double-escapes (rendering
-`&amp;lt;` to users) or has to know that this one field may arrive HTML-escaped.
+**Expected:** a `name` carries the name as text and any escaping is the consumer's business at
+render time — which is what happens.
 
-**Workaround applied in this repo:**
+**Actual:** the same, on every reachable instance. No pre-escaped entity was found in any `name`
+on any of the three seeds or the six play channels.
+
+**Impact:** a consumer that renders a `name` into HTML, or into a FHIR narrative, must escape it
+itself; the API will not have done it. A consumer that assumes the opposite — that names arrive
+pre-escaped — double-escapes.
+
+**Workaround in this repo:**
 `packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py` matches both spellings of each
-comparison - the character and the entity - so the substitute posture rewrites
+comparison, the character and the entity, so the substitute posture rewrites
 `"Mortality &lt; 5 years"` and `"Mortality < 5 years"` to the same published wording, with the
-stored spelling kept recoverable as the `dhis2-name` property.
+stored spelling kept recoverable as the `dhis2-name` property. The entity half of that match is a
+guard against a database that holds the escaped spelling, not against anything a current release
+produces.
+
+**How to know it's resolved:** nothing to fix upstream. The entry stays as the record that names
+arrive unescaped, so a consumer knows where the escaping belongs.
+
+**Status (2026-09-07):** no pre-escaped entity on any of the six play channels or on the local `2.43.1.0` seed: `filter=name:like:%26lt%3B` answers `total: 0` everywhere, while the literal `<` form finds the seven names that contain it (`"Fixed, <1y"` reads back unescaped). The entry's own repro line lacked the `&` and answered 0 for that reason.
+
+**Status (2026-09-11):** INVERTED on all three, which is why the entry above describes the unescaped storage rather than the pre-escaped entities it was filed on. `filter=name:like:%26lt%3B` answers `total: 0` on `categoryOptionCombos`, `categoryOptions`, `options`, `dataElements` and `indicators` on `2.41.10`, `2.42.6` and `2.43.1` alike, while `filter=name:like:%3C` finds the names that carry the character (`{"name":"<5","id":"TV20yJkWEsg"}` on the v41 seed, `"Fixed, <1y"` on all three). Whatever database held escaped names when this was filed, it was a property of that database's content; no pinned release produces them.
+
+### 122. The OpenAPI document's `info.version` reads `2.42` on a 2.43.1 server
+
+`GET /api/openapi/openapi.json` on `2.43.1` declares `"info":{"version":"2.42"}`
+— the same string a `2.42.6` server emits. So the document cannot be used to
+tell the two majors apart, and a consumer that keys on `info.version` silently
+treats a v43 document as a v42 one. `2.41.10` is the only one of the three that
+labels itself correctly.
+
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stack; with `2.42.6.0` (rev
+`dd8bdbb`) and `2.41.10.0` (rev `1a3484f`) as the comparison. The committed v43 snapshot says
+`2.42` as well, so this is not a live-versus-snapshot artefact.
+
+**Repro:**
+
+```bash
+for host in v43 v42 v41; do :; done   # one local stack at a time
+curl -su admin:district localhost:8080/api/openapi/openapi.json | jq -c '.info'
+# 2.43.1  -> {"title":"DHIS2 API","version":"2.42"}
+# 2.42.6  -> {"title":"DHIS2 API","version":"2.42"}
+# 2.41.10 -> {"title":"DHIS2 API","version":"2.41"}
+curl -su admin:district localhost:8080/api/system/info | jq -c '{version,revision}'
+# 2.43.1  -> {"version":"2.43.1","revision":"9cbfbf3"}
+```
+
+**Expected:** `info.version` names the major the server runs, and ideally the patch level too, so a
+consumer holding only the document knows what it is holding.
+
+**Actual:** `2.42` on a 2.43.1 server. No `info` carries a patch level on any major, so
+`/api/system/info` is the only reliable version source — which a consumer reading a saved document
+does not have.
+
+**Impact:** codegen, schema-diff tooling and any archive of captured documents cannot identify a
+document by its own contents. Two documents that differ in 1780 paths and 925 schemas carry the
+same version string.
+
+**Workaround in this repo:** `packages/dhis2w-client/src/dhis2w_client/generated/v{41,42,43}/openapi_manifest.json`
+carries a `raw_version` recorded from `/api/system/info` at capture time, because the document's own
+`info.version` cannot be trusted to identify it.
+
+**How to know it's fixed:** a `2.43.x` server emits `"version":"2.43"` (or the full patch level).
+
+**Status (2026-09-11):** new, from the v43 OpenAPI audit and confirmed from the other side by the v42 one — the two servers emit the identical string. v43-only in the sense that v42's value is correct; v41 emits `2.41`.
+
+---
+
+### 124. `preheatIdentifier=CODE` does not resolve code-keyed references and names a UID that appears nowhere in the payload
+
+A `/api/metadata` bundle posted with `preheatIdentifier=CODE` and references
+written as `{"code":"OU_525"}` — the real root organisation unit's code — is
+refused with `E5002 "Invalid reference [fnkdQWy5u83]"`, naming an eleven-character
+UID that is in neither the payload nor the instance. The identical bundle with
+`{"id":"ImspTQPwCqd"}` and `preheatIdentifier=UID` imports at `200`.
+
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stack, Sierra Leone seed.
+
+**Repro:**
+
+```bash
+U=http://localhost:8080; A=admin:district; H='Content-Type: application/json'
+
+# The root organisation unit's code:
+curl -s -u $A "$U/api/organisationUnits/ImspTQPwCqd?fields=id,code"
+# -> {"code":"OU_525","id":"ImspTQPwCqd"}
+
+curl -s -u $A -H "$H" -X POST "$U/api/metadata?importStrategy=CREATE_AND_UPDATE&preheatIdentifier=CODE" -d '{
+  "organisationUnits":[{"name":"probe child","shortName":"probe","openingDate":"2020-01-01",
+                        "code":"W4C_PROBE","parent":{"code":"OU_525"}}]}'
+# -> 409  E5002 "Invalid reference [fnkdQWy5u83] (OrganisationUnit) on object ... for association `parent`"
+#    — fnkdQWy5u83 appears nowhere in the payload and is not the root's UID
+#    and the type's `total` count grows by one phantom object
+
+# The same bundle by UID:
+curl -s -u $A -H "$H" -X POST "$U/api/metadata?importStrategy=CREATE_AND_UPDATE&preheatIdentifier=UID" -d '{
+  "organisationUnits":[{"name":"probe child","shortName":"probe","openingDate":"2020-01-01",
+                        "code":"W4C_PROBE","parent":{"id":"ImspTQPwCqd"}}]}'
+# -> 200
+```
+
+**Expected:** with `preheatIdentifier=CODE`, a reference written as `{"code": ...}` resolves against
+the code of an existing object, which is the whole purpose of the parameter.
+
+**Actual:** the reference is not resolved, and the refusal names a UID the caller never sent. The
+identifier in the message is not a value a caller can search for, so the error points at nothing.
+
+**Impact:** `preheatIdentifier=CODE` is the documented way to import a bundle authored against
+business codes rather than UIDs — the shape any external system produces. On `2.43.1` that path
+refuses, and the refusal is unactionable because the UID it names is invented.
+
+**Workaround in this repo:** every bundle this repository posts resolves its references by UID and
+sets `preheatIdentifier=UID`; `infra/scripts/seed` resolves codes to UIDs itself before building a
+bundle.
+
+**How to know it's fixed:** the first repro answers `200` and the child reads back with
+`parent.id = ImspTQPwCqd`.
+
+**Status (2026-09-11):** new, from the v43 metadata batch. Observed on `2.43.1`. The v42 run's `preheatIdentifier=CODE` probe carried no cross-references and answered `200`, so it neither confirms nor refutes the behaviour there; not probed on `2.41.10`.
+
+---
 
 ## Security-audit-scanner findings (feat/security-audit-scanner)
 
 Entries filed while building the security audit plugin. Numbers continue the global sequence;
 these entries were renumbered on merge with main (main claimed #47–#50 for other findings); the CORS-whitelist finding is #61 at the end of this section.
-
-**Status (2026-09-07):** no pre-escaped entity on any of the six play channels or on the local `2.43.1.0` seed: `filter=name:like:%26lt%3B` answers `total: 0` everywhere, while the literal `<` form finds the seven names that contain it (`"Fixed, <1y"` reads back unescaped). The entry's own repro line lacks the `&` and answers 0 for that reason. Whatever database held the escaped names when this was filed, the demo content today does not; the workaround in `dhis2w_fhir.validation.substitution` stays as a guard.
 
 ### 51. `ApiToken.expire` is optional in the OpenAPI document and required by `/api/schemas`, so the two introspection surfaces disagree on whether a non-expiring PAT is representable
 
@@ -3885,6 +4977,8 @@ curl -s -X POST http://localhost:8080/api/metadata -H 'Content-Type: application
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: the OpenAPI document lists `expire` as an optional `int64` on `ApiToken` while `/api/schemas/apiToken` marks it required, and a token posted without it is refused with 409.
 
+**Status (2026-09-11):** STILL on all three and on every play channel: the document lists `expire` as an optional `int64` with `required: ["type"]` while `/api/schemas/apiToken` reports the same field `"required": true`.
+
 **Verifier:** none yet.
 
 ---
@@ -3916,6 +5010,8 @@ ls packages/dhis2w-client/src/dhis2w_client/generated/v42/oas/o_auth2_client.py 
 **How to know it's fixed:** the generated trees emit one OAuth2-client schema (same class name, same identifier field, same multi-valued field types) across v41/v42/v43, at which point `OAuth2ClientView` and the per-tree `oauth2_clients` extractors collapse into one. Tied to BUGS.md #39 being fixed upstream.
 
 **Status (2026-09-07):** unchanged in the regenerated trees (`2.41.9.1` emits the array-typed `OAuth2Client`, `2.42.6` and `2.43.1` the comma-string `Dhis2OAuth2Client`), and the runtime now agrees with the generated types: v42 and v43 store nothing for array-valued multi-valued fields (#117).
+
+**Status (2026-09-11):** STILL on all three, with each major on its own side: `2.41.10` emits `OAuth2Client` keyed off `cid` with array-typed `grantTypes` and `redirectUris` and no `Dhis2OAuth2Client`; `2.42.6` and `2.43.1` emit `Dhis2OAuth2Client` with `clientId`, `authorizationGrantTypes` and `redirectUris` all typed `string`, and no `OAuth2Client`. No name and no type is shared, so no version-invariant generated model can exist.
 
 **Verifier:** none yet (covered by `packages/dhis2w-core/tests/security/test_auth_methods.py`, which exercises both wire shapes through the per-tree extractors).
 
@@ -3951,6 +5047,8 @@ GET /api/systemSettings     # @Confidential keys filtered server-side; audit.* k
 
 **Status (2026-09-07):** unchanged on `2.41.9.1`, `2.42.6.0` and `2.43.1.0`: no API endpoint reports the audit matrices; the only remote signal is whether `/api/audits/*` accumulates rows, which today's cycles used as the probe (#3, #54).
 
+**Status (2026-09-11):** STILL on all three: no `audit*` key appears on `/api/system/info`, `/api/systemSettings` or `/api/configuration` on any major, and the OpenAPI documents declare reads of audit rows, not the posture. One drift worth recording: `/api/audits/trackedEntityDataValue` answers 200 on all three v41 channels where `2.42.6` answers 404; `/api/audits/enrollment` is 404 everywhere. The posture itself stays unverifiable remotely on every major.
+
 **Verifier:** none (the posture is not API-observable; covered by `packages/dhis2w-core/tests/security/test_security_audit_config.py`).
 
 **Related:** BUGS.md #3 (blank `audit.*` matrices fall back to audit-enabled defaults). See also BUGS.md #54.
@@ -3976,6 +5074,8 @@ GET /api/systemSettings     # @Confidential keys filtered server-side; audit.* k
 **How to know it's resolved:** not a DHIS2 bug; expected behavior. This entry documents the non-obvious upstream semantic so the scanner model stays correct.
 
 **Status per major (local stacks, 2026-09-07):** confirmed on `2.41.9.1` and `2.42.6.0`: a `dhis.conf` with no `audit.*` matrix key at all captures `UPDATE` and `DELETE` on the aggregate scope (`/api/audits/dataValue` lists both after one update and one delete).
+
+**Status (2026-09-11):** STILL on all three: with no matrix key present at all, `2.43.1` captures `CREATE`, `UPDATE` and `DELETE` (3 rows) and `2.42.6` and `2.41.10` capture `UPDATE` and `DELETE` (2 rows). The blank-key half captured nothing on any major while `changelog.aggregate = off` stays, so a blank matrix alone does not turn the aggregate scope back on in this repository's configuration.
 
 **Verifier:** `packages/dhis2w-core/tests/security/test_security_audit_config.py::test_default_config_posture_has_no_medium`.
 
@@ -4006,6 +5106,8 @@ curl -sI -u admin:district "$BASE/api/system/info" | grep -iE 'cross-origin-open
 **Workaround in this repo:** the security `transport` check aggregates the three absent headers into a SINGLE INFO finding ("Cross-origin isolation headers not configured (COOP/COEP/CORP)") listing exactly which are missing, at INFO so a default instance is not flagged at WARN for a header DHIS2 never sets. See `_cross_origin_isolation_finding` in `packages/dhis2w-core/src/dhis2w_core/security_core/transport.py`. The CSP grading in the same check also leaves DHIS2's stock `frame-ancestors 'self';` (a frame-only policy emitted by `CspFilter`, BUGS.md #49) ungraded on its content directives, so the default policy is never flagged either.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three and on every play channel: no COOP, COEP or CORP header anywhere; `2.41.10` serves only `Content-Security-Policy: frame-ancestors 'self';`.
 
 **How to know it's resolved:** not a DHIS2 bug; expected behaviour. This entry documents the non-obvious upstream default so the scanner does not flag a stock instance. If a future DHIS2 starts emitting some of the three by default, a missing/weak one would become a real regression and could be raised to WARN.
 
@@ -4048,6 +5150,8 @@ curl -sg -u admin:district \
 **How to know it's fixed:** v41 drops the duplicate `userCredentials` wrapper, at which point the per-tree `USER_FIELDS` split collapses into one selector. Mirrors the 2FA `_wire` split (BUGS.md #58).
 
 **Status (2026-09-07):** STILL on `stable-2-41-9-1` and `dev-2-41`; v42 and v43 channels serve only the flat field.
+
+**Status (2026-09-11):** STILL on all three, and this is the wording the entry needs: the duplicate wrapper is intact on `2.41.10` (the flat field and `userCredentials[passwordLastUpdated]` both answer, with the same value), while `2.42.6` and `2.43.1` serve the flat field only and drop the nested selector with no key and no diagnostic. The split is the entry; neither side is a defect on its own.
 
 **Verifier:** none yet.
 
@@ -4103,6 +5207,8 @@ authority NAME, not the live `/api/authorities` endpoint (which 500s on v41,
 DHIS2; the constant is the app's bug.
 **Status (2026-09-07):** unchanged; a source-reading entry, not re-run.
 
+**Status (2026-09-11):** not retested; a source-reading entry, as on 2026-09-07.
+
 
 ---
 
@@ -4136,6 +5242,8 @@ curl -s -u admin:district \
 `/api/users/twoFactor/summary` are routed and answer `403 "Access is denied, requires one Authority
 from [ALL]"` to play's `admin` (who lacks `ALL`); v41 still answers 404. The `/api/users` half is
 unchanged on every channel.
+
+**Status (2026-09-11):** the entry's own fix criterion is met on both released majors that carry the endpoints. Probed as a holder of `ALL` on the local stacks, `/api/users/twoFactor/summary` and `/api/users/twoFactor` answer `200` with real data on `2.43.1` and `2.42.6`; the `403 "... requires one Authority from [ALL]"` the 2026-09-07 run recorded is play's admin lacking `ALL`, not the release. Not applicable on `2.41.10`, which never mounted them: `/api/users` still carries `twoFactorEnabled` and both replacement routes answer `404 E1005 "User with id twoFactor could not be found."` What is left of the entry is the v41-to-v42 move itself.
 
 **How to know it's fixed:** `GET /api/users/twoFactor/summary` returns 200 for a user holding `ALL` on a released 2.42 / 2.43 patch.
 
@@ -4174,6 +5282,8 @@ curl -sg -u admin:district "$BASE/api/dataElements?filter=sharing.public:eq:----
 **Workaround in this repo:** the security `sharing` check pages each focus type and decodes the sharing block client-side rather than relying on a server-side filter, bounded by `--max-objects` with a loud truncation note. See `_run_sharing` / `_scan_focus_type` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/audit.py` and the non-default-sharing predicate `FetchedObject.has_non_default_sharing` in `packages/dhis2w-core/src/dhis2w_core/security_core/sharing/builder.py`.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three for the unfilterable half (`E1003` on `externalAccess` and on `publicAccess`). The volume-reducer half does not hold on these seeds: `sharing.public` narrows 77 data elements to 10 on `2.41.10`, 78 to 11 on `2.42.6` and 75 to 8 on `2.43.1`, because the seed's default object sharing is private, unlike the public-readable demo database the entry was filed against. The filter is an effective reducer exactly where default sharing is not public.
 
 **Verifier:** none yet.
 
@@ -4218,6 +5328,8 @@ curl -sg -u admin:district 'https://play.im.dhis2.org/dev-2-43/api/configuration
 **How to know it's fixed:** `/api/systemSettings` (or any unmasked config surface) reports CSP state, and `frame-ancestors` stops inheriting the CORS whitelist.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three: on play the HSTS header comes from the fronting proxy (it is present on a bogus-channel 404) and the CSP carries the eight `corsWhitelist` origins; locally `corsWhitelist` is `[]` so nothing is appended.
 
 **Verifier:** none yet.
 
@@ -4267,6 +5379,8 @@ settings verdicts still run. See `_fetch_cors_whitelist` in
 `packages/dhis2w-core/src/dhis2w_core/security_core/settings_audit.py`.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
+
+**Status (2026-09-11):** STILL on all three and on every play channel: no `cors` key on `/api/systemSettings`, a bare array at `/api/configuration/corsWhitelist`.
 
 **Verifier:** none yet.
 
@@ -4320,6 +5434,8 @@ shapes on a `CategoryOption` instead, where DHIS2 accepts them. See
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: an `Option` without `code`, or with `code: ""`, is refused identically with `E4000 "Missing required property code"`, while a `CategoryOption` without `code` is accepted.
 
+**Status (2026-09-11):** STILL on all three: `E4000 "Missing required property `code`"` for an `Option`, `created: 1` for a `categoryOption` written the same way.
+
 **Verifier:** none yet.
 
 ### 66. An empty-string `code` is silently stored as absent rather than kept or rejected
@@ -4359,6 +5475,8 @@ database. Recorded so the retained branch is discoverable rather than mysterious
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: `code: ""` on a category option answers 201 and reads back with no `code` at all.
 
+**Status (2026-09-11):** STILL on all three: `code: ""` is stored as absent, no key on read-back, and nothing in the import summary says so.
+
 **Verifier:** none yet.
 
 ### 67. `GET /api/tracker/events?programStage=<uid>` demands `program` even though the stage pins it
@@ -4394,6 +5512,8 @@ and a client parsing error bodies as JSON gets a parse failure instead of a mess
 `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `programStage=` without `program=` answers `400 text/html`.
+
+**Status (2026-09-11):** v43-only, confirmed: `2.42.6` and `2.41.10` answer 200 to `programStage=` without `program=` and filter by the stage (499 events against 472 on `2.41.10`), while `2.43.1` answers `400 text/html` `Required parameter 'program' is not present.`
 
 **Verifier:** none yet.
 
@@ -4485,6 +5605,8 @@ cannot be resolved, whatever the reason it cannot be.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three, in `importMode=VALIDATE` and in a real `CREATE` alike: an event naming an enrollment that never existed draws `E1079` (with `E1313`), never a "missing enrollment" report. `2.43.1.0` renders a third `E1079` wording (the 2.42 capitalisation with a trailing full stop and no comma), so a rollup keying on the message rather than the code counts three renderings.
 
+**Status (2026-09-11):** STILL on all three: `E1079` plus `E1313` in `importMode=VALIDATE` and in a real import alike, `E1081` never fires, and `2.43.1` renders a third `E1079` wording.
+
 **Verifier:** none yet.
 
 ### 69. `GET /api/tracker/events?program=X&orgUnit=Y` filters by the enrollment owner's org unit, not the event's own `orgUnit`
@@ -4575,6 +5697,8 @@ curl -s -u admin:district 'http://localhost:8080/api/tracker/enrollments?program
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** confirmed for the first time on this seed. A staged pair (enrollment owned at one facility, event recorded at a sibling) reproduces it exactly: the listing at the event's own unit answers empty, the listing at the owner's unit returns the event with a foreign `orgUnit`, and the `trackedEntity=` scope returns it correctly. The 2026-08-21 verifier note is discharged.
 
+**Status (2026-09-11):** STILL on all three: the event is returned only under the enrollment owner's organisation unit, not its own.
+
 **Verifier:** none yet.
 
 ### 70. Events import into a `COMPLETED` enrollment with no error or warning
@@ -4622,6 +5746,8 @@ than rely on DHIS2 to.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** STILL on all three: `status OK`, `created 1`, `warningReports []` for an event imported into a `COMPLETED` enrollment.
+
 **Verifier:** none yet.
 
 ### 71. An event's `trackedEntity` is silently ignored when it contradicts the enrollment's owner
@@ -4664,6 +5790,8 @@ itself with an entity-scoped read before forwarding.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** STILL on all three: the contradicting `trackedEntity` is dropped with no warning.
+
 **Verifier:** none yet.
 
 ### 72. Entity-scoped `GET` with a program the entity is not enrolled in answers 404 "TrackedEntity could not be found"
@@ -4699,6 +5827,8 @@ probe via the entity read WITHOUT `program=` and inspect the enrollments list
 client-side.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: an entity enrolled in `PrAncCare01` answers 200 unscoped and `404 E1005` with `?program=IpHINAT79UW`.
+
+**Status (2026-09-11):** v42/v43-only. On `2.41.10` the entity-scoped `GET` with a program the entity is not enrolled in answers 200 with the full entity body, both for a purpose-built program and for `IpHINAT79UW`. The 404 conflation is the same v42/v43-only difference #106's item-read half records.
 
 **Verifier:** none yet.
 
@@ -4749,6 +5879,8 @@ verified on the same instance.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** STILL on all three: the entity's own `orgUnit` moves, and the enrollments-only workaround still holds.
+
 **Verifier:** none yet.
 
 ### 74. Unique tracked entity attributes are not searched instance-wide by `/api/tracker/trackedEntities`
@@ -4792,6 +5924,8 @@ queries with `ouMode=ACCESSIBLE` (or `ALL` where the user may) rather than the c
 unit's scope.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, on a substituted attribute: `ScTeaAUniq1` / `ScProgAaa01` are gone, and the seed's only `unique` attribute (`lZGmxYbs97q`) sits on the tracked entity type as well as the program, so the repro ran against it.
+
+**Status (2026-09-11):** STILL on all three: the `unique` attribute gets no scope exemption — the search is empty under a district `DESCENDANTS` scope and under `orgUnits=<sibling>&orgUnitMode=SELECTED` alike.
 
 **Verifier:** none yet.
 
@@ -4842,6 +5976,8 @@ at all.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: `E1302` names the value type (`DataElement 'NUMBER' is not valid: ...`) on `2.42.6.0` and `2.43.1.0`, and an empty identifier (``DataElement `` is not valid``) on `2.41.9.1`. The entry's Malaria data element is absent from the seed; the reruns used seeded INTEGER/NUMBER data elements.
 
+**Status (2026-09-11):** STILL on all three, now in three renderings: `2.41.10` leaves the identifier slot **empty** (``DataElement `` is not valid`), `2.42.6` renders the value type (`NUMBER` / `DATETIME`) and `2.43.1` renders `INTEGER`. `args[0]` carries the value type on every major and the data element UID appears nowhere.
+
 **Verifier:** none yet.
 
 ### 76. v43 aggregate conflicts no longer name the offending object: `E8122` drops `object` and `property`
@@ -4883,6 +6019,8 @@ tests (`packages/dhis2w-fhir/tests/data/forward-409/`) pin each major's actual s
 so a change in either direction surfaces.
 
 **Status per major (local stacks, 2026-09-07):** the divergence stands. `2.43.1.0` answers `status: ERROR` with an `E8122` conflict that names no `object` or `property`; `2.41.9.1` and `2.42.6.0` answer `status: WARNING` with `E7619`, `object` and `property: "value"` (the controls the entry describes).
+
+**Status (2026-09-11):** v43-only, confirmed: `2.42.6` and `2.41.10` answer `E7619` with `object` and `property: "value"` populated, against `2.43.1`'s fieldless `E8122`.
 
 **Verifier:** none yet.
 
@@ -4936,6 +6074,8 @@ list deduplicated by attribute and value.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, on a substituted attribute: `ScTeaAUniq1` / `ScProgAaa01` are gone, and the seed's only `unique` attribute (`lZGmxYbs97q`) sits on the tracked entity type as well as the program, so the repro ran against it.
 
+**Status (2026-09-11):** STILL on all three: the entity is returned by a `unique` program attribute its `attributes[]` does not carry. The `2.43.1` run rebuilt the entry's exact shape with a purpose-built program-only `unique` attribute rather than substituting one.
+
 **Verifier:** none yet.
 
 ### 78. `dryRun=true` on `/api/dataValueSets` still persists the completeness registration
@@ -4973,6 +6113,8 @@ in `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`).
 
 **Status per major (local stacks, 2026-09-07):** STILL on the released `2.42.6.0` (the dry run stores the registration and persists no value); not present on `2.43.1.0`, as the entry says.
 
+**Status (2026-09-11):** STILL on `2.41.10` and `2.42.6`, absent on `2.43.1` — the 2.42-only scope does not hold. On `2.41.10` `POST /api/dataValueSets?dryRun=true` carrying `completeDate:"2020-05-05"` answers `409 WARNING {ignored:1}` `E7641`, persists no data value, and `GET /api/completeDataSetRegistrations` then returns `"date":"2020-05-05","storedBy":"admin","completed":true`, exactly as `2.42.6` does. `2.43.1` persists nothing.
+
 **Verifier:** none yet.
 
 ### 79. Completeness registers off `completeDate` even when every data value is refused
@@ -4997,6 +6139,8 @@ separate completeness call fires only after the import report says the values la
 
 **Status per major (local stacks, 2026-09-07):** STILL on the released `2.42.6.0` (the registration is stored while every value is refused with `E7641`); not present on `2.43.1.0`.
 
+**Status (2026-09-11):** STILL on `2.41.10` and `2.42.6`, absent on `2.43.1` — the 2.42-only scope does not hold. On `2.41.10`, virgin period `204011`: `409`, `status: WARNING`, `importCount {imported:0,updated:0,ignored:1}`, conflict `E7641`, and the registration is stored `completed:true`. `2.43.1` answers `dataSetComplete: "false"` and stores nothing.
+
 **Verifier:** none yet.
 
 ### 80. `/api/completeDataSetRegistrations` has no component schema in the OpenAPI document
@@ -5018,6 +6162,8 @@ data-value-set payloads have.
 citing this entry.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: the one path `/api/completeDataSetRegistrations/` has `get`, `post` and `delete`, and `post.requestBody` is absent.
+
+**Status (2026-09-11):** STILL on all three: `requestBody` is absent on `post` and no schema name contains `CompleteDataSetRegistration` on any major. `2.41.10` carries only `CompleteStatusDto` — not even the `CompletenessMethod` the entry names.
 
 **Verifier:** none yet.
 
@@ -5051,6 +6197,8 @@ values first, which persists the period properly, so the completeness call never
 a virgin period.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL and sharper: ten never-persisted periods (`203501` to `203510`) all failed on the first attempt with `409 "Failed to flush BatchHandler"`, and every retried one succeeded; on this build the first attempt on a virgin period looks deterministic rather than intermittent.
+
+**Status (2026-09-11):** v43-only, and the 2026-09-07 sharpening to "deterministic" does not survive. On `2.43.1` 20 of 20 virgin periods `209101`-`209208` failed on the first post with `409 description: "The import process failed: Failed to flush BatchHandler"` and succeeded on the byte-identical retry — yet ten periods `204501`-`204510` succeeded first try in the same session, so the entry's original intermittency reading fits better. On `2.41.10` ten never-persisted periods `204101`-`204110` each registered on the **first** post with no `Failed to flush BatchHandler` at all.
 
 **Verifier:** none yet.
 
@@ -5095,6 +6243,8 @@ with `PUT` and records the refusal beside the call. Whole-list replacement is wh
 the seed idempotent, so `PUT` is the right verb here regardless.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: `PUT .../translations` answers 204; `POST` on the same path answers `409 E1004` with the "removed from" wording.
+
+**Status (2026-09-11):** STILL on all three: `204` on `PUT`, `409 E1004` on `POST`, `405` on `PATCH`.
 
 **Verifier:** none yet.
 
@@ -5148,6 +6298,8 @@ unrelated value edit does not reshuffle it.
 **How to know it's fixed:** the read-back above returns `lo, fr, ar` — the order written.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: translations written as `lo, fr, ar` read back as `ar, lo, fr` on every read (ten to thirty consecutive reads, byte-identical), and a re-`PUT` in reversed order reads back the same way. The order is content-derived and stable, not the write order.
+
+**Status (2026-09-11):** STILL on all three: the read-back order is content-derived and survives a reversed re-`PUT`; on `2.41.10` `lo, fr, ar` reads back `ar, lo, fr` on 15 consecutive reads.
 
 **Verifier:** none yet.
 
@@ -5208,6 +6360,8 @@ designs the overwrite report off our own spool instead.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** v43-only for the overwrite; on `2.41.10` and `2.42.6` the collision protection exists and the diagnostic does not. Both of those majors answer `200 SUCCESS` with `importCount {imported:0,updated:0,ignored:1}` and `conflicts: []`, leaving the stored value untouched — a silent refusal that names nothing, where the entry's own complaint is that `2.43.1` overwrites instead.
+
 **Verifier:** none yet.
 
 ---
@@ -5253,6 +6407,8 @@ that the spool, not the import summary, is where an aggregate overwrite has to b
 **How to know it's fixed:** the post above returns `"imported":1,"updated":0`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
+
+**Status (2026-09-11):** v43-only. `2.42.6` and `2.41.10` meet the entry's own fix criterion — `{"imported":1,"updated":0,...}` on a virgin tuple and `updated:1` on the second post — while `2.43.1` still reports `imported:0` on every accepted post.
 
 **Verifier:** none yet.
 
@@ -5306,6 +6462,8 @@ an explicit value rather than an omission.
 **How to know it's fixed:** the two posts above agree - both refuse, or both erase.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
+
+**Status (2026-09-11):** STILL on all three, with the aggregate code per-major: `E8120 "Value #0 value is required"` on `2.43.1`, and `E7618 "Data value or comment not specified for data element: `<uid>`"` with `object` and `property` populated inside a `409` whose body says `WARNING` on `2.42.6` and `2.41.10`. The tracker side erases the value at `200 {updated:1}` on all three.
 
 **Verifier:** none yet.
 
@@ -5365,6 +6523,8 @@ and the subsequent `includeDeleted=true` read stays empty.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** v43-only. `2.42.6` and `2.41.10` materialise nothing — `200 SUCCESS {imported:0,updated:0,ignored:1,deleted:0}` and the `includeDeleted=true` read stays `{"dataValues":[]}`, the entry's own fix criterion — while `2.43.1` still materialises the row carrying the payload's value.
+
 **Verifier:** none yet.
 
 ---
@@ -5414,6 +6574,8 @@ outcome in the receipt's own sidecar rather than trusting the counters.
 **How to know it's fixed:** the second post above reports `"deleted":1`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
+
+**Status (2026-09-11):** v43-only. `2.42.6` and `2.41.10` count the inline `"deleted": true` as `{"imported":0,"updated":0,"ignored":0,"deleted":1}` and soft-delete the row, the entry's own fix criterion, while `2.43.1` still counts `updated:1` and leaves `deleted` at 0.
 
 **Verifier:** none yet.
 
@@ -5465,6 +6627,8 @@ row with `"deleted": true`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
 
+**Status (2026-09-11):** STILL on all three: the three item routes ignore the flag while the sibling collections return `"deleted": true`. On `2.41.10` the item routes answer `404 E1005` with and without the flag.
+
 **Verifier:** none yet.
 
 ---
@@ -5508,6 +6672,8 @@ tracked-entity withdrawal is designed but deliberately unscheduled.
 `"deleted": true`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, reproduced on the rebuilt seed with artefacts staged for the run (the UIDs the repro names came from a stack that no longer exists).
+
+**Status (2026-09-11):** STILL on all three. On `2.42.6` the type-scoped form of the repro cannot run at all because of #116, so the program-scoped form carried it there; `2.41.10` runs the entry's repro verbatim.
 
 **Verifier:** none yet.
 
@@ -5603,6 +6769,8 @@ without `program`, or refuses with a DHIS2 JSON error naming it; and the singula
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** both halves STILL (HTML 400 without `program`; singular `enrollment=` dropped). One sub-claim flips: the live document now declares 42 query parameters on `/api/tracker/events/`, including `program` (not marked required) and the plural `enrollments`; the singular `enrollment` is still undeclared.
 
+**Status (2026-09-11):** leg (a) is v43-only and leg (b) holds on all three. On `2.42.6` and `2.41.10` bare `/api/tracker/events`, `?enrollment=`, `?orgUnit=` and `?bogusParam=` all answer `200 application/json`, while `2.43.1` refuses every form without `program` with the Tomcat `400 text/html` page. Leg (b) is cross-major: `program=IpHINAT79UW&enrollment=GIsJb4sB2XH` returns 200 events across 102 enrollments — the whole page — against 2 events in 1 enrollment for `enrollments=`, with the sibling convention inverted the same way on every major. The document declares 42 parameters on `2.42.6` and `2.43.1` and 40 on `2.41.10`, **none** marked `required`, and declares `enrollments` while the singular `enrollment` is declared nowhere.
+
 **Verifier:** none yet.
 
 ---
@@ -5669,6 +6837,8 @@ reads of an unchanged record answer the same bytes.
 the request already carries, and an `order=` naming a field the collection does not have is refused.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL, on three events staged one hour apart in `PsAncVisit1`: the nested `enrollments[events[...]]` order is neither the occurrence order nor the write order, and `order=` is accepted and ignored.
+
+**Status (2026-09-11):** STILL on the two majors it was probed on. Three events staged one hour apart under one enrollment come back from the nested read in an order the payload does not explain and that repeats identically: C(08:00), B(06:00), A(07:00) on `2.43.1` and B(06:00), C(08:00), A(07:00) on `2.41.10` — neither `occurredAt` nor `createdAt` nor a reverse of either on either major. `&order=occurredAt:asc` is accepted at the top level, never reaches the nested collection and changes nothing; `&order=notAField:asc` answers `200` rather than refusing, the same silent swallow of an unknown parameter #98 records. The flat `/api/tracker/events` collection orders correctly for contrast. On `2.42.6` the same fixture comes back A, C, B, so all three majors reproduce it, each with its own stable order: v41 B, C, A; v42 A, C, B; v43 C, B, A. None matches `occurredAt` or `createdAt` in either direction, which is what makes the order the join's rather than a documented one that changed between builds.
 
 **Verifier:** none yet.
 
@@ -5746,6 +6916,8 @@ only on the relative order, which the rewrite preserves.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: an option set imported with its options in one bundle reads back `sortOrder` 0, 1, 2 for input 1, 2, 3; options imported in a later bundle keep their `sortOrder`.
 
+**Status (2026-09-11):** STILL on all three: `1,2,3` in a bundle reads back `0,1,2` with no warning, and options posted into an existing set keep their input order.
+
 **Verifier:** none yet.
 
 ### 93. `programRules` is not a field on the Program schema, and `fields=` drops it without a word
@@ -5794,6 +6966,8 @@ and `_fetch_program_rules` reads `/api/programRules` unfiltered in one further r
 `program[id]` and carried onto every form that program publishes.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `programRules` is not on the Program schema and `fields=programRules[...]` is dropped without a word, while `programRuleVariables[...]` answers.
+
+**Status (2026-09-11):** STILL on all three and on every play channel: `programRules` is dropped with no 400 and no warning.
 
 ### 94. `/api/openapi/openapi.json` types the same `{id}` reference under two different component names on 2.43.x
 
@@ -5859,6 +7033,8 @@ the DHIS2 fact rather than the wire encoding it happened to arrive in.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: the same `{id}` reference is typed under two component names in the OpenAPI document; the wire carries `{"id": ...}` on both sides.
 
+**Status (2026-09-11):** v43-only. `2.42.6` `$ref`s `BaseIdentifiableObject` on both sides of `ProgramRule` for the same wire shape, and `2.41.10` uses **neither** named component — both sides are inline anonymous `{id}` objects — so both agree with each other and with the wire, at the cost of being unnamed on v41.
+
 **How to know it's fixed:** the 2.43.x OpenAPI document names one component for both
 references, matching 2.42.7.
 
@@ -5901,6 +7077,8 @@ reports, deliberately. The moment the v43 pin moves to a 2.43.2+ release,
 tripwire to delete.
 
 **Status (2026-09-07):** depends on the instance's state, not only on the release. A `dhis2/core:2.43.1.0` booted on an empty, Flyway-bootstrapped database (what `make dhis2-codegen-all VERSIONS=v43` sees) reports `aggregationType` as `BOOLEAN`, and today's regen against that image reproduced the committed `generated/v43` tree byte for byte. The same release with the Sierra Leone seed loaded (local stack) and `play.im.dhis2.org/stable-2-43-1` (same revision `9cbfbf3`) report `CONSTANT` with the full 21-value list, matching `dataElement`. `dev-2-43` (`2.43.2-SNAPSHOT`) reports `CONSTANT` on an empty and a seeded database alike.
+
+**Status (2026-09-11):** state-dependent rather than release-dependent, which the entry should say. Every reachable `2.43.1` — the local stack, `stable-2-43-1` and `dev-2-43` — reports `categoryOption.aggregationType` as `CONSTANT` with 21 constants, identical to `dataElement` and to what `2.42.6` and `2.41.10` report, and the document `$ref`s `AggregationType`. The `BOOLEAN` reading belongs to `dhis2/core:2.43.1.0` on an empty Flyway-bootstrapped database, which is what codegen sees and what the committed `generated/v43/schemas/category_option.py` (`aggregationType: bool | None`) records. `dev-2-43` reporting `CONSTANT` is the tripwire for when the v43 pin moves; a verifier for this entry has to key off the committed tree, not off a live instance.
 
 ### 96. On 2.43.1 the OAuth2 authorization server 500s for any registered client whose settings or grant types are empty, and `POST /api/oAuth2Clients` creates exactly that client
 
@@ -6001,6 +7179,8 @@ settings; `d2w` exposes no client update.
 `500` for the minimal client and after the `PUT` (the token endpoint then answers 401 rather than
 500). Not run on `2.41.9.1`, which mounts no authorization server.
 
+**Status (2026-09-11):** v43-only for the 500, with drift on both sides. On `2.42.6` the settings-nulling `PUT` now makes `POST /oauth2/token` answer `500 text/html` where the entry records a 401, so both authorization-server endpoints fail the same way there. On `2.41.10` the contrast case fails too: a registered and an unregistered `client_id` both draw `302 -> http://localhost:8080/login`, so v41's `/oauth2/*` is a plain login redirect rather than an OAuth2 endpoint — its real surface is `/uaa/oauth/*`, which answers a proper RFC 6749 JSON error.
+
 **How to know it's fixed:** the `POST`-then-authorize sequence in (a) answers a redirect or an
 OAuth2 JSON error rather than a `500`, and the `PUT` in (b) leaves `clientSettings` intact.
 
@@ -6070,6 +7250,8 @@ matching example `examples/fhir/engine/e2e_measure_from_dhis2.py` both do so, ea
 citing this entry.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local) and on `stable-2-43-1` / `dev-2-43` (`409 E7145`); v43-only: `stable-2-41-9-1`, `dev-2-41`, `stable-2-42-6` and `dev-2-42` answer 200 to `order=trackedEntity:asc`.
+
+**Status (2026-09-11):** v43-only, confirmed: `order=trackedEntity:asc` and `:desc` both answer 200 under `program=` and `trackedEntityType=` on `2.42.6` and `2.41.10`, with no `E7145`.
 
 **How to know it's fixed:** `order=trackedEntity:asc` on the query in (a) answers `200` with the
 page sorted by identifier, and the workaround comments above can name `trackedEntity` again.
@@ -6161,77 +7343,85 @@ declares the query parameters the endpoint honours.
 
 **Status (2026-09-07):** legs (a) and (b) STILL on `2.43.1.0`, `stable-2-43-1`, `dev-2-43`, `stable-2-42-6` and `dev-2-42`: the singular `trackedEntity=` and an invented parameter are both accepted and dropped. On both v41 channels the singular `trackedEntity=` scopes the read (one entity) and the v41 document declares it, so the disclosure shape is v42/v43-only. Leg (c) flips: the document now declares 37 query parameters for `/api/tracker/trackedEntities` (most as `$ref`s into `TrackedEntityRequestParams.*`), still without the singular spelling.
 
+**Status (2026-09-11):** legs (a) and (b) are v42/v43-only and leg (c) is flipped on every major. On `2.41.10` the document declares the **singular** `TrackedEntityRequestParams.trackedEntity` and the endpoint honours it: `?orgUnitMode=ACCESSIBLE&trackedEntity=w9wDBv99aRt` with no other scope answers 200 with exactly that entity (no `E1003`), and beside `program=` it filters to 1 of 50, where `2.42.6` and `2.43.1` return the whole 50-row page. Leg (c) no longer holds anywhere: all three documents declare 37 parameters, 30 of them as `TrackedEntityRequestParams.*` `$ref`s. What survives cross-major is the generic swallow — `totallyBogusParam=w9wDBv99aRt` answers 200 with the whole page on every major.
+
 **Verifier:** none yet.
 
-### 99. `PUT /api/tracker/ownership/transfer` binds `orgUnit` while the documentation gives `ou`, and the refusal is a Tomcat HTML page
+### 99. `PUT /api/tracker/ownership/transfer` binds a different organisation-unit parameter on each major, and the unbound spelling draws a Tomcat HTML page
 
-The ownership-transfer endpoint takes its target organisation unit as `orgUnit`. The Web API
-documentation for the same endpoint gives `ou`. A caller who copies the documented request line
-gets a `400` that is not a DHIS2 `WebMessage` but a raw Tomcat error page, so a client that
-parses the error body as JSON fails on the parse rather than on the message that would have told
-it the parameter name. Sending both spellings changes nothing: `ou` is not read.
+The ownership-transfer endpoint takes its target organisation unit under a
+different name on each supported major, and each major's OpenAPI document
+agrees with its own binder — so there is no spelling a cross-version caller can
+send. `2.41.10` binds `ou` and declares only `ou`; `2.42.6` declares and binds
+both; `2.43.1` binds `orgUnit` and declares only `orgUnit`. On the two majors
+that bind one spelling, sending the other is refused by the servlet container as
+`text/html` rather than by DHIS2 as a `WebMessage`, so a client that decodes
+error bodies as JSON fails on the parse instead of on the message that would
+have named the parameter.
 
-**Observed on:** DHIS2 `2.43.1`, revision `9cbfbf3` (local `dhis2/core` stack, `admin:district`).
-Documented spelling from
-`https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/tracker.html`,
-section "Tracker Ownership Transfer", which gives
-`/api/tracker/ownership/transfer?trackedEntity=DiszpKrYNg8&program=eBAyeGv0exc&ou=EJNxP3WreNP`.
+**Observed on:** `dhis2/core:2.41.10.0` (rev `1a3484f`), `dhis2/core:2.42.6.0` (rev `dd8bdbb`) and
+`dhis2/core:2.43.1.0` (rev `9cbfbf3`), local stacks, `admin:district`. The Web API documentation
+for the endpoint gives `ou`
+(`https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-master/tracker.html`, "Tracker
+Ownership Transfer").
 
-**Repro** (read-only — the UIDs below are deliberately non-existent, so no ownership can be
-written; the difference in *where* each call fails is the whole finding):
+**Repro** (read-only — every UID below is deliberately non-existent, so no ownership can move; the
+difference in *where* each call fails is the finding):
 
 ```bash
-# (a) The documented spelling. Refused at parameter binding, before any UID is looked up,
-#     with a Tomcat HTML page rather than a DHIS2 JSON error.
-curl -s -u admin:district -X PUT \
-  'http://localhost:8080/api/tracker/ownership/transfer?trackedEntity=aaaaaaaaaaa&program=bbbbbbbbbbb&ou=ccccccccccc'
-# -> HTTP 400
-#    <h1>HTTP Status 400 – Bad Request</h1> ...
-#    <p><b>Message</b> Required parameter &#39;orgUnit&#39; is not present.</p>
+Q='trackedEntity=aaaaaaaaaaa&program=bbbbbbbbbbb'
 
-# (b) The spelling the instance's own OpenAPI document declares. Binds, reaches the handler,
-#     and fails on the UID lookup with a proper DHIS2 error body.
-curl -s -u admin:district -X PUT \
-  'http://localhost:8080/api/tracker/ownership/transfer?trackedEntity=aaaaaaaaaaa&program=bbbbbbbbbbb&orgUnit=ccccccccccc'
-# -> HTTP 404 {"httpStatus":"Not Found","httpStatusCode":404,"status":"ERROR",
-#     "message":"Program with id bbbbbbbbbbb could not be found.","errorCode":"E1005"}
+# 2.43.1 — `ou` is unbound and the container refuses:
+curl -s -u admin:district -X PUT "http://localhost:8080/api/tracker/ownership/transfer?$Q&ou=ccccccccccc"
+# -> HTTP 400 text/html   <p><b>Message</b> Required parameter &#39;orgUnit&#39; is not present.</p>
+curl -s -u admin:district -X PUT "http://localhost:8080/api/tracker/ownership/transfer?$Q&orgUnit=ccccccccccc"
+# -> HTTP 404 {"status":"ERROR","message":"Program with id bbbbbbbbbbb could not be found.","errorCode":"E1005"}
 
-# (c) What the instance declares.
-curl -s -u admin:district 'http://localhost:8080/api/openapi/openapi.json' \
-  | python3 -c "import sys,json;p=json.load(sys.stdin)['paths']['/api/tracker/ownership/transfer']['put'];print([(q['name'],q['required']) for q in p['parameters']])"
-# -> [('orgUnit', True), ('program', True), ('trackedEntity', True)]
+# 2.41.10 — exactly the other way round:
+curl -s -u admin:district -X PUT "http://localhost:8080/api/tracker/ownership/transfer?$Q&orgUnit=ccccccccccc"
+# -> HTTP 400 text/html   Required request parameter &#39;ou&#39; for method parameter type String is not present
+curl -s -u admin:district -X PUT "http://localhost:8080/api/tracker/ownership/transfer?$Q&ou=ccccccccccc"
+# -> HTTP 200 {"status":"OK","message":"Ownership transferred"}      (#121 — for UIDs that do not exist)
+
+# 2.42.6 — both spellings bind, and omitting both is a DHIS2 error body:
+curl -s -u admin:district -X PUT "http://localhost:8080/api/tracker/ownership/transfer?$Q"
+# -> HTTP 400 {"status":"ERROR","message":"Required request parameter 'orgUnit' is not present","errorCode":"E1003"}
+# sending both draws E1003 "Only one parameter of 'ou' and 'orgUnit' must be specified..."
+
+# What each instance declares:
+curl -su admin:district localhost:8080/api/openapi/openapi.json \
+  | jq -c '[.paths."/api/tracker/ownership/transfer".put.parameters[]|[.name,.required]]'
+# 2.43.1 -> [["orgUnit",true],["program",true],["trackedEntity",true]]
+# 2.42.6 -> [["orgUnit",null],["ou",null],["program",true],["trackedEntity",true]]
+# 2.41.10 -> [["ou",true],["program",true],["trackedEntity",false],["trackedEntityInstance",false]]
+#            (v41 spells its path keys without the `/api` prefix, #123)
 ```
 
-With real UIDs the same split holds: `ou=` still answers the HTML `400`, while `orgUnit=`
-reaches the transfer logic — on the seeded stack, passing a tracked entity's current owner
-answers `400 E1003 "Tracked entity not transferred. The owner of the tracked entity ... is
-already ..."`. Passing `ou=` *and* `orgUnit=` together answers exactly what `orgUnit=` alone
-answers, which is what establishes that `ou` is read by nothing.
+**Expected:** one parameter name for one endpoint across majors, matching the documentation; and a
+missing-required-parameter refusal arriving as a DHIS2 `WebMessage` in the `application/json` shape
+the endpoint's own OpenAPI entry declares for its `400`.
 
-**Expected:** the documented parameter name is the one the endpoint binds. Failing that, a
-refusal for a missing required parameter is a DHIS2 `WebMessage` naming the parameter, in the
-`application/json` shape the endpoint's own OpenAPI entry declares for its `400`.
+**Actual:** three majors, three bindings, and on two of them the refusal for the wrong spelling is
+a container-generated HTML page — a body shape the document does not mention for any status on this
+path. `2.42.6` is the only major that both accepts the documented `ou` and answers in JSON
+throughout.
 
-**Actual:** the endpoint binds `orgUnit`; `ou` is silently unbound, and the resulting refusal is
-served by the container as `text/html` — a body shape the OpenAPI document does not mention for
-any status on this path. Two surfaces disagree (documentation says `ou`, OpenAPI and wire say
-`orgUnit`) and the third surface that could resolve the disagreement, the error body, is not
-machine-readable.
+**Impact:** every caller written from the documentation fails on v43, every caller written from a
+v43 document fails on v41, and neither learns why from a machine-readable body. This is the same
+HTML-400 shape #67, #91 and #102 record on other tracker endpoints; the per-major parameter split
+is this entry's own.
 
-**Impact:** every caller written from the documentation. The failure is at least loud rather
-than silent — the transfer does not happen — but a client that decodes error bodies as JSON
-reports a parse failure instead of "you named the parameter wrong", which is the difference
-between a five-minute fix and an afternoon. This is the same HTML-400 shape #67 and #91 record
-on other tracker endpoints; the parameter-name half is new.
+**Workaround in this repo:** no shipped path transfers ownership, so nothing carries a workaround
+today. A future caller reads the parameter name from the connected instance's own OpenAPI document
+rather than pinning one spelling, and treats a non-JSON `400` from a tracker endpoint as a
+parameter-binding failure.
 
-**Workaround in this repo:** no shipped path transfers ownership, so nothing carries a
-workaround today. Any future caller writes `orgUnit=`, matching the OpenAPI document and the
-wire, and treats a non-JSON `400` from a tracker endpoint as a parameter-binding failure.
-
-**How to know it's fixed:** the documentation gives `orgUnit`, or the endpoint accepts `ou` as
-well; and the missing-required-parameter refusal arrives as a DHIS2 JSON error body.
+**How to know it's fixed:** one spelling binds on all three majors (or both bind everywhere, as on
+`2.42.6`), and the missing-parameter refusal is a DHIS2 JSON error body on every major.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local): `ou` is refused with a `400 text/html` Tomcat page and `orgUnit` binds. The documents disagree per major: v41 declares `ou` (required) and no `orgUnit`, v42 declares both, v43 declares `orgUnit` alone.
+
+**Status (2026-09-11):** INVERTED on `2.41.10` and FIXED on `2.42.6`, which is why the entry above is written as a per-major binder split rather than as one defect. On `2.41.10` the document declares `ou` and no `orgUnit`, and the wire agrees — `ou=` binds and `orgUnit=` draws the Tomcat page, `400 text/html` whose message reads "Required request parameter &#39;ou&#39; for method parameter type String is not present". On `2.42.6` neither defect exists: both spellings are declared, `ou=` binds and answers byte-identically to `orgUnit=`, sending both draws `E1003 "Only one parameter of 'ou' and 'orgUnit' must be specified..."`, and omitting both draws a JSON `E1003`. On `2.43.1` the entry's original reading holds unchanged. What v41 does with the bound call is worse and has its own entry (#121).
 
 **Verifier:** none yet.
 
@@ -6329,6 +7519,8 @@ message names non-shareability rather than data sharing.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local) and on the v43 channels (79 routed, 23 `shareable: false`); the v41 and v42 channels count 80 and 24, the difference being `pushAnalysis`.
 
+**Status (2026-09-11):** STILL on all three. The counts are 80 routed `{uid}/sharing` writes with 24 `shareable: false` on `2.41.10` and `2.42.6` — the entry's 23 names plus `pushAnalysis` — and 79 with 23 on `2.43.1`, the majors differing by the withdrawn `mapViews` routes rather than by anything about sharing. The refusal is unchanged everywhere: `GET /api/sharing?type=organisationUnit` answers `409 "Type organisationUnit is not supported."` and the routed `PUT` answers `409 E3016 "Data sharing is not enabled for this object"`. One addition: five of the routed plurals (`apiTokens`, `dimensions`, `identifiableObjects`, `messages`, `sms`) have no `/api/schemas` entry at all, so for those there is not even a `shareable` flag to check the route against.
+
 **Verifier:** none yet.
 
 ### 101. `GET /api/sharing` reports no `meta.allowExternalAccess`, so no caller can discover whether a type permits external access at all
@@ -6388,6 +7580,8 @@ helpers expose.
 and the `SharingMeta` component declares it.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local) and on all six play channels: `GET /api/sharing` carries only `meta.allowPublicAccess`.
+
+**Status (2026-09-11):** STILL on all three: `"meta":{"allowPublicAccess":true}` and nothing else. Stronger on `2.41.10`, which carries **no `SharingMeta` component at all**, so neither the document nor the wire mentions `allowExternalAccess`.
 
 **Verifier:** none yet.
 
@@ -6461,6 +7655,8 @@ nothing today and would cost the next caller a parse error.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local) and on both v43 channels; v43-only: on all four v41 and v42 channels `enrollments?trackedEntityType=`, `enrollments` with no scope and `events` with no scope answer 200 JSON.
 
+**Status (2026-09-11):** v43-only, confirmed on both sides. On `2.43.1` all five requests of the table answer exactly as the entry records, and the Tomcat page the entry quotes only as far as its `<title>` carries the line `<p><b>Message</b> Required parameter &#39;program&#39; is not present.</p>` — it names `program` in the same words the JSON sibling's `E1003 "Program is mandatory"` does, so the two refusals differ only in envelope (`text/html` against `application/json`) on the same `Accept: application/json` request. On `2.41.10` none of it reproduces: all five requests answer `200 application/json`, with neither the `E1003` nor the HTML refusal. On `2.42.6` none of it reproduces either: all five requests answer `200 application/json`, each a real paged collection with a `nextPage` in its pager, because `/api/tracker/events` requires no `program` on that major and the `MissingServletRequestParameterException` that writes v43's Tomcat page never fires.
+
 **Verifier:** none yet.
 
 ---
@@ -6516,6 +7712,8 @@ and `delete-attribute.json` and posts them in that order in its `cleanup` functi
 objects.
 
 **Status per major (local stacks, 2026-09-07):** STILL on all three: the single DELETE bundle answers 409 with the foreign-key violation on `trackedentityattributeid` (the integer differs per run; the constraint and table names do not), two posts in the right order succeed. See also #119 for the multi-type bundle that answers 500 instead.
+
+**Status (2026-09-11):** STILL on all three: a raw PostgreSQL foreign-key message (`violates foreign key constraint "fk_trackedentitytypeattribute_trackedentityattributeid"`), no import report, nothing removed.
 
 **Verifier:** none yet.
 
@@ -6575,6 +7773,8 @@ list before relying on a flag; v41's document declares none of them. On `2.42.6.
 
 **The two `/api/maintenance` path forms on the three releases (2026-09-07), recorded here because #105's cleanup depends on them:** `POST /api/maintenance/softDeletedTrackedEntityRemoval` answers 204 on `2.41.9.1` and `2.42.6.0` and 200 on `2.43.1.0`; `POST /api/maintenance/softDeletedTrackedEntityInstanceRemoval` answers 204 on `2.41.9.1` and 404 on the other two. The path form the maintenance plugin uses is therefore declared on every release; whether a 204 on `2.41.9.1` ran anything is not observable from the answer.
 
+**Status (2026-09-11):** STILL where it matters on all three, and the read behaviour is per-major. For a type a program **does** track, the entry's own "how to know it's fixed" read passes on `2.41.10` and `2.43.1` — `?trackedEntityType=...&orgUnitMode=ALL&includeDeleted=true` returns the tombstone — so the invisibility there belongs to #106 rather than to the flag; on `2.42.6` the same read is refused by #116, so the blocking row is not merely invisible but unqueryable. For a type **no** program tracks, the case where one actually wants the type gone, there is still no read that shows the row on any major (empty type-scoped with the flag, empty for the plural-UID listing, `404 E1005` on the item route). The maintenance half moves on v41: `2.41.10`'s document declares 18 flags on `POST|PUT /api/maintenance/`, including both `softDeletedTrackedEntityRemoval` and `softDeletedTrackedEntityInstanceRemoval`, and both spellings work there — tested one flag at a time on two purpose-built fixtures, each `204` followed by the type deleting `200` — so the query form now has a spelling portable across all three majors. The entry's own `trackedEntityRemoval=true` answers `204` and runs nothing on every major, as does an invented flag name (#126).
+
 **Verifier:** none yet.
 
 ---
@@ -6625,6 +7825,8 @@ programme per demo type and says why in its section 2.
 `2.41.9.1`, `2.42.6.0` and `2.43.1.0` alike. The item read by UID differs: `2.41.9.1` answers 200
 with the entity, `2.42.6.0` and `2.43.1.0` answer `404 E1005`. On `2.42.6.0` the list with
 `includeDeleted=true` is a 409 before it can be empty (#116).
+
+**Status (2026-09-11):** the list half is STILL on all three; the item-read half is v42/v43-only. The type-scoped read is empty under `ALL`, `ACCESSIBLE` and a district `DESCENDANTS` scope until a program tracks the type, on every major, and program ownership rather than sharing is the discriminator, tested both ways. On `2.41.10` `GET .../trackedEntities/{uid}` answers 200 before and after the program exists — the same v42/v43-only difference #72 records.
 
 **How to know it's fixed:** the two reads above answer with `E` before any program exists.
 
@@ -6682,6 +7884,8 @@ declarations - `/metadata`'s search parameter documentation, `/uiconfig`, and
 **How to know it's fixed:** the second `curl` above answers `0`.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `filter=cejWyOfXge6:eq:Female` and `:eq:female` answer the same total.
+
+**Status (2026-09-11):** STILL on all three: `Female`, `female` and `FEMALE` return the same total (242 on `2.41.10`).
 
 **Verifier:** none yet.
 
@@ -6777,6 +7981,8 @@ at that point.
 
 **Status (2026-09-07):** not part of this sweep (HL7 IG publisher, not DHIS2); `make verify-igs` was not run.
 
+**Status (2026-09-11):** not retested; the HL7 IG publisher is not DHIS2 and is outside this sweep's targets.
+
 **Verifier:** none yet.
 
 ### 107. The IG publisher's concept anchor slug strips whitespace, so two distinct codes render one duplicate anchor id
@@ -6836,4 +8042,6 @@ the QA errors remain - cosmetic, and counted among a guide's expected errors.
 `docs/fhir/201-troubleshooting.md` names the symptom and both postures.
 
 **Status (2026-09-07):** not part of this sweep (HL7 IG publisher, not DHIS2); `make verify-igs` was not run.
+
+**Status (2026-09-11):** not retested; the HL7 IG publisher is not DHIS2 and is outside this sweep's targets.
 

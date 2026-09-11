@@ -5,9 +5,13 @@ hardcodes authority names. A name the running DHIS2 version does not define
 can never be granted by current-version role editing and most likely gates
 nothing -- matching on it gives false confidence. This test pins every
 taxonomy string to the live `/api/authorities` inventory on the play
-instances for v42 and v43.
+instances for v41, v42 and v43.
 
-v41 is exempt: its `/api/authorities` endpoint returns 500 (BUGS.md #45).
+Whether `/api/authorities` answers at all is a property of the
+deployment, not of the major: some instances answer 500 on that route
+while another instance on the identical revision answers 200 (BUGS.md
+#45). A 500 therefore skips with a message naming that entry rather
+than failing the run.
 
 Marked `@pytest.mark.contract` so it runs in the dedicated CI job
 (`.github/workflows/contract.yml`) and not as part of `make test`. Play
@@ -21,6 +25,7 @@ import pytest
 from dhis2w_core.security_core import AUTHORITY_CATEGORIES
 
 PLAY_URLS = {
+    "v41": "https://play.im.dhis2.org/dev-2-41",
     "v42": "https://play.im.dhis2.org/dev-2-42",
     "v43": "https://play.im.dhis2.org/dev-2-43",
 }
@@ -31,11 +36,14 @@ _OUTAGE_STATUS_CODES = frozenset({502, 503, 504})
 
 
 async def _fetch_inventory(base_url: str) -> set[str]:
-    """Return the authority id inventory from a live instance, skipping only if it's down.
+    """Return the authority id inventory from a live instance, skipping only if it can't serve one.
 
     Network-level failures (`httpx2.RequestError`) and gateway outage statuses
-    (502/503/504) skip; any other HTTP error status fails the test — a 401/500
-    from the endpoint must not turn into a green run that validated nothing.
+    (502/503/504) skip. A 500 from `/api/authorities` skips too: the route is
+    deployment-dependent, and an instance that refuses to enumerate its
+    authorities cannot validate the taxonomy either way (BUGS.md #45). Every
+    other HTTP error status fails the test — a 401 must not turn into a green
+    run that validated nothing.
     """
     try:
         async with httpx2.AsyncClient(auth=("admin", "district"), timeout=30.0) as client:
@@ -44,6 +52,8 @@ async def _fetch_inventory(base_url: str) -> set[str]:
         pytest.skip(f"play instance {base_url} unreachable: {exc}")
     if response.status_code in _OUTAGE_STATUS_CODES:
         pytest.skip(f"play instance {base_url} down ({response.status_code})")
+    if response.status_code == 500:
+        pytest.skip(f"{base_url}/api/authorities answers 500 on this deployment (BUGS.md #45)")
     response.raise_for_status()
     body = response.json()
     return {entry["id"] for entry in body.get("systemAuthorities", [])}

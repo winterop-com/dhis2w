@@ -328,7 +328,6 @@ class AuthorityType(StrEnum):
     DATA_CREATE = "DATA_CREATE"
     CREATE_PUBLIC = "CREATE_PUBLIC"
     CREATE_PRIVATE = "CREATE_PRIVATE"
-    EXTERNALIZE = "EXTERNALIZE"
     READ = "READ"
     DATA_READ = "DATA_READ"
     UPDATE = "UPDATE"
@@ -2310,7 +2309,6 @@ class MeDtoPropertyNames(StrEnum):
     EMAIL = "email"
     EMAILVERIFIED = "emailVerified"
     EMPLOYER = "employer"
-    EXTERNALACCESS = "externalAccess"
     FACEBOOKMESSENGER = "facebookMessenger"
     FAVORITES = "favorites"
     FIRSTNAME = "firstName"
@@ -4155,6 +4153,14 @@ class Transform(StrEnum):
     ID_OBJECTS = "ID_OBJECTS"
     PLUCK = "PLUCK"
     FROM = "FROM"
+
+
+class TwoFactorAuditStatus(StrEnum):
+    """TwoFactorAuditStatus."""
+
+    ALL = "ALL"
+    ENABLED = "ENABLED"
+    DISABLED = "DISABLED"
 
 
 class TwoFactorType(StrEnum):

@@ -134,7 +134,7 @@ Each piece has its own dhis.conf keys, and getting any of them wrong produces a 
 
 ### Step 1 — Turn on Spring Authorization Server (`dhis.conf`)
 
-Add these to `infra/home/dhis.conf` (or your production dhis.conf) and restart DHIS2:
+Add these to `infra/v{41,42,43}/dhis.conf` (or your production dhis.conf) and restart DHIS2:
 
 ```properties
 # 1. Mount Spring AS endpoints. Without this: GET /oauth2/authorize returns 404.

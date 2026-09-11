@@ -231,7 +231,7 @@ async def test_upsert_options_dry_run_reports_diff_without_writing(
 async def test_upsert_options_writes_and_deletes_via_metadata_bundle(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """Real run uses `save_bulk` for writes + metadata bundle DELETE for removes (BUGS.md #20)."""
+    """Real run uses `save_bulk` for writes + one metadata bundle DELETE for the whole removal batch."""
     mock_system_info(server_version)
     respx.get("https://dhis2.example/api/options").mock(
         return_value=httpx.Response(

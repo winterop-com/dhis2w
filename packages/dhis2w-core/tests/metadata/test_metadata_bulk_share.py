@@ -44,7 +44,7 @@ def _mock_current_sharing(*uids: str) -> None:
         respx.get("https://dhis2.example/api/sharing", params={"type": "dataSet", "id": uid}).mock(
             return_value=httpx.Response(
                 200,
-                json={"object": {"id": uid, "publicAccess": "--------", "externalAccess": False}},
+                json={"object": {"id": uid, "publicAccess": "--------"}},
             ),
         )
 

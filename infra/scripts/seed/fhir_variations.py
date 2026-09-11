@@ -99,7 +99,7 @@ TRANSLATION_LOCALE = "lo"
 OPTION_SET_NAME = "Age (<5 - 49) & over"
 CATEGORY_NAME = "Age (<5 >5) & sex"
 
-_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, external=False, users={}, userGroups={})
+_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, users={}, userGroups={})
 
 
 def _translation(value: str) -> dict[str, str]:

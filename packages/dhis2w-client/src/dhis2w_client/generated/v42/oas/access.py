@@ -23,7 +23,6 @@ class Access(_BaseModel):
 
     data: AccessData | None = None
     delete: bool | None = None
-    externalize: bool | None = None
     manage: bool | None = None
     read: bool | None = None
     update: bool | None = None

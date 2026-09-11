@@ -5,10 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import httpx
-import pytest
 import respx
 from dhis2w_client import BasicAuth, Dhis2Client, MapLayerSpec, MapSpec, ThematicMapType
-from dhis2w_client.errors import Dhis2ClientError
 
 
 def _auth() -> BasicAuth:
@@ -206,12 +204,6 @@ async def test_create_from_spec_posts_through_api_metadata(
     client = Dhis2Client("https://dhis2.example", auth=_auth())
     try:
         await client.connect()
-        if client.version_key == "v41":
-            # BUGS.md #114: 2.41.9.x cannot persist a layer's references; the v41 tree refuses before the wire.
-            with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
-                await client.maps.create_from_spec(spec)
-            assert metadata_route.call_count == 0
-            return
         created = await client.maps.create_from_spec(spec)
     finally:
         await client.close()
@@ -253,12 +245,6 @@ async def test_clone_strips_server_owned_and_nested_view_uids(
     client = Dhis2Client("https://dhis2.example", auth=_auth())
     try:
         await client.connect()
-        if client.version_key == "v41":
-            # BUGS.md #114: the source carries a layer, so the v41 tree refuses to clone it.
-            with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
-                await client.maps.clone("SRC00000001", new_name="clone", new_uid="NEW00000001")
-            assert metadata_route.call_count == 0
-            return
         cloned = await client.maps.clone("SRC00000001", new_name="clone", new_uid="NEW00000001")
     finally:
         await client.close()
@@ -296,6 +282,3 @@ async def test_accessor_is_bound_on_client() -> None:
             assert hasattr(client.maps, attr), f"missing {attr}"
     finally:
         await client.close()
-
-
-_ = pytest

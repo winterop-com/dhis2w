@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from dhis2w_client import MapLayerSpec, MapSpec, WebMessageResponse
+from dhis2w_client import MapLayerSpec, MapSpec
 
 if TYPE_CHECKING:
     from dhis2w_client.v42.client import Dhis2Client
@@ -172,22 +172,6 @@ async def build_dashboard_maps(client: Dhis2Client) -> int:
     Returns the count of maps created so seed_play can report progress.
     """
     specs = all_specs()
-    if client.version_key == "v41":
-        # BUGS.md #114: 2.41.9.x cannot persist a layer with its references
-        # through the API. Create every map without layers under the same
-        # UID so each dashboard item still resolves; the map renders as an
-        # empty viewport on v41.
-        print("    v41: BUGS.md #114, maps are created without layers", flush=True)
-        for spec in specs:
-            payload = spec.to_map().model_dump(by_alias=True, exclude_none=True, mode="json")
-            payload.pop("mapViews", None)
-            await client.post(
-                "/api/metadata",
-                {"maps": [payload]},
-                params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
-                model=WebMessageResponse,
-            )
-        return len(specs)
     for spec in specs:
         await client.maps.create_from_spec(spec)
     return len(specs)

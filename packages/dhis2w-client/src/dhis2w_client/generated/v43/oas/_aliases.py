@@ -107,8 +107,6 @@ type UIDJobConfiguration = str
 type UIDLegendSet = str
 # A UID for an Map object
 type UIDMap = str
-# A UID for an MapView object
-type UIDMapView = str
 # A UID for an Message object
 type UIDMessage = str
 # A UID for an MessageConversation object

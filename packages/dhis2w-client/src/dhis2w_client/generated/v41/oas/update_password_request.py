@@ -7,9 +7,11 @@ from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
 
-class GrantedAuthority(_BaseModel):
-    """OpenAPI schema `GrantedAuthority`."""
+class UpdatePasswordRequest(_BaseModel):
+    """OpenAPI schema `UpdatePasswordRequest`."""
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
-    authority: str | None = None
+    newPassword: str | None = None
+    oldPassword: str | None = None
+    username: str | None = None

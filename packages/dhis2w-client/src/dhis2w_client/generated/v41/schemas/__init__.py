@@ -60,6 +60,7 @@ from .legend import Legend
 from .legend_definitions import LegendDefinitions
 from .legend_set import LegendSet
 from .map import Map
+from .map_view import MapView
 from .message_conversation import MessageConversation
 from .metadata_proposal import MetadataProposal
 from .metadata_version import MetadataVersion
@@ -185,6 +186,7 @@ __all__ = [
     "LegendDefinitions",
     "LegendSet",
     "Map",
+    "MapView",
     "MessageConversation",
     "MetadataProposal",
     "MetadataVersion",
