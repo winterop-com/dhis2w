@@ -18,7 +18,6 @@ class Sharing(_BaseModel):
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
-    external: bool | None = None
     owner: str | None = None
     public: str | None = None
     userGroups: dict[str, UserGroupAccess] | None = None

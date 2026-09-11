@@ -517,6 +517,7 @@ class CategoryOptionPropertyNames(StrEnum):
     """CategoryOptionPropertyNames."""
 
     ACCESS = "access"
+    AGGREGATIONTYPE = "aggregationType"
     ATTRIBUTEVALUES = "attributeValues"
     CATEGORIES = "categories"
     CATEGORYOPTIONCOMBOS = "categoryOptionCombos"
@@ -525,6 +526,8 @@ class CategoryOptionPropertyNames(StrEnum):
     CREATED = "created"
     CREATEDBY = "createdBy"
     DESCRIPTION = "description"
+    DIMENSIONITEM = "dimensionItem"
+    DIMENSIONITEMTYPE = "dimensionItemType"
     DISPLAYDESCRIPTION = "displayDescription"
     DISPLAYFORMNAME = "displayFormName"
     DISPLAYNAME = "displayName"
@@ -543,6 +546,7 @@ class CategoryOptionPropertyNames(StrEnum):
     SHORTNAME = "shortName"
     STARTDATE = "startDate"
     STYLE = "style"
+    TOTALAGGREGATIONTYPE = "totalAggregationType"
     TRANSLATIONS = "translations"
 
 
@@ -1338,6 +1342,7 @@ class DimensionType(StrEnum):
     VALIDATION_RULE = "VALIDATION_RULE"
     STATIC = "STATIC"
     ORGANISATION_UNIT_LEVEL = "ORGANISATION_UNIT_LEVEL"
+    PROGRAM_STATUS = "PROGRAM_STATUS"
 
 
 class DimensionalObjectPropertyNames(StrEnum):
@@ -4167,6 +4172,14 @@ class Transform(StrEnum):
     ID_OBJECTS = "ID_OBJECTS"
     PLUCK = "PLUCK"
     FROM = "FROM"
+
+
+class TwoFactorAuditStatus(StrEnum):
+    """TwoFactorAuditStatus."""
+
+    ALL = "ALL"
+    ENABLED = "ENABLED"
+    DISABLED = "DISABLED"
 
 
 class TwoFactorType(StrEnum):

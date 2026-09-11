@@ -162,7 +162,7 @@ VALIDATION_RULE_BCG_POSITIVE_UID = "VrBCGPos001"
 VALIDATION_RULE_BCG_INF_EQ_UID = "VrBCGInf001"
 VALIDATION_RULE_GROUP_IMMUNIZATION_UID = "VrGImmun001"
 
-_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, external=False, users={}, userGroups={})
+_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, users={}, userGroups={})
 
 
 def _snomed_attribute() -> Attribute:

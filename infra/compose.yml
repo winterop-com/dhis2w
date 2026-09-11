@@ -85,6 +85,7 @@ services:
       - "4000:4000"
     volumes:
       - ./home:/opt/dhis2:rw
+      - ${DHIS2_CONF:-./v43/dhis.conf}:/opt/dhis2/dhis.conf:ro
     depends_on:
       postgresql:
         condition: service_healthy

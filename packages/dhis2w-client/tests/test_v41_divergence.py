@@ -22,9 +22,8 @@ Categories covered:
 - v41 OAuth2 surface: OAuth2ClientCredentialsAuthScheme deliberately
   absent from auth_schemes.
 - Map layers: `MapView` + its enums are hand-written in every tree's
-  `maps` module because 2.41.9.x lists no `mapView` schema (BUGS.md #43).
-- Map authoring: v41 `MapsAccessor.create_from_spec` / `clone` refuse
-  because 2.41.9.x cannot persist a layer's references (BUGS.md #114).
+  `maps` module so one layer shape spans the three trees whatever a
+  release's `/api/schemas` inventory holds.
 
 When a new v41 divergence lands, add a test to the matching section
 below + a one-line entry to the docstring's "Categories covered" list.
@@ -141,17 +140,18 @@ def test_v41_auth_schemes_lacks_oauth2_client_credentials() -> None:
         assert hasattr(auth_schemes, variant), f"v41 auth_schemes missing {variant}"
 
 
-# ----- Map layers: hand-written MapView (BUGS.md #43) -------------------------
+# ----- Map layers: hand-written MapView ---------------------------------------
 
 
 @pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
 def test_map_view_is_hand_written_in_every_tree(tree: str) -> None:
-    """BUGS.md #43 — `MapView` and its enums come from `dhis2w_client.vN.maps`, not the generated tree.
+    """`MapView` and its enums come from `dhis2w_client.vN.maps`, not the generated tree.
 
-    DHIS2 2.41.9.x no longer lists `mapView` on `/api/schemas`, so the
-    generated v41 tree has no `MapView` to import. Every tree defines the
-    model by hand so a layer built by `MapLayerSpec` validates identically
-    on all three majors.
+    2.41.9.x omits `mapView` from `/api/schemas`, so a v41 tree generated
+    against those releases has no `MapView` to import; 2.41.10 and every
+    later release list the schema. Every tree defines the model by hand so
+    a layer built by `MapLayerSpec` validates identically on all three
+    majors regardless.
     """
     import importlib
 
@@ -163,16 +163,3 @@ def test_map_view_is_hand_written_in_every_tree(tree: str) -> None:
     assert view.thematicMapType == maps.ThematicMapType.CHOROPLETH
     assert view.organisationUnitSelectionMode == maps.OrganisationUnitSelectionMode.SELECTED
     assert view.rowDimensions == ["ou"]
-
-
-async def test_v41_maps_accessor_refuses_layer_writes() -> None:
-    """BUGS.md #114 — v41 `create_from_spec` raises before the wire; 2.41.9.x cannot save a layer's references."""
-    from dhis2w_client import BasicAuth
-    from dhis2w_client.errors import Dhis2ClientError
-    from dhis2w_client.v41.client import Dhis2Client
-    from dhis2w_client.v41.maps import MapLayerSpec, MapsAccessor, MapSpec
-
-    client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district"))
-    spec = MapSpec(name="probe", layers=[MapLayerSpec(data_elements=["DE1"], periods=["2025"])])
-    with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
-        await MapsAccessor(client).create_from_spec(spec)

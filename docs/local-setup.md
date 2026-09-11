@@ -87,7 +87,8 @@ infra/
 │   └── startup.sh           # DHIS2 runtime entry (from source repo)
 ├── glowroot/admin.json      # glowroot JVM profiler seed config
 ├── pgadmin4/                # pgAdmin bootstrap (pre-registered server, masked pgpass)
-├── home/                    # bind-mounted into DHIS2 container (dhis.conf, logs, glowroot jar)
+├── v41/ v42/ v43/           # per-major dump.sql.gz + dhis.conf; compose mounts the running major's pair
+├── home/                    # bind-mounted into DHIS2 container (logs, files, glowroot jar)
 ├── .env.example             # template for overrides (never commit filled-in .env)
 └── .gitignore               # ignores logs, .env, local SQL dumps, generated PNGs
 ```
@@ -149,7 +150,7 @@ oidc.provider.dhis2.scopes            = ALL
 oidc.provider.dhis2.mapping_claim     = sub
 ```
 
-See `docs/architecture/auth.md` for what each key does and which failure mode it unblocks. After editing `dhis.conf`, restart the stack (`make dhis2-down && make dhis2-run`).
+See `docs/architecture/auth.md` for what each key does and which failure mode it unblocks. The stack's own copies live at `infra/v{41,42,43}/dhis.conf`, one per major. After editing the running major's file, restart the stack (`make dhis2-down && make dhis2-run`); to try a setting without editing a tracked file, write a variant outside the repository and start the stack with `DHIS2_CONF=<path> make dhis2-run`.
 
 ## The committed `v{version}/dump.sql.gz`
 

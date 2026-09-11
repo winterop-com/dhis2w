@@ -20,10 +20,8 @@ from pathlib import Path
 from types import ModuleType
 
 import httpx
-import pytest
 import respx
 from dhis2w_client import RemoveOp, ReplaceOp
-from dhis2w_client.errors import Dhis2ClientError
 from dhis2w_core.profile import resolve_profile
 
 _HOST = "https://dhis2.example"
@@ -252,7 +250,7 @@ async def test_metadata_bulk_share_parity(
         respx.get(f"{_HOST}/api/sharing", params={"type": "dataSet", "id": uid}).mock(
             return_value=httpx.Response(
                 200,
-                json={"object": {"id": uid, "publicAccess": "--------", "externalAccess": False}},
+                json={"object": {"id": uid, "publicAccess": "--------"}},
             ),
         )
     route = respx.post(f"{_HOST}/api/sharing").mock(return_value=httpx.Response(200, json={}))
@@ -3170,11 +3168,7 @@ async def test_metadata_create_map_parity(
     mock_system_info: Callable[..., None],
     plugin_service: Callable[[str], ModuleType],
 ) -> None:
-    """`create_map` imports a single-layer choropleth via `/api/metadata` then re-fetches, on v42 and v43.
-
-    The v41 tree refuses before the wire: DHIS2 2.41.9.x cannot persist a map layer's
-    references (BUGS.md #114).
-    """
+    """`create_map` imports a single-layer choropleth via `/api/metadata` then re-fetches, on every version tree."""
     mock_system_info(core_version)
     service = plugin_service("metadata")
     import_route = respx.post(f"{_HOST}/api/metadata").mock(
@@ -3193,15 +3187,11 @@ async def test_metadata_create_map_parity(
         organisation_unit_levels=[2],
         uid="MAP0000001",
     )
-    if core_version == "v41":
-        with pytest.raises(Dhis2ClientError, match="BUGS.md #114"):
-            await create
-        assert not import_route.called
-        return
 
     thematic_map = await create
 
     assert thematic_map.id == "MAP0000001"
+    assert import_route.called
 
 
 @respx.mock

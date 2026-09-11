@@ -78,7 +78,6 @@ async def test_get_sharing_unwraps_info_envelope(client: Dhis2Client) -> None:
                     "id": "dsUID123",
                     "name": "Test",
                     "publicAccess": "r-------",
-                    "externalAccess": False,
                     "user": {"id": "adminUID", "name": "admin"},
                     "userAccesses": [],
                     "userGroupAccesses": [],
@@ -130,7 +129,7 @@ async def test_apply_sharing_accepts_raw_sharing_object(client: Dhis2Client) -> 
         "https://dhis2.example/api/sharing",
         params={"type": "dataElement", "id": "deUID123456"},
     ).mock(return_value=httpx.Response(200, json={"status": "OK"}))
-    sharing = SharingObject(publicAccess=ACCESS_READ_METADATA, externalAccess=False)
+    sharing = SharingObject(publicAccess=ACCESS_READ_METADATA)
     async with client as c:
         await apply_sharing(c, "dataElement", "deUID123456", sharing)
     assert route.called

@@ -421,7 +421,6 @@ from .enrollment import (
 from .entity import Entity
 from .entity_query_criteria import EntityQueryCriteria
 from .entries_response import EntriesResponse, EntriesResponsePager
-from .environment import Environment
 from .error import Error
 from .error_report import ErrorReport
 from .event import (
@@ -510,7 +509,6 @@ from .geo_json_import_job_params import GeoJsonImportJobParams
 from .gist_pager import GistPager
 from .gist_preferences import GistPreferences
 from .google_access_token import GoogleAccessToken
-from .granted_authority import GrantedAuthority
 from .grid import Grid
 from .grid_header import GridHeader
 from .grid_response import GridResponse
@@ -976,7 +974,6 @@ from .push_analysis_job_parameters import PushAnalysisJobParameters
 from .query_alias import QueryAlias
 from .query_modifiers import QueryModifiers
 from .rectangle import Rectangle
-from .redirect_view import RedirectView
 from .reference import Reference
 from .referer_allowed_list import RefererAllowedList
 from .relationship_constraint import (
@@ -1163,6 +1160,7 @@ from .trigram_summary import TrigramSummary
 from .type_report import TypeReport
 from .update_follow_up_for_data_values_request import UpdateFollowUpForDataValuesRequest
 from .update_icon_request import UpdateIconRequest
+from .update_password_request import UpdatePasswordRequest
 from .user import (
     User,
     UserAvatar,
@@ -1576,7 +1574,6 @@ _classes = {
     "EntityQueryCriteria": EntityQueryCriteria,
     "EntriesResponsePager": EntriesResponsePager,
     "EntriesResponse": EntriesResponse,
-    "Environment": Environment,
     "Error": Error,
     "ErrorReport": ErrorReport,
     "EventAssignedUser": EventAssignedUser,
@@ -1664,7 +1661,6 @@ _classes = {
     "GistPager": GistPager,
     "GistPreferences": GistPreferences,
     "GoogleAccessToken": GoogleAccessToken,
-    "GrantedAuthority": GrantedAuthority,
     "Grid": Grid,
     "GridHeader": GridHeader,
     "GridResponse": GridResponse,
@@ -2088,7 +2084,6 @@ _classes = {
     "QueryAlias": QueryAlias,
     "QueryModifiers": QueryModifiers,
     "Rectangle": Rectangle,
-    "RedirectView": RedirectView,
     "Reference": Reference,
     "RefererAllowedList": RefererAllowedList,
     "RelationshipConstraintProgram": RelationshipConstraintProgram,
@@ -2254,6 +2249,7 @@ _classes = {
     "TypeReport": TypeReport,
     "UpdateFollowUpForDataValuesRequest": UpdateFollowUpForDataValuesRequest,
     "UpdateIconRequest": UpdateIconRequest,
+    "UpdatePasswordRequest": UpdatePasswordRequest,
     "UserAvatar": UserAvatar,
     "UserCatDimensionConstraints": UserCatDimensionConstraints,
     "UserCogsDimensionConstraints": UserCogsDimensionConstraints,
@@ -2453,7 +2449,6 @@ _submodule_names = {
     "entity",
     "entity_query_criteria",
     "entries_response",
-    "environment",
     "error",
     "error_report",
     "event",
@@ -2493,7 +2488,6 @@ _submodule_names = {
     "gist_pager",
     "gist_preferences",
     "google_access_token",
-    "granted_authority",
     "grid",
     "grid_header",
     "grid_response",
@@ -2630,7 +2624,6 @@ _submodule_names = {
     "query_alias",
     "query_modifiers",
     "rectangle",
-    "redirect_view",
     "reference",
     "referer_allowed_list",
     "relationship_constraint",
@@ -2712,6 +2705,7 @@ _submodule_names = {
     "type_report",
     "update_follow_up_for_data_values_request",
     "update_icon_request",
+    "update_password_request",
     "user",
     "user_access",
     "user_credentials_dto",
@@ -3070,7 +3064,6 @@ __all__ = [
     "EntityQueryCriteria",
     "EntriesResponse",
     "EntriesResponsePager",
-    "Environment",
     "Error",
     "ErrorReport",
     "Event",
@@ -3158,7 +3151,6 @@ __all__ = [
     "GistPager",
     "GistPreferences",
     "GoogleAccessToken",
-    "GrantedAuthority",
     "Grid",
     "GridHeader",
     "GridResponse",
@@ -3662,7 +3654,6 @@ __all__ = [
     "QueryAlias",
     "QueryModifiers",
     "Rectangle",
-    "RedirectView",
     "Reference",
     "RefererAllowedList",
     "RelationshipConstraint",
@@ -3828,6 +3819,7 @@ __all__ = [
     "TypeReport",
     "UpdateFollowUpForDataValuesRequest",
     "UpdateIconRequest",
+    "UpdatePasswordRequest",
     "User",
     "UserAccess",
     "UserAvatar",

@@ -68,7 +68,7 @@ EVENT_UID_ONE_VISIT = "EvAncM2v001"
 _VISIT_DATES = ("2025-11-05", "2025-12-03", "2026-01-07", "2026-02-04")
 _ENROLLED_AT = "2025-10-20"
 
-_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, external=False, users={}, userGroups={})
+_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, users={}, userGroups={})
 
 
 def _visit_data_element(uid: str, name: str, short_name: str, value_type: ValueType) -> DataElement:

@@ -6,13 +6,11 @@ or codegen regens that accidentally realign with v42 surface here.
 
 Categories covered:
 
-- v43 wire-shape adapters: `SharingObject.externalAccess` dropped,
-  `SharingBuilder` no longer accepts `external_access`.
 - v43 CategoryCombo: `categorys` legacy alias dropped from the
   write-payload path (`categories` is the sole field name).
 
-Mocked-then-live coverage for these landed earlier as BUGS regression
-tests (paired `test_bug_3{4,8}_*` in `test_upstream_bugs.py`); this
+Mocked-then-live coverage for these lives in the BUGS regression suite
+(paired `test_bug_34_*` in `test_upstream_bugs.py`); this
 file's tests stay structural — they don't hit the wire, they just
 assert the v43 source code shape stayed divergent.
 
@@ -23,34 +21,6 @@ to "Categories covered".
 from __future__ import annotations
 
 import inspect
-
-# ----- v43 wire-shape adapters ----------------------------------------------
-
-
-def test_v43_sharing_object_lacks_external_access_field() -> None:
-    """v43's `SharingObject` doesn't carry `externalAccess` (the wire schema dropped it)."""
-    from dhis2w_client.v43.sharing import SharingObject
-
-    assert "externalAccess" not in SharingObject.model_fields, (
-        "v43 SharingObject must not declare `externalAccess` — the wire schema "
-        "dropped it. If DHIS2 v43 reintroduces the field, regenerate codegen + "
-        "update `dhis2w_client.v43.sharing` + drop this assertion."
-    )
-
-
-def test_v43_sharing_builder_does_not_accept_external_access() -> None:
-    """v43's `SharingBuilder.__init__` doesn't take `external_access` (v42 has it; v43 dropped)."""
-    from dhis2w_client.v43.sharing import SharingBuilder
-
-    init_params = inspect.signature(SharingBuilder).parameters
-    assert "external_access" not in init_params, (
-        "v43 SharingBuilder must not accept `external_access` — v43 wire dropped "
-        f"the field. Got params: {list(init_params)}"
-    )
-    # Confirm the v43 builder still has the expected v43 surface.
-    assert "public_access" in init_params
-    assert "owner_user_id" in init_params
-
 
 # ----- v43 CategoryCombo ----------------------------------------------------
 

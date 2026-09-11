@@ -24,21 +24,29 @@ drop to the `Map` / `MapView` models when you need the full knob set.
 
 `Map` is the generated model. `MapView` and the three enums it carries
 (`ThematicMapType`, `OrganisationUnitSelectionMode`,
-`MapViewRenderingStrategy`) are defined in this module because DHIS2
-2.41.9.x no longer lists `mapView` on `/api/schemas`, so the generated
-tree for that release carries no `MapView` at all (BUGS.md #43). The
-wire shape nested under `Map.mapViews[]` is unchanged on every major,
-so one hand-written model serves all three trees. `extra="allow"`
-keeps every field the Maps app writes that this model does not name.
+`MapViewRenderingStrategy`) are defined in this module so all three
+version trees expose one layer shape whatever a release's
+`/api/schemas` inventory holds. 2.41.9.x omits `mapView` from that
+inventory, so a tree generated against those releases carries no
+`MapView` at all; 2.41.10 and every later release list it. The wire
+shape nested under `Map.mapViews[]` is the same on every major, so one
+hand-written model serves all three trees.
+`extra="allow"` keeps every field the Maps app writes that this model
+does not name.
 
 ## Why always POST through `/api/metadata`
 
 Same reason as `Visualization`: a direct `PUT /api/maps/{uid}` with
 nested `mapViews` silently drops the derived `rows` / `columns` /
-`filters` collections DHIS2 renders from. Route creates + updates
-through `POST /api/metadata?importStrategy=CREATE_AND_UPDATE` so the
-importer expands every dimension selector into the axes DHIS2 reads
-at render time. `MapsAccessor.create_from_spec` takes that path.
+`filters` collections DHIS2 renders from. `POST /api/maps` is the
+wrong path on every major — it answers 201 while discarding each
+layer's `organisationUnits`, `organisationUnitLevels` and
+`dataDimensionItems` — and `POST /api/mapViews` answers 405. Route
+creates + updates through
+`POST /api/metadata?importStrategy=CREATE_AND_UPDATE` so the importer
+expands every dimension selector into the axes DHIS2 reads at render
+time and persists each layer's references.
+`MapsAccessor.create_from_spec` takes that path.
 """
 
 from __future__ import annotations
@@ -74,14 +82,14 @@ LayerKind = Literal["thematic", "boundary", "facility"]
 
 
 class ThematicMapType(StrEnum):
-    """How a thematic layer renders a value per organisation unit (BUGS.md #43)."""
+    """How a thematic layer renders a value per organisation unit."""
 
     CHOROPLETH = "CHOROPLETH"
     BUBBLE = "BUBBLE"
 
 
 class OrganisationUnitSelectionMode(StrEnum):
-    """How a layer expands its selected organisation units (BUGS.md #43)."""
+    """How a layer expands its selected organisation units."""
 
     SELECTED = "SELECTED"
     CHILDREN = "CHILDREN"
@@ -92,7 +100,7 @@ class OrganisationUnitSelectionMode(StrEnum):
 
 
 class MapViewRenderingStrategy(StrEnum):
-    """How a layer spreads its periods across the map (BUGS.md #43)."""
+    """How a layer spreads its periods across the map."""
 
     SINGLE = "SINGLE"
     SPLIT_BY_PERIOD = "SPLIT_BY_PERIOD"
@@ -100,7 +108,7 @@ class MapViewRenderingStrategy(StrEnum):
 
 
 class MapView(BaseModel):
-    """One layer of a DHIS2 `Map`, as nested under `Map.mapViews[]` (BUGS.md #43).
+    """One layer of a DHIS2 `Map`, as nested under `Map.mapViews[]`.
 
     Names the fields the authoring helpers read and write; every other
     field the Maps app stores rides along through `extra="allow"`.

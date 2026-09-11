@@ -261,11 +261,13 @@ class OptionSetsAccessor:
             if bulk_writes:
                 await self._client.resources.options.save_bulk(bulk_writes)
             if to_remove_uids:
-                # `DELETE /api/options/{uid}` returns 200 but leaves the option
-                # in place on DHIS2 v42 — options are collection-owned by their
-                # OptionSet and need the metadata-bundle DELETE path to actually
-                # disappear. Documented in BUGS.md alongside the matching
-                # `/api/metadata?importStrategy=DELETE` workaround.
+                # Removals go through the metadata bundle so the whole batch
+                # leaves in one round trip. `DELETE /api/options/{uid}` drops a
+                # single option just as well on every supported major; the
+                # bundle wins here only because `upsert_options` removes a set
+                # at a time. `PUT /api/optionSets/{uid}` with the option
+                # omitted is the path to avoid — it unlinks the option and
+                # leaves it behind as an orphan with no owning set.
                 await self._client.metadata.delete_bulk("options", to_remove_uids)
 
         return UpsertReport(

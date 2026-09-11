@@ -23,6 +23,7 @@ class TrackerRelationship(_BaseModel):
     bidirectional: bool | None = None
     createdAt: Instant | None = None
     createdAtClient: Instant | None = None
+    deleted: bool | None = None
     from_: TrackerRelationshipItem | None = _Field(default=None, alias="from")
     relationship: str | None = None
     relationshipName: str | None = None

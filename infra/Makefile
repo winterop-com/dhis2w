@@ -2,6 +2,8 @@
 .DEFAULT_GOAL := help
 
 DHIS2_VERSION  ?= v43
+# dhis.conf mounted into the container: the major's own copy unless a variant is named.
+DHIS2_CONF     ?= ./$(DHIS2_VERSION)/dhis.conf
 DHIS2_URL      ?= http://localhost:8080
 DHIS2_USER     ?= admin
 DHIS2_PASS     ?= district
@@ -12,7 +14,7 @@ DHIS2_IMAGE_TAG := $(shell scripts/_resolve_image_tag.sh $(DHIS2_VERSION))
 ifeq ($(strip $(DHIS2_IMAGE_TAG)),)
 $(error DHIS2_VERSION '$(DHIS2_VERSION)' is invalid — use the vXX form (e.g. v43) or a full dotted tag; see scripts/_resolve_image_tag.sh)
 endif
-COMPOSE        := DHIS2_VERSION=$(DHIS2_VERSION) DHIS2_IMAGE_TAG=$(DHIS2_IMAGE_TAG) docker compose -f compose.yml -f compose.pgadmin.yml
+COMPOSE        := DHIS2_VERSION=$(DHIS2_VERSION) DHIS2_IMAGE_TAG=$(DHIS2_IMAGE_TAG) DHIS2_CONF=$(DHIS2_CONF) docker compose -f compose.yml -f compose.pgadmin.yml
 
 help: ## show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

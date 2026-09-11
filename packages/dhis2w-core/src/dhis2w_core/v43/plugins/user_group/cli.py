@@ -176,7 +176,6 @@ def sharing_get_command(
     rows = [
         DetailRow("id", str(sharing.id or "-")),
         DetailRow("publicAccess", format_access_string(sharing.publicAccess)),
-        # v43 dropped the `externalAccess` field on SharingObject.
         DetailRow("owner", format_ref(sharing.user) if sharing.user else "-"),
         DetailRow(f"userAccesses ({len(user_accesses)})", "" if user_accesses else "-"),
     ]
@@ -210,7 +209,6 @@ def sharing_grant_user_command(
 
     profile = profile_from_env()
     current = asyncio.run(service.get_group_sharing(profile, group_uid))
-    # v43's SharingBuilder doesn't accept external_access (the field was dropped).
     builder = SharingBuilder(
         public_access=current.publicAccess or ACCESS_READ_METADATA,
         owner_user_id=current.user.id if current.user else None,

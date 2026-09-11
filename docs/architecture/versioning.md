@@ -19,7 +19,7 @@ packages/dhis2w-client/src/dhis2w_client/
 ├── __init__.py          # version-agnostic re-exports (Dhis2 enum, Dhis2Client, ...)
 ├── generated/           # auto-generated wire types per version
 │   ├── __init__.py      # version registry + loader + Dhis2 enum
-│   ├── v41/             # DHIS2 2.41.x (123 schemas)
+│   ├── v41/             # DHIS2 2.41.x (124 schemas)
 │   ├── v42/             # DHIS2 2.42.x (118 schemas)
 │   └── v43/             # DHIS2 2.43.x (116 schemas)
 ├── v41/                 # hand-written client surface for v41

@@ -6,10 +6,13 @@ chain into instance takeover. This module groups the riskiest ones into
 named categories so every security check reports on them consistently.
 
 Every string below is verified to exist in the live `/api/authorities`
-inventory of both v42 and v43 (the contract test
+inventory of v41, v42 and v43 (the contract test
 `packages/dhis2w-core/tests/security/test_security_taxonomy_contract.py` enforces
-this against the play instances). v41 cannot be verified the same way --
-its `/api/authorities` endpoint returns 500 (BUGS.md #45).
+this against the play instances), with one exception the test names:
+`F_MOBILE_SETTINGS` is defined on v42 and v43 and not on v41, where the
+system-settings category matches on its other three strings. Whether that route answers is a property of
+the deployment rather than the major -- an instance that answers 500 skips the
+check instead of failing it (BUGS.md #45).
 
 Note on matching: `/api/me/authorization` reports *granted* strings, which
 on long-lived databases can include residual names from older DHIS2

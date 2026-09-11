@@ -167,15 +167,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
 # Per-version skip overrides for examples that only fail on one major.
 # Keyed by `v{N}` -> example paths relative to `examples/`.
 SKIP_BY_VERSION: dict[str, frozenset[str]] = {
-    "v41": frozenset(
-        {
-            # BUGS.md #114 — 2.41.9.x cannot persist a map layer with its
-            # references through the API; `MapsAccessor.create_from_spec`
-            # refuses on v41, so the two map-authoring examples cannot run.
-            "client/map_create_choropleth.py",
-            "cli/maps.sh",
-        }
-    ),
     "v43": frozenset(
         {
             # BUGS.md #36 — v43's full `POST /api/resourceTables/analytics`

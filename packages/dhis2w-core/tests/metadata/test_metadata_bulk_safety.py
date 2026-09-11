@@ -127,7 +127,6 @@ _EXISTING_SHARING = {
     "object": {
         "id": "DS_A",
         "publicAccess": "rw------",
-        "externalAccess": False,
         "user": {"id": "OWNER_UID"},
         "userAccesses": [{"id": "U_OLD", "access": "r-------"}],
         "userGroupAccesses": [{"id": "UG_OLD", "access": "rw------"}],

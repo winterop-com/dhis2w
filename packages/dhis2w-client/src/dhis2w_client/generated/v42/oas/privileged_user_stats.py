@@ -3,20 +3,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
-if TYPE_CHECKING:
-    from .tracker_pager import TrackerPager
-    from .tracker_relationship import TrackerRelationship
 
-
-class Page(_BaseModel):
-    """OpenAPI schema `Page`."""
+class PrivilegedUserStats(_BaseModel):
+    """OpenAPI schema `PrivilegedUserStats`."""
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
-    items: list[TrackerRelationship] | None = None
-    pager: TrackerPager | None = None
+    withAllAuthority: int | None = None
+    withAllAuthorityMissing2FA: int | None = None

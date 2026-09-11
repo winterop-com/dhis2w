@@ -102,6 +102,7 @@ class Property(_BaseModel):
     relativeApiEndpoint: str | None = None
     required: bool | None = None
     simple: bool | None = None
+    transient: bool | None = None
     translatable: bool | None = None
     translationKey: str | None = None
     unique: bool | None = None

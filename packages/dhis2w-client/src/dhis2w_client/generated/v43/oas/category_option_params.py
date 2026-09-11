@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
+from ._enums import AggregationType, DimensionItemType, TotalAggregationType
+
 if TYPE_CHECKING:
     from .attribute_value_params import AttributeValueParams
     from .object_style import ObjectStyle
@@ -70,6 +72,7 @@ class CategoryOptionParams(_BaseModel):
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
+    aggregationType: AggregationType | None = None
     attributeValues: list[AttributeValueParams] | None = None
     categories: list[CategoryOptionParamsCategories] | None = None
     categoryOptionCombos: list[CategoryOptionParamsCategoryOptionCombos] | None = None
@@ -78,6 +81,8 @@ class CategoryOptionParams(_BaseModel):
     created: datetime | None = None
     createdBy: CategoryOptionParamsCreatedBy | None = None
     description: str | None = None
+    dimensionItem: str | None = None
+    dimensionItemType: DimensionItemType | None = None
     displayDescription: str | None = None
     displayFormName: str | None = None
     displayName: str | None = None
@@ -96,4 +101,5 @@ class CategoryOptionParams(_BaseModel):
     shortName: str | None = None
     startDate: datetime | None = None
     style: ObjectStyle | None = None
+    totalAggregationType: TotalAggregationType | None = None
     translations: list[Translation] | None = None

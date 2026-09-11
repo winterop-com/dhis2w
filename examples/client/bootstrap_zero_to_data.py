@@ -153,7 +153,7 @@ async def main() -> None:
             # 7. CLEANUP — soft-delete the data value first, then metadata in reverse dependency
             #    order (DS -> DE -> OU). The data-value delete is important: DHIS2 refuses to delete
             #    DataElements or OrgUnits referenced by any stored data value. With audits / changelogs
-            #    disabled in infra/home/dhis.conf, the metadata delete then completes cleanly.
+            #    disabled in infra/v{41,42,43}/dhis.conf, the metadata delete then completes cleanly.
             _step("7/7 cleanup: delete data value -> DS -> DE -> OU")
             try:
                 await client.post_raw(

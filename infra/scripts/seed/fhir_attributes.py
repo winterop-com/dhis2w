@@ -73,7 +73,7 @@ OPTION_SET_ATTRIBUTE_VALUE = "http://snomed.info/sct"
 DATA_SET_ATTRIBUTE_VALUE = "Paper register 12A, revision 2025-03"
 ORGANISATION_UNIT_ATTRIBUTE_VALUE = "SL-NATIONAL-0001"
 
-_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, external=False, users={}, userGroups={})
+_SHARING = Sharing(public=ACCESS_READ_WRITE_DATA, users={}, userGroups={})
 
 
 def option_set_attribute() -> Attribute:

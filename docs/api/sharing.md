@@ -31,7 +31,10 @@ from dhis2w_client import Dhis2Client, SharingBuilder, apply_sharing, get_sharin
 
 async with Dhis2Client(url, auth) as client:
     current = await get_sharing(client, "dataSet", ds_uid)
-    # current is a `SharingObject` (publicAccess, externalAccess, user, userAccesses[], userGroupAccesses[]).
+    # current is a `SharingObject` (publicAccess, user, userAccesses[], userGroupAccesses[]).
+    # DHIS2 defines no `externalAccess` on `SharingObject` on any supported major:
+    # the field is absent from the OpenAPI document, and a write carrying it answers
+    # 200 "Access control set" while discarding the value (BUGS.md #38).
 
     sharing = (
         SharingBuilder(owner_user_id=admin_uid)

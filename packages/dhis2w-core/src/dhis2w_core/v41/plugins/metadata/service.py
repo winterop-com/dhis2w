@@ -1075,7 +1075,7 @@ def _merge_sharing(
         if group_grant.id is not None and group_grant.access is not None:
             merged_groups[group_grant.id] = group_grant.access
     merged_groups.update(user_group_grants)
-    # model_copy keeps every other fetched field (owner user, externalAccess, ...)
+    # model_copy keeps every other fetched field (owner user, display name, ...)
     # exactly as DHIS2 returned it — only the merged fields change.
     return current.model_copy(
         update={

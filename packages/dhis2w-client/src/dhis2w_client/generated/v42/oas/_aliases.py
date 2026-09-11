@@ -10,7 +10,7 @@ type ErrorCode = str
 type EventVisualizationPropertyNames = str
 # The actual type is unknown.
 type Fields = Any
-type Instant = datetime | int
+type Instant = int | datetime
 # The actual type is unknown.
 type JsonMixed = Any
 type MapViewPropertyNames = str
