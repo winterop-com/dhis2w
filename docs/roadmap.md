@@ -313,6 +313,17 @@ BUGS.md #15 (undiscriminated `JobConfiguration.jobParameters` + `WebMessage.resp
 
 ## Strategic options (pick one before the next cycle)
 
+### Chosen for the next cycle: a small core plus pluginkit plugins
+
+The workspace carries every domain for every install and about 18,000 tests across thirteen members, while usage concentrates in `dhis2w-client` and `dhis2w-core`. The next big piece of work splits it the way `dirigent` is built: a small core with extension points on [`pluginkit`](https://pypi.org/project/pluginkit/) (strictly typed, generics-first, `ExtensionPoint` / `Extension` / `PluginManager`, entry-point discovery, no runtime dependencies), with FHIR, security, MCP and similar domains as plugins.
+
+- `dhis2w-client` and `dhis2w-core` stay central; every other domain becomes a plugin that installs on its own.
+- A `dhis2w-integration` project, like `dirigent-integration`, holds the benchmarks (today `dhis2w-bench`) and the tests that run across several plugins at once, so cross-plugin behaviour has one home.
+- The baseline switch finishes here too: the version-neutral packages (`dhis2w-fhir`, `dhis2w-fhir-serve`, `dhis2w_core.security_core`) still import their generated models from `dhis2w_client.generated.v42.*`; they move to the v43 tree, which is the canonical baseline.
+- Planning starts from dirigent's `CLAUDE.md` and its `dirigent-plugin` package, not from a registry or entry-point scheme of our own.
+
+The two options below stay open behind it.
+
 Two independent directions — the right order depends on where the pain is. Each would be a multi-PR body of work.
 
 ### 1. Data approval workflow plugin

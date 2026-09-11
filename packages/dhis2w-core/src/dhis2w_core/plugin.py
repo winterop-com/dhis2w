@@ -14,7 +14,7 @@ import pkgutil
 from importlib.metadata import entry_points
 from typing import Any, Protocol, runtime_checkable
 
-DEFAULT_VERSION_KEY = "v42"
+DEFAULT_VERSION_KEY = "v43"
 
 
 def resolve_startup_version() -> str:
@@ -29,7 +29,7 @@ def resolve_startup_version() -> str:
        active profile has no `version` pin — it lets `make verify-examples
        DHIS2_VERSION=v41` target the v41 tree against an unpinned profile
        without hand-editing it. A bare digit (`41`) is not recognized.
-    3. `DEFAULT_VERSION_KEY` (`"v42"`) — the canonical baseline.
+    3. `DEFAULT_VERSION_KEY` (`"v43"`) — the canonical baseline.
 
     Falls back to `DEFAULT_VERSION_KEY` on any resolution failure (no profile
     configured, corrupt TOML, etc.) so the CLI / MCP bootstrap never crashes —
@@ -67,7 +67,7 @@ class Plugin(Protocol):
         ...
 
 
-def discover_plugins(version_key: str = "v42") -> list[Plugin]:
+def discover_plugins(version_key: str = DEFAULT_VERSION_KEY) -> list[Plugin]:
     """Discover built-in and entry-point plugins for the given major version.
 
     `version_key` picks which `dhis2w_core.v{N}.plugins.*` tree to walk —

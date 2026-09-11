@@ -34,7 +34,7 @@ def test_system_plugin_has_cli_and_mcp_registrars() -> None:
 
 def test_default_version_is_v42() -> None:
     """v42 is the canonical baseline so no-config bootstrap lands there."""
-    assert DEFAULT_VERSION_KEY == "v42"
+    assert DEFAULT_VERSION_KEY == "v43"
 
 
 def test_discover_plugins_default_matches_explicit_v42() -> None:
@@ -66,7 +66,7 @@ def test_resolve_startup_version_defaults_when_no_profile(tmp_path: Path, monkey
     _clear_env(monkeypatch)
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.chdir(tmp_path)
-    assert resolve_startup_version() == "v42"
+    assert resolve_startup_version() == "v43"
 
 
 def test_resolve_startup_version_reads_profile_version(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,4 +102,4 @@ def test_resolve_startup_version_defaults_when_profile_has_no_version(
         ),
     )
     monkeypatch.chdir(project_dir)
-    assert resolve_startup_version() == "v42"
+    assert resolve_startup_version() == "v43"
