@@ -8,7 +8,9 @@ named categories so every security check reports on them consistently.
 Every string below is verified to exist in the live `/api/authorities`
 inventory of v41, v42 and v43 (the contract test
 `packages/dhis2w-core/tests/security/test_security_taxonomy_contract.py` enforces
-this against the play instances). Whether that route answers is a property of
+this against the play instances), with one exception the test names:
+`F_MOBILE_SETTINGS` is defined on v42 and v43 and not on v41, where the
+system-settings category matches on its other three strings. Whether that route answers is a property of
 the deployment rather than the major -- an instance that answers 500 skips the
 check instead of failing it (BUGS.md #45).
 

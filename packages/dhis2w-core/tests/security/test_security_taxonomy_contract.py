@@ -5,7 +5,8 @@ hardcodes authority names. A name the running DHIS2 version does not define
 can never be granted by current-version role editing and most likely gates
 nothing -- matching on it gives false confidence. This test pins every
 taxonomy string to the live `/api/authorities` inventory on the play
-instances for v41, v42 and v43.
+instances for v41, v42 and v43, minus the strings a major is known not to
+define (`ABSENT_BY_VERSION`), each of which carries the live evidence.
 
 Whether `/api/authorities` answers at all is a property of the
 deployment, not of the major: some instances answer 500 on that route
@@ -31,6 +32,12 @@ PLAY_URLS = {
 }
 
 TAXONOMY_STRINGS: frozenset[str] = frozenset().union(*(category.authorities for category in AUTHORITY_CATEGORIES))
+
+#: Taxonomy strings a major does not define, verified against the live inventory. `F_MOBILE_SETTINGS`
+#: exists on 2.42.6 and 2.43.1 and on neither 2.41.10 nor the 2.41 dev channel (218 and 231
+#: authorities listed, none of them mobile settings), so on v41 it can never be granted and the
+#: category matches on its other three strings alone.
+ABSENT_BY_VERSION: dict[str, frozenset[str]] = {"v41": frozenset({"F_MOBILE_SETTINGS"})}
 
 _OUTAGE_STATUS_CODES = frozenset({502, 503, 504})
 
@@ -65,5 +72,5 @@ async def test_taxonomy_strings_exist_in_live_inventory(version: str) -> None:
     """Every authority string in the taxonomy is defined by the live instance."""
     inventory = await _fetch_inventory(PLAY_URLS[version])
     assert inventory, f"{version}: live inventory came back empty"
-    unknown = sorted(TAXONOMY_STRINGS - inventory)
+    unknown = sorted(TAXONOMY_STRINGS - inventory - ABSENT_BY_VERSION.get(version, frozenset()))
     assert not unknown, f"{version}: taxonomy strings not in the live /api/authorities inventory: {unknown}"
