@@ -11,7 +11,7 @@ from dhis2w_core.token_store import SqliteTokenStore
 
 async def test_round_trip_get_set(tmp_path: Path) -> None:
     """Round trip get set."""
-    store = SqliteTokenStore(tmp_path / "tokens.sqlite")
+    store = SqliteTokenStore(tmp_path / "tokens.sqlite", token_type=OAuth2Token)
     try:
         assert await store.get("profile:prod") is None
         await store.set(
@@ -29,7 +29,7 @@ async def test_round_trip_get_set(tmp_path: Path) -> None:
 
 async def test_upsert_replaces_existing(tmp_path: Path) -> None:
     """Upsert replaces existing."""
-    store = SqliteTokenStore(tmp_path / "tokens.sqlite")
+    store = SqliteTokenStore(tmp_path / "tokens.sqlite", token_type=OAuth2Token)
     try:
         await store.set("k", OAuth2Token(access_token="v1", refresh_token="r1", expires_at=1.0))
         await store.set("k", OAuth2Token(access_token="v2", refresh_token="r2", expires_at=2.0))
@@ -44,7 +44,7 @@ async def test_upsert_replaces_existing(tmp_path: Path) -> None:
 
 async def test_delete_returns_true_if_present(tmp_path: Path) -> None:
     """Delete returns true if present."""
-    store = SqliteTokenStore(tmp_path / "tokens.sqlite")
+    store = SqliteTokenStore(tmp_path / "tokens.sqlite", token_type=OAuth2Token)
     try:
         await store.set("k", OAuth2Token(access_token="v", refresh_token="r", expires_at=1.0))
         assert await store.delete("k") is True
@@ -56,7 +56,7 @@ async def test_delete_returns_true_if_present(tmp_path: Path) -> None:
 
 async def test_db_file_perms_are_0600(tmp_path: Path) -> None:
     """Db file perms are 0600."""
-    store = SqliteTokenStore(tmp_path / "nested" / "tokens.sqlite")
+    store = SqliteTokenStore(tmp_path / "nested" / "tokens.sqlite", token_type=OAuth2Token)
     try:
         await store.set("k", OAuth2Token(access_token="v", refresh_token=None, expires_at=1.0))
     finally:

@@ -13,8 +13,8 @@ import typer
 # command, which Typer resolves at command-registration time (import) — not deferrable.
 from dhis2w_client.v42 import DhisCalendar
 
+from dhis2w_core.cli_output import DetailRow, is_json_output, render_detail
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.cli_output import DetailRow, is_json_output, render_detail
 
 app = typer.Typer(help="DHIS2 system info and current-user access.", no_args_is_help=True)
 

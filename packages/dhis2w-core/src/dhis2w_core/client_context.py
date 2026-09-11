@@ -18,7 +18,7 @@ from typing import Any
 import httpx2
 from dhis2w_client import AuthProvider, Dhis2, Dhis2Client, RetryPolicy
 from dhis2w_client.client_context import build_auth_provider
-from dhis2w_client.v43.auth.oauth2 import OAuth2Auth
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth, OAuth2Token
 
 from dhis2w_core.profile import Profile, ResolvedProfile, current_bound_version_tree, resolve
 from dhis2w_core.token_store import token_store_for_scope
@@ -72,7 +72,7 @@ def _build_oauth2(
     if not profile.redirect_uri:
         raise ValueError("profile.auth == 'oauth2' requires redirect_uri")
     name = profile_name or os.environ.get("DHIS2_PROFILE") or "default"
-    store = token_store_for_scope(scope)
+    store = token_store_for_scope(scope, token_type=OAuth2Token)
     return OAuth2Auth(
         base_url=profile.base_url,
         client_id=profile.client_id,

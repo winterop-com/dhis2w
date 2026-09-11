@@ -8,7 +8,7 @@ from pathlib import Path
 from dhis2w_client.errors import Dhis2ClientError
 from dhis2w_client.v41 import BasicAuth, Dhis2, Dhis2Client, PatAuth, SessionCookieAuth
 from dhis2w_client.v41.auth.base import AuthProvider
-from dhis2w_client.v41.auth.oauth2 import DEFAULT_REDIRECT_URI, OAuth2Auth
+from dhis2w_client.v41.auth.oauth2 import DEFAULT_REDIRECT_URI, OAuth2Auth, OAuth2Token
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_core.oauth2_preflight import check_oauth2_server
@@ -28,8 +28,8 @@ from dhis2w_core.profile import (
     validate_profile_name,
     write_profiles_file,
 )
+from dhis2w_core.token_store import token_store_for_scope
 from dhis2w_core.v41.client_context import scope_from_resolved, token_store_key
-from dhis2w_core.v41.token_store import token_store_for_scope
 
 # ---------------------------------------------------------------------------
 # Listing
@@ -161,7 +161,7 @@ async def _verify_one(resolved: ResolvedProfile) -> VerifyResult:
             )
         # Verify must never trigger the browser flow — if no token is cached yet, tell the
         # user to run `d2w profile login <name>` rather than silently opening a browser.
-        token_store = token_store_for_scope(scope_from_resolved(resolved))
+        token_store = token_store_for_scope(scope_from_resolved(resolved), token_type=OAuth2Token)
         try:
             cached = await token_store.get(token_store_key(resolved.name, profile))
         finally:
@@ -242,7 +242,7 @@ def _build_probe_auth(
             client_secret=profile.client_secret,
             scope=profile.scope,
             redirect_uri=profile.redirect_uri,
-            token_store=token_store_for_scope(scope),
+            token_store=token_store_for_scope(scope, token_type=OAuth2Token),
             store_key=token_store_key(profile_name or "default", profile),
             redirect_capturer=_probe_capturer,
         )

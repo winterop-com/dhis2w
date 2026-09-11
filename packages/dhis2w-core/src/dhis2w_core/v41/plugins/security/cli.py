@@ -10,9 +10,9 @@ from typing import Annotated, Any
 
 import typer
 
+from dhis2w_core.cli_output import ColumnSpec, DetailRow, format_bool, is_json_output, render_detail, render_list
 from dhis2w_core.profile import profile_from_env
 from dhis2w_core.progress import animated_progress
-from dhis2w_core.v41.cli_output import ColumnSpec, DetailRow, format_bool, is_json_output, render_detail, render_list
 
 app = typer.Typer(
     help="Inspect DHIS2 security posture (settings, account authorities).",

@@ -14,9 +14,9 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
 
+from dhis2w_core.cli_output import is_json_output, render_conflicts, render_webmessage
 from dhis2w_core.plugin import resolve_startup_version
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v43.cli_output import is_json_output, render_conflicts, render_webmessage
 from dhis2w_core.v43.plugins.metadata.models import MetadataBundle, MetadataCount, MetadataWriteResult
 
 if TYPE_CHECKING:
@@ -587,7 +587,7 @@ def get_command(
             fg=typer.colors.RED,
         )
         raise typer.Exit(2)
-    from dhis2w_core.v43.cli_output import DetailRow, render_detail
+    from dhis2w_core.cli_output import DetailRow, render_detail
 
     model = asyncio.run(
         service.get_metadata(profile_from_env(), resource, uid, fields=fields),
@@ -632,7 +632,7 @@ def get_command(
 
 def _summary_cell(value: Any) -> str:
     """Compact cell renderer for the metadata-get summary — references as `name (id)`."""
-    from dhis2w_core.v43.cli_output import format_ref, format_reflist
+    from dhis2w_core.cli_output import format_ref, format_reflist
 
     if value is None:
         return "-"
@@ -2152,7 +2152,7 @@ def options_create_command(
     uid: Annotated[str | None, typer.Option("--uid", help="Explicit 11-char UID.")] = None,
 ) -> None:
     """Create an OptionSet (then add its options with `options sync`)."""
-    from dhis2w_core.v43.cli_output import render_webmessage
+    from dhis2w_core.cli_output import render_webmessage
     from dhis2w_core.v43.plugins.metadata import service
 
     response = asyncio.run(

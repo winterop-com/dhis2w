@@ -36,8 +36,8 @@ def oauth2_client_register_command(
     `d2w profile add --auth oauth2 ...`. For a one-shot bootstrap (register
     + save profile + log in) use `d2w profile bootstrap` instead.
     """
+    from dhis2w_core.oauth2_registration import register_oauth2_client
     from dhis2w_core.v41.admin_auth import resolve_admin_auth
-    from dhis2w_core.v41.oauth2_registration import register_oauth2_client
 
     resolved_url: str = url or os.environ.get("DHIS2_URL") or typer.prompt("DHIS2 base URL")
     admin_auth = resolve_admin_auth(admin_user)

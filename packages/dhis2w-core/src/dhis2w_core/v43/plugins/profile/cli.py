@@ -13,13 +13,13 @@ import typer
 # DEFAULT_REDIRECT_URI stays at module scope: it is a Typer option default on the add /
 # bootstrap / oidc-config commands, evaluated at command-registration time (import). Its
 # source module (auth.oauth2) is light — it does not pull the generated OAS tree.
-from dhis2w_client.v43.auth.oauth2 import DEFAULT_REDIRECT_URI
+from dhis2w_client.v43.auth.oauth2 import DEFAULT_REDIRECT_URI, OAuth2Token
 from rich.console import Console
 from rich.table import Table
 
+from dhis2w_core.cli_output import is_json_output
 from dhis2w_core.oauth2_preflight import check_oauth2_server
 from dhis2w_core.profile import Profile, UnknownProfileError, resolve
-from dhis2w_core.v43.cli_output import is_json_output
 
 # oauth2_module / pat_module stay at module scope: they are mounted via app.add_typer(...)
 # at import time, so they cannot be deferred here. They keep their own heavy imports
@@ -188,7 +188,7 @@ def show_command(
     secrets: Annotated[bool, typer.Option("--secrets", help="Include sensitive values.")] = False,
 ) -> None:
     """Print one profile (secrets redacted by default)."""
-    from dhis2w_core.v43.cli_output import DetailRow, render_detail
+    from dhis2w_core.cli_output import DetailRow, render_detail
     from dhis2w_core.v43.plugins.profile import service
 
     view = service.show_profile(name, include_secrets=secrets)
@@ -617,10 +617,10 @@ def login_command(
     # Drop any stored tokens first so refresh_if_needed falls through to the
     # full authorization flow — otherwise `profile login` on an existing
     # profile with a stale refresh_token would try to refresh and 400.
-    from dhis2w_core.v43.token_store import token_store_for_scope
+    from dhis2w_core.token_store import token_store_for_scope
 
     scope_name = scope_from_resolved(resolved)
-    token_store = token_store_for_scope(scope_name)
+    token_store = token_store_for_scope(scope_name, token_type=OAuth2Token)
     store_key = token_store_key(resolved.name, resolved.profile)
     asyncio.run(token_store.delete(store_key))
 
@@ -648,8 +648,8 @@ def logout_command(
     Removes the row from the scope-appropriate `tokens.sqlite`. Next API call
     triggers a fresh `profile login` flow. OAuth2 profiles only.
     """
+    from dhis2w_core.token_store import token_store_for_scope
     from dhis2w_core.v43.client_context import scope_from_resolved, token_store_key
-    from dhis2w_core.v43.token_store import token_store_for_scope
 
     resolved = resolve(name)
     if resolved.profile.auth != "oauth2":
@@ -659,7 +659,7 @@ def logout_command(
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-    store = token_store_for_scope(scope_from_resolved(resolved))
+    store = token_store_for_scope(scope_from_resolved(resolved), token_type=OAuth2Token)
 
     async def _clear() -> Path:
         await store.delete(token_store_key(resolved.name, resolved.profile))
@@ -673,7 +673,7 @@ def logout_command(
 
 def _resolve_admin_auth(admin_user: str | None) -> Any:
     """Pick admin-auth creds — env first, then interactive prompt. Never argv secrets."""
-    from dhis2w_core.v43.oauth2_registration import build_admin_auth
+    from dhis2w_core.oauth2_registration import build_admin_auth
 
     admin_pat = os.environ.get("DHIS2_ADMIN_PAT")
     admin_pass = os.environ.get("DHIS2_ADMIN_PASSWORD")
@@ -730,8 +730,8 @@ def bootstrap_command(
     taken — pass a different `--client-id` in that case. PAT bootstraps never
     collide (DHIS2 mints a fresh server-side UID).
     """
-    from dhis2w_core.v43.oauth2_registration import register_oauth2_client
-    from dhis2w_core.v43.pat_registration import register_pat
+    from dhis2w_core.oauth2_registration import register_oauth2_client
+    from dhis2w_core.pat_registration import register_pat
     from dhis2w_core.v43.plugins.profile import service
 
     if global_scope and local_scope:

@@ -44,8 +44,8 @@ def pat_create_command(
 
     Or use `d2w profile bootstrap --auth pat` for a one-shot setup.
     """
+    from dhis2w_core.pat_registration import register_pat
     from dhis2w_core.v42.admin_auth import resolve_admin_auth
-    from dhis2w_core.v42.pat_registration import register_pat
 
     resolved_url: str = url or os.environ.get("DHIS2_URL") or typer.prompt("DHIS2 base URL")
     admin_auth = resolve_admin_auth(admin_user)

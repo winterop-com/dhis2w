@@ -12,8 +12,8 @@ from dhis2w_client.generated.v42.enums import FileResourceDomain
 from rich.console import Console
 from rich.table import Table
 
+from dhis2w_core.cli_output import is_json_output
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.cli_output import is_json_output
 
 _console = Console()
 

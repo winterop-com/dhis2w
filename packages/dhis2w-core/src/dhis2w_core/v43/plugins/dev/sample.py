@@ -99,8 +99,8 @@ def sample_pat_command(
     """Create a sample PAT, use it to call /api/me, then (unless --keep) delete it."""
     from dhis2w_client.v43 import Dhis2Client, PatAuth
 
+    from dhis2w_core.pat_registration import register_pat
     from dhis2w_core.v43.admin_auth import resolve_admin_auth
-    from dhis2w_core.v43.pat_registration import register_pat
 
     started = time.perf_counter()
     resolved_url = _resolve_url(url)
@@ -206,8 +206,8 @@ def sample_oauth2_client_command(
     from dhis2w_client.v43 import Dhis2Client
     from dhis2w_client.v43.auth.oauth2 import DEFAULT_REDIRECT_URI
 
+    from dhis2w_core.oauth2_registration import register_oauth2_client
     from dhis2w_core.v43.admin_auth import resolve_admin_auth
-    from dhis2w_core.v43.oauth2_registration import register_oauth2_client
 
     started = time.perf_counter()
     resolved_url = _resolve_url(url)

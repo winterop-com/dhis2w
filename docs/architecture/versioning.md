@@ -29,10 +29,20 @@ packages/dhis2w-client/src/dhis2w_client/
 
 packages/dhis2w-core/src/dhis2w_core/
 ├── plugin.py            # discovery walks dhis2w_core.v{N}.plugins.*
+├── cli_output.py        # tree-neutral helpers, one copy each, typed structurally:
+├── cli_errors.py        #   rendering, error funnel, task watching, the token store
+├── token_store.py       #   (generic over the tree's OAuth2Token), PAT and OAuth2
+├── ...                  #   registration
+├── v43/client_context.py  # binds the tree: opens a connected dhis2w_client.v43.Dhis2Client
 ├── v43/plugins/<name>/  # canonical plugin tree (cli.py, mcp.py, service.py, ...)
 ├── v41/plugins/<name>/  # mirror of v43, diverges per-file as v41 quirks land
 └── v42/plugins/<name>/  # mirror of v43, diverges per-file as v42 quirks land
 ```
+
+A plugin tree imports its helpers from `dhis2w_core.*` and only `client_context` (plus the small
+`admin_auth`) from its own `dhis2w_core.v{N}`. The helpers accept any tree's envelope, conflict row
+or token through `Protocol` types (`WebMessageLike`, `ConflictRowLike`, `OAuth2TokenLike`), so a
+plugin pack in another repository has one import path per helper regardless of the tree it serves.
 
 Three supported majors — v41, v42, v43. Other DHIS2 majors are out of scope; the codegen tooling can still target them via `d2w dev codegen generate --url ...` against an arbitrary stack, but no manifests or generated trees are committed.
 
