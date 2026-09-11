@@ -62,9 +62,8 @@ jobs:
       fail-fast: false
       matrix:
         # Workspace members shipped to PyPI, matching the Makefile's
-        # `PUBLISHABLE_MEMBERS`. Excludes the workspace-only members
-        # (`dhis2w-codegen`, `dhis2w-bench`) — internal tools with no value to
-        # PyPI consumers.
+        # `PUBLISHABLE_MEMBERS`. Excludes the workspace-only member
+        # `dhis2w-codegen` — an internal tool with no value to PyPI consumers.
         package:
           - dhis2w-client
           - dhis2w-core

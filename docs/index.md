@@ -29,13 +29,12 @@ Whichever you pick:
 | `dhis2w-mcp-bridge` | Single-tool MCP bridge exposing the `d2w` CLI for small local models | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) |
 | `dhis2w-browser` | Playwright helpers (PAT creation, future UI automation) | [`dhis2w-browser`](https://pypi.org/project/dhis2w-browser/) |
 | `dhis2w-codegen` | Version-aware client generator | _workspace-only_ |
-| `dhis2w-bench` | Model benchmarking harness | _workspace-only_ |
 | `dhis2w-mcp-router` | Search + dispatch over upstream MCP servers | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) |
 | `dhis2w-fhir` | `d2w fhir`: generate an Implementation Guide from an instance, convert captures, drain the spool | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
 | `dhis2w-fhir-serve` | The FHIR capture facade `d2w fhir serve` runs on, capture UI included | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
 | `dhis2w-fhir-engine` | FHIRPath, CQL, and quality-measure evaluation over FHIR data, no DHIS2 dependency | [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) |
 
-Plugin packs ship from their own repositories and mount their own commands on the same CLI: add `--with dhis2w-security` to the `uv tool install dhis2w-cli` line for the security posture scanner.
+Plugin packs ship from their own repositories and mount their own commands on the same CLI: add `--with dhis2w-security` to the `uv tool install dhis2w-cli` line for the security posture scanner. The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every pack into one environment; see [AI agent testing](ai-agent-testing.md).
 
 Plus `infra/`, a docker-compose stack for running a local DHIS2 instance with pre-seeded PATs and an OAuth2 client.
 

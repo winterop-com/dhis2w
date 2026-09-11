@@ -1,6 +1,6 @@
 # Releasing to PyPI
 
-The eleven publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` and `dhis2w-bench` packages are workspace-only and do not ship. `dhis2w-mcp-router` first ships in 1.2.0, `dhis2w-fhir` and `dhis2w-fhir-serve` in 1.5.0, and `dhis2w-fhir-engine` in 1.7.0; because each is new to PyPI, register its pending Trusted Publisher on pypi.org before that tag (see [First release of a new package](#first-release-of-a-new-package) below).
+The eleven publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` package is workspace-only and does not ship. `dhis2w-mcp-router` first ships in 1.2.0, `dhis2w-fhir` and `dhis2w-fhir-serve` in 1.5.0, and `dhis2w-fhir-engine` in 1.7.0; because each is new to PyPI, register its pending Trusted Publisher on pypi.org before that tag (see [First release of a new package](#first-release-of-a-new-package) below).
 
 | Package | PyPI |
 | --- | --- |
