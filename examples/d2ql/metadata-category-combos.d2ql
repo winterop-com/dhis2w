@@ -1,2 +1,0 @@
-// Category combinations with the categories they are built from.
-categoryCombos | select id, name, categories.name as categories | limit 25

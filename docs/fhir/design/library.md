@@ -33,8 +33,8 @@ it at its word can generate a full guide and drain a spool, and cannot run the d
 validate codes, refresh a scaffold, generate a single target, or write a refusal record.
 
 **Four things are genuinely missing rather than merely unexported.** No capability that
-talks to DHIS2 accepts a client - the conformance runner, the code validator, and the
-`d2w ql` data sources each open their own connection from a `Profile`, so a caller
+talks to DHIS2 accepts a client - the conformance runner and the code validator each
+open their own connection from a `Profile`, so a caller
 holding an authenticated client cannot hand it over. Report files have no renderer
 outside `cli.py`. The forward drain is one all-or-nothing call. And the served facade has
 no composition contract at all: `create_app` is the only door, `_lifespan` privately
@@ -98,7 +98,7 @@ questions.
 | **Scaffold** - init | `InitOptions`, `ScaffoldFile`, `ScaffoldReport`, `build_scaffold_files` - re-exported | `init_project` (`service.py:956`) is public and unexported; it is `build_scaffold_files` plus the write loop at `:958-966`. The flag policy `_reject_scaffold_flags` (`cli.py:300`) and the name/title derivation (`cli.py:261-266`) are command-body only | `init_project` exported; the derivations that decide what a project is called move to `InitOptions` where a library caller meets them | `MODULE-ONLY` |
 | **Scaffold** - refresh | Nothing on the package surface | `refresh_project(directory: Path) -> ScaffoldReport` (`scaffold/refresh.py:80`), `read_project_scaffold_state` (`:41`), `preserves_every_line` (`:74`), `normalize_project_name` (`schemas.py:20`), `ProjectScaffoldState` (`schemas.py:63`) - all public in their modules, none exported. `_refresh_project` (`cli.py:346`) wraps it with console output | `refresh_project` and `read_project_scaffold_state` exported. **And a shape question beside the visibility one**: refresh takes a directory, not a model, and re-derives the options by scraping `sushi-config.yaml` and `fsh.ini` with three regexes (`refresh.py:32-38`), so a caller already holding `InitOptions` round-trips through the filesystem to be understood | `MODULE-ONLY` |
 | **Doctor** - the conformance run | Nothing on the package surface | `run_doctor(generation, options, *, reporter=None) -> DoctorReport` (`doctor.py:400`) prints nothing and returns models; `DoctorOptions`, `DoctorPhase`, `DoctorOutcome`, `DoctorFinding`, `DoctorPhaseResult`, the four graders, `resolve_doctor_profile`, `render_doctor_markdown`, `phase_evidence` are all public. **None is in `dhis2w_fhir.__all__`**, and `docs/fhir/api-dhis2w-fhir.md:140` renders the module as though they were. The report path (`cli.py:2248`) and the exit code (`cli.py:2331`) are the command's | The whole runner exported - but this is the one row where publication is not the end of the argument. `doctor.py:13-15` declares the runner CLI-only on purpose, and it earns that: it mints a temporary workspace and removes it (`:1103`, `:671`), shells out to `sushi` or `docker run` (`:1287`, `:1316`), writes into `ig/fsh-generated/resources` (`:1344`), and runs an ASGI application in-process (`:894`). Two of its public graders also take private argument types - `grade_capture(Sequence[_CaptureOutcome])` (`:328`, type at `:1084`) and `grade_oracle(Sequence[_FamilyOutcome])` (`:384`, type at `:1094`) - so they cannot be called from annotated code. Publishing the runner means publishing those two types and stating what the call does to the filesystem, not just adding names | `MODULE-ONLY` |
-| **Client lifecycle** - handing an open connection in | `open_live_client` (`live.py:83`) is the counter-example the rest of the toolchain does not follow: the caller enters it, holds it, and `build_live_store(project, settings, client)` takes it as an argument (`app.py:105-117` states why) | **Nothing else accepts a client.** `run_doctor` opens its own (`doctor.py:708`), `validate_codes` opens its own (`service.py:764`), every `generate_*` target takes a `Profile` and opens one, and each `Dhis2DataSource.fetch` opens one per fetch (`dhis2w_core/v43/plugins/query/datasource.py:60-76`). A caller already holding an authenticated `Dhis2Client` cannot hand it over anywhere | A `client` argument on every capability that reads DHIS2, with the `Profile` form kept as the convenience wrapper the commands use. This is the single most consequential gap in the paper, and it is uniform, which makes it one decision rather than twenty | `ASSEMBLY-ONLY` |
+| **Client lifecycle** - handing an open connection in | `open_live_client` (`live.py:83`) is the counter-example the rest of the toolchain does not follow: the caller enters it, holds it, and `build_live_store(project, settings, client)` takes it as an argument (`app.py:105-117` states why) | **Nothing else accepts a client.** `run_doctor` opens its own (`doctor.py:708`), `validate_codes` opens its own (`service.py:764`), every `generate_*` target takes a `Profile` and opens one. A caller already holding an authenticated `Dhis2Client` cannot hand it over anywhere | A `client` argument on every capability that reads DHIS2, with the `Profile` form kept as the convenience wrapper the commands use. This is the single most consequential gap in the paper, and it is uniform, which makes it one decision rather than twenty | `ASSEMBLY-ONLY` |
 | **Spool** - the write side | `ResponseSpool.at` / `.save` / `.get` / `.search` / `.read` / `.count_by_lifecycle`, `StoredResponseEnvelope`, `StoredReceipt`, `ResponseLifecycle`, `new_response_id`, `current_instant` - re-exported from `dhis2w_fhir_serve` | `SpoolCursor`, `SpoolPage`, `page_of`, `requested_page_size`, `requested_cursor` (`serve/spool.py:209-505`) are public and unexported - the paging half | The paging half exported. `examples/fhir/client/complex_facade.py` already writes receipts through the published primitives, which is the proof this half works | `LIBRARY` |
 | **Spool** - the drain side | `read_received_responses`, `read_spooled_receipts`, `move_to_forwarded`, `move_to_rejected`, `move_to_received`, `drain_lock`, `resolve_spool_root`, `SpoolLayout`, `SpoolState` - re-exported; `read_spool_state` (`service.py:5742`), `requeue_rejected_responses` (`:5783`), `spool_layout` (`:4985`) too | Nine of the module's twenty-eight `__all__` names are missing from the package's, including `record_refusal` (`spool.py:394`), `read_refusal_record` (`:406`), `ForwardRefusalRecord` (`:276`), `RefusalReason` (`:266`), and `SPOOL_RELATIVE_PATH` (`:103`) - and `examples/fhir/client/complex_facade.py:71` already imports two of them by module path | All nine exported. `ForwardRefusalRecord` is the sharpest of them: it is the declared type of `SpooledReceipt.refusal` (`spool.py:319`), so a caller reading the stated surface alone receives instances of a class it cannot name | `LIBRARY` |
 | **Forward** - the drain | `forward_responses(profile, project, *, import_responses, coded_answer_mode, register_completeness, reporter) -> ForwardReport` (`service.py:4740`), plus every report model | Everything inside it: `_drain_spool` (`:4840`), `_post_translations` (`:5068`), `_post_result` (`:5383`), `_file_now` (`:5146`), `_file_terminal_refusals` (`:5180`), `_record_refusals` (`:5222`), `_collect_outcomes` (`:5557`), the dry-run classification `_outcome_kind` / `_is_unverifiable` (`:5615`, `:5637`) | `forward_responses` stays the reference assembly; the three steps below get public halves | `LIBRARY` (whole) |
@@ -118,11 +118,10 @@ questions.
 | **Serve** - conformance | `build_server_capability` (`capability.py:160`) and `build_metadata_body` (`metadata.py:32`) - both re-exported | Nothing beyond the route | Unchanged | `LIBRARY` |
 | **Serve** - errors and logging | `ServeError` and its nine subclasses, `outcome`, `register_error_handlers`, `FHIR_JSON_MEDIA_TYPE`, `RequestLogMiddleware`, `configure_logging` - all re-exported | Nothing | Unchanged. An embedding application needs `register_error_handlers` or every typed refusal becomes a 500, so this being published already is load-bearing | `LIBRARY` |
 | **The capture UI** | `STATIC_DIRECTORY`, `UiStaticFiles`, `mount_ui_assets`, `mount_ui_shell`, `ui_bundle_present`, `UiBundleMissingError` are re-exported today; `/facade/uiconfig` and its models likewise | The bundle itself, the mount order (`ui.py:3-25`), and the shell catch-all | **Withdrawn from the library surface**, not extended. Section 3.5 | `NATIVE TO SERVE` |
-| **`d2w ql`** - the query engine | The cleanest surface in the audit. `parse` -> `QueryEngine(library, binder)` -> `await run_terminal()` is a three-line in-process run, all three names in `dhis2w_ql.__all__`, and the package declares one dependency - pydantic - with a note that it holds no DHIS2 or FHIR import (`packages/dhis2w-ql/pyproject.toml:17-23`). `ResourceBinder` and `DataSource` are runtime-checkable protocols of two and three methods (`engine/datasource.py:14-46`), and `InMemoryBinder` proves them offline. Sandboxing is a caller's argument, twice (`allow_local_files`, `allow_file_io`) | The DHIS2 binding is not in `dhis2w-ql` at all: `Dhis2DataSource`, `AnalyticsDataSource`, `AggregateDataSource`, `Dhis2Binder` (`dhis2w_core/v43/plugins/query/datasource.py:37-206`) and `run_query` / `explain_query` / `evaluate_path` (`.../query/service.py:34`, `:61`, `:103`) live in the version plugin tree, triplicated across v41 / v42 / v43, so an importing caller picks a major the engine itself is neutral about. `Dhis2Binder` takes a `Profile` and each fetch opens its own connection. `CountableSource` (`engine/datasource.py:27`) is public and in neither `__all__`, so a source with a native count cannot import the protocol it implements. Every one of the eighty-odd `examples/d2ql/*.d2ql` files runs through the command; there is no Python example of the engine | A `Dhis2Client`-backed binder, `CountableSource` on the surface, and one Python example beside the `.d2ql` corpus. The binder is a small class - the engine never learns what a source is (`engine/datasource.py:1-5`). See the reading reserved in section 6 | `LIBRARY` (engine) / `MODULE-ONLY` (the DHIS2 binding) |
 
-### 2.3 What the table says, in six findings
+### 2.3 What the table says, in five findings
 
-**Finding 1 - the gap is mostly publication, not architecture.** Of thirty-one rows,
+**Finding 1 - the gap is mostly publication, not architecture.** Of thirty rows,
 fourteen are already `LIBRARY`, eight are `ASSEMBLY-ONLY`, and one of those eight (exit
 codes) is correctly so. The rest of the shortfall is `MODULE-ONLY`: functions that
 already take models and return models, sitting one `__all__` entry away from being
@@ -163,19 +162,10 @@ settings, client)` (`app.py:105`) takes the connection as an argument, and its d
 says why in one line: the client's lifetime is the caller's, "which is why the caller
 opens it rather than this function". Every other capability that reads DHIS2 does the
 opposite. `run_doctor` opens one at `doctor.py:708`, `validate_codes` at
-`service.py:764`, every `generate_*` target from the `Profile` it was handed, and each
-`d2w ql` fetch opens one per fetch. An application that has already authenticated, that
+`service.py:764`, and every `generate_*` target from the `Profile` it was handed. An
+application that has already authenticated, that
 holds a pooled client, or that wants one connection across six calls has no way to say
 so. Because the pattern is uniform, so is the fix.
-
-**Finding 6 - the two-consumer test predicts the surface.** The one capability in this
-audit with a service layer built for two callers is `d2w ql`, whose
-`query/service.py:1-6` states that both the CLI and the MCP surface call these functions -
-and it is the cleanest surface here, with protocols instead of concrete types and
-sandboxing as a caller's argument. Doctor declares itself CLI-only and is the most
-entangled. Validation and the spool have one consumer each and sit in between: good
-models, with paths, preconditions, and exit policy stranded in a command body. The
-doctrine in section 1 is, in effect, a standing second consumer for everything.
 
 ## 3. The serve composition contract
 
@@ -360,8 +350,7 @@ leverage because it is the cheapest change in the paper and it closes finding 2 
 finding 3 outright.
 
 **R2 - Every capability that reads DHIS2 accepts a client.** `run_doctor`,
-`validate_codes`, the seven generate targets, and the `d2w ql` data sources take an open
-`Dhis2Client`; the `Profile` form stays as the convenience wrapper the commands use, so
+`validate_codes`, and the seven generate targets take an open `Dhis2Client`; the `Profile` form stays as the convenience wrapper the commands use, so
 nothing a command does changes. `build_live_store` (`app.py:105`) is the shape to copy
 and its docstring is the argument. This is the difference between a library a process can
 embed and one that opens its own sockets behind the caller's back, and finding 5 says it
@@ -410,12 +399,6 @@ rather than waiting for a reviewer. Cheap, and it is what keeps R1 from decaying
 `examples/fhir/client/complex_facade.py` that mounts the **real** serve routers over a
 real `ServeRuntime` rather than reimplementing them. Section 5 says why this is the
 natural last PR rather than the first.
-
-**R12 - `d2w ql` gains a client-backed binder and a Python example.** `ResourceBinder` is
-a two-method protocol and the engine never learns what a source is, so a binder over an
-open `Dhis2Client` is a small class rather than a rewrite. Beside it, one example showing
-a parsed query executed from Python - the corpus is eighty `.d2ql` files and no Python
-door. Subject to the reading reserved in section 6.
 
 ## 5. The PR sequence
 
@@ -491,15 +474,6 @@ level: an application that opens a `ServeRuntime`, attaches it, mounts the real
 `serve_routers` beside its own routes, and serves a genuine FHIR facade with no
 reimplementation. **Tests prove**: it passes `make verify-examples` and `make check-examples`.
 
-**PR 10 - `feat(ql): a query runs against the client a caller already holds`.**
-On its own track - it touches `dhis2w-ql` and `dhis2w-core`, not the FHIR packages, so it
-neither blocks nor is blocked by the nine above. Adds R12's `Dhis2Client`-backed binder,
-puts `CountableSource` on a surface, and adds one Python example beside
-`examples/d2ql/`. **Tests prove**: a query executed through the new binder returns the
-same rows as the same query through `run_query`, over one connection rather than one per
-fetch. **Reserved**: whether the binder lands once in `dhis2w-ql` over a client protocol
-or three times in the version plugin trees. See section 6.
-
 **Why the capstone is last, and why it matters.** The ladder in `examples/fhir/client/`
 runs four levels, not three: `minimal_facade.py` (one route, nothing written down),
 `basic_facade.py` (one client, a health route, a log line per verdict),
@@ -519,20 +493,11 @@ contract is not finished.
 ## 6. Owner decisions this paper reserves
 
 - **The `cql` reading.** The capability list that prompted this paper named "cql" among
-  the library-worthy capabilities, and it can be read two ways, because this repository
-  has both. **CQL proper** - Clinical Quality Language - is `dhis2w-fhir-engine`: a
-  parser, an evaluator, a measure evaluator, the `d2w-fhir-engine cql` sub-app, and the
-  [CQL](../501-cql.md) and [Quality measures](../501-measures.md) pages that teach them.
-  **`dhis2w-ql`** is the `d2w ql` query language, whose engine is importable and whose
-  DHIS2 binding is not, whose example corpus is eighty `.d2ql` files with no Python door,
-  and which already emits FHIR through its general-purpose `fold` and `transform` stages
-  (`examples/d2ql/fhir-de-codesystem.d2ql`, `export-fhir-bundle.d2ql`,
-  `fhir-dataset-questionnaire.d2ql`). This paper audits the `d2w fhir` surface and takes
-  the `dhis2w-ql` reading for its own table; the engine's own surface is a second audit,
-  not a row here. The two names are worth keeping apart in prose either way: this
-  repository's query language is **d2ql**, a pipeline query and transform language with
-  an embedded `d2path` expression core, and it shares no lineage with Clinical Quality
-  Language.
+  the library-worthy capabilities. **CQL** - Clinical Quality Language - is
+  `dhis2w-fhir-engine`: a parser, an evaluator, a measure evaluator, the
+  `d2w-fhir-engine cql` sub-app, and the [CQL](../501-cql.md) and
+  [Quality measures](../501-measures.md) pages that teach them. This paper audits the
+  `d2w fhir` surface; the engine's own surface is a second audit, not a row here.
 - **Whether the doctor's declared CLI-only status survives the doctrine.**
   `doctor.py:13-15` says the runner is CLI-only the way `d2w profile` is, and it acts
   like it: a temporary workspace, a `sushi` or `docker` shell-out, writes into the guide
@@ -541,11 +506,6 @@ contract is not finished.
   documenting that a library caller inherits all four. A third option is to publish the
   four graders and `render_doctor_markdown` - the pure half, which is already pure - and
   leave the orchestrator where its docstring puts it.
-- **Where a `Dhis2Client`-backed d2ql binder lands.** Once per version tree beside the
-  three existing `Dhis2Binder`s, which follows the per-version rule, or once in
-  `dhis2w-ql` over a client protocol, which would keep that package's stated
-  domain-neutrality and its single pydantic dependency intact. The second is cleaner and
-  is a claim about what "domain-neutral" is allowed to mean.
 - **Whether the register and store surfaces graduate to `dhis2w-fhir`.** They are the
   most library-shaped things in `dhis2w-fhir-serve` and the least server-shaped:
   `store.py:14` says the store knows nothing about DHIS2, and `RegisterSurface` is a pure

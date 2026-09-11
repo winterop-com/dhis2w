@@ -1,3 +1,0 @@
-// The explicit `stdout as <format>` form, decoupling format from destination.
-// `>> stdout as ndjson` is identical to the bare shorthand `>> ndjson`.
-dataElements | select id, name | order name asc | limit 5 >> stdout as ndjson

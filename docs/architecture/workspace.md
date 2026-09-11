@@ -25,7 +25,6 @@ dhis2w/
 └── packages/
     ├── dhis2w-client/             # httpx2 + pydantic lib + Profile + open_client (PAT/Basic/session) (PyPI)
     ├── dhis2w-core/               # TOML profile resolution + OAuth2 token store + plugin runtime + plugins (PyPI)
-    ├── dhis2w-ql/                 # d2ql query + transform engine, FHIRPath-compatible expression core (PyPI)
     ├── dhis2w-cli/                # Typer console script `d2w` (PyPI)
     ├── dhis2w-mcp/                # FastMCP server (PyPI)
     ├── dhis2w-mcp-bridge/         # single-tool MCP bridge for small local models (PyPI)
@@ -50,7 +49,7 @@ Each member's `pyproject.toml` has just:
 
 ## Build + publish
 
-`make build` produces wheels for all members. PyPI publishing is automated — tag a `vX.Y.Z` and `.github/workflows/pypi-publish.yml` builds + uploads every publishable member via PyPI Trusted Publishing (OIDC). Ten members ship: `dhis2w-client`, `dhis2w-core`, `dhis2w-ql`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (the MCP search + dispatch router, first published in 1.2.0), `dhis2w-fhir` (the FHIR IG generation plugin, first published in 1.5.0), and `dhis2w-fhir-serve` (the FHIR facade behind `d2w fhir serve`, first published in 1.5.0 and installed through the `dhis2w-cli[serve]` extra). Two stay workspace-only: `dhis2w-codegen` (a developer tool that emits committed code into `dhis2w-client`'s tree) and `dhis2w-bench` (the local-LLM benchmark harness). See [Releasing to PyPI](../releasing.md) for the full bump-and-tag flow.
+`make build` produces wheels for all members. PyPI publishing is automated — tag a `vX.Y.Z` and `.github/workflows/pypi-publish.yml` builds + uploads every publishable member via PyPI Trusted Publishing (OIDC). Nine members ship: `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (the MCP search + dispatch router, first published in 1.2.0), `dhis2w-fhir` (the FHIR IG generation plugin, first published in 1.5.0), and `dhis2w-fhir-serve` (the FHIR facade behind `d2w fhir serve`, first published in 1.5.0 and installed through the `dhis2w-cli[serve]` extra). Two stay workspace-only: `dhis2w-codegen` (a developer tool that emits committed code into `dhis2w-client`'s tree) and `dhis2w-bench` (the local-LLM benchmark harness). See [Releasing to PyPI](../releasing.md) for the full bump-and-tag flow.
 
 ## Open questions
 

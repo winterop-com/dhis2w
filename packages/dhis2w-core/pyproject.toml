@@ -26,7 +26,6 @@ dependencies = [
   "aiosqlite>=0.22",
   "bcrypt>=5.0.0",
   "questionary>=2.1.1",
-  "dhis2w-ql>=1.17.0,<2.0",
 ]
 
 [project.urls]

@@ -1,2 +1,0 @@
-// Data elements grouped by aggregation type.
-dataElements | group by aggregationType { n: count() } | order n desc

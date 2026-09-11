@@ -24,7 +24,7 @@ theme:
         name: Switch to light mode
   features:
     # Top-level tabs (Get started / Architecture / Client / CLI / MCP / FHIR /
-    # Query language / Project) keep the surface-distinction visible up top
+    # Project) keep the surface-distinction visible up top
     # while each tab carries its own focused sidebar tree, so the Python API
     # surface (45 pages) gets its own home instead of dominating every page's
     # left rail.
@@ -40,7 +40,7 @@ theme:
     - content.code.copy
 
 nav:
-  # One tab per feature surface - Client, CLI, MCP, FHIR, Query language -
+  # One tab per feature surface - Client, CLI, MCP, FHIR -
   # and each one is a self-contained directory under docs/ holding its own
   # guides, reference, and design. "Get started" is onboarding only;
   # "Architecture" is what the surfaces share; "Project" carries the
@@ -222,15 +222,6 @@ nav:
           - The library surface: fhir/design/library.md
           - Native FHIR resource intake: fhir/design/native-intake.md
           - The materialized projection: fhir/design/projection.md
-  - Query language:
-      - Introduction: query/index.md
-      - d2ql tutorial: query/d2ql-tutorial.md
-      - d2ql reference: query/d2ql.md
-      - d2path: query/d2path.md
-      - d2path examples: query/d2path-examples.md
-      - Language semantics: query/semantics.md
-      - Cookbook: query/cookbook.md
-      - API reference: api/query.md
   - Project:
       - Overview: project/index.md
       - Feature catalog: project/features.md

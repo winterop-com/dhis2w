@@ -1,2 +1,0 @@
-// Tracked entity attributes with their value type.
-trackedEntityAttributes | select id, name, valueType | order name asc | limit 25

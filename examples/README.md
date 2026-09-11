@@ -6,7 +6,6 @@ examples/
   cli/                              # d2w ... Typer CLI, one script per topic
   client/                           # dhis2w-client Python library
   mcp/                              # dhis2w-mcp FastMCP tools, called in-process
-  d2ql/                             # d2ql query files
   plugin-external/                  # a third-party plugin registered via entry points
 ```
 

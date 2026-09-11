@@ -23,9 +23,6 @@ dependencies = [
 
 [project.optional-dependencies]
 browser = ["dhis2w-browser>=1.17.0,<2.0"]
-tui = [
-    "textual>=8.2.8",
-]
 serve = [
     "dhis2w-fhir-serve>=1.17.0,<2.0",
 ]

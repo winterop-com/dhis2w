@@ -6,7 +6,6 @@ The eleven publishable workspace members ship to PyPI in lockstep — every rele
 | --- | --- |
 | `dhis2w-client` | https://pypi.org/project/dhis2w-client/ |
 | `dhis2w-core` | https://pypi.org/project/dhis2w-core/ |
-| `dhis2w-ql` | https://pypi.org/project/dhis2w-ql/ |
 | `dhis2w-cli` | https://pypi.org/project/dhis2w-cli/ |
 | `dhis2w-browser` | https://pypi.org/project/dhis2w-browser/ |
 | `dhis2w-mcp` | https://pypi.org/project/dhis2w-mcp/ |
@@ -62,7 +61,7 @@ The eleven publishable workspace members ship to PyPI in lockstep — every rele
 ## Releasing from the terminal
 
 `make publish-all` uploads every publishable member from the checkout in front of you, in
-dependency order — `client`, `ql`, `core`, `browser`, `fhir`, `fhir-engine`, `fhir-serve`, `cli`,
+dependency order — `client`, `core`, `browser`, `fhir`, `fhir-engine`, `fhir-serve`, `cli`,
 `mcp`, `mcp-bridge`, `mcp-router` — so a resolver reading PyPI mid-release never meets a package
 naming a sibling version the index has not seen yet. `make publish-<member>` does one of them:
 

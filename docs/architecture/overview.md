@@ -14,7 +14,6 @@ Each shippable unit of code is a `uv` workspace member under `packages/`:
 | --- | --- | --- |
 | `dhis2w-client` | Async DHIS2 API client + `Profile` model + `open_client(profile)` for PAT/Basic/session auth. | [`dhis2w-client`](https://pypi.org/project/dhis2w-client/) |
 | `dhis2w-core` | TOML profile resolution, OAuth2 token store, plugin registry, first-party plugins. | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) |
-| `dhis2w-ql` | d2ql query + transform engine (FHIRPath-compatible expression core). | [`dhis2w-ql`](https://pypi.org/project/dhis2w-ql/) |
 | `dhis2w-cli` | Thin Typer console-script shell. | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) |
 | `dhis2w-mcp` | Thin FastMCP server shell. | [`dhis2w-mcp`](https://pypi.org/project/dhis2w-mcp/) |
 | `dhis2w-mcp-bridge` | Single-tool MCP bridge exposing the `d2w` CLI to small local models. | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) |
@@ -62,7 +61,6 @@ graph LR
     mcp["dhis2w-mcp"]
     router["dhis2w-mcp-router"]
     core["dhis2w-core"]
-    ql["dhis2w-ql"]
     browser["dhis2w-browser"]
     codegen["dhis2w-codegen"]
     client["dhis2w-client"]
@@ -79,7 +77,6 @@ graph LR
     bench --> cli
     bench --> router
     core --> client
-    core --> ql
     browser --> client
     codegen --> client
     cli -.->|"optional [browser] extra"| browser
