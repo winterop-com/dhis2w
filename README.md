@@ -1,14 +1,14 @@
 # dhis2w
 
-[![CI](https://github.com/winterop-com/dhis2w-utils/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/winterop-com/dhis2w-utils/actions/workflows/ci.yml)
+[![CI](https://github.com/winterop-com/dhis2w/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/winterop-com/dhis2w/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/dhis2w-cli?color=2C6693&label=PyPI)](https://pypi.org/project/dhis2w-cli/)
 [![Python](https://img.shields.io/pypi/pyversions/dhis2w-client?color=3776AB)](https://pypi.org/project/dhis2w-client/)
-[![DHIS2](https://img.shields.io/badge/DHIS2-41%20%7C%2042%20%7C%2043-2C6693)](https://winterop-com.github.io/dhis2w-utils/architecture/versioning/)
+[![DHIS2](https://img.shields.io/badge/DHIS2-41%20%7C%2042%20%7C%2043-2C6693)](https://winterop-com.github.io/dhis2w/architecture/versioning/)
 [![License](https://img.shields.io/badge/license-Proprietary-lightgrey)](LICENSE)
 
 A Python toolkit for DHIS2 — pure client library, CLI, MCP server, Playwright browser automation, and a shared plugin runtime, all in one `uv` workspace. Targets DHIS2 v41, v42, and v43.
 
-The repo lives at `winterop-com/dhis2w-utils`; PyPI ships the ten publishable members under the `dhis2w-*` prefix. Not affiliated with DHIS2.
+The repo lives at `winterop-com/dhis2w`; PyPI ships the ten publishable members under the `dhis2w-*` prefix. Not affiliated with DHIS2.
 
 > **Learning path · step 1 of 8** — You are here. Quick install + profile + first CLI / Python call below. Next: the [contributor walkthrough](docs/walkthrough.md) for the local docker stack, or jump to a surface-specific tutorial — [CLI](docs/cli/tutorial.md), [Python](docs/client/tutorial.md), [MCP](docs/mcp/tutorial.md).
 
@@ -278,8 +278,8 @@ The engine lives in the standalone [`dhis2w-ql`](packages/dhis2w-ql/) package (F
 ## Working on the workspace itself
 
 ```bash
-git clone git@github.com:winterop-com/dhis2w-utils.git
-cd dhis2w-utils
+git clone git@github.com:winterop-com/dhis2w.git
+cd dhis2w
 
 make install      # sync workspace deps (uv sync --all-packages --all-extras)
 make lint         # ruff + mypy + pyright

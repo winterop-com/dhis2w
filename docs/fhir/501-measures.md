@@ -172,7 +172,7 @@ of reading as a plausible score.
 
 The contained `OperationOutcome` is pointed at by an extension on the
 `MeasureReport`, under this project's own canonical
-`https://winterop-com.github.io/dhis2w-utils/fhir/StructureDefinition/measure-evaluation-errors`,
+`https://winterop-com.github.io/dhis2w/fhir/StructureDefinition/measure-evaluation-errors`,
 and this page is where it is defined.
 
 ## The FHIR MeasureReport
@@ -196,9 +196,9 @@ to read it.
 `cql measure` scores a measure without Python. **A Bundle behind `--data` supplies
 both halves of the run: every `Patient` entry is a person to evaluate, and the whole
 Bundle is the data source the numerator retrieves from.** The measure above is
-[`examples/fhir/engine/measles-coverage.cql`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/measles-coverage.cql)
+[`examples/fhir/engine/measles-coverage.cql`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/measles-coverage.cql)
 and the clinic is
-[`clinic.json`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/clinic.json)
+[`clinic.json`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/clinic.json)
 beside it:
 
 ```console
@@ -271,7 +271,7 @@ not only a demonstration of it.
 One detail in that example is a workaround rather than a design: the tracker read
 orders by `createdAt`, not by `trackedEntity`, because ordering by the identifier
 answers `409 E7145` with an ambiguous column reference on 2.43.1. See
-[`BUGS.md`](https://github.com/winterop-com/dhis2w-utils/blob/main/BUGS.md) entry
+[`BUGS.md`](https://github.com/winterop-com/dhis2w/blob/main/BUGS.md) entry
 97.
 
 ## The DHIS2 payoff: indicators as computable measures
@@ -305,8 +305,8 @@ the official HL7 ANTLR grammars, and the decisions still reserved to the owner.
 
 | File | Shows |
 | --- | --- |
-| [`measure_report.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/measure_report.py) | The populations, both scorings, the per-person decisions, and `to_fhir()` |
-| [`e2e_measure_from_dhis2.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/engine/e2e_measure_from_dhis2.py) | Read a DHIS2 cohort, map it to FHIR, score it, check the counts against DHIS2's own records |
+| [`measure_report.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/measure_report.py) | The populations, both scorings, the per-person decisions, and `to_fhir()` |
+| [`e2e_measure_from_dhis2.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/engine/e2e_measure_from_dhis2.py) | Read a DHIS2 cohort, map it to FHIR, score it, check the counts against DHIS2's own records |
 
 The first needs nothing running. The second needs `make dhis2-run` and reads
 `DHIS2_URL`, `DHIS2_USERNAME`, and `DHIS2_PASSWORD`.

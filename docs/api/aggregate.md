@@ -126,11 +126,11 @@ async with open_client(profile_from_env()) as client:
 
 ## Related examples
 
-- [`examples/client/complete_data_set_registrations_read.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/complete_data_set_registrations_read.py) — every registration filed for one data set below the root over a date range.
+- [`examples/client/complete_data_set_registrations_read.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/complete_data_set_registrations_read.py) — every registration filed for one data set below the root over a date range.
 
-- [`examples/client/push_data_value.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/push_data_value.py) — minimal single-value push.
-- [`examples/client/stream_data_values.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/stream_data_values.py) — streaming reads, four shapes (bytes, sync generator, Path/CSV, 1000-row file with timing).
-- [`examples/client/aggregate_bulk_grouped.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/aggregate_bulk_grouped.py) — the grouped bulk path.
+- [`examples/client/push_data_value.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/push_data_value.py) — minimal single-value push.
+- [`examples/client/stream_data_values.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/stream_data_values.py) — streaming reads, four shapes (bytes, sync generator, Path/CSV, 1000-row file with timing).
+- [`examples/client/aggregate_bulk_grouped.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/aggregate_bulk_grouped.py) — the grouped bulk path.
 
 ::: dhis2w_client.v42.aggregate
 

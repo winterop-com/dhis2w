@@ -115,7 +115,7 @@ concept property; this selection's codes carry none. `[generate]
 hostile_names = "substitute"` is the same answer, standing, for one project;
 this guide deliberately states neither, so it stays the refusal exhibit. The
 whole picture is in [Answer the hostile-name
-question](https://winterop-com.github.io/dhis2w-utils/fhir/201-generate/#answer-the-hostile-name-question).
+question](https://winterop-com.github.io/dhis2w/fhir/201-generate/#answer-the-hostile-name-question).
 
 `d2w fhir validate` is the command that tells you which objects those are,
 before you have spent anything on a build. It is the CI gate for the same

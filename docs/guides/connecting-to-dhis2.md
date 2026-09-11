@@ -1,6 +1,6 @@
 # Connecting to DHIS2 — end-to-end
 
-Everything you need to point `dhis2w-utils` at a real DHIS2 instance. Pick an authentication method, follow its section, and you'll have a verified profile you can reuse from the CLI and MCP tools.
+Everything you need to point `dhis2w` at a real DHIS2 instance. Pick an authentication method, follow its section, and you'll have a verified profile you can reuse from the CLI and MCP tools.
 
 ## Which auth should I use?
 
@@ -159,8 +159,8 @@ oidc.oauth2.login.enabled = on
 #   401 "Invalid issuer"
 # even when the token is fine. All URIs must be spelled out — DHIS2's
 # GenericOidcProviderConfigParser does NOT auto-discover them from the issuer.
-oidc.provider.dhis2.client_id         = dhis2w-utils-local
-oidc.provider.dhis2.client_secret     = dhis2w-utils-local-secret-do-not-use-in-prod
+oidc.provider.dhis2.client_id         = dhis2w-local
+oidc.provider.dhis2.client_secret     = dhis2w-local-secret-do-not-use-in-prod
 oidc.provider.dhis2.issuer_uri        = http://localhost:8080
 oidc.provider.dhis2.authorization_uri = http://localhost:8080/oauth2/authorize
 oidc.provider.dhis2.token_uri         = http://localhost:8080/oauth2/token
@@ -190,7 +190,7 @@ curl -s http://localhost:8080/.well-known/openid-configuration | python3 -m json
 curl -sL -o /dev/null -w '%{http_code} -> %{url_effective}\n' \
   -G 'http://localhost:8080/oauth2/authorize' \
   --data-urlencode 'response_type=code' \
-  --data-urlencode 'client_id=dhis2w-utils-local' \
+  --data-urlencode 'client_id=dhis2w-local' \
   --data-urlencode 'redirect_uri=http://localhost:8765' \
   --data-urlencode 'scope=ALL' \
   --data-urlencode 'state=probe' \
@@ -219,7 +219,7 @@ Two paths:
     cat infra/home/credentials/.env.auth
     ```
 
-    Creates a client named `dhis2w-utils-local` with a deterministic secret, registers it against the running DHIS2, and writes the credentials to `infra/home/credentials/.env.auth`. Internals live in `infra/scripts/_seed_auth_oauth2.py` — inspect that file if you want to see the exact payload before POSTing.
+    Creates a client named `dhis2w-local` with a deterministic secret, registers it against the running DHIS2, and writes the credentials to `infra/home/credentials/.env.auth`. Internals live in `infra/scripts/_seed_auth_oauth2.py` — inspect that file if you want to see the exact payload before POSTing.
 
 === "Option B — manual (any DHIS2 instance)"
 
@@ -326,7 +326,7 @@ The expanded form (for non-seeded instances). `d2w profile add` accepts `--clien
 d2w profile add local_oidc \
   --url http://localhost:8080 \
   --auth oauth2 \
-  --client-id dhis2w-utils-local \
+  --client-id dhis2w-local \
   --scope ALL \
   --redirect-uri http://localhost:8765 \
   --default
@@ -345,8 +345,8 @@ default = "local_oidc"
 [profiles.local_oidc]
 base_url = "http://localhost:8080"
 auth = "oauth2"
-client_id = "dhis2w-utils-local"
-client_secret = "dhis2w-utils-local-secret-do-not-use-in-prod"
+client_id = "dhis2w-local"
+client_secret = "dhis2w-local-secret-do-not-use-in-prod"
 scope = "ALL"
 redirect_uri = "http://localhost:8765"
 ```
@@ -363,7 +363,7 @@ What happens in order:
 2. It generates a PKCE `code_verifier` / `code_challenge` pair and a CSRF `state` nonce.
 3. It starts a FastAPI + uvicorn receiver bound to the `redirect_uri` host:port (default `127.0.0.1:8765`). The receiver is plain HTTP, no WebSockets, and handles exactly one `GET /` request.
 4. It opens your default browser to `http://localhost:8080/oauth2/authorize?...` with the PKCE challenge.
-5. DHIS2 detects you're anonymous and redirects to its login page (`/dhis-web-login/`). You log in with your DHIS2 credentials — whatever the admin or a real user account is. **This is DHIS2's own form, not anything `dhis2w-utils` ships.**
+5. DHIS2 detects you're anonymous and redirects to its login page (`/dhis-web-login/`). You log in with your DHIS2 credentials — whatever the admin or a real user account is. **This is DHIS2's own form, not anything `dhis2w` ships.**
 6. After login DHIS2 returns you to `/oauth2/authorize` with a session cookie, Spring AS mints an authorization code, and redirects your browser back to `http://localhost:8765/?code=...&state=...`.
 7. The FastAPI receiver captures the code, validates `state`, and renders a styled "Authentication successful, you can close this tab" page.
 8. `dhis2w-client` POSTs the code to `/oauth2/token` with the PKCE verifier to exchange for access + refresh tokens.
@@ -455,7 +455,7 @@ Every DHIS2-side failure we hit during OAuth2 bring-up, the error message you'll
 | DHIS2 startup log: `OIDC configuration for provider: 'dhis2' contains an invalid property: 'scope', did you mean 'scopes'?` | Typo in dhis.conf | Rename `oidc.provider.dhis2.scope` → `oidc.provider.dhis2.scopes` |
 | DHIS2 startup log: `missing a required property: 'user_info_uri'` (or `authorization_uri`, `token_uri`, `jwk_uri`) | Incomplete generic OIDC provider config | Add all seven `oidc.provider.dhis2.*_uri` entries, not just `issuer_uri` |
 | `GET /api/system/info` returns **401** `Found no matching DHIS2 user for the mapping claim: 'sub'` | User's `openId` column is empty | PATCH `/api/users/<uid>` to set `openId = <username>`; `make dhis2-seed` does this automatically |
-| `d2w profile verify` hangs or browser pops up unexpectedly | Cached tokens are missing | `verify` should never browse — check you're on a current `dhis2w-utils`; otherwise run `login` first |
+| `d2w profile verify` hangs or browser pops up unexpectedly | Cached tokens are missing | `verify` should never browse — check you're on a current `dhis2w`; otherwise run `login` first |
 
 ---
 

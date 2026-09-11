@@ -87,8 +87,8 @@ to try a single session.
 ### From the workspace checkout (developing the bridge)
 
 ```bash
-git clone git@github.com:winterop-com/dhis2w-utils.git
-cd dhis2w-utils && make install
+git clone git@github.com:winterop-com/dhis2w.git
+cd dhis2w && make install
 uv run dhis2w-mcp-bridge --version
 ```
 
@@ -115,7 +115,7 @@ From a workspace checkout instead, launch it through `uv run`:
   "mcpServers": {
     "dhis2": {
       "command": "uv",
-      "args": ["run", "--directory", "/ABS/PATH/TO/dhis2w-utils", "dhis2w-mcp-bridge"],
+      "args": ["run", "--directory", "/ABS/PATH/TO/dhis2w", "dhis2w-mcp-bridge"],
       "env": { "DHIS2_PROFILE": "local_basic", "DHIS2_MCP_READONLY": "1" }
     }
   }

@@ -1,8 +1,8 @@
 # Architecture overview
 
-> **Learning path · step 7 of 8** — Design notes, limitations, future work. Prev: [API reference](../api/index.md). Next: [BUGS.md](https://github.com/winterop-com/dhis2w-utils/blob/main/BUGS.md). Use this when you want to know *why* the codebase is shaped the way it is; the surface-tab Architecture pages cover individual plugins.
+> **Learning path · step 7 of 8** — Design notes, limitations, future work. Prev: [API reference](../api/index.md). Next: [BUGS.md](https://github.com/winterop-com/dhis2w/blob/main/BUGS.md). Use this when you want to know *why* the codebase is shaped the way it is; the surface-tab Architecture pages cover individual plugins.
 
-`dhis2w-utils` is designed around **three orthogonal axes of extensibility**. Extending one should never force edits to another — that's how we keep this codebase maintainable as it grows.
+`dhis2w` is designed around **three orthogonal axes of extensibility**. Extending one should never force edits to another — that's how we keep this codebase maintainable as it grows.
 
 ## The three axes
 

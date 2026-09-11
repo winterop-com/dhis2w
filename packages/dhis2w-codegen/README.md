@@ -2,7 +2,7 @@
 
 Version-aware DHIS2 client generator. Hits a live DHIS2 instance's `/api/schemas` and `/api/openapi.json`, emits pydantic models + `StrEnum`s + typed CRUD accessors into `packages/dhis2w-client/src/dhis2w_client/generated/v{N}/`.
 
-**Workspace-only** — not published to PyPI. The generated code is committed to `dhis2w-client` so PyPI consumers of the client don't need to run the generator. Install `dhis2w-codegen` only if you're working in the `dhis2w-utils` workspace and want to regenerate against a new DHIS2 instance / version.
+**Workspace-only** — not published to PyPI. The generated code is committed to `dhis2w-client` so PyPI consumers of the client don't need to run the generator. Install `dhis2w-codegen` only if you're working in the `dhis2w` workspace and want to regenerate against a new DHIS2 instance / version.
 
 ## Subcommands
 
@@ -23,6 +23,6 @@ Mounted as `d2w dev codegen` when working from the workspace.
 
 Spec patches (e.g. injecting auth-scheme discriminators that DHIS2 omits — see BUGS.md #14) live in `spec_patches.py` and apply during emission.
 
-Full architecture: https://winterop-com.github.io/dhis2w-utils/codegen/.
+Full architecture: https://winterop-com.github.io/dhis2w/codegen/.
 
-`dhis2w-codegen` is one member of the [`dhis2w-utils`](https://github.com/winterop-com/dhis2w-utils) workspace.
+`dhis2w-codegen` is one member of the [`dhis2w`](https://github.com/winterop-com/dhis2w) workspace.

@@ -84,7 +84,7 @@ Each call GETs `/api/system/tasks/{job_type}/{uid}` once and returns a `TaskPoll
 
 ## Related examples
 
-- [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/task_await.py) — end-to-end analytics-refresh kick-off + block.
-- [`examples/client/analytics_tables_poll_once.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/analytics_tables_poll_once.py) — the same job followed with `poll_once` and a carried cursor.
+- [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/task_await.py) — end-to-end analytics-refresh kick-off + block.
+- [`examples/client/analytics_tables_poll_once.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/analytics_tables_poll_once.py) — the same job followed with `poll_once` and a carried cursor.
 
 ::: dhis2w_client.v42.tasks

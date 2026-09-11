@@ -202,18 +202,18 @@ Copy-pasteable patterns for the most common cases. Read-side examples (showing h
 
 Read-side (v42-pinned reads of v43 wire data):
 
-- [`dashboard_item_users.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/dashboard_item_users.py)
-- [`tracked_entity_attribute_favorites.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/tracked_entity_attribute_favorites.py)
-- [`event_visualization_fix_headers.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/event_visualization_fix_headers.py)
-- [`map_basemaps.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/map_basemaps.py)
-- [`section_user_removed.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/section_user_removed.py)
-- [`removed_resources.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/removed_resources.py)
+- [`dashboard_item_users.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/dashboard_item_users.py)
+- [`tracked_entity_attribute_favorites.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/tracked_entity_attribute_favorites.py)
+- [`event_visualization_fix_headers.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/event_visualization_fix_headers.py)
+- [`map_basemaps.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/map_basemaps.py)
+- [`section_user_removed.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/section_user_removed.py)
+- [`removed_resources.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/removed_resources.py)
 
 Write-side (v43-only setters via the v43 accessor):
 
-- [`program_set_labels.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_labels.py) — UI label overrides.
-- [`program_set_change_log.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_change_log.py) — `enableChangeLog` audit toggle.
-- [`program_set_enrollment_category_combo.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_enrollment_category_combo.py) — alt CC at enrollment time.
+- [`program_set_labels.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_labels.py) — UI label overrides.
+- [`program_set_change_log.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_change_log.py) — `enableChangeLog` audit toggle.
+- [`program_set_enrollment_category_combo.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_enrollment_category_combo.py) — alt CC at enrollment time.
 
 The narrative pattern descriptions are at [Working with version-specific types](versioning.md#working-with-version-specific-types).
 
@@ -340,9 +340,9 @@ await client.programs.set_enrollment_category_combo(program_uid, alt_cc_uid)
 
 Worked examples (one per concern):
 
-- [`examples/client/v43/program_set_labels.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_labels.py)
-- [`examples/client/v43/program_set_change_log.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_change_log.py)
-- [`examples/client/v43/program_set_enrollment_category_combo.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/v43/program_set_enrollment_category_combo.py)
+- [`examples/client/v43/program_set_labels.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_labels.py)
+- [`examples/client/v43/program_set_change_log.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_change_log.py)
+- [`examples/client/v43/program_set_enrollment_category_combo.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/v43/program_set_enrollment_category_combo.py)
 
 CLI + MCP equivalents (v43-only):
 

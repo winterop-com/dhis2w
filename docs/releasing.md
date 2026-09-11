@@ -55,7 +55,7 @@ The eleven publishable workspace members ship to PyPI in lockstep — every rele
    ```
 
 8. **Verify**:
-   - https://github.com/winterop-com/dhis2w-utils/actions — all green.
+   - https://github.com/winterop-com/dhis2w/actions — all green.
    - `uvx --refresh --from 'dhis2w-client==0.6.0' python -c 'import dhis2w_client; print(dhis2w_client.__file__)'` pulls and imports the new wheel.
    - `uv tool list` (or `uv tool upgrade dhis2w-cli`) shows the right version.
 
@@ -84,6 +84,17 @@ in the tag workflow's matrix until its PyPI project exists.
 This path and the tag are two ways to the same index, and the tag is the one to reach for: it
 builds on a clean runner and authenticates with Trusted Publishing, no token on anyone's machine.
 
+## Trusted Publishers are keyed on the repository name
+
+PyPI verifies the `repository` claim of the GitHub Actions OIDC token as an exact string, and
+GitHub's redirect from an old repository name does not reach it. The repository is
+`winterop-com/dhis2w`; every publisher entry that still names `dhis2w-utils` fails the upload with
+an invalid-publisher error. Each of the eleven projects carries one GitHub publisher with owner
+`winterop-com`, repository `dhis2w`, workflow `pypi-publish.yml`, environment `pypi`, managed at
+`https://pypi.org/manage/project/<name>/settings/publishing/` (web UI only; there is no API). A
+repository rename is done additively: add the entry under the new name to all eleven, publish once,
+then remove the old entry.
+
 ## First release of a new package
 
 A brand-new `dhis2w-*` project does not exist on PyPI yet, and OIDC cannot create it from a
@@ -91,7 +102,7 @@ non-user identity. Before its first release, add a **pending publisher** on PyPI
 only): https://pypi.org/manage/account/publishing/ → "Add a new pending publisher":
 
 - PyPI Project Name: `dhis2w-<name>`
-- Owner: `winterop-com` · Repository: `dhis2w-utils`
+- Owner: `winterop-com` · Repository: `dhis2w`
 - Workflow filename: `pypi-publish.yml` · Environment: `pypi`
 
 Without it, the `publish` job 400s on that wheel (`Non-user identities cannot create new projects`).

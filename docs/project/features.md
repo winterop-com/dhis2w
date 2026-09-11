@@ -3940,7 +3940,7 @@ both depend on it.
 - [FHIRPath](../fhir/501-fhirpath.md), [CQL](../fhir/501-cql.md),
   [Quality measures](../fhir/501-measures.md), and
   [The FHIR version binding](../fhir/501-version-binding.md) - the 501 guide series.
-- [`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/fhir/engine) -
+- [`examples/fhir/engine/`](https://github.com/winterop-com/dhis2w/tree/main/examples/fhir/engine) -
   nine runnable examples, one feature apiece.
 
 ---

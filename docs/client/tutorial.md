@@ -69,7 +69,7 @@ Profiles are the **preferred entry point** for every Python script. They're what
 - [`dhis2w-client`](../api/index.md) — HTTP client + `AuthProvider` implementations + `Profile` model + `open_client(profile)` for PAT/Basic/session. Standalone PyPI package.
 - [`dhis2w-core`](../architecture/overview.md) — TOML profile resolution + `open_client` overload that adds OAuth2 token persistence. Depends on `dhis2w-client`.
 
-Every code block in this guide uses `dhis2w-core.open_client(profile)` (with `profile_from_env()`'s full TOML+env precedence) as the happy path. Library users on PAT, Basic, or session can use `dhis2w_client.open_client(profile)` directly without installing `dhis2w-core` — see [`examples/client/profile_pat_pure_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/profile_pat_pure_client.py). The "direct-client" form (`Dhis2Client(base_url, auth=...)`) is covered at the end for the cases that need the lowest level.
+Every code block in this guide uses `dhis2w-core.open_client(profile)` (with `profile_from_env()`'s full TOML+env precedence) as the happy path. Library users on PAT, Basic, or session can use `dhis2w_client.open_client(profile)` directly without installing `dhis2w-core` — see [`examples/client/profile_pat_pure_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/profile_pat_pure_client.py). The "direct-client" form (`Dhis2Client(base_url, auth=...)`) is covered at the end for the cases that need the lowest level.
 
 ## Your first call
 

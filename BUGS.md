@@ -1,6 +1,6 @@
 # Upstream DHIS2 quirks
 
-> **Learning path · step 8 of 8** — External DHIS2 / API defects only. Prev: [Architecture overview](https://github.com/winterop-com/dhis2w-utils/blob/main/docs/architecture/overview.md). Workarounds reference this repo with `packages/dhis2w-*` paths; the entries themselves are upstream-flavoured so a DHIS2 maintainer can paste the repro. Internal-design discussion belongs in `docs/architecture/`, not here.
+> **Learning path · step 8 of 8** — External DHIS2 / API defects only. Prev: [Architecture overview](https://github.com/winterop-com/dhis2w/blob/main/docs/architecture/overview.md). Workarounds reference this repo with `packages/dhis2w-*` paths; the entries themselves are upstream-flavoured so a DHIS2 maintainer can paste the repro. Internal-design discussion belongs in `docs/architecture/`, not here.
 
 Running list of DHIS2 behaviours that look like bugs or design surprises, found
 while building + testing this workspace against live v41 / v42 / v43 stacks.
@@ -1884,7 +1884,7 @@ the claim it looked for nor the value it read.
 
 **Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`) and `dhis2/core:2.42.6.0` (rev `dd8bdbb`),
 local stacks, the full `dhis.conf` OAuth2 block, `oidc.provider.dhis2.mapping_claim = sub`, the
-seeded client `dhis2w-utils-local`. Not applicable on `2.41.10`, which mounts no authorization
+seeded client `dhis2w-local`. Not applicable on `2.41.10`, which mounts no authorization
 server and so has neither the JWT nor the `mapping_claim` lookup.
 
 **Repro:**
@@ -1893,7 +1893,7 @@ server and so has neither the JWT nor the `mapping_claim` lookup.
 U=http://localhost:8080; A=admin:district; ADMIN=M5zQapPyTZI
 
 # 1. Mint a token through the authorization-code flow. Its payload:
-#    {"sub":"admin","aud":"dhis2w-utils-local","iss":"http://localhost:8080/","scope":["ALL"], ...}
+#    {"sub":"admin","aud":"dhis2w-local","iss":"http://localhost:8080/","scope":["ALL"], ...}
 
 # 2. admin's openId already matches the JWT's `sub`:
 curl -s -u $A "$U/api/users/$ADMIN?fields=openId"        # -> {"openId":"admin"}
@@ -1945,7 +1945,7 @@ matching DHIS2 user for the mapping claim` are both grep-able there.
 **How to know it's fixed:** a token minted by the instance's own authorization server answers
 `/api/me` 200, or the refusal names the claim and the value it read.
 
-**Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** superseded by a different refusal. With the seeded client, the full `dhis.conf` block and `admin.openId = admin`, the headless code flow mints a token (`sub=admin`, `aud=dhis2w-utils-local`, `iss=http://localhost:8080/`) and `/api/system/info` answers `401 error="invalid_token", error_description="Invalid mapping claim"`; removing the admin's `openId` and restoring it changes nothing, and neither does spelling `issuer_uri` with the trailing slash the token carries. The "Found no matching DHIS2 user" symptom the entry then described is not reachable on these releases because the token is refused one step earlier.
+**Status on v42 and v43 (`2.42.6.0` and `2.43.1.0`, local stacks 2026-09-07):** superseded by a different refusal. With the seeded client, the full `dhis.conf` block and `admin.openId = admin`, the headless code flow mints a token (`sub=admin`, `aud=dhis2w-local`, `iss=http://localhost:8080/`) and `/api/system/info` answers `401 error="invalid_token", error_description="Invalid mapping claim"`; removing the admin's `openId` and restoring it changes nothing, and neither does spelling `issuer_uri` with the trailing slash the token carries. The "Found no matching DHIS2 user" symptom the entry then described is not reachable on these releases because the token is refused one step earlier.
 
 **Status (2026-09-11):** INVERTED on `2.42.6` and `2.43.1`, which is why the entry above now describes what holds rather than the empty-`openId` premise it was filed on. Three replays of one token, with `openId` set to `admin`, cleared, and restored, gave byte-identical `Invalid mapping claim` refusals on both majors, so the `openId` lookup is not the refusing step. Not applicable on `2.41.10`: `/api/me` answers `200` with `openId` set and after `PATCH replace /openId ""` alike, because that major has no authorization server and no JWT to validate.
 
@@ -4083,7 +4083,7 @@ curl -s http://localhost:8080/.well-known/openid-configuration | jq -r .issuer
 # -> http://localhost:8080/            trailing slash, against the unslashed issuer_uri
 
 # and the minted token's payload:
-# {"sub":"admin","aud":"dhis2w-utils-local","scope":["ALL"],"iss":"http://localhost:8080/", ...}
+# {"sub":"admin","aud":"dhis2w-local","scope":["ALL"],"iss":"http://localhost:8080/", ...}
 
 # On 2.41.10 the same grep over every boot returns only:
 # * INFO Executing startup routine [5 of 8, runlevel 12]: ConfigurationPopulator

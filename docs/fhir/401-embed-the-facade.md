@@ -17,12 +17,12 @@ process - as a library, with no server to run, no port to bind, and no UI.
   own authentication
 
 **The runnable version of this page** is the five files this page quotes:
-[`embed_the_facade.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/embed_the_facade.py),
-[`capture_headless.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/capture_headless.py),
-[`forward_headless.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/forward_headless.py),
-[`projection_local_store.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/projection_local_store.py),
+[`embed_the_facade.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/embed_the_facade.py),
+[`capture_headless.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/capture_headless.py),
+[`forward_headless.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/forward_headless.py),
+[`projection_local_store.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/projection_local_store.py),
 and
-[`embed_in_fastapi.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/embed_in_fastapi.py).
+[`embed_in_fastapi.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/embed_in_fastapi.py).
 Every console block below is their output.
 
 ## The third posture

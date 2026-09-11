@@ -75,9 +75,9 @@ async with open_client(profile_from_env()) as client:
 
 ## Related examples
 
-- [`examples/client/tracker_reads.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/tracker_reads.py) — page through one program's tracked entities, active enrollments, and recent events with typed row parsing.
-- [`examples/client/tracker_lifecycle.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/tracker_lifecycle.py) — full register + enroll + add event lifecycle.
-- [`examples/client/tracker_clinic_intake.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/tracker_clinic_intake.py) — canonical tracker-program intake via `client.tracker.register / add_event / outstanding`.
-- [`examples/client/tracker_event_program.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/client/tracker_event_program.py) — WITHOUT_REGISTRATION event-only flow.
+- [`examples/client/tracker_reads.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_reads.py) — page through one program's tracked entities, active enrollments, and recent events with typed row parsing.
+- [`examples/client/tracker_lifecycle.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_lifecycle.py) — full register + enroll + add event lifecycle.
+- [`examples/client/tracker_clinic_intake.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_clinic_intake.py) — canonical tracker-program intake via `client.tracker.register / add_event / outstanding`.
+- [`examples/client/tracker_event_program.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/tracker_event_program.py) — WITHOUT_REGISTRATION event-only flow.
 
 ::: dhis2w_client.generated.v42.tracker

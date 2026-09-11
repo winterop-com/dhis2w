@@ -6,7 +6,7 @@
 #
 # Every option is explained in depth - what it controls, when to change it, and what the
 # error looks like when it is wrong - at
-# https://winterop-com.github.io/dhis2w-utils/fhir/
+# https://winterop-com.github.io/dhis2w/fhir/
 # A pointer like `-> 301-generation#timezone` names the page and the section there.
 
 # Which saved DHIS2 server connection to read from; `-p` then `DHIS2_PROFILE` win over
@@ -19,7 +19,7 @@ id = "dhis2.fhir.examples.aggregate-minimal"
 canonical = "http://example.org/fhir/examples/aggregate-minimal"       # the guide's permanent web address -> 301-identity#canonical
 name = "ExamplesAggregateMinimal"
 title = "Minimal aggregate example guide"
-publisher = "dhis2w-utils examples"
+publisher = "dhis2w examples"
 # "draft" while building; "active" for production. -> 301-identity#status
 status = "draft"
 

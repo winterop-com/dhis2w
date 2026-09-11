@@ -72,7 +72,7 @@ const EXPECTED_BEARER = `Bearer ${PASTED_TOKEN}`
 
 /** Where a `jwt`-posture server states which issuer it takes tokens from - an extension on `security`. */
 const JWT_ISSUER_EXTENSION_URL =
-    'https://winterop-com.github.io/dhis2w-utils/fhir/StructureDefinition/serve-jwt-issuer'
+    'https://winterop-com.github.io/dhis2w/fhir/StructureDefinition/serve-jwt-issuer'
 
 /** What a `jwt`-posture server declares in `rest.security` - `OAuth` by R4's code, plus the issuer. */
 const JWT_SECURITY = {

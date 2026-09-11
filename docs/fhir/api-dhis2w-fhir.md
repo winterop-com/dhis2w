@@ -160,7 +160,7 @@ DHIS2. Beside them are the resources a summary document is assembled out of -
 `Composition` and its flat `CompositionSection`, `Patient`, `Condition`,
 `AllergyIntolerance`, and `Observation`, with `Bundle` carrying the `identifier`
 and `timestamp` a document requires; see
-[`examples/fhir/client/ips_document.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/ips_document.py)
+[`examples/fhir/client/ips_document.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/ips_document.py)
 and [the IPS working paper](design/ips.md).
 Every one is frozen, alias-aware, and closed to unknown keys, so
 `Model.model_validate(payload).model_dump_json(exclude_none=True, by_alias=True)`
@@ -285,19 +285,19 @@ async with FacadeClient("http://127.0.0.1:8123") as facade:
 ```
 
 Five runnable examples cover the surface, one method group each.
-[`send_with_the_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/send_with_the_client.py)
+[`send_with_the_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/send_with_the_client.py)
 is the write half above, end to end.
-[`search_with_the_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/search_with_the_client.py)
+[`search_with_the_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/search_with_the_client.py)
 is the read half - `canonical_resource_types` read off `/metadata`, a typed
 `ResourceQuery` against the published forms and against the live register, and
 `resolve` turning a canonical url into whichever type holds it.
-[`evaluate_with_the_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/evaluate_with_the_client.py)
+[`evaluate_with_the_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/evaluate_with_the_client.py)
 runs FHIRPath over both evaluation contexts and shows the diagnostic an
 unparseable expression is answered with.
-[`authenticate_with_the_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/authenticate_with_the_client.py)
+[`authenticate_with_the_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/authenticate_with_the_client.py)
 presents a `BearerToken` to a facade started with `--auth token`, beside the 401
 a caller with no credential and a caller with the wrong one get. And
-[`handle_refusals_with_the_client.py`](https://github.com/winterop-com/dhis2w-utils/blob/main/examples/fhir/client/handle_refusals_with_the_client.py)
+[`handle_refusals_with_the_client.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/client/handle_refusals_with_the_client.py)
 reads `FacadeError` itself: `status_code`, one typed issue per thing wrong, and
 `diagnostics` for the log line that has to say why in one.
 

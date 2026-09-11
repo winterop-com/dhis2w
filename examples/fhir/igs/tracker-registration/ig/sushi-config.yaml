@@ -10,7 +10,7 @@ copyrightYear: 2026+
 releaseLabel: ci-build
 license: CC0-1.0
 publisher:
-  name: dhis2w-utils examples
+  name: dhis2w examples
 
 # The publisher writes every resource as JSON, XML and Turtle, plus a rendered page per
 # format. A DHIS2-derived IG publishes thousands of instances, so the two extra formats

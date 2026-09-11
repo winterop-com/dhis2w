@@ -33,7 +33,7 @@ is comparing their content rather than their names:
 | `--canonical` | `http://example.org/fhir/examples/<directory name>` |
 | `--name` | `Examples` plus the directory name in PascalCase |
 | `--title` | A sentence naming the story, e.g. `Minimal aggregate example guide` |
-| `--publisher` | `dhis2w-utils examples` |
+| `--publisher` | `dhis2w examples` |
 | `--publisher-url` | Not set. The IG publisher links it from every page, and a URL that is not a real site is one broken link per page |
 | `--status` | `draft` - these are examples, not published guides |
 | `--profile` | `local_basic`, the seeded local stack |

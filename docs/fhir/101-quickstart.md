@@ -400,7 +400,7 @@ itself and then could not read back. Read `template-hostile-name` as build-break
 rather than cosmetic. Angle brackets are ordinary in real DHIS2 metadata (`<1y`,
 `< 5y`, `>5 & over` are all real names on this instance), so this is worth checking
 on any instance before you invest a build in it. The
-[`refused-names`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/fhir/igs/refused-names)
+[`refused-names`](https://github.com/winterop-com/dhis2w/tree/main/examples/fhir/igs/refused-names)
 example is a project that keeps one in on purpose, so you can watch the refusal.
 
 Open the generated site:

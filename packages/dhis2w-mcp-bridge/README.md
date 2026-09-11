@@ -60,7 +60,7 @@ dhis2w-mcp-bridge
   "mcpServers": {
     "dhis2": {
       "command": "uv",
-      "args": ["run", "--directory", "/ABS/PATH/TO/dhis2w-utils", "dhis2w-mcp-bridge"],
+      "args": ["run", "--directory", "/ABS/PATH/TO/dhis2w", "dhis2w-mcp-bridge"],
       "env": {
         "DHIS2_PROFILE": "local_basic",
         "DHIS2_MCP_READONLY": "1"

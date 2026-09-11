@@ -1,7 +1,7 @@
 {
   "resourceType": "OperationDefinition",
   "id": "serve-evaluate",
-  "url": "https://winterop-com.github.io/dhis2w-utils/fhir/OperationDefinition/serve-evaluate",
+  "url": "https://winterop-com.github.io/dhis2w/fhir/OperationDefinition/serve-evaluate",
   "name": "ServeEvaluate",
   "title": "Evaluate a FHIRPath expression, CQL library, or ELM library over this facade",
   "status": "active",

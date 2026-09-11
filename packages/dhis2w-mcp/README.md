@@ -33,8 +33,8 @@ The PyPI distribution name and the binary name match (`dhis2w-mcp` for both), so
 ### From a workspace checkout (for active development)
 
 ```bash
-git clone git@github.com:winterop-com/dhis2w-utils.git
-cd dhis2w-utils
+git clone git@github.com:winterop-com/dhis2w.git
+cd dhis2w
 uv sync --all-packages
 ```
 
@@ -86,7 +86,7 @@ claude mcp add d2w -s user \
 
 # Option 3 — workspace checkout (recommended for active development)
 claude mcp add d2w -s user \
-  -- uv run --directory /absolute/path/to/dhis2w-utils dhis2w-mcp
+  -- uv run --directory /absolute/path/to/dhis2w dhis2w-mcp
 ```
 
 `-s user` makes the server available across every Claude Code project; drop it for project-only. Verify:

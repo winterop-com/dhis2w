@@ -1,7 +1,7 @@
 # d2ql cookbook
 
 Working recipes, grouped by what you're trying to do. Each one is a committed program in
-[`examples/d2ql/`](https://github.com/winterop-com/dhis2w-utils/tree/main/examples/d2ql) — run any
+[`examples/d2ql/`](https://github.com/winterop-com/dhis2w/tree/main/examples/d2ql) — run any
 with `d2w query run examples/d2ql/<name>.d2ql` (add `--profile <name>` / `--json`).
 
 ## Explore metadata
