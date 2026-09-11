@@ -14,7 +14,7 @@ import pkgutil
 from importlib.metadata import entry_points
 from typing import Any, Protocol, runtime_checkable
 
-DEFAULT_VERSION_KEY = "v43"
+DEFAULT_VERSION_KEY = "v42"
 
 
 def resolve_startup_version() -> str:
@@ -29,7 +29,10 @@ def resolve_startup_version() -> str:
        active profile has no `version` pin — it lets `make verify-examples
        DHIS2_VERSION=v41` target the v41 tree against an unpinned profile
        without hand-editing it. A bare digit (`41`) is not recognized.
-    3. `DEFAULT_VERSION_KEY` (`"v43"`) — the canonical baseline.
+    3. `DEFAULT_VERSION_KEY` (`"v42"`) — the tree whose top-level client entry point
+       auto-dispatches accessors per server version. v43 is the canonical baseline
+       for new code; the default moves there once the v43 entry point dispatches
+       the same way.
 
     Falls back to `DEFAULT_VERSION_KEY` on any resolution failure (no profile
     configured, corrupt TOML, etc.) so the CLI / MCP bootstrap never crashes —
