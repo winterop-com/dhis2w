@@ -11,7 +11,7 @@ from typing import Annotated
 import typer
 from dhis2w_core.cli_errors import run_app
 from dhis2w_core.cli_output import JSON_OUTPUT
-from dhis2w_core.plugin import DEFAULT_VERSION_KEY, discover_plugins, resolve_startup_version
+from dhis2w_core.plugin import DEFAULT_VERSION_KEY, load_plugin_host, resolve_startup_version
 from dhis2w_core.rich_console import STDERR_CONSOLE
 from rich.logging import RichHandler
 
@@ -196,8 +196,7 @@ def build_app() -> typer.Typer:
         # invocation must not leak into the next one.
         JSON_OUTPUT.set(json_)
 
-    for plugin in discover_plugins(resolve_startup_version()):
-        plugin.register_cli(app)
+    load_plugin_host(resolve_startup_version()).mount_cli(app)
     return app
 
 

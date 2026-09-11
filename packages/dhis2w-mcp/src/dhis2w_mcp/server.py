@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 
-from dhis2w_core.plugin import discover_plugins, resolve_startup_version
+from dhis2w_core.plugin import load_plugin_host, resolve_startup_version
 from dhis2w_core.profile import bind_version_tree
 from fastmcp import FastMCP
 from fastmcp.tools.base import Tool
@@ -27,8 +27,7 @@ def build_server() -> FastMCP:
     server = FastMCP(name="dhis2")
     bound_tree = resolve_startup_version()
     bind_version_tree(bound_tree)
-    for plugin in discover_plugins(bound_tree):
-        plugin.register_mcp(server)
+    load_plugin_host(bound_tree).register_mcp(server)
     _eager_rebuild_tool_return_types(server)
     _annotate_read_only_hints(server)
     server.add_middleware(NoProfileHintMiddleware())
