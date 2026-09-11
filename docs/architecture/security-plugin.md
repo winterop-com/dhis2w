@@ -81,7 +81,7 @@ model; this is the documented exception, not a license to duplicate.
 
 ```python
 from dhis2w_core.profile import profile_from_env
-from dhis2w_core.v42.plugins.security import service
+from dhis2w_core.v43.plugins.security import service
 
 settings = await service.get_security_settings(profile_from_env())
 if (settings.minPasswordLength or 0) < 12:
@@ -92,10 +92,10 @@ if (settings.minPasswordLength or 0) < 12:
 
 The plugin is a teaching-sized template. Adding a command — say
 `d2w security whoami` — is the same loop every plugin follows. Do the work in the
-**v42 tree first**, verify it against a live server, then sweep the two siblings.
+**v43 tree first**, verify it against a live server, then sweep the two siblings.
 
 1. **Service function** — add an `async def` to
-   `v42/plugins/security/service.py` that takes a `Profile`, opens a client with
+   `v43/plugins/security/service.py` that takes a `Profile`, opens a client with
    `open_client`, and returns a typed model. Reuse the typed client surface where it
    exists (`client.system.me()`, `client.resources.<x>.list(...)`) and fall back to
    `client.get(path, model=..., params=...)` for raw endpoints.
@@ -117,27 +117,27 @@ The plugin is a teaching-sized template. Adding a command — say
    call `render_detail` (or `render_list` for collections). Keep formatting in small
    helpers like the existing `_flag` / `_months` / `_number`.
 
-4. **Sweep to v41 + v43** (hard requirement — `CLAUDE.md` rule 15). Every new
+4. **Sweep to v41 + v42** (hard requirement — `CLAUDE.md` rule 15). Every new
    symbol/command lands in all three trees. The trees differ only by import path, so:
 
    ```bash
    base=packages/dhis2w-core/src/dhis2w_core
-   for V in v41 v43; do
+   for V in v41 v42; do
      for f in cli.py service.py models.py __init__.py; do
-       sed -e "s/dhis2w_core\.v42/dhis2w_core.$V/g" \
-           -e "s/dhis2w_client\.v42/dhis2w_client.$V/g" \
-           "$base/v42/plugins/security/$f" > "$base/$V/plugins/security/$f"
+       sed -e "s/dhis2w_core\.v43/dhis2w_core.$V/g" \
+           -e "s/dhis2w_client\.v43/dhis2w_client.$V/g" \
+           "$base/v43/plugins/security/$f" > "$base/$V/plugins/security/$f"
      done
    done
-   grep -rn "v42" $base/v41/plugins/security $base/v43/plugins/security   # must print nothing
+   grep -rn "v43" $base/v41/plugins/security $base/v42/plugins/security   # must print nothing
    ```
 
    If a command's wire shape ever diverges across versions, fold that divergence into
-   the same PR and add a `BUGS.md` entry — don't ship "v42-only, others later".
+   the same PR and add a `BUGS.md` entry — don't ship "v43-only, others later".
 
 5. **Test** — add a case to
    `packages/dhis2w-core/tests/security/test_security_settings_cli.py` (or a sibling). Patch
-   `dhis2w_core.v42.plugins.security.service.open_client` with an `AsyncMock` context
+   `dhis2w_core.v43.plugins.security.service.open_client` with an `AsyncMock` context
    whose fake client returns your model, then drive the command through
    `CliRunner`. Assert both the `--json` payload and one human-output line.
 

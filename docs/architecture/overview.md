@@ -29,7 +29,7 @@ New surfaces land as new members, with no edits required to existing ones. `dhis
 
 ### 2. Plugins inside `dhis2w-core`
 
-Each DHIS2 domain (metadata, tracker, analytics, screenshots, indicator validation, …) is a self-contained plugin package in `dhis2w-core/src/dhis2w_core/v42/plugins/<name>/`. Every plugin is a folder with this shape:
+Each DHIS2 domain (metadata, tracker, analytics, screenshots, indicator validation, …) is a self-contained plugin package in `dhis2w-core/src/dhis2w_core/v43/plugins/<name>/`. Every plugin is a folder with this shape:
 
 ```
 <name>/
@@ -45,7 +45,7 @@ The CLI and MCP surfaces both call into the same `service.py`. They never drift 
 
 Plugins are discovered two ways:
 
-- **Built-ins** — iterate `dhis2w_core.v42.plugins.*` at startup.
+- **Built-ins** — iterate the plugin tree `resolve_startup_version()` picks at startup, `dhis2w_core.v43.plugins.*` on the default.
 - **External** — `importlib.metadata.entry_points(group="dhis2.plugins")`. An external package (like `dhis2w-codegen`) can add commands/tools without a PR.
 
 ### 3. Auth providers inside `dhis2w-client`

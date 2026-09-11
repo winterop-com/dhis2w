@@ -65,6 +65,6 @@ async with open_client(profile_from_env()) as client:
 - [`examples/client/predictors.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/predictors.py) — `run_all` over a date range.
 - [`examples/client/validation_rules.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/validation_rules.py) and [`examples/client/predictors.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/predictors.py) — one CRUD round-trip per accessor, groups included.
 
-::: dhis2w_client.v42.validation
+::: dhis2w_client.v43.validation
 
-::: dhis2w_client.v42.predictors
+::: dhis2w_client.v43.predictors

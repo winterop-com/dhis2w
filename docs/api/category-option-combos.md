@@ -11,4 +11,4 @@ async with Dhis2Client(...) as client:
 
 `CategoryOptionCombo` UIDs are the targets of every `DataValue.categoryOptionCombo` / `attributeOptionCombo` reference, so this accessor is the standard way to enumerate the disaggregation slots a data element expects. Writes go through CategoryCombo lifecycle, not directly.
 
-::: dhis2w_client.v42.category_option_combos
+::: dhis2w_client.v43.category_option_combos

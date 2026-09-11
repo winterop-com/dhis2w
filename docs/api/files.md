@@ -53,4 +53,4 @@ The two-step pattern is DHIS2-imposed: the upload happens once, then the owning 
 
 Worked end-to-end demo: [`examples/client/files_documents.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/files_documents.py).
 
-::: dhis2w_client.v42.files
+::: dhis2w_client.v43.files

@@ -69,4 +69,4 @@ async with open_client(profile_from_env()) as client:
 - [`examples/client/analytics_event_query.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/analytics_event_query.py) — one event query and one enrollment query against the seeded Child Programme.
 - [`examples/client/stream_analytics.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/stream_analytics.py) — JSON / CSV / rawData exports to disk with per-format timing.
 
-::: dhis2w_client.v42.analytics_stream
+::: dhis2w_client.v43.analytics_stream

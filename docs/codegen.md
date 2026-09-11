@@ -47,10 +47,10 @@ uv run d2w dev codegen diff v42 v43 --json    # machine-readable
 1. **Authenticate.** Use one of the shipped `AuthProvider` implementations. For the standalone run, `--username/--password` or `--pat` give Basic/PAT auth. For the CLI flavor, `--profile NAME` reads the stored profile.
 2. **Discover version.** `GET /api/system/info` → extract `version` (e.g. `"2.42.0"` → `"v42"`).
 3. **Fetch schemas.** `GET /api/schemas?fields=name,plural,apiEndpoint,displayName,klass,metadata,properties[*]` — one request gets every metadata type with their full property definitions.
-4. **Write the manifest.** `generated/v42/schemas_manifest.json` — raw snapshot of the schemas response. Audit trail, and the input to emission. Re-running the emitter without re-fetching is possible.
-5. **Emit models.** One pydantic `BaseModel` file per schema, in `generated/v42/schemas/<resource>.py`. Field names mirror DHIS2 wire format (camelCase) so there's no alias translation at parse/serialise time. Nested references use a common `Reference` model with at minimum an `id` field.
-6. **Emit resources.** `generated/v42/resources.py` — one `_<Name>Resource` class per metadata type with `get`, `list`, `create`, `update`, `delete`. A `Resources` container class bundles them all and is instantiated by `Dhis2Client.connect()`.
-7. **Stamp and format.** `generated/v42/__init__.py` sets `GENERATED = True` and re-exports `Resources`. The whole output directory is run through `ruff format`.
+4. **Write the manifest.** `generated/v43/schemas_manifest.json` — raw snapshot of the schemas response. Audit trail, and the input to emission. Re-running the emitter without re-fetching is possible.
+5. **Emit models.** One pydantic `BaseModel` file per schema, in `generated/v43/schemas/<resource>.py`. Field names mirror DHIS2 wire format (camelCase) so there's no alias translation at parse/serialise time. Nested references use a common `Reference` model with at minimum an `id` field.
+6. **Emit resources.** `generated/v43/resources.py` — one `_<Name>Resource` class per metadata type with `get`, `list`, `create`, `update`, `delete`. A `Resources` container class bundles them all and is instantiated by `Dhis2Client.connect()`.
+7. **Stamp and format.** `generated/v43/__init__.py` sets `GENERATED = True` and re-exports `Resources`. The whole output directory is run through `ruff format`.
 
 ## Schema → pydantic-type mapping
 

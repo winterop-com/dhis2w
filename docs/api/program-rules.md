@@ -23,4 +23,4 @@ CRUD on the rules themselves stays on the generic metadata surface (`client.reso
 
 Worked example: [`examples/client/program_rules.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/program_rules.py).
 
-::: dhis2w_client.v42.program_rules
+::: dhis2w_client.v43.program_rules

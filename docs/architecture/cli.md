@@ -46,7 +46,7 @@ $ d2w --help
 ╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
-- `system` comes from `dhis2w_core.v42.plugins.system` (built-in).
+- `system` comes from `dhis2w_core.v43.plugins.system` (built-in).
 - `codegen` comes from `dhis2w-codegen`'s entry point registration. No `dhis2w-core` code knows about it.
 
 ### `d2w system`

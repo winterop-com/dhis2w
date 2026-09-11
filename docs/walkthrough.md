@@ -347,10 +347,10 @@ Opens `http://127.0.0.1:8000` with the mkdocs-claude-theme site. Architecture, c
 | Codegen from `/api/schemas` → pydantic + CRUD | Done | `dhis2w-codegen`, output in `dhis2w-client/generated/` |
 | Filesystem-scan version discovery | Done | `dhis2w-client/generated/__init__.py` |
 | Playwright-minted PATs with options (name, expiry, IP/method/referrer allowlists) | Done | `dhis2w-browser/pat.py` |
-| `d2w browser pat` CLI (plugin under `dhis2w-core`) | Done | `dhis2w-core/v42/plugins/browser/cli.py` |
+| `d2w browser pat` CLI (plugin under `dhis2w-core`) | Done | `dhis2w-core/v43/plugins/browser/cli.py` |
 | Plugin runtime (Protocol + built-in + entry-point discovery) | Done | `dhis2w-core/plugin.py` |
 | Profile resolution from environment | Done | `dhis2w-core/profile.py` |
-| First-party `system` plugin (CLI + MCP surfaces) | Done | `dhis2w-core/v42/plugins/system/` |
+| First-party `system` plugin (CLI + MCP surfaces) | Done | `dhis2w-core/v43/plugins/system/` |
 | `d2w` CLI root with plugin mounting | Done | `dhis2w-cli/main.py` |
 | `dhis2w-mcp` FastMCP server with plugin mounting | Done | `dhis2w-mcp/server.py` |
 | Local Docker stack (DHIS2 + pgAdmin + Glowroot) | Done | `infra/` |

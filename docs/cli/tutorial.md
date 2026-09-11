@@ -379,8 +379,8 @@ Debug output lands on stderr so stdout stays pipe-friendly — you can still `d2
 ## Where to go next
 
 - **Full command reference**: [CLI reference](../cli-reference.md) — every subcommand, every flag, auto-generated from the Typer app so it never drifts.
-- **Runnable examples**: [examples index](../examples.md) — the canonical v42 set (~55 CLI + ~73 client + ~40 MCP scripts). v41 and v43 mirror most of them.
+- **Runnable examples**: [examples index](../examples.md) — one version-neutral copy of each script (~68 CLI + ~89 client + ~45 MCP), running against v41, v42, and v43 alike.
 - **Library usage**: [`dhis2w-client` tutorial](../client/tutorial.md) — when you want to drive DHIS2 from Python instead of the shell.
 - **Plugin architecture**: [overview](../architecture/overview.md) — how plugins, profiles, auth providers, and codegen fit together.
 
-The CLI is intentionally thin — every command ends up in a plugin's `service.py`, and the same service layer is what the FastMCP server exposes as tools. If you find the CLI missing a flag you expect, it's almost always a service-layer parameter that just needs wiring to a Typer option — see `packages/dhis2w-core/src/dhis2w_core/v42/plugins/<plugin>/cli.py` for the pattern.
+The CLI is intentionally thin — every command ends up in a plugin's `service.py`, and the same service layer is what the FastMCP server exposes as tools. If you find the CLI missing a flag you expect, it's almost always a service-layer parameter that just needs wiring to a Typer option — see `packages/dhis2w-core/src/dhis2w_core/v43/plugins/<plugin>/cli.py` for the pattern.

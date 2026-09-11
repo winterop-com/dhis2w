@@ -34,4 +34,4 @@ Idempotent on name — if a category / option with the requested name already ex
 
 Worked example: [`examples/client/category_combo_build.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/category_combo_build.py).
 
-::: dhis2w_client.v42.category_combo_builder
+::: dhis2w_client.v43.category_combo_builder

@@ -11,7 +11,7 @@
 ## Worked example — kick off + block + branch on completion
 
 ```python
-from dhis2w_client.v42.tasks import TaskTimeoutError
+from dhis2w_client.v43.tasks import TaskTimeoutError
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
@@ -87,4 +87,4 @@ Each call GETs `/api/system/tasks/{job_type}/{uid}` once and returns a `TaskPoll
 - [`examples/client/task_await.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/task_await.py) — end-to-end analytics-refresh kick-off + block.
 - [`examples/client/analytics_tables_poll_once.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/analytics_tables_poll_once.py) — the same job followed with `poll_once` and a carried cursor.
 
-::: dhis2w_client.v42.tasks
+::: dhis2w_client.v43.tasks

@@ -73,7 +73,7 @@ The defaults (`verify=True`, full version probe on `connect()`, raise on 4xx/5xx
 
 See `examples/client/health_check.py` for the full health-checker pattern.
 
-::: dhis2w_client.v42.client
+::: dhis2w_client.v43.client
     options:
       members:
         - Dhis2Client

@@ -10,4 +10,4 @@ See also:
 - Committed preset: `infra/login-customization/`
 - CLI surface: `d2w customize` (under [Plugins](../architecture/plugins.md))
 
-::: dhis2w_client.v42.customize
+::: dhis2w_client.v43.customize

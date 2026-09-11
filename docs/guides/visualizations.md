@@ -32,7 +32,7 @@ You should see rows per district × period with non-zero values. If not, the vis
 
 ```python
 from dhis2w_client import VisualizationSpec
-from dhis2w_client.generated.v42.enums import VisualizationType
+from dhis2w_client.generated.v43.enums import VisualizationType
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
@@ -71,7 +71,7 @@ Explicit period IDs like `"202401"` freeze to a calendar month. For charts that 
 
 ```python
 from dhis2w_client import RelativePeriod, VisualizationSpec
-from dhis2w_client.generated.v42.enums import VisualizationType
+from dhis2w_client.generated.v43.enums import VisualizationType
 
 spec = VisualizationSpec(
     name="Penta1 doses — rolling last 5 years",

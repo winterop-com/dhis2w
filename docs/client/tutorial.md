@@ -220,7 +220,7 @@ The same `open_client` + `client.*` API works regardless of which of the three p
 
 ### Managing on-disk profiles from Python
 
-Every `d2w profile ...` CLI command maps 1:1 onto a function in `dhis2w_core.v42.plugins.profile.service`:
+Every `d2w profile ...` CLI command maps 1:1 onto a function in `dhis2w_core.v43.plugins.profile.service`:
 
 | CLI | Python |
 | --- | --- |
@@ -335,9 +335,9 @@ After `__aenter__`, `client.resources` exposes a typed accessor for every metada
 
 ```python
 from dhis2w_client import generate_uid
-from dhis2w_client.generated.v42.common import Reference
-from dhis2w_client.generated.v42.enums import AggregationType, DataElementDomain, ValueType
-from dhis2w_client.generated.v42.schemas.data_element import DataElement
+from dhis2w_client.generated.v43.common import Reference
+from dhis2w_client.generated.v43.enums import AggregationType, DataElementDomain, ValueType
+from dhis2w_client.generated.v43.schemas.data_element import DataElement
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
@@ -517,7 +517,7 @@ The `/api/analytics` endpoint has three response shapes. Pass `shape="table"` (d
 
 ```python
 from dhis2w_client import AnalyticsMetaData, DataValueSet, Grid
-from dhis2w_core.v42.plugins.analytics import service
+from dhis2w_core.v43.plugins.analytics import service
 
 response = await service.query_analytics(
     profile_from_env(),
@@ -559,10 +559,10 @@ print(f"refresh done — {len(completion.notifications)} notifications")
 
 ## Tracker reads
 
-`client.tracker.tracked_entities`, `.enrollments`, and `.events` read the three `/api/tracker/*` resources with the standard query surface. Each returns the page envelope; rows live under `instances` (or the resource's own name on older minors). The generated models in `dhis2w_client.generated.v42.tracker` are version-scoped, because tracker shapes drift across DHIS2 majors.
+`client.tracker.tracked_entities`, `.enrollments`, and `.events` read the three `/api/tracker/*` resources with the standard query surface. Each returns the page envelope; rows live under `instances` (or the resource's own name on older minors). The generated models in `dhis2w_client.generated.v43.tracker` are version-scoped, because tracker shapes drift across DHIS2 majors.
 
 ```python
-from dhis2w_client.generated.v42.tracker import TrackerTrackedEntity
+from dhis2w_client.generated.v43.tracker import TrackerTrackedEntity
 
 async with open_client(profile_from_env()) as client:
     page = await client.tracker.tracked_entities(
@@ -620,7 +620,7 @@ written = await client.stream(
 Every async DHIS2 op (analytics refresh, metadata import, data-integrity run, tracker async push) returns a `JobConfigurationWebMessageResponse` carrying `jobType` + task UID. Use `.task_ref()` to pull the polling tuple, then `client.tasks.await_completion(...)` to block until the job finishes:
 
 ```python
-from dhis2w_client.v42.tasks import TaskTimeoutError
+from dhis2w_client.v43.tasks import TaskTimeoutError
 
 async with open_client(profile_from_env()) as client:
     envelope = await client.maintenance.run_analytics_tables(last_years=1)
@@ -852,7 +852,7 @@ For the rare case where you need `OAuth2Auth` without going through a profile �
 
 ```python
 from dhis2w_client import Dhis2Client
-from dhis2w_client.v42.auth.oauth2 import OAuth2Auth
+from dhis2w_client.v43.auth.oauth2 import OAuth2Auth
 from dhis2w_core.token_store import token_store_for_scope
 
 store = token_store_for_scope("global")
@@ -893,4 +893,4 @@ These are tracked as future-iteration items on `docs/roadmap.md`; the workaround
 - [Architecture: Profiles](../architecture/profiles.md) — file format, scope rules, precedence order
 - [Architecture: Typed schemas](../architecture/typed-schemas.md) — full model + enum inventory
 - [Architecture: Metadata CRUD](../architecture/metadata-crud.md) — deeper dive on the generated resource accessors
-- [Examples index](../examples.md) — the canonical v42 client set (~73 scripts) covering every pattern in this guide; v41 and v43 mirror most of them
+- [Examples index](../examples.md) — one version-neutral copy of each client script (~89), covering every pattern in this guide and running against v41, v42, and v43 alike

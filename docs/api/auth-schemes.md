@@ -52,4 +52,4 @@ async with open_client(profile_from_env()) as client:
     print(f"{raw['name']} -> auth.type={scheme.type}")
 ```
 
-::: dhis2w_client.v42.auth_schemes
+::: dhis2w_client.v43.auth_schemes

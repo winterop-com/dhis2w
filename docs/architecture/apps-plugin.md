@@ -123,7 +123,7 @@ async with open_client(profile_from_env()) as client:
 ```
 
 `UpdateSummary` + `UpdateOutcome` are plugin-internal view-models
-(`dhis2w_core.v42.plugins.apps.models`); the typed wire shapes (`App`,
+(`dhis2w_core.v43.plugins.apps.models`); the typed wire shapes (`App`,
 `AppHubApp`, `AppsSnapshot`, `RestoreSummary`) live in `dhis2w-client` so
 PyPI consumers get them too.
 

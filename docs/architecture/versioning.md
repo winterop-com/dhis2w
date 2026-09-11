@@ -23,24 +23,24 @@ packages/dhis2w-client/src/dhis2w_client/
 │   ├── v42/             # DHIS2 2.42.x (118 schemas)
 │   └── v43/             # DHIS2 2.43.x (116 schemas)
 ├── v41/                 # hand-written client surface for v41
-├── v42/                 # hand-written client surface for v42 (canonical)
-├── v43/                 # hand-written client surface for v43
-└── <submodule>.py       # top-level shims re-exporting from v42 for backwards-compat
+├── v42/                 # hand-written client surface for v42
+├── v43/                 # hand-written client surface for v43 (canonical)
+└── __init__.py          # top-level re-exports from v43
 
 packages/dhis2w-core/src/dhis2w_core/
 ├── plugin.py            # discovery walks dhis2w_core.v{N}.plugins.*
-├── v42/plugins/<name>/  # canonical plugin tree (cli.py, mcp.py, service.py, ...)
-├── v41/plugins/<name>/  # mirror of v42, diverges per-file as v41 quirks land
-└── v43/plugins/<name>/  # mirror of v42, diverges per-file as v43 quirks land
+├── v43/plugins/<name>/  # canonical plugin tree (cli.py, mcp.py, service.py, ...)
+├── v41/plugins/<name>/  # mirror of v43, diverges per-file as v41 quirks land
+└── v42/plugins/<name>/  # mirror of v43, diverges per-file as v42 quirks land
 ```
 
 Three supported majors — v41, v42, v43. Other DHIS2 majors are out of scope; the codegen tooling can still target them via `d2w dev codegen generate --url ...` against an arbitrary stack, but no manifests or generated trees are committed.
 
-The hand-written `v{N}/` subpackages start as byte-equivalent copies of v42 and diverge per-file as version-specific behaviour lands (the `categorys` -> `categories` field rename on v43's CategoryCombo, the missing `OAuth2ClientCredentialsAuthScheme` on v41's generated tree, etc.). Until a file diverges, all three trees import from `dhis2w_client.generated.v42.*` to keep the symbol set consistent. Divergence is per-method and called out in BUGS.md.
+The hand-written `v{N}/` subpackages start as copies of v43, rewritten to import their own major's generated tree, and diverge per-file as version-specific behaviour lands (the `categorys` -> `categories` field rename on v43's CategoryCombo, the missing `OAuth2ClientCredentialsAuthScheme` on v41's generated tree, etc.). Each tree imports from its own `dhis2w_client.generated.v{N}.*`, so the symbol set stays parallel while the shapes track the major. Divergence is per-method and called out in BUGS.md.
 
 Each populated `v{NN}/` carries:
 
-- `__init__.py` — sets `GENERATED = True` and re-exports every resource schema (`from dhis2w_client.generated.v42 import DataElement`).
+- `__init__.py` — sets `GENERATED = True` and re-exports every resource schema (`from dhis2w_client.generated.v43 import DataElement`).
 - `schemas/` — one pydantic `BaseModel` per DHIS2 metadata type, with `Field(description=...)` hints for owner/writable/bounds.
 - `resources.py` — typed CRUD accessors (`client.resources.dataElements.get/list/create/update/delete`).
 - `schemas_manifest.json` — snapshot of the `/api/schemas` response used at generation time. Committed so `d2w dev codegen rebuild` can regenerate offline.
@@ -55,11 +55,11 @@ The generated code is **committed**, not gitignored. Diffs are reviewable in PRs
 from dhis2w_client import Dhis2, Dhis2Client
 
 # 1. Pin the version, skip auto-detection via /api/system/info.
-async with Dhis2Client(url, auth=auth, version=Dhis2.V42) as client:
+async with Dhis2Client(url, auth=auth, version=Dhis2.V43) as client:
     ...
 
 # 2. Direct schema import without the full path.
-from dhis2w_client.generated.v42 import DataElement, OrganisationUnit
+from dhis2w_client.generated.v43 import DataElement, OrganisationUnit
 ```
 
 ## Plugin-tree selection at CLI / MCP startup
@@ -95,17 +95,19 @@ from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import profile_from_env
 
 async with open_client(profile_from_env()) as client:
-    # client.version_key == "v42"  (or "v43", depending on the active profile)
-    # client.raw_version == "2.42.0"
+    # client.version_key == "v43"  (whatever major the server reports)
+    # client.raw_version == "2.43.0"
     ...
 ```
 
 ## Working with version-specific types
 
-Hand-written client helpers (`client.system.info()`, `client.dashboards.list()`, `client.tracked_entity_attributes.get()`, etc.) currently parse responses against the **v42** generated models. That's fine for the ~95% of fields that are stable across DHIS2 v42 and v43, but it means:
+Hand-written client helpers (`client.system.info()`, `client.dashboards.list()`, `client.tracked_entity_attributes.get()`, etc.) parse responses against the generated models of the **live** major. `connect()` rebinds every accessor to the detected tree, so a client imported from `dhis2w_client` (home tree v43) talking to a v41 server runs v41's hand-written code against v41's models.
 
-- v43-only fields (e.g. `Program.enableChangeLog`, `TrackedEntityAttribute.trigramIndexed`) are not visible at typed-access time. They survive on the parsed model under `model_extra` because every generated class uses `ConfigDict(extra="allow")`.
-- A handful of **breaking-shape** schemas — fields where the v43 wire shape isn't structurally compatible with the v42 model — fail to parse against v43 wire data. The full list is in [Schema diff: v41 -> v42 -> v43](schema-diff-v41-v42-v43.md). The headline cases:
+What stays fixed is the **static** type. mypy and pyright see the home tree's shapes — v43 for the top-level `dhis2w_client` import, v41 or v42 when you import that tree directly. So:
+
+- A field that exists only on a major other than your home tree is not visible at typed-access time. It survives on the parsed model under `model_extra` because every generated class uses `ConfigDict(extra="allow")`.
+- A handful of schemas change shape outright between majors, so a model from one tree cannot validate another tree's wire data. The full list is in [Schema diff: v41 -> v42 -> v43](schema-diff-v41-v42-v43.md). The headline cases:
 
     | Schema | v42 | v43 |
     | --- | --- | --- |
@@ -115,11 +117,11 @@ Hand-written client helpers (`client.system.info()`, `client.dashboards.list()`,
     | `Program.favorite` | `list[str]` | removed |
     | `Legend` | full identifiable-object surface | almost everything stripped (~20 fields removed) |
 
-If you need typed access to v43-only fields, or you want to defensively branch on the live version, here are the patterns.
+If you need typed access to a field outside your home tree's shape, or you want to defensively branch on the live version, here are the patterns.
 
 ### Pattern 1 — branch on `client.version_key`
 
-`Dhis2Client.version_key` returns the loaded module key (`"v42"`, `"v43"`, ...) after `connect()`. Use it to decide which path to take when the wire shape differs:
+`Dhis2Client.version_key` returns the loaded module key (`"v41"`, `"v42"`, `"v43"`) after `connect()`. Use it to decide which path to take when the wire shape differs:
 
 ```python
 from dhis2w_core.client_context import open_client
@@ -127,7 +129,7 @@ from dhis2w_core.profile import profile_from_env
 
 async with open_client(profile_from_env()) as client:
     if client.version_key == "v43":
-        # v43-only field, accessed via model_extra (the v42-typed model has it under .model_extra).
+        # Typed on the v43 home tree; reachable through model_extra from v41 or v42.
         info = await client.system.info()
         capability = (info.model_extra or {}).get("systemCapabilities")
     else:
@@ -136,7 +138,7 @@ async with open_client(profile_from_env()) as client:
 
 ### Pattern 2 — direct `dhis2w_client.generated.v43.*` imports
 
-For typed access to a v43-only model, import it directly. This bypasses the v42-pinned helper and works against any v43 instance:
+For typed access to a v43-only model from a v41- or v42-home client, import it directly. This bypasses the helper's static type and works against any v43 instance:
 
 ```python
 from dhis2w_client.generated.v43.schemas.tracked_entity_attribute import (
@@ -152,7 +154,7 @@ async with open_client(profile_from_env()) as client:
     print(attribute.favorites, attribute.trigramIndexed)
 ```
 
-The `dhis2w_client.generated.v43.*` paths are first-class — every v43 schema is importable. The `examples/client/v43_*.py` files are runnable end-to-end demos, one per changed schema (DashboardItem, TrackedEntityAttribute, Program, EventVisualization, Map, Section, removed resources). Pick the file matching the schema you care about; each shows both the `model_extra` path and the direct-v43-import path.
+The `dhis2w_client.generated.v43.*` paths are first-class — every v43 schema is importable. The `examples/client/v43/*.py` files are runnable end-to-end demos, one per changed schema (DashboardItem, TrackedEntityAttribute, Program, EventVisualization, Map, Section, removed resources). Pick the file matching the schema you care about; each shows both the `model_extra` path and the direct-v43-import path.
 
 ### Pattern 3 — pin the client to a known version
 
@@ -167,7 +169,7 @@ async with Dhis2Client(url, auth=auth, version=Dhis2.V43) as client:
 
 ### What this does NOT solve
 
-Hand-written helper return types are still annotated as v42-shape at static-type-check time. mypy / pyright will flag `program.enableChangeLog` as unknown even though the parsed object has it in `model_extra`. The honest options are: cast, `getattr(model, "enableChangeLog", None)`, or use Pattern 2 above. We may revisit this with a generic-over-version client in a future release; the current contract is "runtime is correct, static is v42-flavored."
+Hand-written helper return types are annotated with the home tree's shapes at static-type-check time. Import `Dhis2Client` from `dhis2w_client.v41` and mypy / pyright will flag `program.enableChangeLog` as unknown even though the object parsed off a v43 server has it. The honest options are: cast, `getattr(model, "enableChangeLog", None)`, or use Pattern 2 above. A generic-over-version client would close the gap; the current contract is "runtime is correct, static is home-tree-flavored."
 
 ## Why strict by default
 

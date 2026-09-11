@@ -18,4 +18,4 @@ See also:
 - Client lifecycle escape hatches (`get_response`, `skip_version_probe`): [Client](client.md)
 - Reverse-proxy plugin internals (CRUD on `/api/routes`): [Route plugin](../architecture/route-plugin.md)
 
-::: dhis2w_client.v42.routes
+::: dhis2w_client.v43.routes

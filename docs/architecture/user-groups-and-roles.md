@@ -8,7 +8,7 @@ Both plugins share the same shape: reads via the generated `/api/userGroups` / `
 
 - CLI: `d2w user group {list,get,add-member,remove-member,sharing-get,sharing-grant-user}`
 - MCP: `user_group_{list,get,add_member,remove_member,sharing_get}`
-- Service: `packages/dhis2w-core/src/dhis2w_core/v42/plugins/user_group/service.py`
+- Service: `packages/dhis2w-core/src/dhis2w_core/v43/plugins/user_group/service.py`
 
 ### Membership
 
@@ -44,7 +44,7 @@ d2w user group sharing-grant-user <group-uid> <user-uid> --metadata-read
 
 - CLI: `d2w user role {list,get,authorities,add-user,remove-user}`
 - MCP: `user_role_{list,get,authorities,add_user,remove_user}`
-- Service: `packages/dhis2w-core/src/dhis2w_core/v42/plugins/user_role/service.py`
+- Service: `packages/dhis2w-core/src/dhis2w_core/v43/plugins/user_role/service.py`
 
 ### Authority listing
 
@@ -71,7 +71,7 @@ Every CLI verb has an MCP tool with matching arg names. Read tools (`*_list`, `*
 
 ## Typed models
 
-- `dhis2w_client.generated.v42.oas.UserGroup` and `UserRole` — the OpenAPI-derived classes. Both carry the full sharing block, full member list, and (for roles) `authorities: list[str]`.
+- `dhis2w_client.generated.v43.oas.UserGroup` and `UserRole` — the OpenAPI-derived classes. Both carry the full sharing block, full member list, and (for roles) `authorities: list[str]`.
 - `dhis2w_client.SharingBuilder` / `apply_sharing` / `get_sharing` — the typed helpers used by `sharing-grant-user`. See [Sharing](../api/sharing.md) for the access-string grammar and the builder API.
 
 ## What's not in scope

@@ -21,4 +21,4 @@ The adapter accepts both Python dicts and JSON strings; outputs dump back via `.
 
 For the higher-level batch patcher see `client.metadata.patch_bulk` on [Metadata accessor](metadata-accessor.md).
 
-::: dhis2w_client.v42.json_patch
+::: dhis2w_client.v43.json_patch

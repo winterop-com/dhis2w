@@ -13,6 +13,6 @@ async with Dhis2Client(...) as client:
     # `.add_option(category_uid, option_uid)` and `.remove_option(...)` are also available.
 ```
 
-CRUD verbs mirror the standard pattern: `list_all` / `get` / `create` / `update` / `rename` / `delete`. The accessor wraps the typed `Category` model from `dhis2w_client.generated.v42.schemas.category`.
+CRUD verbs mirror the standard pattern: `list_all` / `get` / `create` / `update` / `rename` / `delete`. The accessor wraps the typed `Category` model from `dhis2w_client.generated.v43.schemas.category`.
 
-::: dhis2w_client.v42.categories
+::: dhis2w_client.v43.categories

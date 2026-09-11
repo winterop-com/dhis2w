@@ -64,4 +64,4 @@ async with open_client(profile_from_env()) as client:
 
 Worked end-to-end demo: [`examples/client/messaging_with_attachment.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/client/messaging_with_attachment.py) (covers send + reply + mark-read + delete).
 
-::: dhis2w_client.v42.messaging
+::: dhis2w_client.v43.messaging

@@ -18,4 +18,4 @@ See also:
 - CLI + MCP surface: `d2w datastore` (namespaces / keys / get / set / delete) and the
   `datastore_*` tools.
 
-::: dhis2w_client.v42.datastore
+::: dhis2w_client.v43.datastore
