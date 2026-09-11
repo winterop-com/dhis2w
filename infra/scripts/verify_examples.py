@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -216,6 +217,7 @@ class ExampleResult(BaseModel):
     status: str  # PASS / FAIL / TIMEOUT / SKIP
     seconds: float
     stderr_tail: str = ""
+    left_behind: tuple[str, ...] = ()
 
 
 def _resolve_version_key() -> tuple[str, str]:
@@ -293,6 +295,7 @@ def _run_one(path: Path, *, profile: str, timeout_seconds: float) -> ExampleResu
     rel = path.relative_to(REPO_ROOT).as_posix()
     env = {**os.environ, "DHIS2_PROFILE": profile}
     cmd: list[str] = ["bash", str(path)] if path.suffix == ".sh" else ["uv", "run", "python", str(path)]
+    root_entries_before = {entry.name for entry in REPO_ROOT.iterdir()}
     start = time.monotonic()
     try:
         proc = subprocess.run(
@@ -304,14 +307,39 @@ def _run_one(path: Path, *, profile: str, timeout_seconds: float) -> ExampleResu
             check=False,
         )
     except subprocess.TimeoutExpired:
-        return ExampleResult(path=rel, surface=surface, status="TIMEOUT", seconds=time.monotonic() - start)
+        left_behind = _sweep_root(root_entries_before)
+        return ExampleResult(
+            path=rel, surface=surface, status="TIMEOUT", seconds=time.monotonic() - start, left_behind=left_behind
+        )
     elapsed = time.monotonic() - start
+    left_behind = _sweep_root(root_entries_before)
     if proc.returncode == 0:
-        return ExampleResult(path=rel, surface=surface, status="PASS", seconds=elapsed)
+        return ExampleResult(path=rel, surface=surface, status="PASS", seconds=elapsed, left_behind=left_behind)
     stderr = proc.stderr.decode(errors="replace").strip()
     stdout = proc.stdout.decode(errors="replace").strip()
     tail = "\n".join((stderr or stdout).splitlines()[-6:])
-    return ExampleResult(path=rel, surface=surface, status="FAIL", seconds=elapsed, stderr_tail=tail)
+    return ExampleResult(
+        path=rel, surface=surface, status="FAIL", seconds=elapsed, stderr_tail=tail, left_behind=left_behind
+    )
+
+
+def _sweep_root(root_entries_before: set[str]) -> tuple[str, ...]:
+    """Remove what an example left at the repository root and name it, so the working tree stays clean.
+
+    Examples scaffold projects in the working directory (`d2w fhir init sync-demo`) and remove them
+    on their last line, which a failure or a timeout never reaches. Everything new at the root
+    after a run is the example's, never the repository's, so it is removed and reported.
+    """
+    left_behind: list[str] = []
+    for entry in sorted(REPO_ROOT.iterdir()):
+        if entry.name in root_entries_before:
+            continue
+        if entry.is_dir() and not entry.is_symlink():
+            shutil.rmtree(entry, ignore_errors=True)
+        else:
+            entry.unlink(missing_ok=True)
+        left_behind.append(entry.name)
+    return tuple(left_behind)
 
 
 def _stand_up_shared_fhir_fixture(
@@ -450,6 +478,10 @@ def _run_every_example(
         }[result.status]
         reason = f"  [dim]({result.stderr_tail})[/dim]" if result.status == "SKIP" and result.stderr_tail else ""
         console.print(f"  [{badge}]{result.status:8s}[/{badge}] {result.seconds:6.2f}s  {result.path}{reason}")
+        if result.left_behind:
+            console.print(
+                f"           [yellow]left at the repository root and removed: {', '.join(result.left_behind)}[/yellow]"
+            )
         results.append(result)
     return results
 

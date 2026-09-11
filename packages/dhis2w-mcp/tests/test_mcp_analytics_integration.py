@@ -31,6 +31,32 @@ def _extract_payload(result: object) -> object:
     raise AssertionError(f"unexpected FastMCP result shape: {result!r}")
 
 
+async def _aggregate_target(client: Client) -> tuple[str, str] | None:
+    """A numeric aggregate data element of a monthly data set and one organisation unit that reports it."""
+    data_sets = _extract_payload(
+        await client.call_tool(
+            "metadata_list",
+            {
+                "resource": "dataSets",
+                "fields": "id,periodType,dataSetElements[dataElement[id,valueType,domainType]],organisationUnits[id]",
+                "page_size": 50,
+            },
+        )
+    )
+    if not isinstance(data_sets, list):
+        return None
+    # Every major answers 400 to `filter=periodType:eq:Monthly` (BUGS.md #128), so the period type is matched here.
+    for data_set in data_sets:
+        if data_set.get("periodType") != "Monthly":
+            continue
+        org_units = data_set.get("organisationUnits") or []
+        for entry in data_set.get("dataSetElements") or []:
+            element = entry.get("dataElement") or {}
+            if element.get("valueType") == "NUMBER" and element.get("domainType") == "AGGREGATE" and org_units:
+                return str(element["id"]), str(org_units[0]["id"])
+    return None
+
+
 async def test_query_analytics_tool(local_url: str, local_pat: str | None, monkeypatch: pytest.MonkeyPatch) -> None:
     """Query analytics tool."""
     if not local_pat:
@@ -40,9 +66,7 @@ async def test_query_analytics_tool(local_url: str, local_pat: str | None, monke
 
     server = build_server()
     async with Client(server) as client:
-        des = _extract_payload(
-            await client.call_tool("metadata_list", {"resource": "dataElements", "fields": "id,name", "page_size": 1})
-        )
+        target = await _aggregate_target(client)
         ous = _extract_payload(
             await client.call_tool(
                 "metadata_list",
@@ -54,14 +78,15 @@ async def test_query_analytics_tool(local_url: str, local_pat: str | None, monke
                 },
             )
         )
-        if not (isinstance(des, list) and des and isinstance(ous, list) and ous):
-            pytest.skip("instance missing required metadata")
+        if target is None or not (isinstance(ous, list) and ous):
+            pytest.skip("instance missing an aggregate data element in a monthly data set")
+        data_element_id, _ = target
 
         result = await client.call_tool(
             "analytics_query",
             {
                 "dimensions": [
-                    f"dx:{des[0]['id']}",
+                    f"dx:{data_element_id}",
                     "pe:LAST_12_MONTHS",
                     f"ou:{ous[0]['id']}",
                 ],

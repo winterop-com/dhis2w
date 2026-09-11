@@ -26,7 +26,7 @@ below.
 
 ## Index
 
-126 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
+127 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
 stacks `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0`, plus the play channels `stable-2-41-10`,
 `stable-2-42-6`, `stable-2-43-1`, `dev-2-41`, `dev-2-42` and `dev-2-43` (see the retest log below):
 
@@ -68,6 +68,7 @@ Every entry in the file is listed here, including the four that carried no Index
 - [#94](#94-apiopenapiopenapijson-types-the-same-id-reference-under-two-different-component-names-on-243x) — 2.43.x OpenAPI names one `{id}` reference under two component names **[STILL]**
 - [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant) — `categoryOption.aggregationType` reads BOOLEAN only on an empty 2.43.1 database **[PARTIAL]**
 - [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing) — OpenAPI routes `PUT /api/<type>/{uid}/sharing` for types whose schema says `shareable: false` **[STILL]**
+- [#128](#128-filterperiodtypeopvalue-on-apidatasets-answers-400-e1003-for-every-operator-and-spelling-so-the-period-type-cannot-be-filtered-server-side) — `filter=periodType:<op>:<value>` on `/api/dataSets` answers `400 E1003` for every operator and spelling **[STILL]**
 
 ### Auth / OAuth2 / OIDC
 
@@ -4279,6 +4280,59 @@ document record the orphaned resource UID rather than pretending to clean it up.
 or the document delete cascades to it.
 
 **Status (2026-09-11):** new, hit independently by the metadata batch on all three majors. Present on `2.41.10`, `2.42.6` and `2.43.1`.
+
+---
+
+### 128. `filter=periodType:<op>:<value>` on `/api/dataSets` answers `400 E1003` for every operator and spelling, so the period type cannot be filtered server-side
+
+**Observed on:** `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0` (all three local stacks,
+`admin:district`). The wire value the list endpoint returns is the plain string `Monthly`.
+
+**Repro (against any seeded instance):**
+
+```bash
+U=http://localhost:8080
+
+# The property as the list endpoint returns it.
+curl -su admin:district "$U/api/dataSets?fields=id,periodType&pageSize=2" | jq -c '.dataSets'
+# [{"id":"BfMAe6Itzgt","periodType":"Monthly"},{"id":"TuL8IOPzpHh","periodType":"Monthly"}]
+
+# The same value handed back as a filter, in every spelling and with every operator.
+for f in 'periodType:eq:Monthly' 'periodType:eq:MONTHLY' 'periodType:in:[Monthly]' 'periodType:like:Month'; do
+  curl -su admin:district "$U/api/dataSets?fields=id&pageSize=1&filter=$f" | jq -c '{httpStatusCode,errorCode,message}'
+done
+# {"httpStatusCode":400,"errorCode":"E1003","message":"Unable to parse `Monthly` to `PeriodType`."}
+# ... the same for MONTHLY, [Monthly] and Month
+
+# The schema declares the property as TEXT but binds it to the PeriodType class.
+curl -su admin:district "$U/api/schemas/dataSet?fields=properties%5Bname,propertyType,klass,simple%5D" \
+  | jq -c '.properties[] | select(.name=="periodType")'
+# {"name":"periodType","propertyType":"TEXT","klass":"org.hisp.dhis.period.PeriodType","simple":false}
+```
+
+**Expected.** A property the list endpoint renders as a string, and the schema types as `TEXT`,
+accepts that string back as a filter value: `filter=periodType:eq:Monthly` returns the monthly
+data sets.
+
+**Actual.** The filter parser hands the value to the `PeriodType` class instead of comparing the
+rendered string, and no spelling satisfies it: the name the API itself emits, the upper-case
+enum spelling, the `in` list form and a `like` substring all answer `400 E1003`. There is no
+server-side way to select data sets by period type.
+
+**Impact.** Any caller that needs "the monthly data sets" (a data value importer choosing a
+target, a form builder, a test picking an aggregate target) has to page through every data set
+and match `periodType` client-side.
+
+**Workaround applied in this repo:** the live tests in `packages/dhis2w-cli/tests/test_cli_aggregate_integration.py`,
+`test_cli_analytics_integration.py`, `packages/dhis2w-mcp/tests/test_mcp_aggregate_integration.py` and
+`test_mcp_analytics_integration.py` list data sets with `periodType` in `fields` and match the
+value in Python.
+
+**How to know it's fixed:** `filter=periodType:eq:Monthly` answers 200 with the monthly data sets
+on every major.
+
+**Status (2026-09-11):** new, from the overnight live run. **[STILL]** on `2.41.10.0`, `2.42.6.0`
+and `2.43.1.0`.
 
 ---
 

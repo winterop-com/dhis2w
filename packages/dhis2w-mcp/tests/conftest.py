@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import httpx2
 import pytest
 
 
@@ -45,3 +46,33 @@ def local_url() -> str:
 def local_pat() -> str | None:
     """Seeded default PAT (or None if infra hasn't been seeded)."""
     return _SEEDED_ENVIRONMENT.get("DHIS2_PAT")
+
+
+def _live_version_key(url: str, pat: str) -> str | None:
+    """The `v4N` key of the DHIS2 major answering at `url`, or None when the server is unreachable."""
+    try:
+        response = httpx2.get(f"{url}/api/system/info", headers={"Authorization": f"ApiToken {pat}"}, timeout=10.0)
+        response.raise_for_status()
+        version = str(response.json().get("version", ""))
+    except (httpx2.HTTPError, ValueError):
+        return None
+    parts = version.split(".")
+    return f"v{parts[1]}" if len(parts) >= 2 and parts[1].isdigit() else None
+
+
+@pytest.fixture(scope="session")
+def live_version_key(local_url: str, local_pat: str | None) -> str | None:
+    """The plugin-tree key of the running local stack, probed once per session; None without a stack."""
+    return _live_version_key(local_url, local_pat) if local_pat else None
+
+
+@pytest.fixture(autouse=True)
+def _follow_live_server(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+    _neutral_profile_environment: None,
+    live_version_key: str | None,
+) -> None:
+    """Point a slow test's plugin tree at the running server's major, after the neutral environment is set."""
+    if request.node.get_closest_marker("slow") is not None and live_version_key is not None:
+        monkeypatch.setenv("DHIS2_VERSION", live_version_key)
