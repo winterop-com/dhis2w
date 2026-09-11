@@ -88,8 +88,9 @@ _HUB = [
 
 def test_plugin_descriptor() -> None:
     """Plugin registers under `apps` with a meaningful description."""
-    assert plugin.name == "apps"
-    assert "appHub" in plugin.description or "app hub" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "apps"
+    assert "appHub" in contribution.description or "app hub" in contribution.description.lower()
 
 
 def test_cli_help_lists_every_verb() -> None:

@@ -40,8 +40,9 @@ def _mock_preamble() -> None:
 
 def test_plugin_descriptor() -> None:
     """Plugin registers under `messaging`."""
-    assert plugin.name == "messaging"
-    assert "message" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "messaging"
+    assert "message" in contribution.description.lower()
 
 
 def test_cli_help_lists_every_verb() -> None:

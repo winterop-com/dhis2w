@@ -8,8 +8,9 @@ from dhis2w_core.v42.plugins.metadata.service import _attr_name
 
 def test_plugin_descriptor() -> None:
     """Plugin descriptor."""
-    assert plugin.name == "metadata"
-    assert plugin.description
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "metadata"
+    assert contribution.description
 
 
 def test_attr_name_camel_to_snake() -> None:

@@ -6,7 +6,7 @@ from typing import Any
 
 from dhis2w_core.profile import resolve_profile
 
-from dhis2_plugin_hello import service
+from dhis2w_plugin_hello import service
 
 
 def register(mcp: Any) -> None:

@@ -38,7 +38,7 @@ profile     route    system    user       user-group
 user-role
 ```
 
-Any additional namespace = an externally-installed plugin registered through `importlib.metadata.entry_points(group="dhis2.plugins")` (see [external plugins](architecture/external-plugin.md)); missing first-party names = a plugin-discovery regression.
+Any additional namespace = an externally-installed plugin pack registered under the `dhis2w.plugins.v1` entry-point group (see [external plugins](architecture/external-plugin.md)); missing first-party names = a plugin-discovery regression.
 
 ---
 

@@ -7,6 +7,7 @@ from dhis2w_core.v42.plugins.data import plugin
 
 def test_plugin_descriptor() -> None:
     """Plugin descriptor."""
-    assert plugin.name == "data"
-    assert "aggregate" in plugin.description.lower()
-    assert "tracker" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "data"
+    assert "aggregate" in contribution.description.lower()
+    assert "tracker" in contribution.description.lower()

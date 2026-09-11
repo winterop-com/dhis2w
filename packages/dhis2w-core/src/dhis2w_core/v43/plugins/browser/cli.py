@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -14,7 +15,9 @@ from dhis2w_core.profile import profile_from_env
 
 
 def register(app: Any) -> None:
-    """Mount `d2w browser` on the root CLI."""
+    """Mount `d2w browser` on the root CLI when the optional browser extra is installed."""
+    if find_spec("dhis2w_browser") is None:
+        return
     browser_app = typer.Typer(
         help="Playwright-driven DHIS2 UI automation.",
         no_args_is_help=True,

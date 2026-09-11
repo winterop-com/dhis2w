@@ -44,7 +44,7 @@ Each member's `pyproject.toml` has just:
 
 - `[project]` — name, version, description, Python floor, dependencies
 - `[project.scripts]` — console entrypoints (only `dhis2w-cli` and `dhis2w-mcp`)
-- `[project.entry-points."dhis2.plugins"]` — plugin registration (for `dhis2w-codegen` and future plugin packages)
+- `[project.entry-points."dhis2w.plugins.v1"]` — plugin registration (for `dhis2w-fhir` and future plugin packs)
 - `[build-system]` — `uv_build` backend
 
 ## Build + publish

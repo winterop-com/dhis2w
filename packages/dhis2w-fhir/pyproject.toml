@@ -27,7 +27,7 @@ dependencies = [
     "typer>=0.27.0",
 ]
 
-[project.entry-points."dhis2.plugins"]
+[project.entry-points."dhis2w.plugins.v1"]
 fhir = "dhis2w_fhir.plugin:plugin"
 
 [project.urls]

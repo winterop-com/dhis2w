@@ -22,8 +22,7 @@ def build_app() -> typer.Typer:
         no_args_is_help=True,
         add_completion=False,
     )
-    for plugin in discover_plugins():
-        plugin.register_cli(app)
+    load_plugin_host(resolve_startup_version()).mount_cli(app)
     return app
 
 
@@ -149,7 +148,7 @@ Add a new CLI command by creating a new plugin folder under `dhis2w_core/plugins
 External plugins declare:
 
 ```toml
-[project.entry-points."dhis2.plugins"]
+[project.entry-points."dhis2w.plugins.v1"]
 <name> = "<package>.<module>:plugin"
 ```
 

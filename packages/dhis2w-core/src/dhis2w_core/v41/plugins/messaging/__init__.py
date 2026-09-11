@@ -2,34 +2,24 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _MessagingPlugin(BaseModel):
+class _MessagingPlugin:
     """Plugin descriptor for DHIS2 internal messaging (conversations + attachments)."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "messaging"
-    description: str = (
-        "DHIS2 internal messaging. CLI + MCP surfaces for /api/messageConversations — "
-        "list, read, send, reply, mark-read, delete. Pairs with the files plugin for "
-        "MESSAGE_ATTACHMENT fileResources."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount `d2w messaging` on the root CLI."""
-        from dhis2w_core.v41.plugins.messaging import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `messaging_*` tools on the MCP server."""
-        from dhis2w_core.v41.plugins.messaging import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w messaging` and the `messaging_*` MCP tools."""
+        return Contribution(
+            name="messaging",
+            description=(
+                "DHIS2 internal messaging. CLI + MCP surfaces for /api/messageConversations — list, read, send, reply, "
+                "mark-read, delete. Pairs with the files plugin for MESSAGE_ATTACHMENT fileResources."
+            ),
+            cli_module="dhis2w_core.v41.plugins.messaging.cli",
+            mcp_module="dhis2w_core.v41.plugins.messaging.mcp",
+        )
 
 
 plugin = _MessagingPlugin()

@@ -40,7 +40,7 @@ uv run d2w dev codegen diff v42 v43
 uv run d2w dev codegen diff v42 v43 --json    # machine-readable
 ```
 
-`d2w dev codegen generate` talks to a live instance because it pulls the `/api/schemas` response fresh; the rebuild variants are offline, reading the committed manifest / openapi.json from each `generated/v{N}/` directory. `diff` is also offline — it reads the two committed manifests and surfaces structural drift. The CLI subcommand is registered via `[project.entry-points."dhis2.plugins"]` in `dhis2w-codegen`'s `pyproject.toml`.
+`d2w dev codegen generate` talks to a live instance because it pulls the `/api/schemas` response fresh; the rebuild variants are offline, reading the committed manifest / openapi.json from each `generated/v{N}/` directory. `diff` is also offline — it reads the two committed manifests and surfaces structural drift. The CLI subcommand is part of the built-in `dev` plugin, mounted as `d2w dev codegen`.
 
 ## Pipeline
 

@@ -2,34 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _FilesPlugin(BaseModel):
+class _FilesPlugin:
     """Plugin descriptor for document management + file-resource binary attachments."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "files"
-    description: str = (
-        "DHIS2 document management + file resources. CLI + MCP surfaces for "
-        "`/api/documents` (user-uploaded attachments, external URLs) and "
-        "`/api/fileResources` (typed binary blobs — DATA_VALUE, ICON, MESSAGE_ATTACHMENT)."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount `d2w files` on the root CLI."""
-        from dhis2w_core.v43.plugins.files import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `files_*` tools on the MCP server."""
-        from dhis2w_core.v43.plugins.files import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w files` and the `files_*` MCP tools."""
+        return Contribution(
+            name="files",
+            description=(
+                "DHIS2 document management + file resources. CLI + MCP surfaces for `/api/documents` (user-uploaded "
+                "attachments, external URLs) and `/api/fileResources` (typed binary blobs — DATA_VALUE, ICON, "
+                "MESSAGE_ATTACHMENT)."
+            ),
+            cli_module="dhis2w_core.v43.plugins.files.cli",
+            mcp_module="dhis2w_core.v43.plugins.files.mcp",
+        )
 
 
 plugin = _FilesPlugin()

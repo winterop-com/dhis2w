@@ -27,6 +27,7 @@ $ d2w [OPTIONS] COMMAND [ARGS]...
 * `datastore`: DHIS2 key-value data store.
 * `dev`: Developer/operator tools.
 * `doctor`: Probe a DHIS2 instance for known gotchas +...
+* `fhir`: FHIR Implementation Guide generation from...
 * `files`: Manage DHIS2 documents + file resources.
 * `maintenance`: DHIS2 maintenance (tasks, cache,...
 * `messaging`: DHIS2 internal messaging.
@@ -36,7 +37,6 @@ $ d2w [OPTIONS] COMMAND [ARGS]...
 * `security`: DHIS2 security posture (read-only).
 * `system`: DHIS2 system info.
 * `user`: DHIS2 user administration.
-* `fhir`: FHIR Implementation Guide generation from...
 
 ## `d2w schema`
 
@@ -1982,6 +1982,611 @@ $ d2w doctor bugs [OPTIONS]
 
 **Options**:
 
+* `--help`: Show this message and exit.
+
+## `d2w fhir`
+
+FHIR Implementation Guide generation from DHIS2 metadata.
+
+**Usage**:
+
+```console
+$ d2w fhir [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `init`: Scaffold a dockerized SUSHI IG project...
+* `validate`: Check the instance&#x27;s codes for...
+* `check-artifacts`: Refuse the build before it begins: scan...
+* `serve`: Serve the project&#x27;s IG as a FHIR read and...
+* `forward`: Drain the capture spool into DHIS2 -...
+* `spool`: List the capture spool - how many receipts...
+* `sync`: Fill this project&#x27;s materialized...
+* `requeue`: Move receipts DHIS2 refused back into the...
+* `withdraw`: Retract from DHIS2 the events named...
+* `doctor`: Run the whole FHIR toolchain against this...
+* `generate`: Generate the whole IG source from DHIS2...
+
+### `d2w fhir init`
+
+Scaffold a dockerized SUSHI IG project with a fhir.toml for `d2w fhir generate`.
+
+**Usage**:
+
+```console
+$ d2w fhir init [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project directory (default: current directory).  [default: .]
+
+**Options**:
+
+* `--template <str>`: Scaffold from a guide already generated against a real DHIS2 instance, so the project compiles and serves without reaching one. The template supplies the identity and the selection; --id, --canonical, --name, --title, --publisher and --status win over it. `--list-templates` names what this install carries.
+* `--list-templates`: Name every template this install can scaffold from, one line each, and exit.
+* `--id <str>`: IG package id.  [default: dhis2.fhir.example]
+* `--canonical <str>`: Canonical base URL for the IG (no trailing slash).  [default: http://example.org/fhir]
+* `--name <str>`: SUSHI name (default: derived from --id).
+* `--title <str>`: IG title (default: derived from --name).
+* `--publisher <str>`: Publisher name.  [default: Example Organisation]
+* `--status <draft|active>`: IG life cycle. Drives the sushi-config status, and the status and experimental flag on every generated definitional resource.  [default: draft]
+* `--publisher-url <str>`: Publisher home page. Omit it unless you have a real site: the IG publisher links it from every generated page, and pointing it at the canonical yields one broken link per page.
+* `--profile <str>`: DHIS2 profile to seed the `profile` key of the scaffolded fhir.toml with, so `d2w fhir generate` reads that instance without a flag. Offline: the name is written as given, never resolved against profiles.toml.
+* `--sushi-timeout <int>`: Seconds the IG publisher gives its internal SUSHI run, written to `[FSH] timeout` of ig/fsh.ini. It bounds the FSH targets alone - the registry and the terminology ship as pre-built JSON - and an overrun fails the build with exit 143.  [default: 1800]
+* `--max-level <int>`: Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this is the dial that bounds how much the IG publisher renders. Offline: written as given.
+* `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
+* `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
+* `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Offline: the UID is written to fhir.toml as given, never checked against an instance.
+* `--force`: Overwrite scaffold files that already exist.
+* `--refresh`: Bring an existing project&#x27;s scaffold-managed files up to date. Identity comes from the project&#x27;s own fhir.toml, which a refresh never writes, and a file carrying a line the scaffold would not produce is left alone and reported, so your edits survive. Rejects --force.
+* `--help`: Show this message and exit.
+
+### `d2w fhir validate`
+
+Check the instance&#x27;s codes for FHIR-safety, writing md/csv/pdf reports grouped by type.
+
+Severity means build impact on the configured IG: an error aborts your build (generate refuses
+the same codes), a warning degrades an emitted resource, and an info is instance hygiene on
+objects the build never reads. Each finding carries that verdict as its scope - `selection`
+for objects the configured selection emits, `instance` for the rest.
+
+The run grades under the project&#x27;s ` hostile_names` posture, and the summary states
+which one it read. Under `substitute` a DHIS2 name carrying &#x27;&lt;&#x27; is rewritten for publication
+and the build survives it, so the finding on that name is informational and says what the guide
+publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
+an error. A DHIS2 code carrying &#x27;&lt;&#x27; is an error under either posture: the substitution rewrites
+a space in a code and never a &#x27;&lt;&#x27;.
+
+The terminal says what the state is: a summary, a count per severity, scope, and category, and
+every error by name, because an error is what gates the build and the user has to know which
+object holds it. The written report is where a warning is read one row at a time; `--details`
+puts every row on the terminal too.
+
+**Usage**:
+
+```console
+$ d2w fhir validate [OPTIONS]
+```
+
+**Options**:
+
+* `--output-dir <directory>`: Directory to write the report files into, one per format, all named fhir-validate-report (default: reports/ under the project root, else the working directory).
+* `--format <str>`: Comma-separated report formats to write: md, csv, pdf.  [default: md,csv,pdf]
+* `--code-source <id|code>`: Override `[generate]` concept_code_source for this run. In id mode the option code findings are informational; run with code to see what switching would cost.
+* `--hostile-names <refuse|substitute>`: Override `[generate]` hostile_names for this run. Under substitute a name carrying &#x27;&lt;&#x27; is rewritten for publication, so the findings on those names are graded informational; under refuse they abort the build and stay errors.
+* `--details`: List every finding individually instead of the rolled-up category counts.
+* `--fail / --no-fail`: Exit 1 when errors are found.  [default: fail]
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+### `d2w fhir check-artifacts`
+
+Refuse the build before it begins: scan the artifacts on disk for what aborts the IG publisher.
+
+`d2w fhir generate` refuses a run whose selected DHIS2 names or codes carry a `&lt;`. A build reads
+no such gate - it publishes whatever `ig/fsh-generated/` and `ig/input/` hold - so output written
+before the gate existed, output from an older pinned toolchain, and hand-authored FSH all reach
+the publisher, and cost its full run before failing in its final pass.
+
+This is that refusal applied to the files themselves, through the very predicates the generate
+gate uses. It names the file, the resource, the element, and the value, so what comes back is the
+object rather than the page the publisher happened to die on.
+
+No connection, no profile, no compile - the artifacts are the whole input, so it answers in
+seconds. Exit 1 when anything is found, which is what `make build` runs it for.
+
+**Usage**:
+
+```console
+$ d2w fhir check-artifacts [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project to scan (default: the nearest fhir.toml, walking up from the working directory).
+
+**Options**:
+
+* `--fail / --no-fail`: Exit 1 when findings are found.  [default: fail]
+* `--help`: Show this message and exit.
+
+### `d2w fhir serve`
+
+Serve the project&#x27;s IG as a FHIR read and capture facade over HTTP.
+
+Reads answer from what the IG publishes.
+
+Two APIs answer. FHIR is at the base URL and its contract is the CapabilityStatement at
+`/metadata`; this facade&#x27;s own controls - the receipts, the settings, the caller, the evaluator,
+the vocabularies, the register listings - are at `/facade`, described by the OpenAPI document at
+`/facade/openapi.json` and browsable at `/facade/docs`.
+
+Received QuestionnaireResponses are stored as receipts, so reading one back says what was submitted.
+
+`--live` builds the store from the instance at startup, as the profile `d2w -p` names.
+
+`--ui` also serves the capture UI at `/`, same-origin with the FHIR routes it reads.
+
+`--basemap` offers another tile layer on the organisation-unit map, and `--basemap none` offers none.
+
+`--auth` says who is served: `none`, `token` (D2W_FHIR_SERVE_TOKENS), `dhis2` (the caller&#x27;s own
+credentials), or `jwt` (a token from the OpenID Connect issuer named in `[serve.jwt] issuer`,
+verified against that issuer&#x27;s published keys).
+
+Host, port, authentication, strict codes, the UI, and basemaps come from `[serve]` unless a flag beats them.
+
+Two more `[serve]` keys have no flag: `capture = false` serves the guide and receives nothing, and
+`spool_dir` says where the receipts live - the same directory `d2w fhir forward` drains.
+
+**Usage**:
+
+```console
+$ d2w fhir serve [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project directory (default: current directory).  [default: .]
+
+**Options**:
+
+* `--live`: Build the served resources from a DHIS2 instance at startup instead of reading the compiled IG off disk. The store is a snapshot of the instance the server started against, and the one client that built it stays open for the life of the process, because the register routes read the instance per request.
+* `--host <str>`: Interface to bind, overriding `[serve] host`. The default is loopback. Binding anything else while neither --auth nor `[serve] auth` states a posture is refused: who reaches this facade and who it answers are one decision.
+* `--port <int>`: Port to listen on, overriding `[serve] port` (default 8080).
+* `--auth <none|token|dhis2|jwt>`: Who this facade serves, overriding `[serve] auth`. `none` serves every caller; `token` takes a static bearer token out of D2W_FHIR_SERVE_TOKENS; `dhis2` takes the caller&#x27;s own DHIS2 credentials and checks them against the instance this run reads, which needs --live; `jwt` takes a token from the OpenID Connect issuer named in `[serve.jwt] issuer`, verified against that issuer&#x27;s published keys. Binding an interface other than loopback while neither this flag nor fhir.toml states a posture is refused.
+* `--auth-scope <write|all>`: How much of the surface the posture covers, overriding `[serve] auth_scope`. `write` asks for credentials on `POST /QuestionnaireResponse` and leaves every read open; `all` asks for them everywhere except `/metadata`, which stays open so a client can read the posture it has to meet.
+* `--strict-codes / --no-strict-codes`: Refuse a received answer whose code is outside the served terminology, overriding `[serve] strict_codes`. The default records the drift as a warning and stores the submission, because an option added to the instance since the IG was built is a fact about the instance, not a client mistake.
+* `--ui / --no-ui`: Serve the capture UI at `/` alongside the FHIR routes, overriding `[serve] ui`. The bundle is mounted around them and shadows none of them; a checkout that has never run `make ui` is refused rather than served blank.
+* `--basemap <str>`: Raster tile layer the capture UI&#x27;s organisation-unit map offers under the boundaries, overriding `[serve.basemaps]` (default: OpenStreetMap&#x27;s standard tiles). Repeat it to offer several: `Name=https://.../{z}/{x}/{y}.png`, or a bare template named after its host. The map&#x27;s layer control always carries a None entry beside them, and `--basemap none` offers nothing else - which is what an air-gapped deployment wants, the tiles being the only thing in the UI that reaches an origin other than this server.
+* `--help`: Show this message and exit.
+
+### `d2w fhir forward`
+
+Drain the capture spool into DHIS2 - translate every received response and post it.
+
+DRY RUN IS THE DEFAULT. Every payload is posted to the real instance under the endpoint&#x27;s own
+validate-only mode, so DHIS2&#x27;s rules decide the answer and nothing is written; `--import` commits.
+
+The posture comes from `[forward]` in fhir.toml - `import`, `register_completeness`,
+`overwrites`, `corrections`, and `withdrawals` - unless a flag here overrides it for this run,
+and from the defaults above when the file states none. Which spool is drained is
+`[serve] spool_dir`, the same key the server writes receipts under.
+
+`corrections` and `withdrawals` are the deployment&#x27;s posture towards a submission that names what
+it amends or retracts, and the run states them rather than acting on them: a drain imports, and
+`d2w fhir withdraw` is what reads `withdrawals`.
+
+An imported response moves from the spool&#x27;s received/ to forwarded/, a DHIS2-rejected one to
+rejected/ beside a report, and a translator-refused one stays put - fix and forward again.
+
+Every payload names its own DHIS2 object - an event&#x27;s UID is derived from the receipt&#x27;s logical id -
+so one receipt forwarded twice is refused as an object the instance holds, never imported twice.
+
+An aggregate response whose status is `completed` also registers the data set complete for the
+period, organisation unit, and attribute option combo its values landed under - a second write,
+made only after DHIS2 has taken the values. `in-progress` imports the values and registers
+nothing, and `--no-register-completeness` turns the second write off for the whole run.
+
+A value an earlier submission already sent is named in the run, with the receipt that sent it and
+when that receipt arrived. DHIS2 replaces such a value in place and counts the write exactly as it
+counts a first entry, so no import summary can say it happened; a dry run says it too, while there
+is still time to act on it. `--overwrites refuse` leaves any response holding one in the queue,
+with each covered value written down beside it, instead of posting it.
+
+A DHIS2 rejection exits 1. A dry run counts a stage event whose enrollment a registration of the
+same run creates as unverifiable rather than rejected - a dry run writes nothing, so there is no
+enrollment to check it against - and a run whose only failures are those exits 0.
+
+Outcomes land in reports/fhir-forward-report.md; `--details` prints them here instead.
+
+**Usage**:
+
+```console
+$ d2w fhir forward [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project directory (default: current directory).  [default: .]
+
+**Options**:
+
+* `--import / --dry-run`: Commit the payloads to DHIS2 and move the receipts, overriding `[forward] import`. The default is a dry run: every payload still goes to the real endpoint under its own validate-only mode, and nothing is written and nothing moves.
+* `--strict-codes / --no-strict-codes`: Refuse a coded answer whose code is outside the served terminology, overriding `[serve] strict_codes`. Lenient resolves the DHIS2 option UID and code too, and notes it.
+* `--register-completeness / --no-register-completeness`: Register the data set complete for every aggregate response whose status is `completed`, once DHIS2 has taken its values, overriding `[forward] register_completeness`. On by default - the response said it was finished.
+* `--overwrites <allow|refuse>`: What to do with an aggregate value a forwarded receipt already sent, overriding `[forward] overwrites`. `allow` - the default - posts it and names it; `refuse` leaves the whole response in the queue with the covered values written down beside it.
+* `--corrections <off|amend>`: Whether this deployment accepts a submission that names the receipt it corrects, overriding `[forward] corrections`. Off by default. Stated by the run rather than acted on by it - a drain imports, and a correction lands on the corrected receipt&#x27;s identity.
+* `--withdrawals <off|retract>`: Whether this deployment retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and read by `d2w fhir withdraw` rather than by the drain, which never deletes anything.
+* `--details`: Print every response&#x27;s outcome instead of writing them to the report.
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+### `d2w fhir spool`
+
+List the capture spool - how many receipts wait for DHIS2, and what became of the rest.
+
+Reads the project&#x27;s own .serve/responses/ directory and nothing else: no DHIS2 connection, no
+profile, no network. Which directory a receipt&#x27;s file is in is its state, and the report DHIS2&#x27;s
+answer was written into says why a drained one is where it is.
+
+A file that does not read as a receipt is moved to .serve/responses/malformed/ with its reason
+beside it and counted there, so one unreadable file costs one row rather than the listing.
+
+**Usage**:
+
+```console
+$ d2w fhir spool [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project directory (default: current directory).  [default: .]
+
+**Options**:
+
+* `--details`: List every receipt, not just how many are in each state.
+* `--help`: Show this message and exit.
+
+### `d2w fhir sync`
+
+Fill this project&#x27;s materialized projection from DHIS2 - the register, as FHIR, on disk.
+
+A projection is a durable copy of the mapped scope of a DHIS2 instance, held as the FHIR resources
+this project&#x27;s map publishes. It is what `[serve.search] backend = &quot;projection&quot;` answers a register
+search from: one indexed query instead of one tracker query per key per tracked entity type, and a
+search across every value a person holds rather than an exact match on one.
+
+The first run reads the whole mapped scope. Every run after it reads what moved since the last one,
+which on an unchanged instance is one request and 56 bytes. `--rebuild` drops the projection and
+fills it from zero, which is routine rather than a recovery step - it is how a change to
+`[serve.tracked_entities]` or to the published map reaches what is already stored.
+
+DHIS2 STAYS THE RECORD. Nothing here writes to the instance, and nothing but this command writes
+to the projection. A projection row that disagrees with DHIS2 is a defect of this command, and the
+fix for one is `--rebuild` rather than an edit.
+
+A deletion is followed. Every poll carries `includeDeleted=true`, which is not a flag here because
+its absence is silent: a sync without it never learns that anybody left. A tombstone removes the
+row rather than archiving a last state, because DHIS2 will not answer a read of a deleted entity.
+
+WHAT A SYNCED SERVER DOES NOT CHANGE. A record is still read from the instance under the
+credentials of whoever asks, so DHIS2 authorizes every disclosure exactly as it does today; the
+projection decides who is on the page. Which is why a synced answer states the instant it is as of
+and a live one does not.
+
+Where the projection lives is `[serve.projection] path`, and which store holds it is
+`[serve.projection] store` - a project that names none is refused here, naming the key.
+
+**Usage**:
+
+```console
+$ d2w fhir sync [OPTIONS] [directory]
+```
+
+**Arguments**:
+
+* `directory`: Project directory (default: current directory).  [default: .]
+
+**Options**:
+
+* `--rebuild`: Empty the projection first, then fill it from zero. How a mapping change reaches it.
+* `--dry-run`: Read the instance and count what would change, writing nothing and moving no cursor.
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+### `d2w fhir requeue`
+
+Move receipts DHIS2 refused back into the queue, so the next forward posts them again.
+
+The one reverse move the spool has, and it is a decision rather than a repair: a rejection is
+DHIS2 stating that this payload is wrong, so nothing moves it back until a person who has changed
+the instance, the guide, or their mind says so.
+
+The import report stays in rejected/ as the record of what DHIS2 last answered about the payload.
+The next drain writes a fresh one wherever the receipt lands.
+
+Needs no DHIS2 connection and no profile - it is a rename inside the project directory.
+
+**Usage**:
+
+```console
+$ d2w fhir requeue [OPTIONS] [response_ids]...
+```
+
+**Arguments**:
+
+* `response_ids...`: Receipt ids to move back into the queue.
+
+**Options**:
+
+* `--directory <directory>`: Project directory (default: current directory).  [default: .]
+* `--all-rejected`: Move every receipt DHIS2 refused back into the queue.
+* `--help`: Show this message and exit.
+
+### `d2w fhir withdraw`
+
+Retract from DHIS2 the events named forwarded receipts landed, and file each receipt as withdrawn.
+
+WITHDRAWAL IS TERMINAL. DHIS2 burns the UID of a tracker object it deletes and refuses it under
+every import strategy afterwards, so a withdrawn receipt can never be forwarded again. What
+remains in the instance is a hidden copy of the event carrying its values, which no ordinary read
+returns - not the nothing that the word &quot;deleted&quot; implies.
+
+DRY RUN IS THE DEFAULT. The delete goes to the real instance under the tracker endpoint&#x27;s own
+validate-only mode, so DHIS2 answers whether it would take it while nothing is written; `--import`
+commits.
+
+`[forward] withdrawals` gates the whole command and is off unless this project says otherwise -
+a project that publishes forms and forwards them is not thereby one that reaches back into what
+DHIS2 already holds. `--withdrawals retract` states it for one run.
+
+The receipt is never rewritten. Its file moves from forwarded/ to withdrawn/ with a sidecar
+holding what DHIS2 answered the delete, and the import report that recorded what it landed stays
+in forwarded/, because that document is still true of that import.
+
+Only a receipt in forwarded/ that landed a single event can be withdrawn, and every id is checked
+before anything is posted. `d2w data aggregate delete` and `d2w data tracker delete` are the raw
+escape hatches for the other kinds, outside the FHIR path.
+
+**Usage**:
+
+```console
+$ d2w fhir withdraw [OPTIONS] {response_ids}...
+```
+
+**Arguments**:
+
+* `response_ids...`: Forwarded receipt ids to retract from DHIS2.  [required]
+
+**Options**:
+
+* `--directory <directory>`: Project directory (default: current directory).  [default: .]
+* `--import / --dry-run`: Delete the events in DHIS2 and file the receipts under withdrawn/. The default is a dry run: the delete goes to the real endpoint under its own validate-only mode, and nothing is written and nothing moves.  [default: dry-run]
+* `--withdrawals <off|retract>`: Whether this project retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and `retract` is what this command requires.
+* `--help`: Show this message and exit.
+
+### `d2w fhir doctor`
+
+Run the whole FHIR toolchain against this profile&#x27;s instance and report what the instance breaks.
+
+Ten phases: connect, scaffold, generate, compile, validate, serve, capture, forward, oracle,
+drift. Each reports pass, warn, fail, skipped, or blocked with its reason. The first nine run in
+a throwaway workspace; drift reads the published guide the working directory sits in.
+
+The instance comes from `d2w -p &lt;name&gt;` and the ambient profile resolution, as `d2w fhir serve` does.
+
+A phase that fails never stops one that does not depend on it, and only a failure exits 1.
+
+Compiling needs a FSH compiler on the machine; without one the phase is skipped and the served
+store is built by the live builders instead, so every later phase still runs.
+
+`--live` adds the oracle: the DHIS2 objects behind a seeded sample of the served resources are
+fetched back and the instance decides whether the served output still derives from them.
+
+The drift phase asks the other question: run from a project directory, it names every
+organisation unit, option, question, and program stage the instance holds inside that project&#x27;s
+own selection that the published guide does not. Drift is a warning - the guide is out of date
+rather than broken - so it never exits 1.
+
+The run writes reports/fhir-doctor-report.md, into the workspace when one was named and into the
+working directory otherwise.
+
+**Usage**:
+
+```console
+$ d2w fhir doctor [OPTIONS]
+```
+
+**Options**:
+
+* `--workspace <directory>`: Directory to run in, kept after the run. The default is a temporary directory, removed when the run ends unless --keep says otherwise.
+* `--keep`: Keep the temporary workspace, so the generated project can be read afterwards.
+* `--all-targets`: Scaffold empty selection tables, which takes every data set, every program, and every organisation-unit level. The default is a small representative probe.
+* `--live`: Run the oracle phase: fetch the DHIS2 objects behind a sample of the served resources and let the instance judge whether each one still derives from current instance state.
+* `--samples <int range>`: How many resources per family the oracle deep-compares.  [default: 5; x&gt;=0]
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+### `d2w fhir generate`
+
+Generate the whole IG source from DHIS2 metadata, or one named target of it.
+
+Bare `d2w fhir generate` runs every target off a single pass over the instance.
+
+The foundation runs first because it reads nothing, the pages last because they narrate the rest.
+
+Notes land in reports/fhir-generate-notes.md; `--details` prints them here instead.
+
+Name a target to run that one alone; --details and --progress belong to the bare run, and the
+two hostile-name flags belong to every target under this group.
+
+**Usage**:
+
+```console
+$ d2w fhir generate [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--details`: Print every note inline instead of writing them to the notes report.
+* `--substitute-hostile-names`: Publish a DHIS2 name carrying &#x27;&lt;&#x27; in rewritten wording (&quot;5 to &lt; 15 years&quot; becomes &quot;5 to under 15 years&quot;) and a DHIS2 code carrying a space with the space hyphenated (&quot;Pre eclampsia&quot; becomes &quot;Pre-eclampsia&quot;), instead of being asked. DHIS2 is never modified, and each rewritten concept states its DHIS2 code as a `dhis2-code` property.
+* `--refuse-hostile-names`: Refuse the run over a DHIS2 name carrying &#x27;&lt;&#x27; instead of being asked, so the name is changed in DHIS2 before a build is spent on it. Every code is published byte-true.
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `foundation`: Generate the DHIS2 identifier aliases, the...
+* `option-sets`: Generate CodeSystem/ValueSet JSON from...
+* `categories`: Generate CodeSystem/ValueSet JSON from...
+* `questionnaires`: Generate Questionnaire FSH into...
+* `examples`: Generate example QuestionnaireResponses...
+* `org-units`: Generate Organization/Location FSH from...
+* `pages`: Generate the narrative site pages and the...
+* `load-set`: Write a synthetic QuestionnaireResponse...
+
+#### `d2w fhir generate foundation`
+
+Generate the DHIS2 identifier aliases, the extensions, and the capture contract into the FHIR project.
+
+**Usage**:
+
+```console
+$ d2w fhir generate foundation [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate option-sets`
+
+Generate CodeSystem/ValueSet JSON from DHIS2 option sets into the nearest FHIR project.
+
+**Usage**:
+
+```console
+$ d2w fhir generate option-sets [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate categories`
+
+Generate CodeSystem/ValueSet JSON from DHIS2 categories into the nearest FHIR project.
+
+**Usage**:
+
+```console
+$ d2w fhir generate categories [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate questionnaires`
+
+Generate Questionnaire FSH into data-sets/, event-programs/, tracker-programs/, and data-dictionary/.
+
+A data set and an event program are one Questionnaire each.
+
+A tracker program is one Questionnaire per program stage, filed under its program&#x27;s UID.
+
+A form whose DHIS2 organisation-unit assignment narrows the published registry also gets one
+List of the Locations it admits, into resources/assignments/.
+
+**Usage**:
+
+```console
+$ d2w fhir generate questionnaires [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate examples`
+
+Generate example QuestionnaireResponses for every configured data set, event program, and tracker stage.
+
+**Usage**:
+
+```console
+$ d2w fhir generate examples [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate org-units`
+
+Generate Organization/Location FSH from DHIS2 organisation units into the nearest FHIR project.
+
+**Usage**:
+
+```console
+$ d2w fhir generate org-units [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate pages`
+
+Generate the narrative site pages and the per-artifact intros into ig/input/pagecontent/.
+
+**Usage**:
+
+```console
+$ d2w fhir generate pages [OPTIONS]
+```
+
+**Options**:
+
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
+* `--help`: Show this message and exit.
+
+#### `d2w fhir generate load-set`
+
+Write a synthetic QuestionnaireResponse corpus into load/ for posting at a running `d2w fhir serve`.
+
+A load set is test data, not IG source: it lands beside `ig/` rather than inside it.
+
+The scaffold gitignores it, and `d2w fhir generate` never writes it.
+
+A corpus mints the DHIS2 identities it names, so it imports once: DHIS2 refuses a second import
+of the same corpus with E1002 and E1080 because those UIDs already exist. Pass `--salt` to mint
+a fresh corpus for a second import; the same salt reproduces the same corpus.
+
+**Usage**:
+
+```console
+$ d2w fhir generate load-set [OPTIONS]
+```
+
+**Options**:
+
+* `--per-target <int range>`: How many synthetic responses each questionnaire target contributes.  [default: 25; x&gt;=1]
+* `--salt <str>`: Mint a different corpus from the same metadata - name any string to move every drawn value.
+* `--output-dir <directory>`: Directory to write the `load/` corpus into (default: the project root).
+* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
 * `--help`: Show this message and exit.
 
 ## `d2w files`
@@ -9854,609 +10459,4 @@ $ d2w user role remove-user [OPTIONS] {role_uid} {user_uid}
 
 **Options**:
 
-* `--help`: Show this message and exit.
-
-## `d2w fhir`
-
-FHIR Implementation Guide generation from DHIS2 metadata.
-
-**Usage**:
-
-```console
-$ d2w fhir [OPTIONS] COMMAND [ARGS]...
-```
-
-**Options**:
-
-* `--help`: Show this message and exit.
-
-**Commands**:
-
-* `init`: Scaffold a dockerized SUSHI IG project...
-* `validate`: Check the instance&#x27;s codes for...
-* `check-artifacts`: Refuse the build before it begins: scan...
-* `serve`: Serve the project&#x27;s IG as a FHIR read and...
-* `forward`: Drain the capture spool into DHIS2 -...
-* `spool`: List the capture spool - how many receipts...
-* `sync`: Fill this project&#x27;s materialized...
-* `requeue`: Move receipts DHIS2 refused back into the...
-* `withdraw`: Retract from DHIS2 the events named...
-* `doctor`: Run the whole FHIR toolchain against this...
-* `generate`: Generate the whole IG source from DHIS2...
-
-### `d2w fhir init`
-
-Scaffold a dockerized SUSHI IG project with a fhir.toml for `d2w fhir generate`.
-
-**Usage**:
-
-```console
-$ d2w fhir init [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project directory (default: current directory).  [default: .]
-
-**Options**:
-
-* `--template <str>`: Scaffold from a guide already generated against a real DHIS2 instance, so the project compiles and serves without reaching one. The template supplies the identity and the selection; --id, --canonical, --name, --title, --publisher and --status win over it. `--list-templates` names what this install carries.
-* `--list-templates`: Name every template this install can scaffold from, one line each, and exit.
-* `--id <str>`: IG package id.  [default: dhis2.fhir.example]
-* `--canonical <str>`: Canonical base URL for the IG (no trailing slash).  [default: http://example.org/fhir]
-* `--name <str>`: SUSHI name (default: derived from --id).
-* `--title <str>`: IG title (default: derived from --name).
-* `--publisher <str>`: Publisher name.  [default: Example Organisation]
-* `--status <draft|active>`: IG life cycle. Drives the sushi-config status, and the status and experimental flag on every generated definitional resource.  [default: draft]
-* `--publisher-url <str>`: Publisher home page. Omit it unless you have a real site: the IG publisher links it from every generated page, and pointing it at the canonical yields one broken link per page.
-* `--profile <str>`: DHIS2 profile to seed the `profile` key of the scaffolded fhir.toml with, so `d2w fhir generate` reads that instance without a flag. Offline: the name is written as given, never resolved against profiles.toml.
-* `--sushi-timeout <int>`: Seconds the IG publisher gives its internal SUSHI run, written to `[FSH] timeout` of ig/fsh.ini. It bounds the FSH targets alone - the registry and the terminology ship as pre-built JSON - and an overrun fails the build with exit 143.  [default: 1800]
-* `--max-level <int>`: Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this is the dial that bounds how much the IG publisher renders. Offline: written as given.
-* `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
-* `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
-* `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Offline: the UID is written to fhir.toml as given, never checked against an instance.
-* `--force`: Overwrite scaffold files that already exist.
-* `--refresh`: Bring an existing project&#x27;s scaffold-managed files up to date. Identity comes from the project&#x27;s own fhir.toml, which a refresh never writes, and a file carrying a line the scaffold would not produce is left alone and reported, so your edits survive. Rejects --force.
-* `--help`: Show this message and exit.
-
-### `d2w fhir validate`
-
-Check the instance&#x27;s codes for FHIR-safety, writing md/csv/pdf reports grouped by type.
-
-Severity means build impact on the configured IG: an error aborts your build (generate refuses
-the same codes), a warning degrades an emitted resource, and an info is instance hygiene on
-objects the build never reads. Each finding carries that verdict as its scope - `selection`
-for objects the configured selection emits, `instance` for the rest.
-
-The run grades under the project&#x27;s ` hostile_names` posture, and the summary states
-which one it read. Under `substitute` a DHIS2 name carrying &#x27;&lt;&#x27; is rewritten for publication
-and the build survives it, so the finding on that name is informational and says what the guide
-publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
-an error. A DHIS2 code carrying &#x27;&lt;&#x27; is an error under either posture: the substitution rewrites
-a space in a code and never a &#x27;&lt;&#x27;.
-
-The terminal says what the state is: a summary, a count per severity, scope, and category, and
-every error by name, because an error is what gates the build and the user has to know which
-object holds it. The written report is where a warning is read one row at a time; `--details`
-puts every row on the terminal too.
-
-**Usage**:
-
-```console
-$ d2w fhir validate [OPTIONS]
-```
-
-**Options**:
-
-* `--output-dir <directory>`: Directory to write the report files into, one per format, all named fhir-validate-report (default: reports/ under the project root, else the working directory).
-* `--format <str>`: Comma-separated report formats to write: md, csv, pdf.  [default: md,csv,pdf]
-* `--code-source <id|code>`: Override `[generate]` concept_code_source for this run. In id mode the option code findings are informational; run with code to see what switching would cost.
-* `--hostile-names <refuse|substitute>`: Override `[generate]` hostile_names for this run. Under substitute a name carrying &#x27;&lt;&#x27; is rewritten for publication, so the findings on those names are graded informational; under refuse they abort the build and stay errors.
-* `--details`: List every finding individually instead of the rolled-up category counts.
-* `--fail / --no-fail`: Exit 1 when errors are found.  [default: fail]
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-### `d2w fhir check-artifacts`
-
-Refuse the build before it begins: scan the artifacts on disk for what aborts the IG publisher.
-
-`d2w fhir generate` refuses a run whose selected DHIS2 names or codes carry a `&lt;`. A build reads
-no such gate - it publishes whatever `ig/fsh-generated/` and `ig/input/` hold - so output written
-before the gate existed, output from an older pinned toolchain, and hand-authored FSH all reach
-the publisher, and cost its full run before failing in its final pass.
-
-This is that refusal applied to the files themselves, through the very predicates the generate
-gate uses. It names the file, the resource, the element, and the value, so what comes back is the
-object rather than the page the publisher happened to die on.
-
-No connection, no profile, no compile - the artifacts are the whole input, so it answers in
-seconds. Exit 1 when anything is found, which is what `make build` runs it for.
-
-**Usage**:
-
-```console
-$ d2w fhir check-artifacts [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project to scan (default: the nearest fhir.toml, walking up from the working directory).
-
-**Options**:
-
-* `--fail / --no-fail`: Exit 1 when findings are found.  [default: fail]
-* `--help`: Show this message and exit.
-
-### `d2w fhir serve`
-
-Serve the project&#x27;s IG as a FHIR read and capture facade over HTTP.
-
-Reads answer from what the IG publishes.
-
-Two APIs answer. FHIR is at the base URL and its contract is the CapabilityStatement at
-`/metadata`; this facade&#x27;s own controls - the receipts, the settings, the caller, the evaluator,
-the vocabularies, the register listings - are at `/facade`, described by the OpenAPI document at
-`/facade/openapi.json` and browsable at `/facade/docs`.
-
-Received QuestionnaireResponses are stored as receipts, so reading one back says what was submitted.
-
-`--live` builds the store from the instance at startup, as the profile `d2w -p` names.
-
-`--ui` also serves the capture UI at `/`, same-origin with the FHIR routes it reads.
-
-`--basemap` offers another tile layer on the organisation-unit map, and `--basemap none` offers none.
-
-`--auth` says who is served: `none`, `token` (D2W_FHIR_SERVE_TOKENS), `dhis2` (the caller&#x27;s own
-credentials), or `jwt` (a token from the OpenID Connect issuer named in `[serve.jwt] issuer`,
-verified against that issuer&#x27;s published keys).
-
-Host, port, authentication, strict codes, the UI, and basemaps come from `[serve]` unless a flag beats them.
-
-Two more `[serve]` keys have no flag: `capture = false` serves the guide and receives nothing, and
-`spool_dir` says where the receipts live - the same directory `d2w fhir forward` drains.
-
-**Usage**:
-
-```console
-$ d2w fhir serve [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project directory (default: current directory).  [default: .]
-
-**Options**:
-
-* `--live`: Build the served resources from a DHIS2 instance at startup instead of reading the compiled IG off disk. The store is a snapshot of the instance the server started against, and the one client that built it stays open for the life of the process, because the register routes read the instance per request.
-* `--host <str>`: Interface to bind, overriding `[serve] host`. The default is loopback. Binding anything else while neither --auth nor `[serve] auth` states a posture is refused: who reaches this facade and who it answers are one decision.
-* `--port <int>`: Port to listen on, overriding `[serve] port` (default 8080).
-* `--auth <none|token|dhis2|jwt>`: Who this facade serves, overriding `[serve] auth`. `none` serves every caller; `token` takes a static bearer token out of D2W_FHIR_SERVE_TOKENS; `dhis2` takes the caller&#x27;s own DHIS2 credentials and checks them against the instance this run reads, which needs --live; `jwt` takes a token from the OpenID Connect issuer named in `[serve.jwt] issuer`, verified against that issuer&#x27;s published keys. Binding an interface other than loopback while neither this flag nor fhir.toml states a posture is refused.
-* `--auth-scope <write|all>`: How much of the surface the posture covers, overriding `[serve] auth_scope`. `write` asks for credentials on `POST /QuestionnaireResponse` and leaves every read open; `all` asks for them everywhere except `/metadata`, which stays open so a client can read the posture it has to meet.
-* `--strict-codes / --no-strict-codes`: Refuse a received answer whose code is outside the served terminology, overriding `[serve] strict_codes`. The default records the drift as a warning and stores the submission, because an option added to the instance since the IG was built is a fact about the instance, not a client mistake.
-* `--ui / --no-ui`: Serve the capture UI at `/` alongside the FHIR routes, overriding `[serve] ui`. The bundle is mounted around them and shadows none of them; a checkout that has never run `make ui` is refused rather than served blank.
-* `--basemap <str>`: Raster tile layer the capture UI&#x27;s organisation-unit map offers under the boundaries, overriding `[serve.basemaps]` (default: OpenStreetMap&#x27;s standard tiles). Repeat it to offer several: `Name=https://.../{z}/{x}/{y}.png`, or a bare template named after its host. The map&#x27;s layer control always carries a None entry beside them, and `--basemap none` offers nothing else - which is what an air-gapped deployment wants, the tiles being the only thing in the UI that reaches an origin other than this server.
-* `--help`: Show this message and exit.
-
-### `d2w fhir forward`
-
-Drain the capture spool into DHIS2 - translate every received response and post it.
-
-DRY RUN IS THE DEFAULT. Every payload is posted to the real instance under the endpoint&#x27;s own
-validate-only mode, so DHIS2&#x27;s rules decide the answer and nothing is written; `--import` commits.
-
-The posture comes from `[forward]` in fhir.toml - `import`, `register_completeness`,
-`overwrites`, `corrections`, and `withdrawals` - unless a flag here overrides it for this run,
-and from the defaults above when the file states none. Which spool is drained is
-`[serve] spool_dir`, the same key the server writes receipts under.
-
-`corrections` and `withdrawals` are the deployment&#x27;s posture towards a submission that names what
-it amends or retracts, and the run states them rather than acting on them: a drain imports, and
-`d2w fhir withdraw` is what reads `withdrawals`.
-
-An imported response moves from the spool&#x27;s received/ to forwarded/, a DHIS2-rejected one to
-rejected/ beside a report, and a translator-refused one stays put - fix and forward again.
-
-Every payload names its own DHIS2 object - an event&#x27;s UID is derived from the receipt&#x27;s logical id -
-so one receipt forwarded twice is refused as an object the instance holds, never imported twice.
-
-An aggregate response whose status is `completed` also registers the data set complete for the
-period, organisation unit, and attribute option combo its values landed under - a second write,
-made only after DHIS2 has taken the values. `in-progress` imports the values and registers
-nothing, and `--no-register-completeness` turns the second write off for the whole run.
-
-A value an earlier submission already sent is named in the run, with the receipt that sent it and
-when that receipt arrived. DHIS2 replaces such a value in place and counts the write exactly as it
-counts a first entry, so no import summary can say it happened; a dry run says it too, while there
-is still time to act on it. `--overwrites refuse` leaves any response holding one in the queue,
-with each covered value written down beside it, instead of posting it.
-
-A DHIS2 rejection exits 1. A dry run counts a stage event whose enrollment a registration of the
-same run creates as unverifiable rather than rejected - a dry run writes nothing, so there is no
-enrollment to check it against - and a run whose only failures are those exits 0.
-
-Outcomes land in reports/fhir-forward-report.md; `--details` prints them here instead.
-
-**Usage**:
-
-```console
-$ d2w fhir forward [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project directory (default: current directory).  [default: .]
-
-**Options**:
-
-* `--import / --dry-run`: Commit the payloads to DHIS2 and move the receipts, overriding `[forward] import`. The default is a dry run: every payload still goes to the real endpoint under its own validate-only mode, and nothing is written and nothing moves.
-* `--strict-codes / --no-strict-codes`: Refuse a coded answer whose code is outside the served terminology, overriding `[serve] strict_codes`. Lenient resolves the DHIS2 option UID and code too, and notes it.
-* `--register-completeness / --no-register-completeness`: Register the data set complete for every aggregate response whose status is `completed`, once DHIS2 has taken its values, overriding `[forward] register_completeness`. On by default - the response said it was finished.
-* `--overwrites <allow|refuse>`: What to do with an aggregate value a forwarded receipt already sent, overriding `[forward] overwrites`. `allow` - the default - posts it and names it; `refuse` leaves the whole response in the queue with the covered values written down beside it.
-* `--corrections <off|amend>`: Whether this deployment accepts a submission that names the receipt it corrects, overriding `[forward] corrections`. Off by default. Stated by the run rather than acted on by it - a drain imports, and a correction lands on the corrected receipt&#x27;s identity.
-* `--withdrawals <off|retract>`: Whether this deployment retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and read by `d2w fhir withdraw` rather than by the drain, which never deletes anything.
-* `--details`: Print every response&#x27;s outcome instead of writing them to the report.
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-### `d2w fhir spool`
-
-List the capture spool - how many receipts wait for DHIS2, and what became of the rest.
-
-Reads the project&#x27;s own .serve/responses/ directory and nothing else: no DHIS2 connection, no
-profile, no network. Which directory a receipt&#x27;s file is in is its state, and the report DHIS2&#x27;s
-answer was written into says why a drained one is where it is.
-
-A file that does not read as a receipt is moved to .serve/responses/malformed/ with its reason
-beside it and counted there, so one unreadable file costs one row rather than the listing.
-
-**Usage**:
-
-```console
-$ d2w fhir spool [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project directory (default: current directory).  [default: .]
-
-**Options**:
-
-* `--details`: List every receipt, not just how many are in each state.
-* `--help`: Show this message and exit.
-
-### `d2w fhir sync`
-
-Fill this project&#x27;s materialized projection from DHIS2 - the register, as FHIR, on disk.
-
-A projection is a durable copy of the mapped scope of a DHIS2 instance, held as the FHIR resources
-this project&#x27;s map publishes. It is what `[serve.search] backend = &quot;projection&quot;` answers a register
-search from: one indexed query instead of one tracker query per key per tracked entity type, and a
-search across every value a person holds rather than an exact match on one.
-
-The first run reads the whole mapped scope. Every run after it reads what moved since the last one,
-which on an unchanged instance is one request and 56 bytes. `--rebuild` drops the projection and
-fills it from zero, which is routine rather than a recovery step - it is how a change to
-`[serve.tracked_entities]` or to the published map reaches what is already stored.
-
-DHIS2 STAYS THE RECORD. Nothing here writes to the instance, and nothing but this command writes
-to the projection. A projection row that disagrees with DHIS2 is a defect of this command, and the
-fix for one is `--rebuild` rather than an edit.
-
-A deletion is followed. Every poll carries `includeDeleted=true`, which is not a flag here because
-its absence is silent: a sync without it never learns that anybody left. A tombstone removes the
-row rather than archiving a last state, because DHIS2 will not answer a read of a deleted entity.
-
-WHAT A SYNCED SERVER DOES NOT CHANGE. A record is still read from the instance under the
-credentials of whoever asks, so DHIS2 authorizes every disclosure exactly as it does today; the
-projection decides who is on the page. Which is why a synced answer states the instant it is as of
-and a live one does not.
-
-Where the projection lives is `[serve.projection] path`, and which store holds it is
-`[serve.projection] store` - a project that names none is refused here, naming the key.
-
-**Usage**:
-
-```console
-$ d2w fhir sync [OPTIONS] [directory]
-```
-
-**Arguments**:
-
-* `directory`: Project directory (default: current directory).  [default: .]
-
-**Options**:
-
-* `--rebuild`: Empty the projection first, then fill it from zero. How a mapping change reaches it.
-* `--dry-run`: Read the instance and count what would change, writing nothing and moving no cursor.
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-### `d2w fhir requeue`
-
-Move receipts DHIS2 refused back into the queue, so the next forward posts them again.
-
-The one reverse move the spool has, and it is a decision rather than a repair: a rejection is
-DHIS2 stating that this payload is wrong, so nothing moves it back until a person who has changed
-the instance, the guide, or their mind says so.
-
-The import report stays in rejected/ as the record of what DHIS2 last answered about the payload.
-The next drain writes a fresh one wherever the receipt lands.
-
-Needs no DHIS2 connection and no profile - it is a rename inside the project directory.
-
-**Usage**:
-
-```console
-$ d2w fhir requeue [OPTIONS] [response_ids]...
-```
-
-**Arguments**:
-
-* `response_ids...`: Receipt ids to move back into the queue.
-
-**Options**:
-
-* `--directory <directory>`: Project directory (default: current directory).  [default: .]
-* `--all-rejected`: Move every receipt DHIS2 refused back into the queue.
-* `--help`: Show this message and exit.
-
-### `d2w fhir withdraw`
-
-Retract from DHIS2 the events named forwarded receipts landed, and file each receipt as withdrawn.
-
-WITHDRAWAL IS TERMINAL. DHIS2 burns the UID of a tracker object it deletes and refuses it under
-every import strategy afterwards, so a withdrawn receipt can never be forwarded again. What
-remains in the instance is a hidden copy of the event carrying its values, which no ordinary read
-returns - not the nothing that the word &quot;deleted&quot; implies.
-
-DRY RUN IS THE DEFAULT. The delete goes to the real instance under the tracker endpoint&#x27;s own
-validate-only mode, so DHIS2 answers whether it would take it while nothing is written; `--import`
-commits.
-
-`[forward] withdrawals` gates the whole command and is off unless this project says otherwise -
-a project that publishes forms and forwards them is not thereby one that reaches back into what
-DHIS2 already holds. `--withdrawals retract` states it for one run.
-
-The receipt is never rewritten. Its file moves from forwarded/ to withdrawn/ with a sidecar
-holding what DHIS2 answered the delete, and the import report that recorded what it landed stays
-in forwarded/, because that document is still true of that import.
-
-Only a receipt in forwarded/ that landed a single event can be withdrawn, and every id is checked
-before anything is posted. `d2w data aggregate delete` and `d2w data tracker delete` are the raw
-escape hatches for the other kinds, outside the FHIR path.
-
-**Usage**:
-
-```console
-$ d2w fhir withdraw [OPTIONS] {response_ids}...
-```
-
-**Arguments**:
-
-* `response_ids...`: Forwarded receipt ids to retract from DHIS2.  [required]
-
-**Options**:
-
-* `--directory <directory>`: Project directory (default: current directory).  [default: .]
-* `--import / --dry-run`: Delete the events in DHIS2 and file the receipts under withdrawn/. The default is a dry run: the delete goes to the real endpoint under its own validate-only mode, and nothing is written and nothing moves.  [default: dry-run]
-* `--withdrawals <off|retract>`: Whether this project retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and `retract` is what this command requires.
-* `--help`: Show this message and exit.
-
-### `d2w fhir doctor`
-
-Run the whole FHIR toolchain against this profile&#x27;s instance and report what the instance breaks.
-
-Ten phases: connect, scaffold, generate, compile, validate, serve, capture, forward, oracle,
-drift. Each reports pass, warn, fail, skipped, or blocked with its reason. The first nine run in
-a throwaway workspace; drift reads the published guide the working directory sits in.
-
-The instance comes from `d2w -p &lt;name&gt;` and the ambient profile resolution, as `d2w fhir serve` does.
-
-A phase that fails never stops one that does not depend on it, and only a failure exits 1.
-
-Compiling needs a FSH compiler on the machine; without one the phase is skipped and the served
-store is built by the live builders instead, so every later phase still runs.
-
-`--live` adds the oracle: the DHIS2 objects behind a seeded sample of the served resources are
-fetched back and the instance decides whether the served output still derives from them.
-
-The drift phase asks the other question: run from a project directory, it names every
-organisation unit, option, question, and program stage the instance holds inside that project&#x27;s
-own selection that the published guide does not. Drift is a warning - the guide is out of date
-rather than broken - so it never exits 1.
-
-The run writes reports/fhir-doctor-report.md, into the workspace when one was named and into the
-working directory otherwise.
-
-**Usage**:
-
-```console
-$ d2w fhir doctor [OPTIONS]
-```
-
-**Options**:
-
-* `--workspace <directory>`: Directory to run in, kept after the run. The default is a temporary directory, removed when the run ends unless --keep says otherwise.
-* `--keep`: Keep the temporary workspace, so the generated project can be read afterwards.
-* `--all-targets`: Scaffold empty selection tables, which takes every data set, every program, and every organisation-unit level. The default is a small representative probe.
-* `--live`: Run the oracle phase: fetch the DHIS2 objects behind a sample of the served resources and let the instance judge whether each one still derives from current instance state.
-* `--samples <int range>`: How many resources per family the oracle deep-compares.  [default: 5; x&gt;=0]
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-### `d2w fhir generate`
-
-Generate the whole IG source from DHIS2 metadata, or one named target of it.
-
-Bare `d2w fhir generate` runs every target off a single pass over the instance.
-
-The foundation runs first because it reads nothing, the pages last because they narrate the rest.
-
-Notes land in reports/fhir-generate-notes.md; `--details` prints them here instead.
-
-Name a target to run that one alone; --details and --progress belong to the bare run, and the
-two hostile-name flags belong to every target under this group.
-
-**Usage**:
-
-```console
-$ d2w fhir generate [OPTIONS] COMMAND [ARGS]...
-```
-
-**Options**:
-
-* `--details`: Print every note inline instead of writing them to the notes report.
-* `--substitute-hostile-names`: Publish a DHIS2 name carrying &#x27;&lt;&#x27; in rewritten wording (&quot;5 to &lt; 15 years&quot; becomes &quot;5 to under 15 years&quot;) and a DHIS2 code carrying a space with the space hyphenated (&quot;Pre eclampsia&quot; becomes &quot;Pre-eclampsia&quot;), instead of being asked. DHIS2 is never modified, and each rewritten concept states its DHIS2 code as a `dhis2-code` property.
-* `--refuse-hostile-names`: Refuse the run over a DHIS2 name carrying &#x27;&lt;&#x27; instead of being asked, so the name is changed in DHIS2 before a build is spent on it. Every code is published byte-true.
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-**Commands**:
-
-* `foundation`: Generate the DHIS2 identifier aliases, the...
-* `option-sets`: Generate CodeSystem/ValueSet JSON from...
-* `categories`: Generate CodeSystem/ValueSet JSON from...
-* `questionnaires`: Generate Questionnaire FSH into...
-* `examples`: Generate example QuestionnaireResponses...
-* `org-units`: Generate Organization/Location FSH from...
-* `pages`: Generate the narrative site pages and the...
-* `load-set`: Write a synthetic QuestionnaireResponse...
-
-#### `d2w fhir generate foundation`
-
-Generate the DHIS2 identifier aliases, the extensions, and the capture contract into the FHIR project.
-
-**Usage**:
-
-```console
-$ d2w fhir generate foundation [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate option-sets`
-
-Generate CodeSystem/ValueSet JSON from DHIS2 option sets into the nearest FHIR project.
-
-**Usage**:
-
-```console
-$ d2w fhir generate option-sets [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate categories`
-
-Generate CodeSystem/ValueSet JSON from DHIS2 categories into the nearest FHIR project.
-
-**Usage**:
-
-```console
-$ d2w fhir generate categories [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate questionnaires`
-
-Generate Questionnaire FSH into data-sets/, event-programs/, tracker-programs/, and data-dictionary/.
-
-A data set and an event program are one Questionnaire each.
-
-A tracker program is one Questionnaire per program stage, filed under its program&#x27;s UID.
-
-A form whose DHIS2 organisation-unit assignment narrows the published registry also gets one
-List of the Locations it admits, into resources/assignments/.
-
-**Usage**:
-
-```console
-$ d2w fhir generate questionnaires [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate examples`
-
-Generate example QuestionnaireResponses for every configured data set, event program, and tracker stage.
-
-**Usage**:
-
-```console
-$ d2w fhir generate examples [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate org-units`
-
-Generate Organization/Location FSH from DHIS2 organisation units into the nearest FHIR project.
-
-**Usage**:
-
-```console
-$ d2w fhir generate org-units [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate pages`
-
-Generate the narrative site pages and the per-artifact intros into ig/input/pagecontent/.
-
-**Usage**:
-
-```console
-$ d2w fhir generate pages [OPTIONS]
-```
-
-**Options**:
-
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
-* `--help`: Show this message and exit.
-
-#### `d2w fhir generate load-set`
-
-Write a synthetic QuestionnaireResponse corpus into load/ for posting at a running `d2w fhir serve`.
-
-A load set is test data, not IG source: it lands beside `ig/` rather than inside it.
-
-The scaffold gitignores it, and `d2w fhir generate` never writes it.
-
-A corpus mints the DHIS2 identities it names, so it imports once: DHIS2 refuses a second import
-of the same corpus with E1002 and E1080 because those UIDs already exist. Pass `--salt` to mint
-a fresh corpus for a second import; the same salt reproduces the same corpus.
-
-**Usage**:
-
-```console
-$ d2w fhir generate load-set [OPTIONS]
-```
-
-**Options**:
-
-* `--per-target <int range>`: How many synthetic responses each questionnaire target contributes.  [default: 25; x&gt;=1]
-* `--salt <str>`: Mint a different corpus from the same metadata - name any string to move every drawn value.
-* `--output-dir <directory>`: Directory to write the `load/` corpus into (default: the project root).
-* `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
 * `--help`: Show this message and exit.

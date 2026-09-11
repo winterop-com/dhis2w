@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _SystemPlugin(BaseModel):
+class _SystemPlugin:
     """Plugin descriptor for the system capability."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "system"
-    description: str = "DHIS2 system info and current-user access."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount the system sub-app under `d2w system`."""
-        from dhis2w_core.v42.plugins.system import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `whoami` and `system_info` as MCP tools."""
-        from dhis2w_core.v42.plugins.system import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w system` and the `whoami` / `system_info` MCP tools."""
+        return Contribution(
+            name="system",
+            description="DHIS2 system info and current-user access.",
+            cli_module="dhis2w_core.v42.plugins.system.cli",
+            mcp_module="dhis2w_core.v42.plugins.system.mcp",
+        )
 
 
 plugin = _SystemPlugin()

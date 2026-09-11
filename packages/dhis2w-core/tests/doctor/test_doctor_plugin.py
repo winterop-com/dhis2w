@@ -269,8 +269,9 @@ def _mock_integrity(summary: dict[str, object] | None) -> None:
 
 def test_plugin_descriptor() -> None:
     """Plugin registers under the right name + has a description."""
-    assert plugin.name == "doctor"
-    assert "probe" in plugin.description.lower() or "check" in plugin.description.lower()
+    contribution = plugin.contribute("v42")
+    assert contribution.name == "doctor"
+    assert "probe" in contribution.description.lower() or "check" in contribution.description.lower()
 
 
 @respx.mock

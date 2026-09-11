@@ -5,7 +5,7 @@ document, the emitters that turn DHIS2 metadata into an Implementation Guide - F
 definitional artifacts, pre-built R4 JSON for the organisation-unit registry, the
 option-set terminology, and the category terminology - and the DHIS2 period grammar they
 share. It mounts onto the CLI
-and the MCP server through the `dhis2.plugins` entry point, and every component symbol
+through the `dhis2w.plugins.v1` entry point, and every component symbol
 re-exports from the top-level package, so
 `from dhis2w_fhir import GenerateConfig, parse_period` keeps working however
 the components are arranged internally. The R4 resource models are the one exception: they

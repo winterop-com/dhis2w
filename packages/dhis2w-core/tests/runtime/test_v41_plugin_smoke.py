@@ -1,14 +1,14 @@
-"""Smoke matrix for the v41 plugin tree — discover + import-time correctness.
+"""Smoke matrix for the v41 plugin tree — host loading + import-time correctness.
 
-Verifies every plugin under `dhis2w_core.v41.plugins.*` registers cleanly
-when picked up by `discover_plugins("v41")`. Catches import-time failures
+Verifies every plugin under `dhis2w_core.v41.plugins.*` contributes cleanly
+when picked up by `load_plugin_host("v41")`. Catches import-time failures
 that would otherwise only surface when a v41-stack CLI/MCP user invokes
 a specific plugin. Pairs with `test_v43_plugin_smoke.py`.
 """
 
 from __future__ import annotations
 
-from dhis2w_core.plugin import Plugin, discover_plugins
+from dhis2w_core.plugin import load_plugin_host
 
 EXPECTED_PLUGINS = {
     "analytics",
@@ -32,27 +32,26 @@ EXPECTED_PLUGINS = {
 }
 
 
-def test_v41_plugin_discovery_returns_full_set() -> None:
-    """v41 plugin discovery returns full set."""
-    plugins = discover_plugins("v41")
-    names = {p.name for p in plugins}
-    assert names >= EXPECTED_PLUGINS
+def test_v41_host_returns_full_set() -> None:
+    """v41 host loading returns full set."""
+    host = load_plugin_host("v41")
+    assert set(host.names) >= EXPECTED_PLUGINS
+    assert host.failures == ()
 
 
-def test_v41_every_plugin_conforms_to_protocol() -> None:
-    """v41 every plugin conforms to protocol."""
-    for plugin in discover_plugins("v41"):
-        assert isinstance(plugin, Plugin)
-        assert plugin.name
-        assert plugin.description
-        assert callable(plugin.register_cli)
-        assert callable(plugin.register_mcp)
+def test_v41_every_contribution_is_complete() -> None:
+    """v41 every contribution carries a name, a description, and at least one surface."""
+    for contribution in load_plugin_host("v41").contributions:
+        assert contribution.name
+        assert contribution.description
+        assert contribution.cli_module is not None or contribution.mcp_module is not None
 
 
 def test_v41_system_plugin_is_v41_bound() -> None:
     """v41 system plugin is v41 bound."""
-    plugins = {p.name: p for p in discover_plugins("v41")}
-    system = plugins["system"]
-    # The plugin's class lives under dhis2w_core.v41.plugins.system, confirming
+    system = load_plugin_host("v41").get("system")
+    assert system is not None
+    # The named modules live under dhis2w_core.v41.plugins.system, confirming
     # we got the v41 tree (and not v42 by accident).
-    assert "v41" in type(system).__module__
+    assert system.cli_module == "dhis2w_core.v41.plugins.system.cli"
+    assert system.mcp_module == "dhis2w_core.v41.plugins.system.mcp"

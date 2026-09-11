@@ -22,8 +22,8 @@ server, so `pip install dhis2w-cli` stays light and
 `LookupError` naming both install routes. The arrow points serve -> fhir, never
 back.
 
-The plugin mounts through the `dhis2.plugins` entry point - the same mechanism
-third-party plugins use - and is version-neutral: the wire client auto-detects
+The plugin mounts through the `dhis2w.plugins.v1` entry point - the same pluginkit
+mechanism third-party packs use - and is version-neutral: the wire client auto-detects
 the DHIS2 major on connect, so one package serves v41/v42/v43 with no
 per-version trees.
 

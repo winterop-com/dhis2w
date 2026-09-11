@@ -44,8 +44,9 @@ def _mock_preamble() -> None:
 
 def test_plugin_descriptor() -> None:
     """Plugin registers under the expected name + has a description."""
-    assert plugin.name == "files"
-    assert "document" in plugin.description.lower() or "file" in plugin.description.lower()
+    contribution = plugin.contribute("v43")
+    assert contribution.name == "files"
+    assert "document" in contribution.description.lower() or "file" in contribution.description.lower()
 
 
 def test_cli_help_lists_documents_and_resources() -> None:

@@ -2,30 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _RoutePlugin(BaseModel):
+class _RoutePlugin:
     """Plugin descriptor for the DHIS2 Route API."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "route"
-    description: str = "DHIS2 Route API — register + run integration routes (proxies to external services)."
-
-    def register_cli(self, app: Any) -> None:
-        """Mount under `d2w route`."""
-        from dhis2w_core.v41.plugins.route import cli as cli_module
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """Register `route_*` tools on the MCP server."""
-        from dhis2w_core.v41.plugins.route import mcp as mcp_module
-
-        mcp_module.register(mcp)
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w route` and the `route_*` MCP tools."""
+        return Contribution(
+            name="route",
+            description="DHIS2 Route API — register + run integration routes (proxies to external services).",
+            cli_module="dhis2w_core.v41.plugins.route.cli",
+            mcp_module="dhis2w_core.v41.plugins.route.mcp",
+        )
 
 
 plugin = _RoutePlugin()

@@ -75,7 +75,7 @@ The four-PR typing sweep (#71-#74) plus the codegen discriminator synthesis (#76
 - `--json` opt-in on every write command; concise one-line summary by default
 - Typed `Dhis2ApiError.web_message` parses the envelope on 4xx so the CLI surfaces `conflicts[]` / `importCount` / `rejectedIndexes[]` detail
 - Client-side UID generation (`generate_uid`, `generate_uids`); no `/api/system/id` round-trip
-- External plugin loading via `importlib.metadata.entry_points(group="dhis2.plugins")` — see `examples/plugin-external/` for a minimal runnable reference
+- External plugin loading on pluginkit, through the `dhis2w.plugins.v1` entry-point group — see `examples/plugin-external/` for a minimal runnable reference
 - **Retry policy** with exponential backoff + jitter + `Retry-After` header honouring. Idempotent-only by default; opt in for POST/PATCH per policy. Threads through `Dhis2Client(retry_policy=...)` and `open_client(profile, retry_policy=...)`.
 - **Library-level task awaiter** — `client.tasks.await_completion(task_ref)` blocks until DHIS2 reports `completed=True`; `iter_notifications` for streaming renderers.
 - **Connection-pool tuning** — `Dhis2Client(http_limits=httpx2.Limits(...))` / `open_client(profile, http_limits=...)` for sizing against the real DHIS2 capacity.
@@ -292,7 +292,7 @@ The workspace carries every domain for every install and about 18,000 tests acro
 
 - `dhis2w-client` and `dhis2w-core` stay central; every other domain becomes a plugin that installs on its own.
 - A `dhis2w-integration` project, like `dirigent-integration`, holds the benchmarks (today `dhis2w-bench`) and the tests that run across several plugins at once, so cross-plugin behaviour has one home.
-- Planning starts from dirigent's `CLAUDE.md` and its `dirigent-plugin` package, not from a registry or entry-point scheme of our own.
+- The seam exists: `dhis2w_core.plugin` is a pluginkit host, every plugin answers the `contribute` extension point with a `Contribution`, and a pack registers through the `dhis2w.plugins.v1` entry-point group. What remains is the security pack in its own repository and the `dhis2w-integration` project.
 - `dhis2w` is the name. The host is `dhis2w-core`, a pack is `dhis2w-<domain>` (`dhis2w-fhir`, `dhis2w-security`), a new pack repository is named the same way, and nothing is called `dhis2w-<anything>`; the repository itself follows when the split is done.
 
 The two options below stay open behind it.
@@ -336,19 +336,16 @@ Niche but valuable for compliance + forensics use cases.
   - **`make lint` mypy/pyright are non-incremental** — add mypy `incremental = true` (and optionally `dmypy`) for 3-10× faster local re-lints (CI cold-cache unaffected).
   - **CI e2e installs Playwright Chromium on every matrix leg** — cache `~/.cache/ms-playwright` across the v41/v42/v43 legs (~2-6 min/run).
 - **Property-based testing on filter / order DSL parsing.**
-- **Plugin machinery on `pluginkit`.** The plugin surface today is homegrown twice
-  over: the CLI/MCP trees discover plugins by iterating `dhis2w_core.v{N}.plugins.*`,
-  and external plugins register through the bare `dhis2.plugins` entry-point group
-  with no typed contract on what a plugin provides.
-  [`pluginkit`](https://github.com/winterop-com/pluginkit/) (in-house, on PyPI,
+- **Plugin machinery on `pluginkit` - shipped.** `dhis2w_core.plugin` is a
+  [`pluginkit`](https://github.com/winterop-com/pluginkit/) host (in-house, on PyPI,
   zero runtime dependencies, strictly typed extension points with sync/async
-  dispatch) is the replacement: hook specs for the real extension seams - mount a
-  CLI sub-app, register MCP tools, contribute an auth provider, contribute a FHIR
-  capability - so a plugin's obligations are a type-checked contract rather than a
-  naming convention, and a plugin living in another repository registers exactly
-  like one living here. Adopting it inside the workspace first, behind the existing
-  discovery so nothing user-visible changes, is the proving step the repository
-  split below depends on.
+  dispatch). One collecting extension point, `contribute(version_key) -> Contribution`,
+  is what every built-in plugin and every pack answers, and a pack registers through
+  the `dhis2w.plugins.v1` entry-point group - the contract version in the group name,
+  so an incompatible contract ships as a new group. A plugin living in another
+  repository registers exactly like one living here, which is what the repository
+  split below depends on. The next extension seams - contribute an auth provider,
+  contribute a FHIR capability - are new extension points beside `contribute`.
 - **Split the workspace into multiple repositories.** Twelve members, one lock,
   one CI, one release train - the single repository is getting out of hand, and
   the seams the members already draw are the candidate cut lines: the client

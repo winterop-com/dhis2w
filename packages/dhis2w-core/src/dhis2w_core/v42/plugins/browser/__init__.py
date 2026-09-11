@@ -8,34 +8,24 @@ Mounts `d2w browser ...` subcommands only when the optional
 
 from __future__ import annotations
 
-from importlib.util import find_spec
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict
+from dhis2w_core.plugin import Contribution, extension
 
 
-class _BrowserPlugin(BaseModel):
+class _BrowserPlugin:
     """Plugin descriptor for Playwright-driven DHIS2 UI automation."""
 
-    model_config = ConfigDict(frozen=True)
-
-    name: str = "browser"
-    description: str = (
-        "Playwright-driven DHIS2 UI automation. Mounts `d2w browser ...` "
-        "for workflows DHIS2 only exposes through the web UI (PAT minting "
-        "today; dashboard screenshots + maintenance-app driving planned)."
-    )
-
-    def register_cli(self, app: Any) -> None:
-        """Mount `d2w browser` on the root CLI if the browser extra is installed."""
-        if find_spec("dhis2w_browser") is None:
-            return
-        from dhis2w_core.v42.plugins.browser import cli as cli_module  # noqa: PLC0415 — optional-extra guard
-
-        cli_module.register(app)
-
-    def register_mcp(self, mcp: Any) -> None:
-        """No MCP tools yet — Playwright flows are CLI-only for now."""
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w browser`; the Playwright flows are CLI-only."""
+        return Contribution(
+            name="browser",
+            description=(
+                "Playwright-driven DHIS2 UI automation. Mounts `d2w browser ...` for workflows DHIS2 only exposes "
+                "through the web UI (PAT minting today; dashboard screenshots + maintenance-app driving planned)."
+            ),
+            cli_module="dhis2w_core.v42.plugins.browser.cli",
+            mcp_module=None,
+        )
 
 
 plugin = _BrowserPlugin()

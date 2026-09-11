@@ -10,18 +10,21 @@ from unittest.mock import patch
 import pytest
 import typer
 from dhis2w_client import CustomizationResult, LoginCustomization
-from dhis2w_core.v43.plugins.customize import plugin, service
+from dhis2w_core.plugin import load_plugin_host
+from dhis2w_core.v43.plugins.customize import service
 from dhis2w_core.v43.plugins.customize.cli import app as customize_app
 from typer.testing import CliRunner
 
 _runner = CliRunner()
 
 
-def test_register_cli_mounts_customize_top_level() -> None:
-    """register_cli mounts the customize sub-app at the root (`d2w customize`), not under dev."""
-    assert plugin.name == "customize"
+def test_contribution_mounts_customize_top_level() -> None:
+    """The contribution mounts the customize sub-app at the root (`d2w customize`), not under dev."""
+    contribution = load_plugin_host("v43").get("customize")
+    assert contribution is not None
+    assert contribution.cli_module == "dhis2w_core.v43.plugins.customize.cli"
     root = typer.Typer()
-    plugin.register_cli(root)
+    contribution.mount_cli(root)
     result = _runner.invoke(root, ["customize", "--help"])
     assert result.exit_code == 0, result.output
     assert "logo-front" in result.output

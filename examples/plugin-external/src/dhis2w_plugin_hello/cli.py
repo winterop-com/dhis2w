@@ -8,7 +8,7 @@ from typing import Annotated, Any
 import typer
 from dhis2w_core.profile import profile_from_env
 
-from dhis2_plugin_hello import service
+from dhis2w_plugin_hello import service
 
 app = typer.Typer(help="External plugin example — greet the authenticated DHIS2 user.", no_args_is_help=True)
 

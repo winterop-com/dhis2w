@@ -238,7 +238,7 @@ d2w --help
 # → 18 top-level domains on a fresh install:
 #   analytics, apps, browser, data, dev, doctor, files, maintenance, messaging,
 #   metadata, profile, route, schema, security, system, user, user-group, user-role
-# Plus any external plugins registered via entry_points (group="dhis2.plugins").
+# Plus any external plugin packs registered under the dhis2w.plugins.v1 entry-point group.
 
 # system — auth + version probe
 d2w system whoami

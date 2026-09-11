@@ -55,7 +55,7 @@ models and ship no templates.
 | Module | Purpose |
 | --- | --- |
 | `__init__.py` | The one stable import surface: re-exports every component symbol with an explicit `__all__`. |
-| `plugin.py` | The `dhis2.plugins` entry-point descriptor - `register_cli` mounts `d2w fhir`; the surface is CLI-only, so `register_mcp` registers nothing. |
+| `plugin.py` | The `dhis2w.plugins.v1` entry-point object - its `contribute` extension returns a `Contribution` naming `dhis2w_fhir.cli`; the surface is CLI-only, so it names no MCP module. |
 | `cli.py` | The Typer sub-app: `init` (including its `--refresh` mode), the bare `generate` and its seven named targets plus `generate load-set`, `validate`, and `serve` - the last guarding its `dhis2w_fhir_serve` import so an install without the `serve` extra gets an install instruction rather than an `ImportError`. |
 | `service.py` | Orchestration: profile resolution, every DHIS2 fetch, the wire-to-projection mapping, geometry, and `GenerateReport` / `GenerateFullReport` / `LoadSetReport`. `fetch_live_ig_inputs` is the one cohesive fetch both `generate_full` and a live server run, and `generate_load_set` the volume twin of `generate_examples`. |
 | `config.py` | The `fhir.toml` document (`IgConfig`, `NamingConfig`, `GenerateConfig`, `FhirProjectConfig`, `FhirProject`) plus discovery, load, and save. |
@@ -203,8 +203,9 @@ with a default `GenerateConfig()`. The instance is the target, not the project.
 
 ### 2.3 There is no MCP surface
 
-The plugin registers nothing on the MCP server: `register_mcp` is the method a
-CLI-only plugin has to carry, and it registers no tools.
+The plugin registers nothing on the MCP server: its `Contribution` names a
+`cli_module` and leaves `mcp_module` unset, which is how a CLI-only plugin is
+spelled.
 
 Most of the surface could never have been tools. Every generate target, `init`,
 and `doctor` write a file tree onto whatever machine the MCP server happens to
