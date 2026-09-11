@@ -68,7 +68,7 @@ The CLI (`d2w ...`) and MCP server (`dhis2w-mcp`) pick a single plugin tree at b
 
 1. **`profile.version`** — if the active profile carries `version = "v41" | "v42" | "v43"` in `profiles.toml`, that tree is loaded.
 2. **`DHIS2_VERSION` env var** — the vXX key (`v41` / `v42` / `v43`). Lets `make verify-examples DHIS2_VERSION=v43` exercise the v43 plugin tree against a v43 stack without hand-editing every profile. A bare digit (`43`) is not accepted.
-3. **Default `v42`** — the canonical baseline.
+3. **Default `v42`** — the tree whose top-level `dhis2w_client.Dhis2Client` auto-dispatches accessors per server version, so an unpinned profile works against any supported major. v43 is the canonical baseline for new code; the default moves there once the v43 entry point dispatches the same way.
 
 This selection is independent of the wire client's actual version detection (`Dhis2Client.connect()` — see below). A profile pinned to v43 plugin tree against a v42 stack would load v43-specific plugin overrides + the v42 wire client; runtime dispatch swaps accessors after `connect()` so the wire chain remains correct regardless.
 

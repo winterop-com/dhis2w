@@ -313,6 +313,21 @@ BUGS.md #15 (undiscriminated `JobConfiguration.jobParameters` + `WebMessage.resp
 
 ## Strategic options (pick one before the next cycle)
 
+### Chosen for the next cycle: a small core plus pluginkit plugins
+
+**Step zero, before any pluginkit work: rename the repository from `dhis2w-utils` to `dhis2w`.** `dhis2w` is the name; the packages already carry it. The rename touches: the GitHub repository (redirects keep old clones working, but every checkout's `origin` and the `gh` defaults should move), the PyPI Trusted Publishers of all eleven projects (each is keyed on owner and repository name and has to be re-registered as `winterop-com/dhis2w` before the next tag publishes), `mkdocs.yml`'s `site_url` and the GitHub Pages address, the README badges and links, every `github.com/winterop-com/dhis2w-utils` link in `docs/`, `BUGS.md` and the release notes, the workflow files, and the CLAUDE.md sentence that names the workspace. A short PR, one weekend, done before the seam lands so nothing pluginkit-shaped is ever named `dhis2w-utils`.
+
+The workspace carries every domain for every install and about 18,000 tests across thirteen members, while usage concentrates in `dhis2w-client` and `dhis2w-core`. The next big piece of work splits it the way `dirigent` is built: a small core with extension points on [`pluginkit`](https://pypi.org/project/pluginkit/) (strictly typed, generics-first, `ExtensionPoint` / `Extension` / `PluginManager`, entry-point discovery, no runtime dependencies), with FHIR, security, MCP and similar domains as plugins.
+
+- `dhis2w-client` and `dhis2w-core` stay central; every other domain becomes a plugin that installs on its own.
+- A `dhis2w-integration` project, like `dirigent-integration`, holds the benchmarks (today `dhis2w-bench`) and the tests that run across several plugins at once, so cross-plugin behaviour has one home.
+- The baseline switch finishes here too: the version-neutral packages (`dhis2w-fhir`, `dhis2w-fhir-serve`, `dhis2w_core.security_core`) still import their generated models from `dhis2w_client.generated.v42.*`; they move to the v43 tree, which is the canonical baseline.
+- Planning starts from dirigent's `CLAUDE.md` and its `dirigent-plugin` package, not from a registry or entry-point scheme of our own.
+- `dhis2w` is the name. The host is `dhis2w-core`, a pack is `dhis2w-<domain>` (`dhis2w-fhir`, `dhis2w-security`), a new pack repository is named the same way, and nothing is called `dhis2w-utils-<anything>`; the repository itself follows when the split is done.
+- The startup plugin tree defaults to v42 because `dhis2w_client.v42.client.Dhis2Client.connect()` calls `dhis2w_client._dispatch.rebind_accessors_for_version` and so serves any supported major from an unpinned profile, while the v41 and v43 clients raise on a server of another major. Give the v43 `connect()` the same rebind, point the top-level `dhis2w_client.Dhis2Client` at v43, then move `DEFAULT_VERSION_KEY` to v43 so the default matches the baseline. About a day with the divergence tests.
+
+The two options below stay open behind it.
+
 Two independent directions — the right order depends on where the pain is. Each would be a multi-PR body of work.
 
 ### 1. Data approval workflow plugin
