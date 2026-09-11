@@ -24,7 +24,7 @@ The FHIR plugin keeps its own plan: roadmap, settled and open decisions, review 
 
 ### CLI surface
 
-Twenty-one top-level domains: `analytics`, `apps`, `browser`, `customize`, `data`, `datastore`, `dev`, `doctor`, `files`, `maintenance`, `messaging`, `metadata`, `profile`, `query`, `route`, `schema`, `security`, `system`, `user`, `user-group`, `user-role`. Each plugin shares a `service.py` between the CLI and MCP sides; the same typed call from both surfaces.
+Twenty top-level domains: `analytics`, `apps`, `browser`, `customize`, `data`, `datastore`, `dev`, `doctor`, `files`, `maintenance`, `messaging`, `metadata`, `profile`, `query`, `route`, `schema`, `system`, `user`, `user-group`, `user-role`. A plugin pack adds its own — [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) adds `d2w security`. Each plugin shares a `service.py` between the CLI and MCP sides; the same typed call from both surfaces.
 
 `d2w metadata` has the full workflow surface:
 
@@ -37,7 +37,7 @@ Twenty-one top-level domains: `analytics`, `apps`, `browser`, `customize`, `data
 
 ### MCP surface
 
-Roughly 318 tools across 15 plugin groups (`analytics_*`, `apps_*`, `customize_*`, `data_*`, `datastore_*`, `doctor_*`, `files_*`, `maintenance_*`, `messaging_*`, `metadata_*` (~197), `profile_*`, `route_*`, `security_*`, `system_*`, `user_*`). Counts age with each release; the auto-regenerated [MCP reference](mcp-reference.md) is the source of truth. Most operational CLI commands have a matching MCP tool; `d2w dev`, `d2w browser`, and profile mutations are intentionally CLI-only (see the [capability matrix](index.md#capability-matrix)).
+Roughly 315 tools across 14 plugin groups (`analytics_*`, `apps_*`, `customize_*`, `data_*`, `datastore_*`, `doctor_*`, `files_*`, `maintenance_*`, `messaging_*`, `metadata_*` (~197), `profile_*`, `route_*`, `system_*`, `user_*`), plus whatever a plugin pack registers. Counts age with each release; the auto-regenerated [MCP reference](mcp-reference.md) is the source of truth. Most operational CLI commands have a matching MCP tool; `d2w dev`, `d2w browser`, and profile mutations are intentionally CLI-only (see the [capability matrix](index.md#capability-matrix)).
 
 There are **three MCP surfaces** over this tool set — the full server, the single-tool bridge, and the search+dispatch router. The [MCP surfaces map](architecture/mcp-surfaces.md) compares them and explains how to choose; all three carry a `*_READONLY` guard.
 
@@ -104,7 +104,7 @@ Public distribution is now active — every workspace member (except `dhis2w-cod
 
 ### Docs
 
-- Auto-generated **CLI reference** (`docs/cli-reference.md`, ~10,300 lines from the Typer app) + **MCP reference** (`docs/mcp-reference.md`, roughly 318 tools across 16 groups from the FastMCP server). Both regenerated on every `make docs-build`; the counts age with each release.
+- Auto-generated **CLI reference** (`docs/cli-reference.md`, ~10,300 lines from the Typer app) + **MCP reference** (`docs/mcp-reference.md`, roughly 315 tools across 14 groups from the FastMCP server). Both regenerated on every `make docs-build`; the counts age with each release.
 - **Narrative tutorials**: `docs/cli/tutorial.md`, `docs/client/tutorial.md`, `docs/guides/visualizations.md` (step-by-step viz + dashboard composition).
 - **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client,mcp}/` hold a single copy of each example that runs against v41, v42, and v43 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run, and `examples/fhir/{cli,client}/` beside them. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
 - **Architecture docs** cover every plugin, the client, auth, profiles, codegen, typed schemas, plugins runtime, external plugins, MCP, versioning, browser automation.
@@ -131,6 +131,8 @@ Optional `ProgramStageSection` grouping (rarely used in practice) is still unaut
 
 ### Security plugin: read-only posture scanner
 
+The scanner is the [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) pack today — install it beside the CLI with `uv tool install dhis2w-cli --with dhis2w-security`. This section is the record of what it does and what is still open on it.
+
 `d2w security` ships a read-only DHIS2 security scanner. Alongside `settings` (the
 security slice of `/api/systemSettings`) and `authorities` (the caller's effective
 authorities, categorised), the headline command is `d2w security audit`: it runs the
@@ -150,8 +152,8 @@ private/internal/cloud-metadata hosts; a PAT posture check; an external login-me
 by construction. The whole scan is GET-only against an allowlist, with the
 credential probe the single deliberate exception (one login attempt) and the release
 feed the single external egress. The
-[security plugin page](architecture/security-plugin.md) carries the architecture and
-the extension recipe.
+[pack repository](https://github.com/winterop-com/dhis2w-security) carries the
+architecture and the extension recipe.
 
 The cheap MCP read surface has shipped (`security_settings` / `security_authorities` /
 `security_version`, read-only single-request tools mirroring the CLI; the long-running
@@ -179,11 +181,10 @@ Follow-ups deferred from the PR #452 review, in priority order:
   surface inside a security deliverable. The report only needs the template compiler
   and the escaping path. While in there, reword the file header to state provenance
   honestly (adopted transpiler output as source; no build step exists).
-- **Sync the feature catalog with the review-round severity changes.**
-  `docs/project/features.md` still describes the
-  pre-review verdicts (expired-but-undeleted PAT as HIGH under the non-expiring
-  finding, a MEDIUM token inventory, zero-protection HSTS as WARN) and omit the
-  `tokens-expired-not-deleted` control.
+- **Sync the pack's feature catalog with the review-round severity changes.**
+  It still describes the pre-review verdicts (expired-but-undeleted PAT as HIGH
+  under the non-expiring finding, a MEDIUM token inventory, zero-protection HSTS
+  as WARN) and omits the `tokens-expired-not-deleted` control.
 
 Writes (rotating credentials, toggling registration, editing security settings) stay
 out of scope until a concrete caller needs them.
@@ -292,7 +293,7 @@ The workspace carries every domain for every install and about 18,000 tests acro
 
 - `dhis2w-client` and `dhis2w-core` stay central; every other domain becomes a plugin that installs on its own.
 - A `dhis2w-integration` project, like `dirigent-integration`, holds the benchmarks (today `dhis2w-bench`) and the tests that run across several plugins at once, so cross-plugin behaviour has one home.
-- The seam exists: `dhis2w_core.plugin` is a pluginkit host, every plugin answers the `contribute` extension point with a `Contribution`, and a pack registers through the `dhis2w.plugins.v1` entry-point group. What remains is the security pack in its own repository and the `dhis2w-integration` project.
+- The seam exists: `dhis2w_core.plugin` is a pluginkit host, every plugin answers the `contribute` extension point with a `Contribution`, and a pack registers through the `dhis2w.plugins.v1` entry-point group. `dhis2w-security` is the first pack in its own repository; what remains is the `dhis2w-integration` project.
 - `dhis2w` is the name. The host is `dhis2w-core`, a pack is `dhis2w-<domain>` (`dhis2w-fhir`, `dhis2w-security`), a new pack repository is named the same way, and nothing is called `dhis2w-<anything>`; the repository itself follows when the split is done.
 
 The two options below stay open behind it.

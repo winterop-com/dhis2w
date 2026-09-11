@@ -235,9 +235,9 @@ With a profile set (or the seeded `.env.auth` sourced for the old-school path), 
 
 ```bash
 d2w --help
-# → 18 top-level domains on a fresh install:
+# → 17 top-level domains on a fresh install:
 #   analytics, apps, browser, data, dev, doctor, files, maintenance, messaging,
-#   metadata, profile, route, schema, security, system, user, user-group, user-role
+#   metadata, profile, route, schema, system, user, user-group, user-role
 # Plus any external plugin packs registered under the dhis2w.plugins.v1 entry-point group.
 
 # system — auth + version probe

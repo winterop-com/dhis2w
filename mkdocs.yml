@@ -84,7 +84,6 @@ nav:
           - Messaging plugin: architecture/messaging-plugin.md
           - Apps plugin: architecture/apps-plugin.md
           - Route plugin: architecture/route-plugin.md
-          - Security plugin: architecture/security-plugin.md
           - Doctor plugin: architecture/doctor-plugin.md
           - FHIR plugin: fhir/architecture.md
   - Client:

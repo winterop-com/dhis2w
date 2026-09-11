@@ -4658,8 +4658,8 @@ SystemSettings.model_validate(raw)  # raw = the JSON above
 
 **Impact:** Any caller wanting to read `/api/systemSettings` through the typed generated `SystemSettings`. One stray lowercase enum makes the whole-object parse fail.
 
-**Workaround in this repo:** The `security` plugin's `SecuritySettings`
-(`dhis2w_core.v{41,42,43}.plugins.security.models`) is a deliberate typed **projection** of the security-relevant fields of `SystemSettings` — it omits `keyAnalysisDisplayProperty`, so it validates the live response. This is the documented reason we don't reuse the generated `SystemSettings` wholesale for that read. When a typed full-settings accessor is wanted, the clean fix is an OAS spec-patch widening `DisplayProperty` (or that one field) to accept both casings, then `client.system.settings() -> SystemSettings`.
+**Workaround in this repo:** The [`dhis2w-security` pack](https://github.com/winterop-com/dhis2w-security)'s `SecuritySettings`
+([`dhis2w_security/v43/models.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/models.py)) is a deliberate typed **projection** of the security-relevant fields of `SystemSettings` — it omits `keyAnalysisDisplayProperty`, so it validates the live response. This is the documented reason we don't reuse the generated `SystemSettings` wholesale for that read. When a typed full-settings accessor is wanted, the clean fix is an OAS spec-patch widening `DisplayProperty` (or that one field) to accept both casings, then `client.system.settings() -> SystemSettings`.
 
 **How to know it's fixed:** `SystemSettings.model_validate(<live /api/systemSettings>)` succeeds without a spec-patch — i.e. DHIS2 ships `keyAnalysisDisplayProperty` uppercase.
 
@@ -4971,7 +4971,7 @@ curl -s -X POST http://localhost:8080/api/metadata -H 'Content-Type: application
 
 **Impact:** a generated client models a nullable expiry the server will not accept, and a caller trying to build the "permanent credential" the model permits gets a `409` with no hint that the OpenAPI document said otherwise. The tokens security check still cannot assume a live expiry — a `expire` already in the past is trivially reachable and is the same standing credential — but it must not rely on null being reachable to justify the finding.
 
-**Workaround in this repo:** `evaluate_tokens` treats `expire_epoch_millis is None` (or an epoch already in the past) as non-expiring and raises a HIGH finding, defensively covering both. See `packages/dhis2w-core/src/dhis2w_core/security_core/tokens.py` and the per-tree `tokens_from_raw` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/_wire.py`.
+**Workaround in this repo:** `evaluate_tokens` treats `expire_epoch_millis is None` (or an epoch already in the past) as non-expiring and raises a HIGH finding, defensively covering both. See [`dhis2w_security/core/tokens.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/tokens.py) and the per-tree `tokens_from_raw` in [`dhis2w_security/v43/_wire.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/_wire.py).
 
 **How to know it's fixed:** `/api/openapi/openapi.json` lists `expire` in `ApiToken.required`, matching `/api/schemas/apiToken`, and the generated trees emit it non-optional.
 
@@ -5005,7 +5005,7 @@ ls packages/dhis2w-client/src/dhis2w_client/generated/v42/oas/o_auth2_client.py 
 
 **Impact:** the auth-methods security check reads `/api/oAuth2Clients` on all three majors. The version-invariant reducer cannot consume the generated classes directly because they share neither a name nor a field shape.
 
-**Workaround in this repo:** the auth-methods check defines a single hand-rolled version-invariant view-model `OAuth2ClientView` (`identifier`, `display_name`, `grant_types: frozenset[str]` normalised lowercase, `redirect_uris: tuple[str, ...]`; deliberately no secret field). Each per-tree `_wire.oauth2_clients` projects its own generated class into it off the shared `oAuth2Clients[]` envelope: v41 validates through `OAuth2Client` and reads `cid` + the array fields; v42/v43 validate through `Dhis2OAuth2Client`, read `clientId`, and split the comma-string grant/redirect fields into lists. v41 never imports `Dhis2OAuth2Client` and v42/v43 never import `OAuth2Client`. See `packages/dhis2w-core/src/dhis2w_core/security_core/auth_methods.py` and the per-tree `oauth2_clients` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/_wire.py`.
+**Workaround in this repo:** the auth-methods check defines a single hand-rolled version-invariant view-model `OAuth2ClientView` (`identifier`, `display_name`, `grant_types: frozenset[str]` normalised lowercase, `redirect_uris: tuple[str, ...]`; deliberately no secret field). Each per-tree `_wire.oauth2_clients` projects its own generated class into it off the shared `oAuth2Clients[]` envelope: v41 validates through `OAuth2Client` and reads `cid` + the array fields; v42/v43 validate through `Dhis2OAuth2Client`, read `clientId`, and split the comma-string grant/redirect fields into lists. v41 never imports `Dhis2OAuth2Client` and v42/v43 never import `OAuth2Client`. See [`dhis2w_security/core/auth_methods.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/auth_methods.py) and the per-tree `oauth2_clients` in [`dhis2w_security/v43/_wire.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/_wire.py).
 
 **How to know it's fixed:** the generated trees emit one OAuth2-client schema (same class name, same identifier field, same multi-valued field types) across v41/v42/v43, at which point `OAuth2ClientView` and the per-tree `oauth2_clients` extractors collapse into one. Tied to BUGS.md #39 being fixed upstream.
 
@@ -5041,7 +5041,7 @@ GET /api/systemSettings     # @Confidential keys filtered server-side; audit.* k
 
 **Impact:** the audit-config security check cannot read the audit posture over the API on any version. Its API-first result is therefore an INFO that the posture is not API-readable; explicitly NOT a claim that auditing is off. Evaluating the real posture requires the operator to hand the scanner a local copy of `dhis.conf`.
 
-**Workaround in this repo:** the audit-config check takes an explicit `--dhis-conf <path>` (env `DHIS2_CONF_LOCATION`) pointed at a local COPY of the server's `dhis.conf`. The parser in `packages/dhis2w-core/src/dhis2w_core/security_core/dhisconf.py` retains only the `audit.*` keys plus a set/not-set flag for confidential keys (it physically cannot hold a secret value), and `packages/dhis2w-core/src/dhis2w_core/security_core/audit_config.py` evaluates the posture. Without the flag the check states the posture is not API-readable.
+**Workaround in this repo:** the audit-config check takes an explicit `--dhis-conf <path>` (env `DHIS2_CONF_LOCATION`) pointed at a local COPY of the server's `dhis.conf`. The parser in [`dhis2w_security/core/dhisconf.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/dhisconf.py) retains only the `audit.*` keys plus a set/not-set flag for confidential keys (it physically cannot hold a secret value), and [`dhis2w_security/core/audit_config.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/audit_config.py) evaluates the posture. Without the flag the check states the posture is not API-readable.
 
 **How to know it's fixed:** a DHIS2 endpoint returns `system.audit.enabled` and the four scope matrices (at least for a superuser), at which point the check can read the posture over the wire and the `--dhis-conf` flag becomes optional.
 
@@ -5069,7 +5069,7 @@ GET /api/systemSettings     # @Confidential keys filtered server-side; audit.* k
 
 **Impact:** a security scanner that treats a blank/absent matrix as "no types captured" produces a FALSE POSITIVE on every freshly-deployed DHIS2 instance. The correct model is: absent or empty = DHIS2 forensic default = {CREATE, UPDATE, DELETE, SECURITY} = audited. Only an EXPLICIT non-empty matrix that omits one or more of those four types is narrower than the default.
 
-**Workaround in this repo:** `AuditScopeMatrix.explicit` tracks whether the key was present with a non-empty value. When `explicit=False`, `audit_types` is set to `_DEFAULT_AUDIT_TYPES` (the four forensic types). The `audit-scope-narrowly-scoped` finding fires only when `explicit=True` and the parsed type set omits one or more forensic types. See `packages/dhis2w-core/src/dhis2w_core/security_core/dhisconf.py` (`_scope_matrix`) and `audit_config.py` (`_narrowly_scoped`).
+**Workaround in this repo:** `AuditScopeMatrix.explicit` tracks whether the key was present with a non-empty value. When `explicit=False`, `audit_types` is set to `_DEFAULT_AUDIT_TYPES` (the four forensic types). The `audit-scope-narrowly-scoped` finding fires only when `explicit=True` and the parsed type set omits one or more forensic types. See [`dhis2w_security/core/dhisconf.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/dhisconf.py) (`_scope_matrix`) and `audit_config.py` (`_narrowly_scoped`).
 
 **How to know it's resolved:** not a DHIS2 bug; expected behavior. This entry documents the non-obvious upstream semantic so the scanner model stays correct.
 
@@ -5103,7 +5103,7 @@ curl -sI -u admin:district "$BASE/api/system/info" | grep -iE 'cross-origin-open
 
 **Impact:** a security scanner that emits a WARN per missing cross-origin isolation header would raise three WARNs on every default DHIS2 instance; pure noise, since DHIS2 never sets them and the absence is its designed posture, not a regression. They are defence-in-depth, not active holes.
 
-**Workaround in this repo:** the security `transport` check aggregates the three absent headers into a SINGLE INFO finding ("Cross-origin isolation headers not configured (COOP/COEP/CORP)") listing exactly which are missing, at INFO so a default instance is not flagged at WARN for a header DHIS2 never sets. See `_cross_origin_isolation_finding` in `packages/dhis2w-core/src/dhis2w_core/security_core/transport.py`. The CSP grading in the same check also leaves DHIS2's stock `frame-ancestors 'self';` (a frame-only policy emitted by `CspFilter`, BUGS.md #49) ungraded on its content directives, so the default policy is never flagged either.
+**Workaround in this repo:** the security `transport` check aggregates the three absent headers into a SINGLE INFO finding ("Cross-origin isolation headers not configured (COOP/COEP/CORP)") listing exactly which are missing, at INFO so a default instance is not flagged at WARN for a header DHIS2 never sets. See `_cross_origin_isolation_finding` in [`dhis2w_security/core/transport.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/transport.py). The CSP grading in the same check also leaves DHIS2's stock `frame-ancestors 'self';` (a frame-only policy emitted by `CspFilter`, BUGS.md #49) ungraded on its content directives, so the default policy is never flagged either.
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
@@ -5145,7 +5145,7 @@ curl -sg -u admin:district \
 
 **Impact:** the password-age hygiene signal, "active accounts whose password is older than the threshold or never set", can read one selector on every major. A caller that follows the v41 `userCredentials` shape gets nothing on v42/v43 and no diagnostic, which is the direction that fails silently.
 
-**Workaround in this repo:** per-tree `_wire.py` selects the field path: v41 requests `userCredentials[passwordLastUpdated]` and reads the nested value; v42/v43 request the flat `passwordLastUpdated` and read the top-level value. Both feed the version-invariant `password_last_updated` field on `UserHygiene`, so the hygiene reducer stays version-neutral. The v41 branch is belt-and-braces on `2.41.9` / `2.41.10`, where the flat field is populated too, and is what keeps an older 2.41.x patch readable. See `password_last_updated` + `USER_FIELDS` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/_wire.py` and the password-age aggregate in `packages/dhis2w-core/src/dhis2w_core/security_core/hygiene.py`.
+**Workaround in this repo:** per-tree `_wire.py` selects the field path: v41 requests `userCredentials[passwordLastUpdated]` and reads the nested value; v42/v43 request the flat `passwordLastUpdated` and read the top-level value. Both feed the version-invariant `password_last_updated` field on `UserHygiene`, so the hygiene reducer stays version-neutral. The v41 branch is belt-and-braces on `2.41.9` / `2.41.10`, where the flat field is populated too, and is what keeps an older 2.41.x patch readable. See `password_last_updated` + `USER_FIELDS` in [`dhis2w_security/v43/_wire.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/_wire.py) and the password-age aggregate in [`dhis2w_security/core/hygiene.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/hygiene.py).
 
 **How to know it's fixed:** v41 drops the duplicate `userCredentials` wrapper, at which point the per-tree `USER_FIELDS` split collapses into one selector. Mirrors the 2FA `_wire` split (BUGS.md #58).
 
@@ -5197,7 +5197,7 @@ no-op.
 
 **Workaround in this repo:** the dangerous-authority taxonomy uses the correct
 name. The `route_management` category in
-`packages/dhis2w-core/src/dhis2w_core/security_core/authorities.py` lists
+[`dhis2w_security/core/authorities.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/authorities.py) lists
 `F_ROUTE_PUBLIC_ADD` (plus `F_ROUTE_PRIVATE_ADD` / `F_ROUTE_DELETE`), so a role
 granting it is flagged HIGH by the `roles` check. We key the taxonomy on the
 authority NAME, not the live `/api/authorities` endpoint (which 500s on v41,
@@ -5236,7 +5236,7 @@ curl -s -u admin:district \
 
 **Impact:** the security audit's headline hygiene signal, "superuser without 2FA", is computable from `/api/users` only on v41. On v42/v43 it requires the new `/api/users/twoFactor` endpoints, which 404 until the backport lands and 403 unless the auditing account holds ALL.
 
-**Workaround in this repo:** per-tree `_wire.py` selects the 2FA source: v41 reads `twoFactorEnabled` (falling back to `userCredentials.twoFA`) from `/api/users`; v42/v43 read `GET /api/users/twoFactor/summary` (`privileged.withAllAuthorityMissing2FA`). The hygiene check (`packages/dhis2w-core/src/dhis2w_core/security_core/hygiene.py`) degrades to a clear note on v42/v43 when the endpoint returns 404 (not backported) or 403 (auditing account is not a superuser), instead of a false all-clear.
+**Workaround in this repo:** per-tree `_wire.py` selects the 2FA source: v41 reads `twoFactorEnabled` (falling back to `userCredentials.twoFA`) from `/api/users`; v42/v43 read `GET /api/users/twoFactor/summary` (`privileged.withAllAuthorityMissing2FA`). The hygiene check ([`dhis2w_security/core/hygiene.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/hygiene.py)) degrades to a clear note on v42/v43 when the endpoint returns 404 (not backported) or 403 (auditing account is not a superuser), instead of a false all-clear.
 
 **Status on the released 2.42.6 and 2.43.1 (play, 2026-09-07):** `/api/users/twoFactor` and
 `/api/users/twoFactor/summary` are routed and answer `403 "Access is denied, requires one Authority
@@ -5279,7 +5279,7 @@ curl -sg -u admin:district "$BASE/api/dataElements?filter=sharing.public:eq:----
 
 **Actual:** the legacy `publicAccess` / `externalAccess` properties are rejected with `E1003`; the nested `sharing.public` filter works but (a) catches only the public axis, so objects with default public access plus an explicit user/group share are missed, and (b) is useless as a volume reducer on instances whose default object sharing is public-readable.
 
-**Workaround in this repo:** the security `sharing` check pages each focus type and decodes the sharing block client-side rather than relying on a server-side filter, bounded by `--max-objects` with a loud truncation note. See `_run_sharing` / `_scan_focus_type` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/audit.py` and the non-default-sharing predicate `FetchedObject.has_non_default_sharing` in `packages/dhis2w-core/src/dhis2w_core/security_core/sharing/builder.py`.
+**Workaround in this repo:** the security `sharing` check pages each focus type and decodes the sharing block client-side rather than relying on a server-side filter, bounded by `--max-objects` with a loud truncation note. See `_run_sharing` / `_scan_focus_type` in [`dhis2w_security/v43/audit.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/audit.py) and the non-default-sharing predicate `FetchedObject.has_non_default_sharing` in [`dhis2w_security/core/sharing/builder.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/sharing/builder.py).
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
@@ -5323,7 +5323,7 @@ curl -sg -u admin:district 'https://play.im.dhis2.org/dev-2-43/api/configuration
 
 **Impact:** a security audit cannot read CSP or HSTS posture from settings; it must read the live response headers, and it must not attribute a missing HSTS header to DHIS2 itself — the cause is the proxy in front of it, in either direction. A grader that matches the stock `frame-ancestors 'self';` string misreads every instance that has a CORS whitelist.
 
-**Workaround in this repo:** the security `transport` check reads the scheme from the resolved base URL and the security headers off one `get_response("/api/system/info")` response, never from settings. It softens the HSTS finding to MEDIUM with a note that the fronting proxy determines the header, and treats the wire CSP header as the only CSP evidence, parsing `frame-ancestors` into a directive map rather than comparing it to a fixed string. It suppresses the anti-framing finding when a CSP `frame-ancestors` directive is present, to avoid a guaranteed false positive on default instances. See `evaluate_transport` in `packages/dhis2w-core/src/dhis2w_core/security_core/transport.py` and `_run_transport` in `packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/audit.py`.
+**Workaround in this repo:** the security `transport` check reads the scheme from the resolved base URL and the security headers off one `get_response("/api/system/info")` response, never from settings. It softens the HSTS finding to MEDIUM with a note that the fronting proxy determines the header, and treats the wire CSP header as the only CSP evidence, parsing `frame-ancestors` into a directive map rather than comparing it to a fixed string. It suppresses the anti-framing finding when a CSP `frame-ancestors` directive is present, to avoid a guaranteed false positive on default instances. See `evaluate_transport` in [`dhis2w_security/core/transport.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/transport.py) and `_run_transport` in [`dhis2w_security/v43/audit.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/audit.py).
 
 **How to know it's fixed:** `/api/systemSettings` (or any unmasked config surface) reports CSP state, and `frame-ancestors` stops inheriting the CORS whitelist.
 
@@ -5374,9 +5374,9 @@ object `/api/systemSettings` returns.
 it in `CorsWhitelist` before passing it to `evaluate_settings`. When the read
 fails the CORS verdict is skipped (degraded with a note) while the rest of the
 settings verdicts still run. See `_fetch_cors_whitelist` in
-`packages/dhis2w-core/src/dhis2w_core/v{41,42,43}/plugins/security/audit.py` and
+[`dhis2w_security/v43/audit.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/v43/audit.py) and
 `evaluate_settings` in
-`packages/dhis2w-core/src/dhis2w_core/security_core/settings_audit.py`.
+[`dhis2w_security/core/settings_audit.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/settings_audit.py).
 
 **Status (2026-09-07):** STILL on all six play channels (`stable-2-41-9-1`, `stable-2-42-6`, `stable-2-43-1` and the `2.41.11` / `2.42.7` / `2.43.2` snapshots), which are the same releases the local stacks pin.
 
