@@ -109,6 +109,41 @@ Simple strings, not dataclasses — this sidesteps mypy's "duplicate conftest mo
 
 Live-against-play coverage lives in a separate workflow — `@pytest.mark.contract` (`.github/workflows/contract.yml`) hits `play.im.dhis2.org/dev-2-{42,43}` to catch upstream API drift. Nightly E2E never touches play.
 
+## Reusing the test environment from a pack
+
+A plugin pack that lives in its own repository gets the same test environment from
+`dhis2w-core`, as a pytest plugin rather than a copied `conftest.py`. Depend on the
+`testing` extra, which brings pytest, `pytest-asyncio`, respx and `pytest-httpx2`:
+
+```toml
+[dependency-groups]
+dev = ["dhis2w-core[testing]"]
+```
+
+Then load the plugin from the pack's **root** `conftest.py` — the one file pytest allows
+`pytest_plugins` in:
+
+```python
+pytest_plugins = ["dhis2w_core.testing"]
+```
+
+`dhis2w_core.testing` provides:
+
+- `respx.mocks.DEFAULT_MOCKER = "httpcore2"`, set at import so routers built at module
+  import time intercept httpx2 traffic too.
+- The colour-forcing variables (`FORCE_COLOR`, `CLICOLOR_FORCE`, `GITHUB_ACTIONS`,
+  `TF_BUILD`) cleared at import, before a test module builds its Rich `Console`.
+- An autouse fixture clearing the profile-resolution variables (`DHIS2_PROFILE`,
+  `DHIS2_URL`, `DHIS2_PAT`, `DHIS2_USERNAME`, `DHIS2_PASSWORD`, `DHIS2_VERSION`) per test.
+- An autouse fixture that fails any test reaching `webbrowser.open` / `open_new` /
+  `open_new_tab` instead of launching the interactive OAuth2 login.
+- `core_version`, `plugin_service`, `mock_system_info` and `core_profile`, which
+  parametrize one test body across the v41/v42/v43 plugin trees.
+
+There is no `pytest11` entry point on purpose: the autouse fixtures reshape the process
+environment, which is right for a dhis2w suite and wrong for any other suite that happens
+to have `dhis2w-core` installed. Opting in is a single line.
+
 ## Destructive writes
 
 Currently none. Any test that creates or deletes real resources needs to:

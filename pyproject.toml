@@ -54,6 +54,10 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = ["D", "TID251"]
+# `dhis2w_core.testing` is the test environment itself, shipped from src so a plugin pack in
+# another repository gets it from `dhis2w-core[testing]`. It builds the `httpx.Response`
+# objects respx consumes, exactly as a test file does.
+"**/src/dhis2w_core/testing.py" = ["TID251"]
 "**/__init__.py" = ["D104"]
 "**/src/**/*.py" = ["D102", "D105", "D107"]
 "infra/**/*.py" = ["D"]

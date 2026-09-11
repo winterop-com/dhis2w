@@ -184,6 +184,10 @@ Plugins register via `importlib.metadata.entry_points(group="dhis2.plugins")`
 and are discovered automatically at startup. The in-repo `dhis2w-fhir` package
 is the first-party example of this mechanism.
 
+An out-of-repo plugin gets the same test environment from `dhis2w_core.testing`, a pytest
+plugin shipped by `dhis2w-core[testing]` and loaded with
+`pytest_plugins = ["dhis2w_core.testing"]`.
+
 ---
 
 ## Command-Line Interface

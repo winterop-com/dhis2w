@@ -854,6 +854,14 @@ dependencies = [
     { name = "typer" },
 ]
 
+[package.optional-dependencies]
+testing = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-httpx2" },
+    { name = "respx" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22" },
@@ -863,12 +871,17 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=3.4.7" },
     { name = "pydantic", specifier = ">=2.13" },
     { name = "pydantic-settings", specifier = ">=2.13" },
+    { name = "pytest", marker = "extra == 'testing'", specifier = ">=9.1.1" },
+    { name = "pytest-asyncio", marker = "extra == 'testing'", specifier = ">=1.4" },
+    { name = "pytest-httpx2", marker = "extra == 'testing'", specifier = ">=1.0.0" },
     { name = "questionary", specifier = ">=2.1.1" },
+    { name = "respx", marker = "extra == 'testing'", specifier = ">=0.23" },
     { name = "rich", specifier = ">=15" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.52" },
     { name = "tomli-w", specifier = ">=1.2" },
     { name = "typer", specifier = ">=0.26.8" },
 ]
+provides-extras = ["testing"]
 
 [[package]]
 name = "dhis2w-fhir"

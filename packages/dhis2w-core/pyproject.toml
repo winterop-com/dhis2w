@@ -35,6 +35,14 @@ Documentation = "https://winterop-com.github.io/dhis2w/"
 Repository = "https://github.com/winterop-com/dhis2w"
 Changelog = "https://github.com/winterop-com/dhis2w/blob/main/CHANGELOG.md"
 
+[project.optional-dependencies]
+testing = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4",
+    "pytest-httpx2>=1.0.0",
+    "respx>=0.23",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]
 build-backend = "uv_build"
