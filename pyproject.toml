@@ -10,7 +10,6 @@ dhis2w-mcp-bridge = { workspace = true }
 dhis2w-browser = { workspace = true }
 dhis2w-codegen = { workspace = true }
 dhis2w-fhir = { workspace = true }
-dhis2w-ql = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -28,7 +27,6 @@ dev = [
   "pillow>=12.3.0",
   "hypothesis>=6.165.10",
   "pytest-xdist>=3.8.0",
-  "textual>=8.2.8",
   "pyyaml>=6.0.3",
   "types-pyyaml>=6.0.12.20260815",
   "pytest-httpx2>=1.0.0",

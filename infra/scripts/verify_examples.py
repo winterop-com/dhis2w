@@ -93,13 +93,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         "cli/map_screenshot.sh",
         "cli/visualization_screenshot.sh",
         "client/oidc_playwright_login.py",
-        # --- Data the seed does not carry --------------------------------
-        # The committed d2ql library (examples/d2ql/*.d2ql) reads the Sierra
-        # Leone demo's ANC data elements (fbfJHSPpUQD, cYeuwXTCPkU, ...),
-        # which no seed dump holds; every analytics program answers
-        # E7124 "no valid dimension options: dx" against the local stack.
-        # Run it against the play demo instance.
-        "cli/query_run.sh",
         # --- External network / non-deterministic -----------------------
         # Hits httpbin.org over the public internet.
         "cli/route_register_and_run.sh",
@@ -182,12 +175,6 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
             "client/analytics_events_enrollments.py",
             "client/analytics_event_query.py",
             "mcp/analytics_events_enrollments.py",
-            # Same BUGS.md #36 one step downstream: the aborted analytics job
-            # leaves the tables empty, so the analytics line of this example
-            # answers 409 "Dimension is present in query without any valid
-            # dimension options: dx". Green on v41 and v42, where the refresh
-            # completes.
-            "cli/query_eval.sh",
         }
     ),
 }

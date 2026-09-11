@@ -1,2 +1,0 @@
-// Categories with their option names.
-categories | select id, name, categoryOptions.name as options | limit 25

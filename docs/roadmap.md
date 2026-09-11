@@ -37,7 +37,7 @@ Twenty-one top-level domains: `analytics`, `apps`, `browser`, `customize`, `data
 
 ### MCP surface
 
-Roughly 318 tools across 16 plugin groups (`analytics_*`, `apps_*`, `customize_*`, `data_*`, `datastore_*`, `doctor_*`, `files_*`, `maintenance_*`, `messaging_*`, `metadata_*` (~197), `profile_*`, `query_*`, `route_*`, `security_*`, `system_*`, `user_*`). Counts age with each release; the auto-regenerated [MCP reference](mcp-reference.md) is the source of truth. Most operational CLI commands have a matching MCP tool; `d2w dev`, `d2w browser`, and profile mutations are intentionally CLI-only (see the [capability matrix](index.md#capability-matrix)).
+Roughly 318 tools across 15 plugin groups (`analytics_*`, `apps_*`, `customize_*`, `data_*`, `datastore_*`, `doctor_*`, `files_*`, `maintenance_*`, `messaging_*`, `metadata_*` (~197), `profile_*`, `route_*`, `security_*`, `system_*`, `user_*`). Counts age with each release; the auto-regenerated [MCP reference](mcp-reference.md) is the source of truth. Most operational CLI commands have a matching MCP tool; `d2w dev`, `d2w browser`, and profile mutations are intentionally CLI-only (see the [capability matrix](index.md#capability-matrix)).
 
 There are **three MCP surfaces** over this tool set — the full server, the single-tool bridge, and the search+dispatch router. The [MCP surfaces map](architecture/mcp-surfaces.md) compares them and explains how to choose; all three carry a `*_READONLY` guard.
 
@@ -194,33 +194,6 @@ out of scope until a concrete caller needs them.
 - `Local OIDC` login-page button is non-functional for browser clicks (CLI-only `redirect_url`); no per-provider "hide from login UI" flag in DHIS2 v42 — documented in `docs/architecture/auth.md`.
 - Bearer-to-JSESSIONID path for browser workflows on OIDC profiles is unverified (flagged in `authenticated_session` docstring).
 
-### d2path evaluator: sharp edges surfaced by the example sweep
-
-Writing evaluator-verified examples for every registry function (the d2path-examples catalog) exposed
-three behaviours worth a decision — the examples document actual behaviour, so fixing any of these
-means updating the affected catalog entries in the same PR:
-
-- **Literal negative and computed indices raise.** `scores[-1]` and `scores[1 + 1]` fail with
-  "index must be an integer" because unary minus / arithmetic always produce a float (`-1.0`), which
-  `_eval_index` and `_int_arg` reject — while the bounds check explicitly anticipates negative
-  indices, so the intent was for `[-1]` to work. Fix shape: arithmetic on integer operands should
-  yield an int (or the index/argument checks should accept integral floats). The same coercion breaks
-  `take(-1)`-style arguments.
-- **`union()` / `combine()` arguments evaluate against the navigated focus, not the row root.**
-  `a.union(b)` over `{a: [1,2], b: [2,3]}` yields `[1,2]` (b resolves to `[]` against the int focus),
-  so neither "merge two sibling fields" nor "union with a literal set" works as a naive user expects —
-  and an array-literal argument arrives as one nested element (`a.union([3,4])` appends `[3,4]`
-  whole). Decide whether args should get root/parent scope (likely a spec question) or whether the
-  docs stance (use sub-selections of the same focus) is the intended semantics; either way the
-  cookbook and catalog steer users to working forms today.
-- **Out-of-bounds vs negative index asymmetry.** OOB returns `[]` silently; negative raises — the
-  visible symptom of the float-coercion bug above. Resolves with it.
-- **Singleton-only string functions return `[]` silently over multi-element focus.**
-  `name.upper()` over two rows yields `[]` (the `_string` helper requires a singleton), while
-  `name.select(upper())` maps correctly. Silent-empty is the sharp part — an EvaluationError
-  ("upper() needs a singleton; map with select()") would turn a confusing no-op into a teachable
-  error. The dhis2w-ql README documents the `select(...)` idiom in the meantime.
-
 ### Session-cookie auth: follow-ups
 
 The session auth kind (#438) plus its parity pass (browser workflows, verify diagnostics, cookie
@@ -376,19 +349,19 @@ Niche but valuable for compliance + forensics use cases.
   like one living here. Adopting it inside the workspace first, behind the existing
   discovery so nothing user-visible changes, is the proving step the repository
   split below depends on.
-- **Split the workspace into multiple repositories.** Thirteen members, one lock,
+- **Split the workspace into multiple repositories.** Twelve members, one lock,
   one CI, one release train - the single repository is getting out of hand, and
   the seams the members already draw are the candidate cut lines: the client
   foundation (`dhis2w-client` + `dhis2w-codegen`), the toolkit
   (`dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`,
-  `dhis2w-mcp-router`, `dhis2w-ql`, `dhis2w-browser`, `dhis2w-bench`), and the
+  `dhis2w-mcp-router`, `dhis2w-browser`, `dhis2w-bench`), and the
   FHIR product (`dhis2w-fhir`, `dhis2w-fhir-engine`, `dhis2w-fhir-serve`).
   What must be true first, in order: the library surfaces published and
   drift-tested (done in the 1.7.0 line), plugin contracts on `pluginkit` so
   cross-repository plugins are first-class (the item above), and per-repository
   version trains with explicit cross-repository pins replacing the workspace lock.
-  Owner decisions reserved: the exact seam lines (does `dhis2w-ql` ride with the
-  toolkit or stand alone), where `infra/` and the local stack live, whether the
+  Owner decisions reserved: the exact seam lines, where `infra/` and the local
+  stack live, whether the
   docs site stays one hub or splits with its packages, and the release cadence
   each repository runs on.
 

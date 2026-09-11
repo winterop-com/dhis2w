@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp docs-d2path build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary bench-list bench-round bench-bridge bench-general bench-mcp bench-router bench-claude-general bench-claude-mcp bench-claude-bridge bench-validate bench-matrix bench-composite bench-longcontext refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary bench-list bench-round bench-bridge bench-general bench-mcp bench-router bench-claude-general bench-claude-mcp bench-claude-bridge bench-validate bench-matrix bench-composite bench-longcontext refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -53,7 +53,6 @@ help:
 	@echo "  docs-build       Build mkdocs site to ./site (regens CLI ref first)"
 	@echo "  docs-cli         Regenerate docs/cli-reference.md from the Typer app"
 	@echo "  docs-mcp         Regenerate docs/mcp-reference.md from the FastMCP server"
-	@echo "  docs-d2path      Regenerate docs/query/d2path-examples.md from the d2path catalog"
 	@echo ""
 	@echo "DHIS2 local stack:"
 	@echo "  dhis2-run        Start the stack, seed auth, stream logs (Ctrl+C tears it down)"
@@ -154,15 +153,11 @@ docs-mcp:
 	@echo ">>> Regenerating MCP tool reference from the FastMCP server (pinned to $(DOCS_DHIS2_VERSION))"
 	@$(DOCS_PIN) $(UV) run python -u infra/scripts/gen_mcp_reference.py
 
-docs-d2path:
-	@echo ">>> Regenerating docs/query/d2path-examples.md from the validated d2path catalog"
-	@$(UV) run python -u infra/scripts/gen_d2path_examples.py
-
-docs-serve: docs-cli docs-mcp docs-d2path
+docs-serve: docs-cli docs-mcp
 	@echo ">>> Serving docs at http://127.0.0.1:8000"
 	@$(UV) run mkdocs serve
 
-docs-build: docs-cli docs-mcp docs-d2path
+docs-build: docs-cli docs-mcp
 	@echo ">>> Building docs site (strict — broken links / missing nav fail the build)"
 	@$(UV) run mkdocs build --strict
 
@@ -245,7 +240,7 @@ build:
 # purpose: they are internal tools with nothing to offer a PyPI consumer.
 #
 # Names here are the suffix after `dhis2w-`; the targets are `publish-<suffix>`.
-PUBLISHABLE_MEMBERS := client ql core browser fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
+PUBLISHABLE_MEMBERS := client core browser fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
 
 # The release version, when the caller names one: `make publish-all VERSION=1.2.0`
 # asserts every member's `project.version` equals it before anything is built,
