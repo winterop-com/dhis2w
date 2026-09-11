@@ -24,6 +24,13 @@ uv tool install dhis2w-cli
 d2w --version
 ```
 
+Plugin packs install beside the CLI and mount their own commands — add `--with dhis2w-security` for the security posture scanner:
+
+```bash
+uv tool install dhis2w-cli --with dhis2w-security
+d2w security --help
+```
+
 For the `[browser]` extra (Playwright-driven PAT mint, screenshots, OIDC login automation):
 
 ```bash

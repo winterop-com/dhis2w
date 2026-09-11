@@ -11,8 +11,8 @@ class SystemSettingsSnapshot(BaseModel):
     `extra="allow"` keeps all keys. We do not reuse the generated `SystemSettings` OAS model:
     it cannot validate a live `/api/systemSettings` response (DHIS2 returns lowercase
     `keyAnalysisDisplayProperty`, which the OAS `DisplayProperty` enum rejects — BUGS.md #42).
-    A raw snapshot sidesteps that for a read-only listing; `security settings` uses a typed
-    projection of the same endpoint for its curated slice.
+    A raw snapshot sidesteps that for a read-only listing; a caller wanting a curated slice of
+    the same endpoint declares a typed projection over the keys it reads.
     """
 
     model_config = ConfigDict(extra="allow")

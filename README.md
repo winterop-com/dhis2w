@@ -53,6 +53,9 @@ The CLI command is named **`d2w`** but the PyPI distribution is **`dhis2w-cli`**
 # Install once, run forever — drops `d2w` on $PATH
 uv tool install dhis2w-cli
 
+# With the security posture scanner (the dhis2w-security pack mounts `d2w security`)
+uv tool install dhis2w-cli --with dhis2w-security
+
 # With Playwright UI automation (browser screenshots, OIDC login, PAT minting)
 uv tool install 'dhis2w-cli[browser]'
 playwright install chromium    # one-time, after the install above

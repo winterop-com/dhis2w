@@ -1470,10 +1470,11 @@ async def test_bug_42_generated_system_settings_rejects_lowercase_display_proper
 
     `/api/systemSettings` serialises `keyAnalysisDisplayProperty` lowercase
     (`"name"`), which the OAS `DisplayProperty` enum (`NAME`/`SHORTNAME`)
-    rejects — the only one of ~100 keys that fails. The `security` plugin's
-    `SecuritySettings` projection (`dhis2w_core.v{41,42,43}.plugins.security.models`)
-    omits the field as the workaround. Dropping that single key makes the full
-    generated model parse, proving the projection is the minimal slice needed.
+    rejects — the only one of ~100 keys that fails. A caller reading the settings
+    through the generated model omits the field as the workaround; the
+    `dhis2w-security` pack's `SecuritySettings` projection does exactly that.
+    Dropping that single key makes the full generated model parse, proving a
+    projection over the settings payload is the minimal slice needed.
     """
     from dhis2w_client.generated.v42.oas import SystemSettings
     from pydantic import ValidationError

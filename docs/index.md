@@ -35,11 +35,13 @@ Whichever you pick:
 | `dhis2w-fhir-serve` | The FHIR capture facade `d2w fhir serve` runs on, capture UI included | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
 | `dhis2w-fhir-engine` | FHIRPath, CQL, and quality-measure evaluation over FHIR data, no DHIS2 dependency | [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) |
 
+Plugin packs ship from their own repositories and mount their own commands on the same CLI: add `--with dhis2w-security` to the `uv tool install dhis2w-cli` line for the security posture scanner.
+
 Plus `infra/`, a docker-compose stack for running a local DHIS2 instance with pre-seeded PATs and an OAuth2 client.
 
 ## Capability matrix
 
-The generated [MCP reference](mcp-reference.md) currently reports around 318 tools across 15 plugin groups (the auto-regenerated count is the source of truth; the per-group numbers below age with each release). 20 top-level CLI domains. Every MCP tool accepts an optional `profile: str | None` kwarg so an agent can target any configured profile per call. Most operational read/write commands ship as both a CLI command and a matching MCP tool sharing one typed service call. A few surfaces are intentionally CLI-only — they involve local-machine state, interactive prompts, or out-of-process subprocesses that don't fit the MCP stdio model:
+The generated [MCP reference](mcp-reference.md) currently reports around 315 tools across 14 plugin groups (the auto-regenerated count is the source of truth; the per-group numbers below age with each release). 19 top-level CLI domains, plus whatever a plugin pack mounts. Every MCP tool accepts an optional `profile: str | None` kwarg so an agent can target any configured profile per call. Most operational read/write commands ship as both a CLI command and a matching MCP tool sharing one typed service call. A few surfaces are intentionally CLI-only — they involve local-machine state, interactive prompts, or out-of-process subprocesses that don't fit the MCP stdio model:
 
 - **`d2w dev`** — codegen, sample-fixture generation, ad-hoc UID minting. Local developer workflow; not exposed via MCP.
 - **`d2w browser`** — Playwright-driven PAT mint, OIDC login, dashboard / viz / map screenshots. Runs Chromium out-of-process; not exposed via MCP.
@@ -63,7 +65,7 @@ The generated [MCP reference](mcp-reference.md) currently reports around 318 too
 | Customize (login page / logos / CSS / system settings) | `d2w customize` | 7 | [Customize plugin](architecture/customize-plugin.md) |
 | Apps (`/api/apps` + `/api/appHub` + snapshot/restore) | `d2w apps` | 13 | [Apps API](api/apps.md) |
 | Doctor (BUGS tripwires + integrity checks + metadata health) | `d2w doctor` | 4 | [Doctor plugin](architecture/doctor-plugin.md) |
-| Security posture (settings, authorities, audit, report) | `d2w security` | 3 | [Security plugin](architecture/security-plugin.md) |
+| Security posture (settings, authorities, audit, report) | `d2w security` (the `dhis2w-security` pack) | 3 | [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) |
 | Dev (codegen, uid, pat, oauth2 client, sample fixtures) | `d2w dev` | — (dev-only) | [Codegen](codegen.md) |
 | Browser automation (Playwright-driven PAT mint, screenshots, OIDC login) | `d2w browser` | — (runs out-of-process) | [Browser automation](architecture/browser.md) |
 | FHIR (init / validate / generate / serve / forward / withdraw / doctor) | `d2w fhir` | — (CLI and its own HTTP facade) | [`d2w fhir`](fhir/index.md) |

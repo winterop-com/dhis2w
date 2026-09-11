@@ -51,7 +51,8 @@ EXIT_CLI_NOT_FOUND: Final = 127
 
 #: Read-only command paths permitted under `DHIS2_MCP_READONLY=1`. Each tuple is a leaf
 #: command path; a request is allowed when one of these is a prefix of its command path.
-#: Generated from the Typer command tree — keep in sync via the drift test.
+#: Generated from the Typer command tree, plus the read-only paths a plugin pack mounts —
+#: keep in sync via the drift test.
 READ_ONLY_COMMANDS: Final[frozenset[tuple[str, ...]]] = frozenset(
     {
         ("analytics", "enrollments", "query"),
@@ -165,6 +166,8 @@ READ_ONLY_COMMANDS: Final[frozenset[tuple[str, ...]]] = frozenset(
         ("route", "list"),
         ("route", "ls"),
         ("schema",),
+        # Mounted by the `dhis2w-security` pack rather than the host, and listed here so the
+        # command is permitted under read-only mode wherever that pack is installed.
         ("security", "settings"),
         ("system", "info"),
         ("system", "whoami"),

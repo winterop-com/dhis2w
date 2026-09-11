@@ -483,7 +483,6 @@ clean: clean-artifacts
 
 clean-artifacts:
 	@echo ">>> Removing run artifacts (reports, screenshots, browser and property-test state)"
-	@rm -rf dhis2-security-*/ reports/dhis2-security-*/
 	@rm -rf .hypothesis .playwright-mcp
 	@rm -rf packages/dhis2w-fhir-serve/frontend/test-results
 	@rm -rf packages/dhis2w-fhir-serve/frontend/playwright-report
