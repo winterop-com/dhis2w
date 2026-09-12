@@ -568,3 +568,24 @@ async def test_get_raw_still_raises_after_refactor() -> None:
     finally:
         await client.close()
     assert exc.value.status_code == 404
+
+
+@respx.mock
+async def test_api_error_message_falls_back_to_the_envelope_message() -> None:
+    """A 409 without a reason phrase still names the DHIS2 message in the exception text."""
+    respx.get("https://dhis2.example/api/analytics").mock(
+        return_value=httpx.Response(
+            409,
+            json={"httpStatus": "Conflict", "status": "ERROR", "message": "Data elements must allow aggregation"},
+            extensions={"reason_phrase": b""},
+        ),
+    )
+    client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
+    client._http = httpx2.AsyncClient(base_url="https://dhis2.example")
+    try:
+        with pytest.raises(Dhis2ApiError) as exc:
+            await client.get_raw("/api/analytics")
+    finally:
+        await client.close()
+    assert exc.value.message == "Data elements must allow aggregation"
+    assert "Data elements must allow aggregation" in str(exc.value)

@@ -369,6 +369,10 @@ async def test_bug_38_live_sharing_schema_lacks_external_access(local_url: str) 
     async with Dhis2Client(local_url, auth=_live_auth(), allow_version_fallback=True) as client:
         document = await client.get_raw("/api/openapi/openapi.json", params={"path": "/api/sharing"})
         schemas = document.get("components", {}).get("schemas", {})
+        if not schemas:
+            # 2.41.10 answers an `/api`-prefixed `path` filter with an empty document (BUGS.md #123).
+            document = await client.get_raw("/api/openapi.json")
+            schemas = document.get("components", {}).get("schemas", {})
         sharing_object = schemas.get("SharingObject")
         assert sharing_object is not None, (
             "BUGS.md #38: the OpenAPI document no longer carries a `SharingObject` component at all — "

@@ -67,6 +67,34 @@ def test_aggregate_get_returns_envelope(local_url: str, local_pat: str | None, m
     assert isinstance(envelope["dataValues"], list)
 
 
+def _aggregate_target(runner: CliRunner) -> tuple[str, str] | None:
+    """A numeric aggregate data element of a monthly data set and one organisation unit that reports it."""
+    result = runner.invoke(
+        build_app(),
+        [
+            "--json",
+            "metadata",
+            "list",
+            "dataSets",
+            "--fields",
+            "id,periodType,dataSetElements[dataElement[id,valueType,domainType]],organisationUnits[id]",
+            "--page-size",
+            "50",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    # Every major answers 400 to `filter=periodType:eq:Monthly` (BUGS.md #128), so the period type is matched here.
+    for data_set in json.loads(result.output):
+        if data_set.get("periodType") != "Monthly":
+            continue
+        org_units = data_set.get("organisationUnits") or []
+        for entry in data_set.get("dataSetElements") or []:
+            element = entry.get("dataElement") or {}
+            if element.get("valueType") == "NUMBER" and element.get("domainType") == "AGGREGATE" and org_units:
+                return str(element["id"]), str(org_units[0]["id"])
+    return None
+
+
 def test_aggregate_push_dry_run(
     local_url: str, local_pat: str | None, monkeypatch: pytest.MonkeyPatch, tmp_path: object
 ) -> None:
@@ -74,30 +102,17 @@ def test_aggregate_push_dry_run(
     _setup_env(monkeypatch, local_url, local_pat)
     runner = CliRunner()
 
-    # Discover a dataElement + orgUnit to avoid hard-coding instance-specific UIDs.
-    des_result = runner.invoke(
-        build_app(),
-        ["--json", "metadata", "list", "dataElements", "--fields", "id,name", "--page-size", "1"],
-    )
-    assert des_result.exit_code == 0, des_result.output
-    data_elements = json.loads(des_result.output)
-    if not data_elements:
-        pytest.skip("no dataElements on the instance")
-
-    ous_result = runner.invoke(
-        build_app(),
-        ["--json", "metadata", "list", "organisationUnits", "--fields", "id,name", "--page-size", "1"],
-    )
-    assert ous_result.exit_code == 0, ous_result.output
-    org_units = json.loads(ous_result.output)
-    if not org_units:
-        pytest.skip("no organisationUnits on the instance")
+    # A numeric aggregate data element of a monthly data set, posted for an organisation unit that reports it.
+    target = _aggregate_target(runner)
+    if target is None:
+        pytest.skip("instance missing an aggregate data element in a monthly data set")
+    data_element_id, org_unit_id = target
 
     import_payload = {
         "dataValues": [
             {
-                "dataElement": data_elements[0]["id"],
-                "orgUnit": org_units[0]["id"],
+                "dataElement": data_element_id,
+                "orgUnit": org_unit_id,
                 "period": "202401",
                 "value": str(secrets.randbelow(10) + 1),
             }

@@ -85,6 +85,15 @@ _VERSION_RE = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?")
 _HTTP_LOG = logging.getLogger("dhis2w_client.http")
 
 
+def _body_message(body: object) -> str:
+    """The `message` of a DHIS2 error envelope, or an empty string when the body carries none."""
+    if isinstance(body, dict):
+        message = body.get("message")
+        if isinstance(message, str):
+            return message
+    return ""
+
+
 class Dhis2Client:
     """Async DHIS2 client homed on the v41 tree; the server's major is discovered via /api/system/info on connect.
 
@@ -755,7 +764,11 @@ class Dhis2Client:
                     body = response.json()
                 except ValueError:
                     body = response.text
-                raise Dhis2ApiError(status_code=response.status_code, message=response.reason_phrase, body=body)
+                raise Dhis2ApiError(
+                    status_code=response.status_code,
+                    message=response.reason_phrase or _body_message(body),
+                    body=body,
+                )
         return response
 
     @staticmethod
