@@ -24,7 +24,7 @@ from pydantic import BaseModel
 _HOST = "https://dhis2.example"
 _TODAY = date(2026, 8, 1)
 
-#: The live wire shape, confirmed on play 2.43 and on the Lao instance: the attribute UID and the value alone.
+#: The live wire shape, confirmed on play 2.43 and on a national instance: the attribute UID and the value alone.
 _WIRE_ATTRIBUTE_VALUES = [
     {"attribute": {"id": "ihn1wb9eho8"}, "value": "KE03"},
     {"attribute": {"id": "n2xYlNbsfko"}, "value": "Facility register"},

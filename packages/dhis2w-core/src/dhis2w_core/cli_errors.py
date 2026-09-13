@@ -38,7 +38,7 @@ _UNKNOWN_PROFILE_HINT = [
 
 _INVALID_NAME_HINT = [
     "profile names must start with a letter and contain only letters,",
-    "digits, and underscores (e.g. 'local', 'prod_eu', 'laohis42').",
+    "digits, and underscores (e.g. 'local', 'prod_eu', 'prod_asia').",
 ]
 
 _AUTH_HINT = [

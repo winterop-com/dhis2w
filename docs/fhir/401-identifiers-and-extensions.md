@@ -420,7 +420,7 @@ $ curl -s localhost:8389/Questionnaire/BfMAe6Itzgt | jq -c '.extension[2]'
 ```
 
 **`attributeCode` is optional because DHIS2 leaves most attributes uncoded.**
-On the Lao instance eleven of twelve attributes have no `code` at all. An
+On one national instance eleven of twelve attributes have no `code` at all. An
 uncoded attribute gets no `attributeCode` sub-extension rather than an empty
 one - an empty code would claim the instance coded that attribute. The example
 above is one such attribute.

@@ -58,10 +58,10 @@ def test_rename_non_default_leaves_default_alone(monkeypatch: pytest.MonkeyPatch
     project_dir = tmp_path / "proj"
     _seed(project_dir, default="prod")
 
-    rename_profile("local", "laohis42", start=project_dir)
+    rename_profile("local", "prod_asia", start=project_dir)
 
     reloaded = load_profiles_file(project_dir / ".dhis2" / "profiles.toml")
-    assert "laohis42" in reloaded.profiles
+    assert "prod_asia" in reloaded.profiles
     assert reloaded.default == "prod"
 
 

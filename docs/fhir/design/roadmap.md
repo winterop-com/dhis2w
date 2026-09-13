@@ -748,7 +748,7 @@ What the compile pays for is FSH, and the two bulk halves of the IG are not FSH:
 the `Organization` / `Location` instances and the option-set CodeSystem /
 ValueSet pairs are pre-built JSON that SUSHI loads as predefined resources, so a
 national hierarchy and hundreds of option sets add nothing to the run the timeout
-is guarding. On the uncapped Lao IG the compile is **6m57s**. Writing that IG's
+is guarding. On an uncapped national IG the compile is **6m57s**. Writing that IG's
 235 option sets as FSH instead costs **10m15s**; taking a `max_level = 4` cut and
 writing its 4,698 registry instances as FSH too costs **23m22s** against the
 **9m40s** the same cut costs with the registry predefined. Those are the measure
@@ -1201,7 +1201,7 @@ generated `capture.md` behind
 ### Dimension C - live-instance robustness
 
 **The question a reviewer answers.** How does the plugin behave against a slow,
-flaky, or permission-limited instance - which is what the real Lao instance will
+flaky, or permission-limited instance - which is what a real national instance will
 be - and does `validate` cover everything generation actually reads?
 
 **Where to start.**
@@ -1423,7 +1423,7 @@ instance `generate` writes the full output in a few minutes.
 **The compile scales with FSH, not with the hierarchy or the option-set count.**
 The registry and the option-set terminology are both predefined JSON, so
 `make sushi` pays only for the forms and the five CodeSystems that are FSH.
-On the uncapped Lao IG - 25,162 registry instances, 235 option sets, warm cache,
+On an uncapped national IG - 25,162 registry instances, 235 option sets, warm cache,
 0 errors and 0 warnings - that is **6m57s**. Writing the same 235 option sets as
 FSH instead costs **10m15s**, so predefined terminology is worth **3m18s** here.
 Taking a `max_level = 4` cut and writing its 4,698 registry instances as FSH too
@@ -1624,7 +1624,7 @@ described, and the git history is where it was built. What is left:
   values have no `identifier` element to land in and no obvious carrier:
   concepts already hold DHIS2 data as `CodeSystem.property`, which needs each
   property declared up front, while `CodeSystem.concept` also accepts extensions.
-  Volume decides how much the choice costs - the Lao data-element CodeSystem
+  Volume decides how much the choice costs - a national data-element CodeSystem
   carries 45,880 concepts, against one or two values per organisation unit - so
   this wants its own measurement rather than riding along with the resource-level
   shape.

@@ -142,7 +142,7 @@ def validate_profile_name(name: str) -> str:
       - remaining characters must be letters, digits, or underscore
       - max length 64 characters
 
-    Typical valid names: `local`, `prod`, `prod_eu`, `test42`, `laohis42`.
+    Typical valid names: `local`, `prod`, `prod_eu`, `test42`, `prod_asia`.
     Raises `InvalidProfileNameError` on violation. The constraint keeps names
     safe as env var suffixes, TOML keys, and unquoted shell arguments.
     """

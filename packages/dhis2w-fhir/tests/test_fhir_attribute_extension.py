@@ -39,7 +39,7 @@ _HOST = "https://dhis2.example"
 _CANONICAL = "http://example.org/fhir"
 _EXTENSION_URL = f"{_CANONICAL}/StructureDefinition/d2-attribute-value"
 
-#: The one coded attribute of the Lao instance, and one of the eleven it left uncoded.
+#: The one coded attribute of a national instance, and one of the eleven it left uncoded.
 _CODED_ATTRIBUTE = "ZvJJRvwt2Un"
 _UNCODED_ATTRIBUTE = "n2xYlNbsfko"
 
