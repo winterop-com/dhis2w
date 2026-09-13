@@ -24,8 +24,8 @@ its own project, in its own throwaway directory, and cleans up after itself.
 - find out whether the guide you already published still describes the instance
 
 ```bash
-d2w -p laos fhir doctor           # the whole chain, one verdict
-d2w -p laos fhir doctor --live    # and let the instance judge the output
+d2w -p myserver fhir doctor           # the whole chain, one verdict
+d2w -p myserver fhir doctor --live    # and let the instance judge the output
 cd my-guide && d2w fhir doctor    # and check that guide for drift as well
 ```
 
@@ -339,9 +339,9 @@ do for every other `d2w` command - there is no doctor-local `--profile` and
 no doctor-local `--json`:
 
 ```bash
-d2w -p laos fhir doctor
-DHIS2_PROFILE=laos d2w fhir doctor
-d2w --json -p laos fhir doctor      # the typed report on stdout, narration on stderr
+d2w -p myserver fhir doctor
+DHIS2_PROFILE=myserver d2w fhir doctor
+d2w --json -p myserver fhir doctor      # the typed report on stdout, narration on stderr
 ```
 
 One instance per run, named the same way everywhere.

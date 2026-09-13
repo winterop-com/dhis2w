@@ -63,11 +63,16 @@ organisation unit the values were captured at, and the profile restricts it to
 
 {% if capture.organisation_unit_uid %}
 ```
-"subject": { "reference": "Location/{{ capture.organisation_unit_stem }}" }
+"subject": { "reference": "{{ capture.organisation_unit_reference }}" }
 ```
 
+{% if capture.organisation_unit_name %}
 Written out, that is {{ capture.organisation_unit_name }} (`{{ capture.organisation_unit_uid }}`).
 
+{% else %}
+That is the DHIS2 organisation unit `{{ capture.organisation_unit_uid }}`.
+
+{% endif %}
 {% endif %}
 **5. Answer one item per `linkId`.** The response mirrors the Questionnaire's item tree, and
 every question is addressed by the `linkId` the Questionnaire gave it. There are exactly two
@@ -196,7 +201,7 @@ a reference to that unit's `{{ capture.location_profile }}`:
 ```
 "extension": [{
   "url": "{{ capture.canonical }}/StructureDefinition/{{ capture.organisation_unit_extension_id }}",
-  "valueReference": { "reference": "Location/{{ capture.organisation_unit_stem }}" }
+  "valueReference": { "reference": "{{ capture.organisation_unit_reference }}" }
 }]
 ```
 

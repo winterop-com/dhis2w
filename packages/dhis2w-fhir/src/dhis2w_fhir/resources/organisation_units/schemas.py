@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from dhis2w_fhir.attributes import AttributeValueIn
 from dhis2w_fhir.coded import CodedProjectionIn
 from dhis2w_fhir.foundation.schemas import TerminologyPairProfile, TerminologyPropertyDeclaration
 from dhis2w_fhir.i18n import TranslationIn, name_translations
-from dhis2w_fhir.names import flatten_whitespace
+from dhis2w_fhir.names import flatten_whitespace, strip_trailing_slash
 
 #: The prose the org-unit-level CodeSystem/ValueSet pair publishes under - the levels the selection reaches.
 ORGANISATION_UNIT_LEVEL_TERMINOLOGY = TerminologyPairProfile(
@@ -34,14 +36,57 @@ ORGANISATION_UNIT_CONCEPT_PROPERTIES: tuple[TerminologyPropertyDeclaration, ...]
 )
 
 
+class RegistryDependency(BaseModel):
+    """The registry package a guide depends on - the `[generate.organisation_units.registry]` table of `fhir.toml`.
+
+    A guide that names one publishes no organisation-unit instances, profiles or registry examples
+    of its own: the package with this `id`, `canonical` and `version` does, and the guide declares
+    it under `dependencies:` in `sushi-config.yaml`. `path` is an optional local checkout of that
+    registry project, which lets the drift check and the facade read the instances without a build.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    canonical: str
+    version: str = "0.1.0"
+    path: Path | None = None
+
+    _normalize_canonical = field_validator("canonical")(strip_trailing_slash)
+
+    @property
+    def reference_base(self) -> str:
+        """What a reference into the registry is prefixed with: the package canonical and a slash."""
+        return f"{self.canonical}/"
+
+    @property
+    def implementation_guide_url(self) -> str:
+        """The canonical of the registry's ImplementationGuide resource - the `uri` its `dependsOn` entry names."""
+        return f"{self.canonical}/ImplementationGuide/{self.id}"
+
+    @field_validator("id", "version")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        """A package id and version are what the publisher fetches by; neither may be empty."""
+        if not value.strip():
+            raise ValueError("must not be empty")
+        return value.strip()
+
+
 class OrganisationUnitSelection(BaseModel):
-    """Which DHIS2 organisation units to generate - the `[generate.organisation_units]` table of `fhir.toml`."""
+    """Which DHIS2 organisation units to generate - the `[generate.organisation_units]` table of `fhir.toml`.
+
+    Without `registry` the selection is published inline, as pre-built JSON under
+    `ig/input/resources/registry/`. With it, the same selection is published by the registry
+    package named there and this guide only resolves the stems its forms refer to.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     root: str | None = None
     max_level: int | None = None
     terminology: bool = False
+    registry: RegistryDependency | None = None
 
     @field_validator("root", mode="before")
     @classmethod

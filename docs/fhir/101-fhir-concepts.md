@@ -227,7 +227,8 @@ form: `compulsoryDataElementOperands` make a question mandatory, a `valueType`
 restricts what may be entered, an option set restricts it further. None of those
 change what a data value *is*; they say which data values are acceptable.
 
-This toolkit generates `D2Organization` and `D2Location` over the registry, and
+This toolkit generates `D2Organization` and `D2Location` over the registry -
+in the guide, or in a registry package the guide depends on - and
 `D2AggregateResponse` / `D2EventResponse` / `D2TrackerRegistrationResponse` /
 `D2TrackerEventResponse` / `D2TrackedEntityResponse` over
 `QuestionnaireResponse` - the capture contract. Each response profile pins the

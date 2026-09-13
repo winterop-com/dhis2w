@@ -683,3 +683,82 @@ def test_the_identity_table_survives_a_config_round_trip(tmp_path: Path) -> None
     write_fhir_config(path, config)
 
     assert load_fhir_config(path).ips == config.ips
+
+
+def test_the_registry_table_names_the_package_a_guide_depends_on(tmp_path: Path) -> None:
+    """`[generate.organisation_units.registry]` carries the package identity; the canonical loses its slash."""
+    path = _write(
+        tmp_path,
+        after=(
+            '\n[generate.organisation_units.registry]\nid = "dhis2.fhir.example.registry"\n'
+            'canonical = "http://example.org/fhir/registry/"\npath = "../example-registry"\n'
+        ),
+    )
+    config = load_fhir_config(path)
+    registry = config.registry_dependency
+    assert registry is not None
+    assert registry.id == "dhis2.fhir.example.registry"
+    assert registry.canonical == "http://example.org/fhir/registry"
+    assert registry.version == "0.1.0"
+    assert registry.path == Path("../example-registry")
+    assert config.is_registry_project is False
+
+
+def test_without_a_registry_table_the_registry_is_inline(tmp_path: Path) -> None:
+    """The table is opt-in: a project that names none publishes its registry as today."""
+    config = load_fhir_config(_write(tmp_path))
+    assert config.registry_dependency is None
+    assert config.ig.kind == "guide"
+
+
+def test_a_misspelled_key_in_the_registry_table_names_that_table(tmp_path: Path) -> None:
+    """The nested table gets the same diagnostic as every other table."""
+    path = _write(
+        tmp_path,
+        after='\n[generate.organisation_units.registry]\nid = "x"\ncanonical = "http://example.org/r"\nversoin = "1"\n',
+    )
+    with pytest.raises(UnknownFhirConfigKeyError) as raised:
+        load_fhir_config(path)
+    assert raised.value.diagnostics == (
+        "fhir.toml: unknown key 'versoin' in [generate.organisation_units.registry]\n  did you mean 'version'?",
+    )
+
+
+def test_a_guide_refuses_a_registry_on_its_own_canonical(tmp_path: Path) -> None:
+    """A registry package publishes under its own canonical; the guide's canonical is not one."""
+    path = _write(
+        tmp_path,
+        after='\n[generate.organisation_units.registry]\nid = "dhis2.fhir.example.registry"\ncanonical = "http://example.org/fhir"\n',
+    )
+    with pytest.raises(ValidationError, match="own canonical"):
+        load_fhir_config(path)
+
+
+def test_a_registry_project_refuses_form_selections_and_a_registry_table(tmp_path: Path) -> None:
+    """`kind = "registry"` publishes the registry alone: no form ids, and no dependency on another registry."""
+    for name in ("forms", "registry", "plain"):
+        (tmp_path / name).mkdir()
+    with_forms = _write(tmp_path / "forms", before="", after='\n[generate.data_sets]\ninclude_ids = ["BfMAe6Itzgt"]\n')
+    _set_kind(with_forms, "registry")
+    with pytest.raises(ValidationError, match="registry alone"):
+        load_fhir_config(with_forms)
+    with_registry = _write(
+        tmp_path / "registry",
+        after='\n[generate.organisation_units.registry]\nid = "other"\ncanonical = "http://example.org/other"\n',
+    )
+    _set_kind(with_registry, "registry")
+    with pytest.raises(ValidationError, match="registry package itself"):
+        load_fhir_config(with_registry)
+    plain = _write(tmp_path / "plain")
+    _set_kind(plain, "registry")
+    assert load_fhir_config(plain).is_registry_project is True
+
+
+def _set_kind(path: Path, kind: str) -> None:
+    """Add `kind = "<kind>"` to the `[ig]` table of a written fhir.toml."""
+    text = path.read_text(encoding="utf-8")
+    path.write_text(
+        text.replace(
+            'publisher = "Example Organisation"\n', f'publisher = "Example Organisation"\nkind = "{kind}"\n', 1
+        )
+    )

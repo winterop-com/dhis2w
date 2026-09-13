@@ -558,6 +558,15 @@ chain in one command.
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
   `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
+  **`--kind registry`** scaffolds a registry package (the organisation-unit
+  registry alone, `kind = "registry"` under `[ig]`, a Home / Registry /
+  Artifacts menu, `path-resource` limited to `registry/`); **`--registry-id`**
+  / **`--registry-canonical`** / **`--registry-version`** / **`--registry-path`**
+  name the registry package a guide depends on, seeding the
+  `[generate.organisation_units.registry]` table, the `dependencies:` entry of
+  `sushi-config.yaml` (uri `<canonical>/ImplementationGuide/<id>`) and the
+  Makefile's `REGISTRY_ID` / `REGISTRY_VERSION` / `REGISTRY_TGZ` knobs - a
+  half-named registry and a registry package naming one are refused;
   **`--sushi-timeout`** sets the `[FSH] timeout` of `ig/fsh.ini`, the ceiling
   the IG publisher gives its internal SUSHI run - an IG whose FSH overruns it
   fails the build with exit 143.
@@ -630,6 +639,12 @@ chain in one command.
   `d2w fhir init --refresh`.
 - **`JAVA_HEAP`** sizes the publisher JVM heap, `8g` by default - the knob for
   an exit-137 OOM kill on a small docker VM.
+- **`make registry-install`** in a guide that depends on a registry package
+  streams the package's `package.tgz` (`REGISTRY_TGZ`, defaulting to
+  `<registry.path>/ig/output/package.tgz`) into the shared package-cache volume
+  under `<id>#<version>/package/`; `sushi`, `build` and `build-bind` depend on
+  it. The registry project builds in its own container with its own
+  `JAVA_HEAP`, so neither build carries the other's resources.
 - **Registry scale.** `d2w fhir generate org-units` warns at generate time once
   the registry passes 2,000 instances, because the IG publisher validates and
   renders every resource and the registry therefore sets the wall clock of
@@ -1369,6 +1384,31 @@ registration form become `Questionnaire` instances.
 - **These stay FSH** under `ig/input/fsh/organization/`, along with the
   optional whole-selection CodeSystem representation
   (`[generate.organisation_units] terminology`).
+- **Published as a package of its own, opt-in.** A guide naming a registry
+  package under `[generate.organisation_units.registry]` (`id`, `canonical`,
+  `version`, optional `path`) writes no Organization, Location, registry
+  profile, registry example or level terminology - both directories are
+  emptied - reads the selection once as `id,code,name` instead of walking the
+  hierarchy, references every unit by its absolute URL
+  `<canonical>/Location/<stem>` in the examples, the assignment Lists and the
+  capture page (the only form the IG publisher resolves across a dependency),
+  types `D2OrganisationUnit` and every `D2Responses` subject with the package's
+  Location profile by canonical, leaves the level extension and the
+  organisation-unit NamingSystems to the package, and raises one
+  `registry-dependency` note. The Registry page states the package. A guide
+  whose canonical equals the registry's is refused. A `fhir.toml` without the
+  table is untouched by any of this.
+- **The registry package itself** is a project with `kind = "registry"` under
+  `[ig]`: `d2w fhir generate` runs its foundation slice (aliases, the
+  organisation-unit NamingSystems, the attribute-value extension, the level
+  extension), the organisation units and the pages (Registry plus the unit
+  intros), reports the four form-side targets as not applying, and refuses
+  `option-sets`, `categories`, `questionnaires`, `examples` and `load-set` by
+  name. A registry package selecting a form or naming a registry is refused
+  when its `fhir.toml` loads.
+- **The translator reads both reference forms.** `location_id_of` takes the id
+  off `Location/<id>` and off `<canonical>/Location/<id>`, so a response
+  written against either guide resolves its organisation unit.
 
 #### Site pages
 
@@ -1457,7 +1497,8 @@ DHIS2 translations are carried through across the whole surface, filtered by
   kind - `selection-mismatch`, `selection-closure`, `empty-selection`,
   `selection-gap`, `refused-form`, `form-structure`, `skipped-question`,
   `answer-fallback`, `instance-data-gap`, `build-cost`, `compile-removed`,
-  `scaffold-drift`, `code-fallback`, `code-collision`, `stem-fallback` - beside
+  `scaffold-drift`, `registry-dependency`, `code-fallback`, `code-collision`,
+  `stem-fallback` - beside
   its text and an `echoes_validate` verdict derived from it.
 - **A bare run counts the three kinds that merely restate a `fhir validate`
   finding apart** from what generation itself found

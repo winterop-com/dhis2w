@@ -65,9 +65,6 @@ ASSIGNMENT_ID_SUFFIX = "org-units"
 AssignmentContainerKind = Literal["data-set", "program"]
 """Which DHIS2 object holds the assignment: a data set for an aggregate form, a program for both others."""
 
-#: The `Location` reference prefix an assignment entry and every capture-side subject are written with.
-_LOCATION_REFERENCE_PREFIX = "Location/"
-
 
 class AssignmentIndex(BaseModel):
     """The organisation units DHIS2 assigns each selected data set and program to, read id-only.
@@ -248,7 +245,7 @@ def _assignment_list(
     Entries are ordered by the Location id they reference, so a regenerate of an unchanged
     assignment produces a byte-identical file whatever order DHIS2 returned the units in.
     """
-    stems = sorted(published.stem_for(uid) for uid in members)
+    references = sorted(published.reference_for("Location", uid) for uid in members)
     return ResourceList(
         id=list_id,
         identifier=[
@@ -260,7 +257,7 @@ def _assignment_list(
         status="current",
         mode="snapshot",
         title=f"{container.name} - assigned organisation units",
-        entry=[ListEntry(item=Reference(reference=f"{_LOCATION_REFERENCE_PREFIX}{stem}")) for stem in stems] or None,
+        entry=[ListEntry(item=Reference(reference=reference)) for reference in references] or None,
     )
 
 

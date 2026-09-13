@@ -149,6 +149,10 @@ class RegistryView(BaseModel):
     organization_profile: str = ""
     location_profile: str = ""
     levels: list[LevelRow] = Field(default_factory=list)
+    registry_id: str = ""
+    """The package publishing the units when it is not this guide; empty for an inline registry."""
+    registry_version: str = ""
+    registry_canonical: str = ""
 
 
 class OptionSetRow(BaseModel):
@@ -287,8 +291,10 @@ class ValueLiteralRow(BaseModel):
 class CaptureView(BaseModel):
     """The capture page: the three response contracts, one worked example each, and the answer typing rules.
 
-    `organisation_unit_stem` is the worked unit's identity stem - what its `Location/...`
-    references target - while `organisation_unit_uid` stays the DHIS2 id the prose cites as data.
+    `organisation_unit_reference` is the reference the worked unit's published Location is
+    pointed at by, while `organisation_unit_uid` stays the DHIS2 id the prose cites as data.
+    `organisation_unit_name` is empty when the guide read no names - a guide whose registry is
+    another package resolves the unit's stem alone.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -314,7 +320,7 @@ class CaptureView(BaseModel):
     capture_server_id: str
     location_profile: str
     organisation_unit_uid: str
-    organisation_unit_stem: str
+    organisation_unit_reference: str
     organisation_unit_name: str
     tracker_subject_type: str = DEFAULT_SUBJECT_RESOURCE_TYPE
     """The resource type the worked tracker walkthrough names its subject as.

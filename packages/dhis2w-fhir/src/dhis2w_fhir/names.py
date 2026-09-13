@@ -243,16 +243,27 @@ class StemResolution(BaseModel):
     `stems` maps each subject's DHIS2 id to the one segment its resource id, canonical URL,
     file name, and FSH name all derive from. `notes` is empty in id mode; in code-or-id mode
     it names every object that fell back to the id.
+
+    `reference_base` is what a reference to one of the surface's resources is prefixed with.
+    Empty when the guide publishes the resources itself, so a reference stays the relative
+    `Location/<stem>` a same-package reader resolves; the other package's canonical plus a
+    slash when another package publishes them, so the reference is the absolute
+    `<canonical>/Location/<stem>` the IG publisher resolves across a dependency.
     """
 
     model_config = ConfigDict(frozen=True)
 
     stems: dict[str, str] = Field(default_factory=dict)
     notes: list[GenerateNote] = Field(default_factory=list)
+    reference_base: str = ""
 
     def stem_for(self, uid: str) -> str:
         """The resolved id/url/filename segment of one subject."""
         return self.stems[uid]
+
+    def reference_for(self, resource_type: str, uid: str) -> str:
+        """The reference string one subject's resource is pointed at by: relative, or absolute into another package."""
+        return f"{self.reference_base}{resource_type}/{self.stems[uid]}"
 
     def fsh_segment_for(self, uid: str) -> str:
         """The FSH-name segment of one subject, derived from the same stem its ids take."""

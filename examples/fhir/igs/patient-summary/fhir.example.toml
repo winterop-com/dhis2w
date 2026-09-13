@@ -22,6 +22,9 @@ title = "Patient summary example guide"
 publisher = "dhis2w examples"
 # "draft" while building; "active" for production. -> 301-identity#status
 status = "draft"
+# What the project publishes: a "guide" of forms, or a "registry" package holding the organisation-unit
+# registry alone for guides to depend on. -> 201-registry-package
+kind = "guide"
 
 [generate]
 # Web-address stem of the DHIS2 identifiers every published entry carries. -> 301-generation#identifier_system_base
@@ -119,6 +122,11 @@ source = "synthetic"
 # max_level = 4
 # Also publish the organisation unit code list. -> 301-what-goes-in#terminology
 terminology = false
+# The registry package publishing the units instead of this guide (absent = published inline): its package
+# id, its canonical (every unit reference is a URL under it), the version `make build` installs, and an
+# optional local checkout of the registry project. Also written as a [generate.organisation_units.registry]
+# table. -> 201-registry-package
+# registry = { id = "dhis2.fhir.example.registry", canonical = "http://example.org/fhir/registry", version = "0.1.0", path = "../example-registry" }
 
 [serve]
 # How `d2w fhir serve` (and `make serve`) runs this project; a flag wins over these. -> 301-serving

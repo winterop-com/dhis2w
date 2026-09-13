@@ -152,6 +152,7 @@ __all__ = [
     "example_items",
     "example_period",
     "example_tracker_context",
+    "location_reference",
     "location_stem",
     "registration_identities",
     "response_status_code",
@@ -366,8 +367,8 @@ class _AttributeOptionComboView(BaseModel):
 class _TrackerContextView(BaseModel):
     """The tracker context of one example: the enrollment, the tracked entity, and the unit it was captured at.
 
-    `organisation_unit_stem` is the capture unit's identity stem - the id its published Location
-    carries - while the enrollment and tracked-entity UIDs stay the DHIS2 data identifiers they are.
+    `organisation_unit_reference` is the reference the capture unit's published Location is pointed
+    at by, while the enrollment and tracked-entity UIDs stay the DHIS2 data identifiers they are.
     The two dates are filled by a registration example alone, which is the one that creates the
     enrollment they date. `subject_type` is the resource type the form declares its subject as -
     a `Patient` unless the project maps the program's tracked entity type to something else.
@@ -380,7 +381,7 @@ class _TrackerContextView(BaseModel):
     organisation_unit_extension: str
     enrolled_at_extension: str
     incident_at_extension: str
-    organisation_unit_stem: str
+    organisation_unit_reference: str
     enrollment_uid: str | None = None
     tracked_entity_uid: str | None = None
     enrolled_at: str | None = None
@@ -419,7 +420,7 @@ class _ExampleView(BaseModel):
     description_literal: str
     form_type_extension: str
     form_type_code: FormKind
-    organisation_unit_stem: str
+    organisation_unit_reference: str
     status_code: str
     period: _PeriodExtensionView | None = None
     attribute_option_combo: _AttributeOptionComboView | None = None
@@ -1436,7 +1437,7 @@ def _example_view(
         ),
         form_type_extension=foundation.form_type_extension,
         form_type_code=source.kind,
-        organisation_unit_stem=location_stem(response.organisation_unit_uid, organisation_unit_stems),
+        organisation_unit_reference=location_reference(response.organisation_unit_uid, organisation_unit_stems),
         status_code=response.status_code,
         period=_period_view(period, foundation),
         attribute_option_combo=_attribute_option_combo_view(attribute_option_combo, foundation, attribute_combos),
@@ -1455,6 +1456,17 @@ def location_stem(uid: str, organisation_unit_stems: StemResolution | None) -> s
     if organisation_unit_stems is None:
         return uid
     return organisation_unit_stems.stems.get(uid, uid)
+
+
+def location_reference(uid: str, organisation_unit_stems: StemResolution | None) -> str:
+    """The reference string one unit's Location is pointed at by, under the resolution's reference base.
+
+    Relative - `Location/<stem>` - when this guide publishes the registry, and absolute into the
+    registry package's canonical when `[generate.organisation_units.registry]` names one, which is
+    the only form the IG publisher resolves across a package dependency.
+    """
+    base = organisation_unit_stems.reference_base if organisation_unit_stems is not None else ""
+    return f"{base}Location/{location_stem(uid, organisation_unit_stems)}"
 
 
 def _period_view(period: PeriodValue | None, foundation: FoundationNaming) -> _PeriodExtensionView | None:
@@ -1501,7 +1513,7 @@ def _tracker_view(
         organisation_unit_extension=foundation.organisation_unit_extension,
         enrolled_at_extension=foundation.enrolled_at_extension,
         incident_at_extension=foundation.incident_at_extension,
-        organisation_unit_stem=location_stem(context.organisation_unit_uid, organisation_unit_stems),
+        organisation_unit_reference=location_reference(context.organisation_unit_uid, organisation_unit_stems),
         enrollment_uid=context.enrollment_uid,
         tracked_entity_uid=context.tracked_entity_uid,
         enrolled_at=context.enrolled_at,
@@ -1832,7 +1844,7 @@ def _fsh_literal(
     if answer.element == "valueBoolean":
         return "true" if answer.boolean_value else "false"
     if answer.element == "valueReference":
-        return f"Reference(Location/{location_stem(answer.location_uid or '', organisation_unit_stems)})"
+        return f"Reference({location_reference(answer.location_uid or '', organisation_unit_stems)})"
     if answer.element == "valueCoding" and answer.coding is not None:
         system = identities[answer.coding.option_set_uid].code_system_name
         return f"{system}{fsh_code(answer.coding.concept_code)} {quote(answer.coding.display)}"

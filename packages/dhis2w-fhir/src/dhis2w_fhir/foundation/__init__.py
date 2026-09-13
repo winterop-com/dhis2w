@@ -105,6 +105,7 @@ from dhis2w_fhir.foundation.schemas import (
     ArtifactProfile,
     FormTypeDefinition,
     FoundationNaming,
+    IdentifierSystemSubject,
     LogicalModelElement,
     NamingSystemDeclaration,
     ResponseProfileDeclaration,
@@ -126,7 +127,7 @@ from dhis2w_fhir.foundation.tracked_entity_attribute_values import (
 )
 from dhis2w_fhir.names import page_text
 from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
-from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming
+from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming, location_profile_reference
 from dhis2w_fhir.resources.questionnaires.schemas import CAPTURED_FORM_KINDS
 from dhis2w_fhir.status import IgStatus, experimental_for_status
 from dhis2w_fhir.writer import FshArtifact
@@ -175,6 +176,7 @@ __all__ = [
     "attribute_value_extensions",
     "build_captured_response_profile_declarations",
     "build_foundation_artifacts",
+    "build_registry_foundation_artifacts",
     "build_foundation_terminology_documents",
     "build_response_profile_declarations",
     "build_terminology_pair",
@@ -272,7 +274,9 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
     names = FoundationNaming.from_naming(config.naming)
     experimental = experimental_for_status(ig_status)
     organisation_unit_naming = OrganisationUnitNaming.from_naming(config.naming)
-    location_profile = organisation_unit_naming.location_profile
+    # The profile every organisation-unit reference is typed with: this guide's own D2Location,
+    # or the registry package's by canonical when another package publishes the units.
+    location_profile = location_profile_reference(config)
     aliases = _ENVIRONMENT.get_template("d2-aliases.fsh.jinja").render(
         identifier_system_base=config.identifier_system_base
     )
@@ -456,7 +460,7 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
         ig_status=ig_status,
         experimental=experimental,
     )
-    return [
+    artifacts = [
         FshArtifact(
             relative_path="foundation/d2-aliases.fsh",
             kind="aliases",
@@ -614,6 +618,81 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
             content=capture_server,
         ),
     ]
+    if config.organisation_units.registry is not None:
+        # The level extension rides the Locations, and binds the level ValueSet the registry
+        # package publishes beside them; a guide publishing no Location defines neither.
+        artifacts = [artifact for artifact in artifacts if artifact.relative_path != _LEVEL_EXTENSION_PATH]
+    return artifacts
+
+
+#: The one foundation artifact that belongs to whichever package publishes the Locations.
+_LEVEL_EXTENSION_PATH = "foundation/d2-organisation-unit-level.fsh"
+
+
+def build_registry_foundation_artifacts(
+    config: GenerateConfig, canonical: str, *, ig_status: IgStatus
+) -> list[FshArtifact]:
+    """Build the `foundation/` artifacts of a registry package - what its Organizations and Locations resolve.
+
+    A registry package publishes organisation units and nothing else, so its foundation is the
+    slice of a guide's that those instances name: the identifier aliases, the organisation-unit
+    NamingSystems, the attribute-value extension a unit's DHIS2 attributes ride on, and the
+    level extension every Location states its depth with. `canonical` is unused by these four -
+    each names its siblings by FSH name - and taken so the two foundation builders share a shape.
+    """
+    del canonical
+    names = FoundationNaming.from_naming(config.naming)
+    experimental = experimental_for_status(ig_status)
+    organisation_unit_naming = OrganisationUnitNaming.from_naming(config.naming)
+    aliases = _ENVIRONMENT.get_template("d2-aliases.fsh.jinja").render(
+        identifier_system_base=config.identifier_system_base
+    )
+    naming_systems = _ENVIRONMENT.get_template("d2-naming-systems.fsh.jinja").render(
+        naming_systems=build_naming_system_declarations(config, subjects=ORGANISATION_UNIT_IDENTIFIER_SUBJECTS),
+        declared_date=_IDENTIFIER_SYSTEM_DECLARED_DATE,
+        ig_status=ig_status,
+    )
+    attribute_value = _ENVIRONMENT.get_template("d2-attribute-value.fsh.jinja").render(
+        names=names,
+        context_resource_types=ATTRIBUTE_VALUE_CONTEXT_RESOURCE_TYPES,
+        attribute_id_sub_extension=ATTRIBUTE_ID_SUB_EXTENSION,
+        attribute_code_sub_extension=ATTRIBUTE_CODE_SUB_EXTENSION,
+        attribute_value_sub_extension=ATTRIBUTE_VALUE_SUB_EXTENSION,
+        ig_status=ig_status,
+        experimental=experimental,
+    )
+    organisation_unit_level = _ENVIRONMENT.get_template("d2-organisation-unit-level.fsh.jinja").render(
+        names=names,
+        level_value_set=organisation_unit_naming.level_value_set,
+        ig_status=ig_status,
+        experimental=experimental,
+    )
+    return [
+        FshArtifact(
+            relative_path="foundation/d2-aliases.fsh",
+            kind="aliases",
+            fsh_name="DHIS2 identifier aliases",
+            content=aliases,
+        ),
+        FshArtifact(
+            relative_path="foundation/d2-naming-systems.fsh",
+            kind="instances",
+            fsh_name="DHIS2 identifier systems",
+            content=naming_systems,
+        ),
+        FshArtifact(
+            relative_path="foundation/d2-attribute-value.fsh",
+            kind="extension",
+            fsh_name=names.attribute_value_extension,
+            content=attribute_value,
+        ),
+        FshArtifact(
+            relative_path=_LEVEL_EXTENSION_PATH,
+            kind="extension",
+            fsh_name=names.organisation_unit_level_extension,
+            content=organisation_unit_level,
+        ),
+    ]
 
 
 def _identifier_system(config: GenerateConfig, subject_token: str) -> str:
@@ -709,12 +788,31 @@ def build_captured_response_profile_declarations(config: GenerateConfig) -> list
     ]
 
 
-def build_naming_system_declarations(config: GenerateConfig) -> list[NamingSystemDeclaration]:
-    """Declare every DHIS2 identifier system: a UID system per object kind, plus a code system where one exists."""
+#: The identifier-system subject a registry package declares: the organisation unit, and it alone.
+ORGANISATION_UNIT_IDENTIFIER_SUBJECTS = tuple(
+    subject for subject in IDENTIFIER_SYSTEM_SUBJECTS if subject.token == "OrgUnit"
+)
+
+
+def identifier_system_subjects(config: GenerateConfig) -> tuple[IdentifierSystemSubject, ...]:
+    """The identifier-system subjects a guide declares: every kind, minus what a registry package owns."""
+    if config.organisation_units.registry is None:
+        return IDENTIFIER_SYSTEM_SUBJECTS
+    return tuple(subject for subject in IDENTIFIER_SYSTEM_SUBJECTS if subject.token != "OrgUnit")
+
+
+def build_naming_system_declarations(
+    config: GenerateConfig, *, subjects: tuple[IdentifierSystemSubject, ...] | None = None
+) -> list[NamingSystemDeclaration]:
+    """Declare every DHIS2 identifier system: a UID system per object kind, plus a code system where one exists.
+
+    `subjects` narrows the declaration to a slice of the object kinds; None declares what the
+    guide owns, which leaves the organisation unit to the registry package when one is named.
+    """
     prefix = FoundationNaming.from_naming(config.naming).definition_prefix
     base = config.identifier_system_base
     declarations: list[NamingSystemDeclaration] = []
-    for subject in IDENTIFIER_SYSTEM_SUBJECTS:
+    for subject in subjects if subjects is not None else identifier_system_subjects(config):
         declarations.append(
             NamingSystemDeclaration(
                 name=f"{prefix}{subject.token}IdentifierSystem",

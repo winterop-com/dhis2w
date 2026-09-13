@@ -176,6 +176,7 @@ nav:
           - Validate an instance: fhir/201-validate.md
           - Generate the IG source: fhir/201-generate.md
           - Build and publish the guide: fhir/201-build-and-publish.md
+          - Publish the registry as a package: fhir/201-registry-package.md
           - Serve the guide: fhir/201-serve.md
           - Secure the facade: fhir/201-secure.md
           - Capture in the browser: fhir/201-capture-ui.md

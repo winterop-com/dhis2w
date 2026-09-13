@@ -41,7 +41,8 @@ already maintain and republishes it under FHIR's names:
 - your **data sets and program stages** become forms a FHIR client can render
 - your **option sets and categories** become published vocabularies, so an outside
   system can resolve a code instead of guessing at it
-- your **organisation unit hierarchy** becomes a registry that a partner can point at
+- your **organisation unit hierarchy** becomes a registry that a partner can point at -
+  inside the guide, or as a package of its own the guide depends on
 - your **data elements and tracked entity attributes** become the coded questions
   those forms ask
 
@@ -117,7 +118,8 @@ Worth being blunt, because the FHIR word invites assumptions:
   The first publisher run is the slow one - it downloads its
   packages and renders a page per artifact - and two caches make every later
   build much cheaper. A registry of a few thousand organisation units is the
-  main driver of build time and site size.
+  main driver of build time and site size, and can be published as a package of
+  its own, built in its own container, when it outgrows the guide.
 - **Upkeep:** the project is a git repository. You commit the configuration
   and any hand-authored FSH, regenerate when metadata changes, and review the
   diff. The scaffold pins the d2w toolchain in `uv.lock`, so a regenerate is

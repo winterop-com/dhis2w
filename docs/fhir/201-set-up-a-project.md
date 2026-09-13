@@ -69,6 +69,8 @@ The flags that matter, all optional:
 | `--sushi-timeout` | Seconds the IG publisher gives its internal SUSHI run (default 1800), written to `ig/fsh.ini`. |
 | `--max-level` | Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` `max_level`. Rejected below 1. |
 | `--data-set`, `--event-program`, `--tracker-program` | UIDs to seed the `[generate.*]` `include_ids` selection tables with (each repeatable). |
+| `--kind` | `guide` (default) or `registry`: a registry package publishes the organisation-unit registry alone, for guides to depend on - see [Publish the registry as a package](201-registry-package.md). Takes no selection flag and no `--registry-*` flag. |
+| `--registry-id`, `--registry-canonical`, `--registry-version`, `--registry-path` | The registry package this guide's units are published by, seeding `[generate.organisation_units.registry]`, the `dependencies:` entry of `sushi-config.yaml` and the Makefile's `REGISTRY_*` knobs. The id and the canonical go together; the version defaults to `0.1.0`; the path is an optional local checkout. |
 | `--template` | Pre-populate the project from a guide already generated against a real DHIS2 instance - see [Start from a template](#start-from-a-template). |
 | `--list-templates` | Name every template this install can scaffold from, one line each, and exit. |
 | `--force` | Overwrite scaffold files that already exist. |

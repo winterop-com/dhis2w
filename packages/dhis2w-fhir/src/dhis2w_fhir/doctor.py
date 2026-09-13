@@ -913,15 +913,7 @@ class _DoctorRun:
             return False
         # The distinct-notes view: a note several targets share becomes one finding, not three.
         distinct = report.with_distinct_notes()
-        outcomes = [
-            distinct.foundation,
-            distinct.option_sets,
-            distinct.categories,
-            distinct.questionnaires,
-            distinct.examples,
-            distinct.organisation_units,
-            distinct.pages,
-        ]
+        outcomes = distinct.target_reports
         written = sum(len(outcome.written_files) for outcome in outcomes)
         notes = [note for outcome in outcomes for note in outcome.notes]
         findings = generate_findings(notes)

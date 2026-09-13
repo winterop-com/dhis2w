@@ -2043,6 +2043,11 @@ $ d2w fhir init [OPTIONS] [directory]
 * `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
 * `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Offline: the UID is written to fhir.toml as given, never checked against an instance.
 * `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Offline: the UID is written to fhir.toml as given, never checked against an instance.
+* `--kind <guide|registry>`: What the project publishes: a guide of forms, or a registry package holding the organisation-unit registry alone, for guides to depend on through --registry-id.  [default: guide]
+* `--registry-id <str>`: Package id of the registry package this guide&#x27;s organisation units are published by, seeding `[generate.organisation_units.registry]`; the guide then writes no Organization or Location of its own. Needs --registry-canonical.
+* `--registry-canonical <str>`: Canonical base URL of the registry package (no trailing slash); every reference to a unit is a URL under it. Needs --registry-id.
+* `--registry-version <str>`: Version of the registry package `make build` installs and depends on (default: 0.1.0).
+* `--registry-path <directory>`: Local checkout of the registry project, whose build wrote the package `make build` installs. Written as given, relative to the new project&#x27;s directory.
 * `--force`: Overwrite scaffold files that already exist.
 * `--refresh`: Bring an existing project&#x27;s scaffold-managed files up to date. Identity comes from the project&#x27;s own fhir.toml, which a refresh never writes, and a file carrying a line the scaffold would not produce is left alone and reported, so your edits survive. Rejects --force.
 * `--help`: Show this message and exit.

@@ -19,6 +19,16 @@ BUILD_WORKDIR := /home/publisher/work
 # and package caches the next build reuses. `temp/` and `template/` stay behind: nothing reads them,
 # and they are the bulk of what a build writes.
 BUILD_CARRIED_BACK := output fsh-generated input-cache
+{% if registry %}
+# The organisation-unit registry package this guide depends on, from fhir.toml's
+# [generate.organisation_units.registry]. SUSHI and the publisher resolve a dependency from the
+# package cache, so `sushi` and `build` install it there first. REGISTRY_TGZ is the package.tgz the
+# registry project's own `make build` wrote; the default follows `registry.path` in fhir.toml when
+# one is set, and either way it can be named on the command line.
+REGISTRY_ID ?= {{ registry.id }}
+REGISTRY_VERSION ?= {{ registry.version }}
+REGISTRY_TGZ ?= {{ registry.path.as_posix() ~ "/ig/output/package.tgz" if registry.path else "" }}
+{% endif %}
 
 .PHONY: cache-init help setup upgrade generate validate sushi build refresh clean clean-all
 
@@ -60,11 +70,33 @@ check:  ## Scan the artifacts on disk for what aborts the IG publisher (offline,
 cache-init:  ## Ensure the shared package-cache volume is writable by the publisher user
 	docker run --rm -u root -v $(CACHE_VOLUME):/home/publisher/.fhir --entrypoint sh $(DOCKER_IMAGE) -c "mkdir -p /home/publisher/.fhir/packages && chown -R 1001:1001 /home/publisher/.fhir"
 
+{% if registry %}
+.PHONY: registry-install
+
+registry-install: cache-init  ## Install the registry package this guide depends on into the package cache
+# The cache holds one directory per package and version, `<id>#<version>/package/`, which is the
+# layout a package.tgz unpacks to. The archive is streamed in over stdin so no host path is mounted.
+	@test -n "$(REGISTRY_TGZ)" || { \
+		echo "REGISTRY_TGZ is empty: name the registry build's archive (make registry-install REGISTRY_TGZ=../registry/ig/output/package.tgz), or set registry.path in fhir.toml and run 'd2w fhir init --refresh'"; \
+		exit 1; }
+	@test -f "$(REGISTRY_TGZ)" || { echo "$(REGISTRY_TGZ): no such file - run 'make build' in the registry project first"; exit 1; }
+	docker run --rm -i -u root -v $(CACHE_VOLUME):/home/publisher/.fhir --entrypoint sh $(DOCKER_IMAGE) -c \
+		'set -e; target="/home/publisher/.fhir/packages/$(REGISTRY_ID)#$(REGISTRY_VERSION)"; \
+		rm -rf "$$target"; mkdir -p "$$target"; tar -C "$$target" -xzf -; chown -R 1001:1001 "$$target"' \
+		< "$(REGISTRY_TGZ)"
+
+sushi: cache-init registry-install  ## Compile FSH to FHIR resources
+{% else %}
 sushi: cache-init  ## Compile FSH to FHIR resources
+{% endif %}
 	docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
 		$(DOCKER_IMAGE) sushi .
 
+{% if registry %}
+build: cache-init registry-install  ## Run the full IG publisher
+{% else %}
 build: cache-init  ## Run the full IG publisher
+{% endif %}
 # The scan first, and a finding stops the build here. A DHIS2 name or code carrying '<' survives every
 # pass of the publisher and kills the last one, after every resource has already been rendered - hours
 # spent to be told a page failed to parse. Reading the same files the publisher reads answers in
@@ -97,7 +129,11 @@ build: cache-init  ## Run the full IG publisher
 
 .PHONY: build-bind
 
+{% if registry %}
+build-bind: cache-init registry-install  ## Run the publisher straight over the mounted project, no copy in or out
+{% else %}
 build-bind: cache-init  ## Run the publisher straight over the mounted project, no copy in or out
+{% endif %}
 # The same build without the two copies. Worth reaching for when you want to watch output/ fill up
 # as it is written, or when a copy is what you suspect. On macOS it is the slower of the two.
 	$(MAKE) check

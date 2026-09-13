@@ -18,6 +18,12 @@ publisher = "{{ publisher }}"
 # "draft" while building; "active" for production - drives the sushi-config status
 # and the status and experimental flag on every generated CodeSystem/ValueSet/Questionnaire.
 status = "{{ status }}"
+{% if kind == "registry" %}
+# This project publishes the DHIS2 organisation-unit registry as a package of its own, and no
+# form: a guide names it under [generate.organisation_units.registry] and references every
+# Location and Organization here by its URL under this package's canonical.
+kind = "registry"
+{% endif %}
 
 [generate]
 # A DHIS2 name carrying '<' ("Female, <15y") aborts the IG publisher's final pass,
@@ -29,12 +35,28 @@ status = "{{ status }}"
 # `dhis2-code` property. "refuse" publishes names and codes byte-true and refuses
 # the run on a '<' name instead; removing the key makes each run ask.
 hostile_names = "substitute"
-{% if max_level %}
+{% if max_level or registry %}
 
 [generate.organisation_units]
+{% if max_level %}
 # Every unit emits two instances, an Organization and a Location, and a hierarchy fans out at
 # the bottom - so the deepest level is usually most of the IG, and most of its compile time.
 max_level = {{ max_level }}
+{% endif %}
+{% if registry %}
+
+[generate.organisation_units.registry]
+# The package publishing the organisation units this guide's forms refer to. This guide writes
+# no Organization or Location of its own and references each unit by its URL under that
+# package's canonical; `make build` installs the package first (see REGISTRY_TGZ in the Makefile).
+id = "{{ registry.id }}"
+canonical = "{{ registry.canonical }}"
+version = "{{ registry.version }}"
+{% if registry.path %}
+# A local checkout of the registry project, whose build wrote the package `make build` installs.
+path = "{{ registry.path.as_posix() }}"
+{% endif %}
+{% endif %}
 {% endif %}
 {% if data_set_ids %}
 

@@ -27,6 +27,7 @@ from dhis2w_client.generated.v43.oas import (
 )
 from dhis2w_client.generated.v43.tracker import TrackerEvent
 from dhis2w_client.v43.aggregate import CompleteDataSetRegistration, CompleteDataSetRegistrations
+from dhis2w_core.cli_errors import CliUserError
 from dhis2w_core.client_context import open_client
 from dhis2w_core.profile import Profile, resolve
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -67,7 +68,7 @@ from dhis2w_fhir.conversion.schemas import (
     ConversionTargetKind,
 )
 from dhis2w_fhir.conversion.translator import translate_responses
-from dhis2w_fhir.foundation import build_foundation_artifacts
+from dhis2w_fhir.foundation import build_foundation_artifacts, build_registry_foundation_artifacts
 from dhis2w_fhir.grouping import ReportedForm, group_data_values
 from dhis2w_fhir.hostile_names import HostileNameGate
 from dhis2w_fhir.i18n import TranslationIn
@@ -154,12 +155,14 @@ from dhis2w_fhir.resources.organisation_units.schemas import (
     OrganisationUnitIn,
     OrganisationUnitLevelIn,
     OrganisationUnitLevelNames,
+    RegistryDependency,
 )
 from dhis2w_fhir.resources.pages import (
     INTRO_SUFFIX,
     PAGES_BASE_SUBDIRECTORY,
     PAGES_DIRECTORY,
     build_page_artifacts,
+    build_registry_page_artifacts,
 )
 from dhis2w_fhir.resources.pages.schemas import PagesIn
 from dhis2w_fhir.resources.questionnaires import (
@@ -512,6 +515,9 @@ class GenerateReport(BaseModel):
     #: files it wrote, since one covered object can ship as several files.
     subject: GenerateSubject | None = None
     notes: list[GenerateNote] = Field(default_factory=list)
+    applies: bool = True
+    """False for a target the project kind has none of - a registry package's form-side targets - so a
+    full run still reports every slot and a reader skips the ones that had nothing to do."""
 
 
 class LoadSetReport(BaseModel):
@@ -534,7 +540,12 @@ class LoadSetReport(BaseModel):
 
 
 class GenerateFullReport(BaseModel):
-    """Outcome of one whole-project generate run: the report each target produced."""
+    """Outcome of one whole-project generate run: the report each target produced.
+
+    A registry package runs three targets - the foundation slice its instances name, the
+    organisation units, and the pages - and the four form-side reports say so through
+    `applies`, which a reader of the run filters on. A guide runs all seven.
+    """
 
     foundation: GenerateReport
     option_sets: GenerateReport
@@ -543,6 +554,12 @@ class GenerateFullReport(BaseModel):
     examples: GenerateReport
     organisation_units: GenerateReport
     pages: GenerateReport
+
+    @property
+    def target_reports(self) -> list[GenerateReport]:
+        """The reports of the targets the run had, in run order, skipping what the project kind has none of."""
+        reports: list[GenerateReport] = [getattr(self, field_name) for field_name in type(self).model_fields]
+        return [report for report in reports if report.applies]
 
     def with_distinct_notes(self) -> GenerateFullReport:
         """This run with each note kept only on the first target that raised it.
@@ -561,6 +578,22 @@ class GenerateFullReport(BaseModel):
             seen.update(novel)
             reports[field_name] = report.model_copy(update={"notes": novel})
         return GenerateFullReport(**reports)
+
+
+class RegistryProjectTargetError(CliUserError):
+    """A form-side generate target run in a registry package, which publishes organisation units alone."""
+
+
+def _refuse_registry_project_target(project: FhirProject, target: str) -> None:
+    """Refuse a form-side target in a registry package: it holds no data set, program or example to generate."""
+    if not project.config.is_registry_project:
+        return
+    raise RegistryProjectTargetError(
+        f'{project.config.ig.id} is a registry package ([ig] kind = "registry" in fhir.toml), which '
+        f"publishes the organisation-unit registry and nothing else, so `d2w fhir generate {target}` has "
+        "nothing to write here. Run `d2w fhir generate` for the whole package, or `d2w fhir generate "
+        "foundation`, `org-units` or `pages` for one of its targets."
+    )
 
 
 class UnsupportedProgramError(LookupError):
@@ -770,6 +803,9 @@ GENERATE_TARGET_STEPS = 2
 
 #: How many steps `generate_full` announces: the single instance fetch plus one per target.
 GENERATE_FULL_STEPS = 8
+
+#: How many steps `generate_full` announces for a registry package: the fetch, then its three targets.
+GENERATE_REGISTRY_PACKAGE_STEPS = 4
 
 
 #: The label every fetch step is reported under, whichever command it belongs to.
@@ -1381,9 +1417,8 @@ async def generate_foundation(project: FhirProject, *, reporter: ProgressReporte
 def _emit_foundation(project: FhirProject, *, progress: _StepAnnouncer) -> GenerateReport:
     """Build and sync the foundation artifacts; the one target that reads nothing off the instance."""
     progress.step("foundation", "writing ig/input/fsh/foundation")
-    artifacts = build_foundation_artifacts(
-        project.config.generate, project.config.ig.canonical, ig_status=project.config.ig.status
-    )
+    build = build_registry_foundation_artifacts if project.config.is_registry_project else build_foundation_artifacts
+    artifacts = build(project.config.generate, project.config.ig.canonical, ig_status=project.config.ig.status)
     sync = sync_artifacts(project.fsh_directory, "foundation", artifacts)
     report = GenerateReport(
         project_root=project.project_root,
@@ -1413,6 +1448,7 @@ async def generate_option_sets(
     `gate` is what the run does with a DHIS2 name the IG publisher's build cannot survive; with
     none, every name is published exactly as DHIS2 states it.
     """
+    _refuse_registry_project_target(project, "option-sets")
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     notes: list[GenerateNote] = []
@@ -1521,6 +1557,7 @@ async def generate_categories(
     `gate` is what the run does with a DHIS2 name the IG publisher's build cannot survive; with
     none, every name is published exactly as DHIS2 states it.
     """
+    _refuse_registry_project_target(project, "categories")
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     notes: list[GenerateNote] = []
@@ -1709,6 +1746,7 @@ async def generate_questionnaires(
     question text, the data dictionary concepts, and the combo vocabularies all read one
     projection.
     """
+    _refuse_registry_project_target(project, "questionnaires")
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     screening = _screening_gate(gate)
@@ -1906,6 +1944,7 @@ async def generate_examples(
     `gate` is what the run does with a DHIS2 name the IG publisher's build cannot survive; with
     none, every name is published exactly as DHIS2 states it.
     """
+    _refuse_registry_project_target(project, "examples")
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     screening = _screening_gate(gate)
@@ -2077,6 +2116,7 @@ async def generate_load_set(
     is the answer to that: it moves every seeded draw of the run, so a salted run is a different
     corpus rather than a second copy of the same one.
     """
+    _refuse_registry_project_target(project, "load-set")
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     notes: list[GenerateNote] = []
@@ -2783,7 +2823,7 @@ async def _fetch_published_organisation_unit_stems(client: Dhis2Client, config: 
     subjects = [
         StemSubject(uid=model.id, code=model.code, label=model.name or model.id) for model in models if model.id
     ]
-    return plan_organisation_unit_stems(subjects, config.naming.source)
+    return plan_organisation_unit_stems(subjects, config.naming.source, registry=config.organisation_units.registry)
 
 
 def _registry_scale_notes(organisation_unit_count: int) -> list[GenerateNote]:
@@ -2822,6 +2862,13 @@ async def generate_organisation_units(
     progress = _StepAnnouncer(reporter, GENERATE_TARGET_STEPS)
     tally = GeometryTally()
     today = datetime.now(tz=UTC).date()
+    registry = project.config.registry_dependency
+    if registry is not None:
+        progress.step(_FETCH_LABEL, "fetching the published organisation-unit stems")
+        async with _instance_connection(profile, client) as client:
+            stems = await _fetch_published_organisation_unit_stems(client, project.config.generate)
+        progress.complete(f"{len(stems.stems):,} organisation unit(s) published by {registry.id}")
+        return _emit_organisation_unit_dependency(project, registry, stems=stems, notes=[], progress=progress)
     progress.step(_FETCH_LABEL, "fetching organisation units")
     async with _instance_connection(profile, client) as client:
         organisation_units = await _fetch_organisation_units(client, project.config.generate, tally, today, progress)
@@ -2863,6 +2910,9 @@ def _emit_organisation_units(
     unusable code has therefore refused the run before this step opens - and the registry build
     raises its code-or-id fall-back notes onto this target's report.
     """
+    dependency = project.config.registry_dependency
+    if dependency is not None:
+        return _emit_organisation_unit_dependency(project, dependency, stems=stems, notes=notes, progress=progress)
     progress.step(
         "organisation units", f"writing ig/input/fsh/organization and ig/input/resources/{REGISTRY_DIRECTORY}"
     )
@@ -2939,6 +2989,54 @@ def _emit_organisation_units(
     return report
 
 
+def _emit_organisation_unit_dependency(
+    project: FhirProject,
+    registry: RegistryDependency,
+    *,
+    stems: StemResolution,
+    notes: list[GenerateNote],
+    progress: _StepAnnouncer,
+) -> GenerateReport:
+    """Leave the organisation-unit directories empty for a guide whose registry another package publishes.
+
+    The guide writes no profile, no instance, no registry example and no level terminology - the
+    package named in `[generate.organisation_units.registry]` does - so both directories the
+    inline target owns are synced to nothing, which also clears what an earlier inline run
+    wrote. What the guide keeps is the stem resolution: every form-side reference the run emits
+    points into the registry package by those stems.
+    """
+    progress.step(
+        "organisation units", f"emptying ig/input/fsh/organization and ig/input/resources/{REGISTRY_DIRECTORY}"
+    )
+    notes = [
+        *notes,
+        *stems.notes,
+        generate_note(
+            GenerateNoteCategory.REGISTRY_DEPENDENCY,
+            f"{len(stems.stems)} organisation unit(s) are published by {registry.id} {registry.version} "
+            f"({registry.canonical}); this guide writes no Organization or Location and references each unit "
+            "by its absolute URL in that package. Build it with the package installed: `make registry-install` "
+            "before `make build`.",
+        ),
+    ]
+    sync = sync_artifacts(project.fsh_directory, "organization", [])
+    registry_sync = sync_json_artifacts(project.resources_directory, REGISTRY_DIRECTORY, [])
+    notes.extend(_remove_stale_compile(project, sync))
+    report = GenerateReport(
+        project_root=project.project_root,
+        target_base="ig/input",
+        target_directory=f"fsh/organization, resources/{REGISTRY_DIRECTORY}",
+        deleted_files=[*sync.deleted, *registry_sync.deleted],
+        written_files=[],
+        unchanged_count=0,
+        organisation_unit_count=len(stems.stems),
+        subject=GenerateSubject(count=len(stems.stems), noun="organisation unit"),
+        notes=notes,
+    )
+    progress.complete(_target_counts(report))
+    return report
+
+
 async def generate_pages(
     profile: Profile,
     project: FhirProject,
@@ -2961,6 +3059,27 @@ async def generate_pages(
     notes: list[GenerateNote] = []
     tally = GeometryTally()
     today = datetime.now(tz=UTC).date()
+    if project.config.is_registry_project:
+        # A registry package narrates its units alone: no form catalog, no terminology page.
+        progress.step(_FETCH_LABEL, "fetching organisation units")
+        async with _instance_connection(profile, client) as client:
+            organisation_units = await _fetch_organisation_units(client, config, tally, today, progress)
+        screening.decide(organisation_units)
+        organisation_units = screening.screen(organisation_units, notes)
+        progress.complete(f"{len(organisation_units):,} organisation unit(s)")
+        return _emit_pages(
+            project,
+            sources=[],
+            option_sets=[],
+            organisation_units=organisation_units,
+            stem_plan=plan_questionnaire_stems([], config.naming.source),
+            organisation_unit_stems=plan_organisation_unit_stems(
+                organisation_unit_stem_subjects(organisation_units), config.naming.source
+            ),
+            notes=notes,
+            progress=progress,
+        )
+    registry = project.config.registry_dependency
     progress.step(_FETCH_LABEL, "fetching the questionnaire targets, option sets, and organisation units")
     async with _instance_connection(profile, client) as client:
         sources = await _fetch_questionnaire_sources(client, config, notes)
@@ -2969,21 +3088,30 @@ async def generate_pages(
             order=["name:asc"],
             paging=False,
         )
-        organisation_units = await _fetch_organisation_units(client, config, tally, today, progress)
+        if registry is None:
+            organisation_units = await _fetch_organisation_units(client, config, tally, today, progress)
+            published_stems: StemResolution | None = None
+        else:
+            # The units are another package's; the guide reads the stems its references follow.
+            organisation_units = []
+            published_stems = await _fetch_published_organisation_unit_stems(client, config)
     option_sets = _selected_option_sets([_option_set_input(model) for model in models], sources, config, notes)
     screening.decide(sources, option_sets, organisation_units)
     sources = screening.screen(sources, notes)
     option_sets = screening.screen(option_sets, notes)
     organisation_units = screening.screen(organisation_units, notes)
-    progress.complete(f"{len(sources):,} questionnaire target(s), {len(organisation_units):,} organisation unit(s)")
+    unit_count = len(organisation_units) if published_stems is None else len(published_stems.stems)
+    progress.complete(f"{len(sources):,} questionnaire target(s), {unit_count:,} organisation unit(s)")
     return _emit_pages(
         project,
         sources=sources,
         option_sets=option_sets,
         organisation_units=organisation_units,
         stem_plan=plan_questionnaire_stems(sources, config.naming.source),
-        organisation_unit_stems=plan_organisation_unit_stems(
-            organisation_unit_stem_subjects(organisation_units), config.naming.source
+        organisation_unit_stems=(
+            published_stems
+            if published_stems is not None
+            else plan_organisation_unit_stems(organisation_unit_stem_subjects(organisation_units), config.naming.source)
         ),
         notes=notes,
         progress=progress,
@@ -3029,13 +3157,18 @@ def _emit_pages(
     )
     _refuse_build_aborting_member_names(option_sets)
     pages = PagesIn(forms=_published_sources(sources), option_sets=option_sets, organisation_units=organisation_units)
-    build = build_page_artifacts(
-        pages,
-        project.config.generate,
-        project.config.ig.canonical,
-        stem_plan=stem_plan,
-        organisation_unit_stems=organisation_unit_stems,
-    )
+    if project.config.is_registry_project:
+        build = build_registry_page_artifacts(
+            pages, project.config.generate, organisation_unit_stems=organisation_unit_stems
+        )
+    else:
+        build = build_page_artifacts(
+            pages,
+            project.config.generate,
+            project.config.ig.canonical,
+            stem_plan=stem_plan,
+            organisation_unit_stems=organisation_unit_stems,
+        )
     sync = sync_artifacts(project.ig_directory / PAGES_BASE_SUBDIRECTORY, PAGES_DIRECTORY, build.artifacts)
     intro_count = sum(1 for artifact in build.artifacts if artifact.relative_path.endswith(INTRO_SUFFIX))
     report = GenerateReport(
@@ -3080,11 +3213,19 @@ async def generate_full(
     whole run screens through one gate, so a run that asks asks once, over the count the whole
     instance read holds rather than the first target's share of it.
     """
+    if project.config.is_registry_project:
+        return await _generate_registry_package(profile, project, reporter=reporter, client=client, gate=gate)
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_FULL_STEPS)
     progress.step(_FETCH_LABEL, "fetching instance metadata")
     async with _instance_connection(profile, client) as client:
-        inputs = await fetch_live_ig_inputs(client, config, progress=progress, gate=gate)
+        inputs = await fetch_live_ig_inputs(
+            client,
+            config,
+            progress=progress,
+            gate=gate,
+            read_organisation_units=project.config.registry_dependency is None,
+        )
         progress.complete(
             f"{len(inputs.sources):,} questionnaire target(s), {len(inputs.option_sets):,} option set(s), "
             f"{len(inputs.categories):,} categor{'y' if len(inputs.categories) == 1 else 'ies'}, "
@@ -3124,9 +3265,7 @@ async def generate_full(
             sources=inputs.sources,
             option_sets=_bound_option_sets(inputs.sources, inputs.option_sets),
             option_set_plan=inputs.option_set_plan,
-            published_organisation_unit_uids=frozenset(
-                organisation_unit.uid for organisation_unit in inputs.organisation_units
-            ),
+            published_organisation_unit_uids=frozenset(inputs.organisation_unit_stems.stems),
             stem_plan=inputs.questionnaire_stems,
             organisation_unit_stems=inputs.organisation_unit_stems,
             notes=list(inputs.source_notes),
@@ -3160,6 +3299,72 @@ async def generate_full(
         organisation_units=organisation_units,
         pages=pages,
     )
+
+
+async def _generate_registry_package(
+    profile: Profile,
+    project: FhirProject,
+    *,
+    reporter: ProgressReporter | None,
+    client: Dhis2Client | None,
+    gate: HostileNameGate | None,
+) -> GenerateFullReport:
+    """Generate a registry package: the foundation slice its instances name, the units, and the pages.
+
+    A registry package reads the organisation-unit hierarchy once and nothing else - it holds no
+    data set, program or example - so the run is three targets off one read, and the four
+    form-side reports of the result do not apply.
+    """
+    config = project.config.generate
+    progress = _StepAnnouncer(reporter, GENERATE_REGISTRY_PACKAGE_STEPS)
+    tally = GeometryTally()
+    today = datetime.now(tz=UTC).date()
+    progress.step(_FETCH_LABEL, "fetching organisation units")
+    async with _instance_connection(profile, client) as client:
+        organisation_units = await _fetch_organisation_units(client, config, tally, today, progress)
+        level_rows = await _fetch_organisation_unit_levels(client)
+        attribute_codes = await resolve_attribute_code_index(client)
+    geometry_notes = tally.to_notes()
+    screening = _screening_gate(gate)
+    screening.decide(organisation_units, level_rows)
+    organisation_units = screening.screen(organisation_units, geometry_notes)
+    level_names = OrganisationUnitLevelNames(levels=screening.screen(level_rows, geometry_notes))
+    stems = plan_organisation_unit_stems(organisation_unit_stem_subjects(organisation_units), config.naming.source)
+    progress.complete(f"{len(organisation_units):,} organisation unit(s)")
+    foundation = _emit_foundation(project, progress=progress)
+    registry = _emit_organisation_units(
+        project,
+        organisation_units=organisation_units,
+        level_names=level_names,
+        attribute_codes=attribute_codes,
+        stems=stems,
+        notes=list(geometry_notes),
+        progress=progress,
+    )
+    pages = _emit_pages(
+        project,
+        sources=[],
+        option_sets=[],
+        organisation_units=organisation_units,
+        stem_plan=plan_questionnaire_stems([], config.naming.source),
+        organisation_unit_stems=stems,
+        notes=[],
+        progress=progress,
+    )
+    return GenerateFullReport(
+        foundation=foundation,
+        option_sets=_absent_target(project, "terminology"),
+        categories=_absent_target(project, "categories"),
+        questionnaires=_absent_target(project, "questionnaires"),
+        examples=_absent_target(project, "examples"),
+        organisation_units=registry,
+        pages=pages,
+    )
+
+
+def _absent_target(project: FhirProject, target_directory: str) -> GenerateReport:
+    """The report of a target the project kind has none of: nothing written, nothing read, and it says so."""
+    return GenerateReport(project_root=project.project_root, target_directory=target_directory, applies=False)
 
 
 def _bound_option_sets(sources: list[QuestionnaireSourceIn], option_sets: list[OptionSetIn]) -> list[OptionSetIn]:
@@ -3237,6 +3442,7 @@ async def fetch_live_ig_inputs(
     *,
     progress: _StepAnnouncer | None = None,
     gate: HostileNameGate | None = None,
+    read_organisation_units: bool = True,
 ) -> LiveIgInputs:
     """Read the whole instance side of one IG build over a single client, in the generate targets' own projections.
 
@@ -3256,6 +3462,11 @@ async def fetch_live_ig_inputs(
     before a single identity, stem, or decomposition is planned off them, so the guide states one
     name for one DHIS2 object wherever it publishes it. A caller handing no gate - a live serve, a
     live forward - reads every name exactly as DHIS2 states it.
+
+    `read_organisation_units` False skips the hierarchy walk: `organisation_units` comes back
+    empty and the stems are resolved off the light id/code/name read instead. That is what a
+    guide whose registry another package publishes asks for, since it writes no unit; a live
+    serve of the same guide keeps the default and builds the Locations off the instance.
     """
     steps = progress if progress is not None else _StepAnnouncer()
     screening = _screening_gate(gate)
@@ -3276,8 +3487,15 @@ async def fetch_live_ig_inputs(
     option_sets = _selected_option_sets(fetched_option_sets, sources, config, option_set_notes)
     steps.tick("reading categories")
     categories = await _fetch_categories(client, config, category_notes)
-    organisation_units = await _fetch_organisation_units(client, config, tally, today, steps)
-    level_rows = await _fetch_organisation_unit_levels(client)
+    if read_organisation_units:
+        organisation_units = await _fetch_organisation_units(client, config, tally, today, steps)
+        level_rows = await _fetch_organisation_unit_levels(client)
+        published_stems: StemResolution | None = None
+    else:
+        steps.tick("reading the published organisation-unit stems")
+        organisation_units = []
+        level_rows = []
+        published_stems = await _fetch_published_organisation_unit_stems(client, config)
     geometry_notes = tally.to_notes()
     # The one screening a full run takes: the answer is settled over every projection at once, so
     # a run that asks states the whole instance read's count, and each projection then carries its
@@ -3296,8 +3514,14 @@ async def fetch_live_ig_inputs(
     # W-2: the identity stems resolve at the fetch/plan level, so a `source = "code"` refusal
     # raises here - before any target writes a file - and every consumer reads one resolution.
     questionnaire_stems = plan_questionnaire_stems(sources, config.naming.source)
-    organisation_unit_stems = plan_organisation_unit_stems(
-        organisation_unit_stem_subjects(organisation_units), config.naming.source
+    organisation_unit_stems = (
+        published_stems
+        if published_stems is not None
+        else plan_organisation_unit_stems(
+            organisation_unit_stem_subjects(organisation_units),
+            config.naming.source,
+            registry=config.organisation_units.registry,
+        )
     )
     return LiveIgInputs(
         sources=sources,
