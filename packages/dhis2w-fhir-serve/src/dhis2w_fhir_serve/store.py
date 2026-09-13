@@ -30,6 +30,7 @@ from typing import Any
 
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.r4 import ConceptMap
+from dhis2w_fhir.registry_package import load_registry_documents
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError
 
 from dhis2w_fhir_serve.log import LOGGER_NAME
@@ -225,12 +226,18 @@ class ResourceStore(BaseModel):
         )
 
 
-def load_compiled_store(project: FhirProject) -> ResourceStore:
+def load_compiled_store(project: FhirProject, *, registry_package: Path | None = None) -> ResourceStore:
     """Read a project's compiled IG plus its predefined resource tree into a store.
 
     The load is strict: a file that is not a JSON object, or that carries no string `resourceType`
     and `id`, fails loudly naming the file rather than being skipped, because a resource the store
     silently drops reads to a client as a resource the IG never published.
+
+    A guide that depends on an organisation-unit registry package publishes no `Location` of its
+    own, so the units come from that package - a checkout, or the archive `registry_package`
+    names - and a guide that can reach neither refuses rather than serving a hierarchy of nothing.
+    A guide publishing its registry inline reads it out of its own predefined tree as always, and
+    `registry_package` means nothing to it.
     """
     compiled_directory = project.ig_directory / "fsh-generated" / "resources"
     compiled_paths = sorted(compiled_directory.glob("*.json")) if compiled_directory.is_dir() else []
@@ -241,6 +248,10 @@ def load_compiled_store(project: FhirProject) -> ResourceStore:
     predefined_paths = sorted(predefined_directory.rglob("*.json")) if predefined_directory.is_dir() else []
 
     entries = [_read_entry(path, project.project_root) for path in [*compiled_paths, *predefined_paths]]
+    entries.extend(
+        _entry_from_body(document.body, document.source)
+        for document in load_registry_documents(project, package=registry_package)
+    )
     return ResourceStore(entries=tuple(entries))
 
 
@@ -303,21 +314,30 @@ def _read_entry(path: Path, project_root: Path) -> StoreEntry:
         body = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as error:
         raise ValueError(f"{path}: not valid JSON ({error})") from error
+    return _entry_from_body(body, _relative_source(path, project_root))
+
+
+def _entry_from_body(body: object, source: str) -> StoreEntry:
+    """Index one already-parsed resource, failing loudly and naming where it came from.
+
+    The registry a guide depends on reaches the store as parsed documents rather than as files
+    under the project, so the indexing and the strictness live here and both routes share them.
+    """
     if not isinstance(body, dict):
-        raise ValueError(f"{path}: expected a JSON object holding a FHIR resource")
+        raise ValueError(f"{source}: expected a JSON object holding a FHIR resource")
     resource_type = body.get("resourceType")
     resource_id = body.get("id")
     if not isinstance(resource_type, str) or not resource_type:
-        raise ValueError(f"{path}: resource has no `resourceType`")
+        raise ValueError(f"{source}: resource has no `resourceType`")
     if not isinstance(resource_id, str) or not resource_id:
-        raise ValueError(f"{path}: resource has no `id`")
+        raise ValueError(f"{source}: resource has no `id`")
     canonical_url = body.get("url")
     return StoreEntry(
         resource_type=resource_type,
         resource_id=resource_id,
         canonical_url=canonical_url if isinstance(canonical_url, str) else None,
         identifiers=_read_identifiers(body),
-        source=_relative_source(path, project_root),
+        source=source,
         body=body,
     )
 

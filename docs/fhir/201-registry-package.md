@@ -155,10 +155,6 @@ guide's build is the registry's validation and rendering - 43,555 of the 56,894
 output files - into a container the guide's build never pays for, and into a
 project that can be rebuilt, versioned and republished on its own cadence.
 
-Publishing the registry package to a package server, so a guide resolves it
-without a local build, is not part of this toolkit yet; the tarball is the
-hand-off.
-
 ## What the publisher needs, verified
 
 Two throwaway projects built with the same `fhir-ig` image settled the shape:
@@ -172,10 +168,66 @@ Two throwaway projects built with the same `fhir-ig` image settled the shape:
   `package/` directory as they are, from `input/resources/registry/*`, with no
   per-resource `exampleBoolean` entries in `sushi-config.yaml`.
 
-## What stays with the inline registry for now
+## Serving, forwarding and checking a depending guide
 
-`d2w fhir serve` and `d2w fhir check-artifacts` read the guide's own
-`ig/input/resources/registry/`. A guide depending on a package therefore serves
-no `Location` yet and its artifact check does not compare the two selections;
-serve the registry project, or the inline guide, until the facade reads a
-registry package.
+The guide publishes no `Location` of its own, so the three commands that need
+one find it in the registry instead. All three read the same two sources in the
+same order: the checkout `path` names, then a package given on the command
+line.
+
+```bash
+# The everyday case - the checkout beside the guide answers, no build needed.
+d2w fhir serve
+
+# The hand-off case - no checkout, so name the archive the registry build wrote.
+d2w fhir serve --registry-package ../dist/package.tgz
+d2w fhir check-artifacts --registry-package ../dist/package.tgz
+```
+
+A `package.tgz` is read where it lies; nothing is unpacked onto your disk. An
+already-extracted package directory works too.
+
+Reaching neither source is refused rather than worked around, and for `serve`
+the refusal lands while settings resolve, so you get one line instead of a
+starting banner followed by an empty hierarchy:
+
+```
+error: dhis2.fhir.example depends on the organisation-unit registry package
+dhis2.fhir.example.registry 0.1.0, and neither source for it is readable. Either
+set `path` in [generate.organisation_units.registry] to a checkout of the
+registry project, or name the package the registry's `make build` wrote with
+`--registry-package <package.tgz>`.
+```
+
+`--live` is unaffected: it builds its units from the instance and needs no
+package at all.
+
+`d2w fhir check-artifacts` additionally compares the unit references already on
+disk against what the registry publishes, and reports each one the package does
+not carry as a `registry` finding. That is the check for two projects whose
+selections have drifted apart - it stays offline, reads no instance, and runs
+inside `make build`, so a dangling reference is named in seconds instead of by
+the publisher after it has rendered everything else.
+
+### Why the refusal matters more than it looks
+
+A missing registry is not a quiet degradation, and the reason is worth stating.
+A `Location/<id>` reference resolves to a DHIS2 organisation unit through the
+published `Location`. With none loaded, resolution falls back to reading the id
+as the UID itself. Under the default `naming.source = "id"` the identity stem
+*is* the UID, so capture and forward would keep working by accident. Under
+`naming.source = "code"` the stem is the unit's DHIS2 code, and the same
+fall-back would resolve confidently to the wrong organisation unit. Refusing up
+front is what keeps those two projects behaving the same way.
+
+## What the guide reads out of the package
+
+The instances, and only those: `Location` and `Organization`. The package also
+ships its profiles, its level terminology and its own ImplementationGuide, and
+the guide resolves those by canonical against the published registry rather
+than serving copies. Loading them would put a second ImplementationGuide inside
+a facade that answers for one guide.
+
+Publishing the registry package to a package server, so a guide resolves it
+without a local build or a handed-over archive, is still not part of this
+toolkit; the tarball is the hand-off.

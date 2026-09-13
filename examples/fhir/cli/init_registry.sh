@@ -40,4 +40,14 @@ d2w fhir init demo-inline --id dhis2.fhir.inlinedemo --canonical http://example.
 ! grep -q '^dependencies:' demo-inline/ig/sushi-config.yaml
 ! grep -q '^REGISTRY_' demo-inline/Makefile
 
+# The guide's unit references are checked against what the registry publishes - offline, which is
+# what lets `make build` run it. With no checkout generated and no --registry-package named, the
+# scan says so once against fhir.toml rather than failing later on every reference at once.
+# (--no-fail keeps this demonstration's exit code at 0; a real build wants the exit 1.)
+d2w fhir check-artifacts demo-guide --no-fail
+
+# Naming the archive, or generating the registry checkout, is what answers it:
+#   d2w fhir check-artifacts demo-guide --registry-package ../dist/package.tgz
+# The same two sources, in the same order, are what `d2w fhir serve` reads the units from.
+
 rm -rf demo-registry demo-guide demo-inline

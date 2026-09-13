@@ -32,6 +32,7 @@ from dhis2w_fhir.conversion.context import build_conversion_context, build_form_
 from dhis2w_fhir.conversion.schemas import CodedAnswerMode, ConversionNaming
 from dhis2w_fhir.foundation.schemas import PROGRAM_RULE_NAME_SUB_EXTENSION, PROGRAM_RULE_UID_SUB_EXTENSION
 from dhis2w_fhir.r4 import CodeSystem, ConceptMap, Location, Questionnaire, ValueSet
+from dhis2w_fhir.registry_package import load_registry_documents
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -118,11 +119,17 @@ class SourcedDocument(BaseModel):
     body: dict[str, Any]
 
 
-def load_compiled_artifacts(project: FhirProject) -> CompiledArtifacts:
+def load_compiled_artifacts(project: FhirProject, *, registry_package: Path | None = None) -> CompiledArtifacts:
     """Read one project's compiled IG plus its predefined resource tree into the artifacts the translator reads.
 
     Compiled resources are read first and the predefined tree second, which is the order the facade
     loads them in, so a project reading its own guide two ways sees one collection.
+
+    A guide whose organisation units are published by a registry package holds no `Location` of its
+    own, and a `Location/<id>` reference resolves to a DHIS2 organisation unit only through one, so
+    the package's instances are read in too - from the configured checkout, or from the archive
+    `registry_package` names. This is what lets `d2w fhir forward` translate a response captured
+    against a depending guide.
     """
     compiled_directory = project.ig_directory / COMPILED_RESOURCES_RELATIVE_PATH
     compiled_paths = sorted(compiled_directory.glob("*.json")) if compiled_directory.is_dir() else []
@@ -130,9 +137,14 @@ def load_compiled_artifacts(project: FhirProject) -> CompiledArtifacts:
         raise CompiledIgMissingError(compiled_directory)
     predefined_directory = project.resources_directory
     predefined_paths = sorted(predefined_directory.rglob("*.json")) if predefined_directory.is_dir() else []
-    return collect_artifacts(
+    documents = [
         SourcedDocument(source=str(path), body=_read_resource(path)) for path in [*compiled_paths, *predefined_paths]
+    ]
+    documents.extend(
+        SourcedDocument(source=document.source, body=document.body)
+        for document in load_registry_documents(project, package=registry_package)
     )
+    return collect_artifacts(documents)
 
 
 def collect_artifacts(documents: Iterable[SourcedDocument]) -> CompiledArtifacts:

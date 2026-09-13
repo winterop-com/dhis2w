@@ -124,6 +124,14 @@ does not read a selection - it publishes whatever `ig/fsh-generated/` and
 toolchain pin, and hand-authored FSH all reach the publisher without ever
 passing it.
 
+The scan catches one more build-stopper, for a guide that depends on an
+[organisation-unit registry package](201-registry-package.md): a reference to a
+unit that package does not publish. It compares the references already on disk
+against what the registry carries, so two projects whose selections have drifted
+apart are named here in seconds rather than by the publisher after it has
+rendered everything else. Like the rest of the scan it reads no instance; when
+no checkout answers, name the archive with `--registry-package`.
+
 The recipe asks the CLI's own help before running the scan. A project whose
 lock pins a dhis2w-fhir without the command (before 1.8) gets a warning that
 names the upgrade (`uv lock --upgrade && uv sync`) and a build that proceeds

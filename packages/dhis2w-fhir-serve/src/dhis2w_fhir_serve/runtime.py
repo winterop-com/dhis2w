@@ -233,7 +233,7 @@ async def build_store(settings: ServeSettings, project: FhirProject, client: Dhi
     """
     if client is not None:
         return attach_builtin_conformance(await build_live_store(project, settings, client))
-    return attach_builtin_conformance(load_compiled_store(project))
+    return attach_builtin_conformance(load_compiled_store(project, registry_package=settings.registry_package))
 
 
 @asynccontextmanager

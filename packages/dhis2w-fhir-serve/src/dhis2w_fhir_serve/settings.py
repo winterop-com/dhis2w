@@ -18,6 +18,7 @@ from dhis2w_fhir.config import (
     TrackedEntitiesConfig,
     basemaps_from_options,
 )
+from dhis2w_fhir.registry_package import resolve_registry_source
 from dhis2w_fhir.service import GenerationProfile, resolve_generation_profile
 from dhis2w_fhir.spool import SPOOL_RELATIVE_PATH
 from pydantic import BaseModel, ConfigDict, Field
@@ -119,6 +120,13 @@ class ServeSettings(BaseModel):
     spool_dir: str = SPOOL_RELATIVE_PATH
     basemaps: list[BasemapSource] = Field(default_factory=lambda: list(DEFAULT_BASEMAPS))
     dhis2_base_url: str | None = None
+    registry_package: Path | None = None
+    """The registry package named on the command line, for a guide whose units another package publishes.
+
+    None is both "this guide publishes its own registry" and "the configured checkout answers",
+    which is why it is not a posture: it is the fall-back source, resolved when the store loads.
+    """
+
     tracked_entities: TrackedEntitiesConfig = Field(default_factory=TrackedEntitiesConfig)
     data_sets: DataSetsConfig = Field(default_factory=DataSetsConfig)
     search: SearchConfig = Field(default_factory=SearchConfig)
@@ -138,6 +146,7 @@ class ServeSettings(BaseModel):
         profile: str | None = None,
         auth: ServeAuth | None = None,
         auth_scope: ServeAuthScope | None = None,
+        registry_package: Path | None = None,
     ) -> ServeInvocation:
         """Resolve one invocation of the facade: a stated dial wins, then `[serve]`, then this model's defaults.
 
@@ -200,9 +209,15 @@ class ServeSettings(BaseModel):
         generation = _resolved_generation(project, profile, required=live)
         if not live and not any((project.ig_directory / COMPILED_RESOURCES_RELATIVE_PATH).glob("*.json")):
             raise CompiledIgMissingError
+        # The registry a guide depends on is preflighted for the reason every other refusal is: a
+        # facade that starts and then serves no organisation unit is a failure nobody meets until
+        # they open the picker. A live run reads its units off the instance and needs none.
+        if not live:
+            resolve_registry_source(project, package=registry_package)
         return ServeInvocation(
             settings=cls(
                 project_dir=project.project_root,
+                registry_package=registry_package,
                 live=live,
                 profile=profile,
                 auth=resolved_auth if resolved_auth is not None else ServeAuth.NONE,
