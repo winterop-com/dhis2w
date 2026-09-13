@@ -58,7 +58,7 @@ jobs:
         run: make install
 
       - name: Restore the FHIR package cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.CACHE_VOLUME }}
           key: fhir-ig-cache-${{ env.GUIDE }}-${{ github.run_id }}
