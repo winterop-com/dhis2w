@@ -729,6 +729,9 @@ dependencies = [
 browser = [
     { name = "dhis2w-browser" },
 ]
+security = [
+    { name = "dhis2w-security" },
+]
 serve = [
     { name = "dhis2w-fhir-serve" },
 ]
@@ -739,10 +742,11 @@ requires-dist = [
     { name = "dhis2w-core", editable = "packages/dhis2w-core" },
     { name = "dhis2w-fhir", editable = "packages/dhis2w-fhir" },
     { name = "dhis2w-fhir-serve", marker = "extra == 'serve'", editable = "packages/dhis2w-fhir-serve" },
+    { name = "dhis2w-security", marker = "extra == 'security'", specifier = ">=1.19.0,<2.0" },
     { name = "rich", specifier = ">=15" },
     { name = "typer", specifier = ">=0.27.1" },
 ]
-provides-extras = ["browser", "serve"]
+provides-extras = ["browser", "serve", "security"]
 
 [[package]]
 name = "dhis2w-client"
@@ -971,6 +975,24 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=3.4.7" },
     { name = "httpx2", specifier = ">=2.12.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
+]
+
+[[package]]
+name = "dhis2w-security"
+version = "1.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dhis2w-client" },
+    { name = "dhis2w-core" },
+    { name = "fastmcp" },
+    { name = "httpx2" },
+    { name = "pydantic" },
+    { name = "rich" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/80/34/254c00af0cd7c00db5992544c8ad0e879c128e6b99d14f8e41c0a5a12f52/dhis2w_security-1.19.0.tar.gz", hash = "sha256:b654368dc9436c4d59660b297c33c8c7ad14cd4f0d8f23d7d3e423f9249df1cb", size = 292822, upload-time = "2026-09-11T18:41:53.749Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/5a/34c1061a742e068cef8fd223b958b34fa2d1ea7165613dd8c1157ab9e7b7/dhis2w_security-1.19.0-py3-none-any.whl", hash = "sha256:b5296d47538cf3c6e7abc755a826eb64da9fe9d31be63c678be37dec3117ab18", size = 325173, upload-time = "2026-09-11T18:41:52.077Z" },
 ]
 
 [[package]]

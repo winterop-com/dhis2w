@@ -26,6 +26,9 @@ browser = ["dhis2w-browser>=1.20.0,<2.0"]
 serve = [
     "dhis2w-fhir-serve>=1.20.0,<2.0",
 ]
+security = [
+    "dhis2w-security>=1.19.0,<2.0",
+]
 
 [project.scripts]
 d2w = "dhis2w_cli.main:main"

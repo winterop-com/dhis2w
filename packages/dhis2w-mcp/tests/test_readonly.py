@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 from dhis2w_mcp.readonly import is_read_tool, readonly_enabled
 from dhis2w_mcp.server import build_server
@@ -240,6 +242,12 @@ _VERIFIED_READ_TOOLS: frozenset[str] = frozenset(
     }
 )
 
+#: The read-only tools of the `dhis2w-security` pack. The pack is the CLI's `[security]` extra, so the
+#: workspace venv carries it and its tools sit beside the host's own; without the pack they are absent.
+_PACK_READ_TOOLS: frozenset[str] = frozenset({"security_authorities", "security_settings", "security_version"})
+_PACK_INSTALLED = importlib.util.find_spec("dhis2w_security") is not None
+_EXPECTED_READ_TOOLS: frozenset[str] = _VERIFIED_READ_TOOLS | (_PACK_READ_TOOLS if _PACK_INSTALLED else frozenset())
+
 
 async def test_no_mutating_tool_is_classified_read() -> None:
     """Across the whole assembled registry, every tool is_read_tool allows is a hand-verified read.
@@ -250,7 +258,7 @@ async def test_no_mutating_tool_is_classified_read() -> None:
     server = build_server()
     all_tools = await server.list_tools(run_middleware=False)  # every registered tool, guard bypassed
     exposed = {tool.name for tool in all_tools if is_read_tool(tool.name)}
-    leaked = exposed - _VERIFIED_READ_TOOLS
+    leaked = exposed - _EXPECTED_READ_TOOLS
     assert not leaked, f"tools classified read but not on the verified read allowlist: {sorted(leaked)}"
 
 
@@ -268,7 +276,7 @@ async def test_no_write_tool_advertises_read_only_hint() -> None:
     hinted_read = {
         tool.name for tool in all_tools if tool.annotations is not None and tool.annotations.read_only_hint is True
     }
-    leaked = hinted_read - _VERIFIED_READ_TOOLS
+    leaked = hinted_read - _EXPECTED_READ_TOOLS
     assert not leaked, f"tools advertising readOnlyHint=True but not on the verified read allowlist: {sorted(leaked)}"
 
 
@@ -278,7 +286,7 @@ async def test_readonly_server_hides_write_tools(monkeypatch: pytest.MonkeyPatch
     async with Client(build_server()) as client:
         names = [tool.name for tool in await client.list_tools()]
     assert names, "expected some read tools"
-    unexpected = set(names) - _VERIFIED_READ_TOOLS
+    unexpected = set(names) - _EXPECTED_READ_TOOLS
     assert not unexpected, f"unexpected non-read exposed: {sorted(unexpected)}"
     # The specific bug: mutating group-membership and status tools must never be listed.
     for blocked in _WRITE_WITH_READ_LOOKING_TAIL:

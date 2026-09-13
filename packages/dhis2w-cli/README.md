@@ -8,6 +8,9 @@ Typer console script `d2w` for working with DHIS2 instances from the shell. Disc
 # Drops `d2w` on $PATH
 uv tool install dhis2w-cli
 
+# With the security posture scanner (the dhis2w-security pack mounts `d2w security`)
+uv tool install 'dhis2w-cli[security]'
+
 # With Playwright UI automation (browser screenshots, OIDC login, PAT minting)
 uv tool install 'dhis2w-cli[browser]'
 playwright install chromium    # one-time, after the install above

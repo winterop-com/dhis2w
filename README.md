@@ -55,7 +55,7 @@ The CLI command is named **`d2w`** but the PyPI distribution is **`dhis2w-cli`**
 uv tool install dhis2w-cli
 
 # With the security posture scanner (the dhis2w-security pack mounts `d2w security`)
-uv tool install dhis2w-cli --with dhis2w-security
+uv tool install 'dhis2w-cli[security]'
 
 # With Playwright UI automation (browser screenshots, OIDC login, PAT minting)
 uv tool install 'dhis2w-cli[browser]'
