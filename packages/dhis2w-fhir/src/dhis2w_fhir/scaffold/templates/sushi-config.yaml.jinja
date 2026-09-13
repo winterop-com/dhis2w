@@ -54,7 +54,7 @@ parameters:
     - {{ identifier_system_base }}/id/category-option-combo-code
   path-resource:
     - input/resources/registry/*
-{% if kind != "registry" %}
+{% if not publishes %}
     - input/resources/terminology/*
     - input/resources/concept-maps/*
     - input/resources/categories/*
@@ -64,7 +64,7 @@ parameters:
 
 menu:
   Home: index.html
-{% if kind == "registry" %}
+{% if publishes %}
   Registry: registry.html
 {% else %}
   Forms: forms.html

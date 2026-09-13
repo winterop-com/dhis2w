@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# d2w fhir init --kind registry / --registry-* — split the organisation-unit registry into a package.
+# d2w fhir init --publishes / --registry-* — split the organisation-unit registry into a package.
 set -euo pipefail
 
 # Opt-in, and two projects. The registry package publishes the organisation-unit registry and
 # nothing else: `d2w fhir generate` in it runs the foundation slice its instances name, the
 # organisation units, and the pages, and refuses the form-side targets by name.
-d2w fhir init demo-registry --kind registry \
+d2w fhir init demo-registry --publishes organisation-units \
     --id dhis2.fhir.registrydemo.registry \
     --canonical http://example.org/fhir/registry-demo/registry \
     --publisher "Demo Org" \
     --max-level 4
 
-# `kind = "registry"` under [ig] is what says so; the site is Home, Registry, Artifacts.
-grep -n 'kind = "registry"' demo-registry/fhir.toml
+# The two [ig] keys say so - a package, and what it holds; the site is Home, Registry, Artifacts.
+grep -nE 'kind = "package"|publishes = ' demo-registry/fhir.toml
 grep -A3 '^menu:' demo-registry/ig/sushi-config.yaml
 
 # The guide names the package. It then writes no Organization or Location of its own,

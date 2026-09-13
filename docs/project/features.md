@@ -558,9 +558,11 @@ chain in one command.
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
   `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
-  **`--kind registry`** scaffolds a registry package (the organisation-unit
-  registry alone, `kind = "registry"` under `[ig]`, a Home / Registry /
-  Artifacts menu, `path-resource` limited to `registry/`); **`--registry-id`**
+  **`--publishes organisation-units`** scaffolds a package rather than a guide
+  (`kind = "package"` plus `publishes = "organisation-units"` under `[ig]`, the
+  organisation-unit registry alone, a Home / Registry / Artifacts menu,
+  `path-resource` limited to `registry/`) - the two keys are apart so a second
+  sort of package is a new `publishes` value, not a new project kind; **`--registry-id`**
   / **`--registry-canonical`** / **`--registry-version`** / **`--registry-path`**
   name the registry package a guide depends on, seeding the
   `[generate.organisation_units.registry]` table, the `dependencies:` entry of
@@ -1398,8 +1400,8 @@ registration form become `Questionnaire` instances.
   `registry-dependency` note. The Registry page states the package. A guide
   whose canonical equals the registry's is refused. A `fhir.toml` without the
   table is untouched by any of this.
-- **The registry package itself** is a project with `kind = "registry"` under
-  `[ig]`: `d2w fhir generate` runs its foundation slice (aliases, the
+- **The registry package itself** is a project with `kind = "package"` and
+  `publishes = "organisation-units"` under `[ig]`: `d2w fhir generate` runs its foundation slice (aliases, the
   organisation-unit NamingSystems, the attribute-value extension, the level
   extension), the organisation units and the pages (Registry plus the unit
   intros), reports the four form-side targets as not applying, and refuses

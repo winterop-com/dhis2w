@@ -701,7 +701,7 @@ def test_the_registry_table_names_the_package_a_guide_depends_on(tmp_path: Path)
     assert registry.canonical == "http://example.org/fhir/registry"
     assert registry.version == "0.1.0"
     assert registry.path == Path("../example-registry")
-    assert config.is_registry_project is False
+    assert config.publishes_organisation_units is False
 
 
 def test_without_a_registry_table_the_registry_is_inline(tmp_path: Path) -> None:
@@ -735,30 +735,32 @@ def test_a_guide_refuses_a_registry_on_its_own_canonical(tmp_path: Path) -> None
 
 
 def test_a_registry_project_refuses_form_selections_and_a_registry_table(tmp_path: Path) -> None:
-    """`kind = "registry"` publishes the registry alone: no form ids, and no dependency on another registry."""
+    """A package of organisation units publishes the registry alone: no form ids, and no registry of its own."""
     for name in ("forms", "registry", "plain"):
         (tmp_path / name).mkdir()
     with_forms = _write(tmp_path / "forms", before="", after='\n[generate.data_sets]\ninclude_ids = ["BfMAe6Itzgt"]\n')
-    _set_kind(with_forms, "registry")
+    _set_package(with_forms)
     with pytest.raises(ValidationError, match="registry alone"):
         load_fhir_config(with_forms)
     with_registry = _write(
         tmp_path / "registry",
         after='\n[generate.organisation_units.registry]\nid = "other"\ncanonical = "http://example.org/other"\n',
     )
-    _set_kind(with_registry, "registry")
+    _set_package(with_registry)
     with pytest.raises(ValidationError, match="registry package itself"):
         load_fhir_config(with_registry)
     plain = _write(tmp_path / "plain")
-    _set_kind(plain, "registry")
-    assert load_fhir_config(plain).is_registry_project is True
+    _set_package(plain)
+    assert load_fhir_config(plain).publishes_organisation_units is True
 
 
-def _set_kind(path: Path, kind: str) -> None:
-    """Add `kind = "<kind>"` to the `[ig]` table of a written fhir.toml."""
+def _set_package(path: Path, publishes: str = "organisation-units") -> None:
+    """Make a written fhir.toml a package of `publishes`, which is the two `[ig]` keys together."""
     text = path.read_text(encoding="utf-8")
     path.write_text(
         text.replace(
-            'publisher = "Example Organisation"\n', f'publisher = "Example Organisation"\nkind = "{kind}"\n', 1
+            'publisher = "Example Organisation"\n',
+            f'publisher = "Example Organisation"\nkind = "package"\npublishes = "{publishes}"\n',
+            1,
         )
     )

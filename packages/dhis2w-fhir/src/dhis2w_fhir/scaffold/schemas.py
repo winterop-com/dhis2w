@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from dhis2w_fhir.names import strip_trailing_slash
 from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
-from dhis2w_fhir.status import IgStatus, ProjectKind
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE, IgStatus, PackageContent, ProjectKind
 
 _NON_PROJECT_NAME_CHARACTERS = re.compile(r"[^a-z0-9]+")
 
@@ -59,19 +59,26 @@ class InitOptions(BaseModel):
     event_program_ids: list[str] = Field(default_factory=list)
     tracker_program_ids: list[str] = Field(default_factory=list)
     kind: ProjectKind = "guide"
+    publishes: PackageContent | None = None
+
     registry: RegistryDependency | None = None
 
     _normalize_canonical = field_validator("canonical")(strip_trailing_slash)
 
     @model_validator(mode="after")
-    def _registry_package_stands_alone(self) -> InitOptions:
-        """A registry package publishes the registry itself, so it names no registry to depend on and no form."""
-        if self.kind != "registry":
+    def _package_stands_alone(self) -> InitOptions:
+        """A package says what it holds, publishes that alone, and depends on no package of its own."""
+        if self.kind == "guide":
+            if self.publishes is not None:
+                raise ValueError("`publishes` is what a package holds; a guide states none")
             return self
-        if self.registry is not None:
-            raise ValueError("a registry package publishes the registry itself and depends on none")
-        if self.data_set_ids or self.event_program_ids or self.tracker_program_ids:
-            raise ValueError("a registry package publishes the organisation-unit registry alone and no form")
+        if self.publishes is None:
+            raise ValueError('a package needs `publishes` to say what it holds (e.g. "organisation-units")')
+        if self.publishes == ORGANISATION_UNIT_PACKAGE:
+            if self.registry is not None:
+                raise ValueError("a registry package publishes the registry itself and depends on none")
+            if self.data_set_ids or self.event_program_ids or self.tracker_program_ids:
+                raise ValueError("a registry package publishes the organisation-unit registry alone and no form")
         return self
 
 

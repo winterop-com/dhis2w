@@ -262,34 +262,43 @@ building.
 **If you get it wrong:** any other word refuses the run before anything is
 written:
 
-### `kind`
+### `kind` and `publishes`
 
-**In plain words.** What the project publishes. `"guide"` - the default, and
-what every project is unless it says otherwise - is a guide of forms with its
-organisation-unit registry inline or depended on. `"registry"` is a registry
-package: the organisation-unit registry alone, published for guides to depend
-on through their `[generate.organisation_units.registry]` table.
+**In plain words.** What the project is, and - for a package - what it holds.
+`kind = "guide"` is the default and what every project is unless it says
+otherwise: a guide of forms, with its organisation-unit registry inline or
+depended on. `kind = "package"` is a project published for guides to depend on,
+and `publishes` says what is in it. Today the one value is
+`"organisation-units"`, the registry package; a shared CodeSystem too large to
+carry in every guide would be the next.
 
-**When you would change it.** Only when scaffolding the registry package of a
-split guide; `d2w fhir init --kind registry` writes it. The walk-through is
-[Publish the registry as a package](201-registry-package.md).
+They are two keys rather than one so that a second sort of package is a new
+`publishes` value rather than a new project kind - every "does this project
+publish forms at all" question keeps a single answer.
+
+**When you would change them.** Only when scaffolding the package of a split
+guide; `d2w fhir init --publishes organisation-units` writes both. The
+walk-through is [Publish the registry as a package](201-registry-package.md).
 
 **Example.**
 
 ```toml
 [ig]
-kind = "registry"
+kind = "package"
+publishes = "organisation-units"
 ```
 
 `d2w fhir generate` runs the three targets a registry package has - the
 foundation slice its instances name, the organisation units, and the pages -
 and refuses the form-side ones by name.
 
-**Default:** `"guide"` - **If you leave it out:** the project is a guide.
+**Default:** `kind = "guide"` with no `publishes` - **If you leave them out:**
+the project is a guide.
 
-**If you get it wrong:** a registry package that also selects a data set or a
-program, or that names a registry to depend on, is refused when the file loads,
-naming the table to remove.
+**If you get it wrong:** `kind = "package"` without `publishes`, or `publishes`
+on a guide, is refused when the file loads and says which of the two to change.
+A package that also selects a data set or a program, or that names a registry to
+depend on, is refused the same way, naming the table to remove.
 
 ```text
 pydantic_core._pydantic_core.ValidationError: 1 validation error for FhirProjectConfig
