@@ -179,7 +179,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 **Decision:** `validate_profile_name()` enforces a strict identifier-like grammar — must start with a letter, then letters/digits/underscores only, max 64 characters. Checked at every mutation (`add`, `rename`, `default`). Names like `"he llo"`, `prod-eu`, `1stthing` are rejected with a clean error pointing at the rules.
 
-**Why:** names become env var suffixes (`DHIS2_PROFILE=prod_eu`), TOML keys, and unquoted shell arguments. Allowing spaces/hyphens/dots means every call site needs quoting discipline; the failure mode is subtle and platform-dependent. A narrow grammar avoids the whole class. Typical user names (`local`, `prod`, `laohis42`) fit trivially.
+**Why:** names become env var suffixes (`DHIS2_PROFILE=prod_eu`), TOML keys, and unquoted shell arguments. Allowing spaces/hyphens/dots means every call site needs quoting discipline; the failure mode is subtle and platform-dependent. A narrow grammar avoids the whole class. Typical user names (`local`, `prod`, `prod_asia`) fit trivially.
 
 ## 2026-04-18 — `d2w profile rename` preserves scope + default
 

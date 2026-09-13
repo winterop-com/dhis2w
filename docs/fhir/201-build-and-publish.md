@@ -277,7 +277,7 @@ report.
 
 The counts below were taken from real instances (the Sierra Leone demo:
 171 option sets, 2,664 registry instances, 3,101 resources; the uncapped
-Lao national instance: 235 option sets, 25,162 registry instances). Counts
+a national instance: 235 option sets, 25,162 registry instances). Counts
 travel between machines; the wall clock they cost does not, so this section
 talks about what is expensive relative to what.
 
@@ -308,7 +308,7 @@ on the compile.
 **What the compile costs** - running SUSHI on its own, with no publisher and
 no timeout, isolates the compile. What it buys is the FSH: the forms and five
 compiled CodeSystems, dominated by the two data-dictionary files (2.5MB of
-FSH on the uncapped Lao IG). Writing that instance's 235 option sets as FSH
+FSH on an uncapped national IG). Writing that instance's 235 option sets as FSH
 instead of predefined JSON makes the compile roughly half again as long,
 which is the case for predefined terminology; fewer selected forms mean
 smaller dictionary files. Docker is not where the compile's time goes - the

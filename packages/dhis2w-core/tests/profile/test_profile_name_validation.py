@@ -13,7 +13,7 @@ from dhis2w_core.profile import InvalidProfileNameError, validate_profile_name
         "prod",
         "prod_eu",
         "test42",
-        "laohis42",
+        "prod_asia",
         "a",
         "A_B_C_123",
         "x" * 64,

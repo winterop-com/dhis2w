@@ -75,7 +75,7 @@ Profile names must match `^[A-Za-z][A-Za-z0-9_]*$` with a max length of 64:
 - contains only letters, digits, and underscores
 - no spaces, hyphens, dots, slashes, or other punctuation
 
-Typical names: `local`, `prod`, `prod_eu`, `test42`, `laohis42`, `dhis2_42`, `sandbox`.
+Typical names: `local`, `prod`, `prod_eu`, `test42`, `prod_asia`, `dhis2_42`, `sandbox`.
 
 These constraints keep names safe as env var suffixes (`DHIS2_PROFILE=prod_eu`), TOML keys, and unquoted shell arguments. `d2w profile add "he llo"` fails with a clean error pointing at these rules. Validation happens at every mutation (`add`, `rename`, `default`) — you can't commit a bad name via the tooling.
 
