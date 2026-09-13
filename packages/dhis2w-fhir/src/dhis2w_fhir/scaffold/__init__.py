@@ -142,6 +142,7 @@ def _render(relative_path: str, template_name: str, options: InitOptions, **extr
         event_program_ids=options.event_program_ids,
         tracker_program_ids=options.tracker_program_ids,
         kind=options.kind,
+        publishes=options.publishes,
         registry=options.registry,
         **extra,
     )

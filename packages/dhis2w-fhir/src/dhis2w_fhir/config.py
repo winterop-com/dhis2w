@@ -35,7 +35,7 @@ from dhis2w_fhir.resources.option_sets.schemas import OptionSetSelection
 from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitSelection, RegistryDependency
 from dhis2w_fhir.resources.questionnaires.schemas import TargetSelection
 from dhis2w_fhir.spool import SPOOL_RELATIVE_PATH
-from dhis2w_fhir.status import IgStatus, ProjectKind
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE, IgStatus, PackageContent, ProjectKind
 
 FHIR_CONFIG_FILENAME = "fhir.toml"
 
@@ -67,8 +67,30 @@ class IgConfig(BaseModel):
     publisher: str
     status: IgStatus = "draft"
     kind: ProjectKind = "guide"
+    publishes: PackageContent | None = None
+    """What a package holds, and nothing on a guide.
+
+    Kept apart from `kind` so a second sort of package - a shared CodeSystem too large to carry
+    in every guide - is a new value here rather than a new project kind, and so every "does this
+    project publish forms" question keeps one answer.
+    """
 
     _normalize_canonical = field_validator("canonical")(strip_trailing_slash)
+
+    @model_validator(mode="after")
+    def _kind_and_content_agree(self) -> IgConfig:
+        """A package says what it publishes, and a guide says nothing - the two keys state one decision."""
+        if self.kind == "package" and self.publishes is None:
+            raise ValueError(
+                'kind = "package" needs `publishes` to say what the package holds '
+                '(e.g. publishes = "organisation-units")'
+            )
+        if self.kind == "guide" and self.publishes is not None:
+            raise ValueError(
+                f'publishes = "{self.publishes}" is what a package holds; this project is a guide. '
+                'Set kind = "package" beside it, or remove the key.'
+            )
+        return self
 
 
 def _validate_fsh_token(value: str, *, allow_empty: bool) -> str:
@@ -969,9 +991,14 @@ class FhirProjectConfig(BaseModel):
     ips: IpsConfig = Field(default_factory=IpsConfig)
 
     @property
-    def is_registry_project(self) -> bool:
-        """True when this project publishes the organisation-unit registry as its own package."""
-        return self.ig.kind == "registry"
+    def is_package_project(self) -> bool:
+        """True when this project is a package published for guides to depend on, whatever it holds."""
+        return self.ig.kind == "package"
+
+    @property
+    def publishes_organisation_units(self) -> bool:
+        """True when this project is the organisation-unit registry package itself."""
+        return self.ig.publishes == ORGANISATION_UNIT_PACKAGE
 
     @property
     def registry_dependency(self) -> RegistryDependency | None:
@@ -980,9 +1007,9 @@ class FhirProjectConfig(BaseModel):
 
     @model_validator(mode="after")
     def _registry_roles_are_consistent(self) -> FhirProjectConfig:
-        """A registry project publishes nothing but the registry, and a guide never depends on itself."""
+        """The organisation-unit package publishes nothing but the registry, and a guide never depends on itself."""
         registry = self.generate.organisation_units.registry
-        if self.ig.kind == "registry":
+        if self.publishes_organisation_units:
             selected = [
                 name
                 for name, table in (
@@ -995,12 +1022,12 @@ class FhirProjectConfig(BaseModel):
             ]
             if selected:
                 raise ValueError(
-                    f'[ig] kind = "registry" publishes the organisation-unit registry alone and runs no form '
+                    f'[ig] publishes = "organisation-units" publishes the registry alone and runs no form '
                     f"target; remove the ids under [generate.{selected[0]}] or make this project a guide"
                 )
             if registry is not None:
                 raise ValueError(
-                    '[ig] kind = "registry" is the registry package itself; '
+                    '[ig] publishes = "organisation-units" is the registry package itself; '
                     "[generate.organisation_units.registry] belongs in the guide that depends on it"
                 )
         elif registry is not None and registry.canonical == self.ig.canonical:

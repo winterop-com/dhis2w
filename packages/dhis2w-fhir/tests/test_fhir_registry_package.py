@@ -259,7 +259,8 @@ def test_the_registry_package_pages_are_the_registry_page_and_the_unit_intros() 
 
 
 def test_a_registry_project_is_recognised_and_a_guide_reads_its_dependency() -> None:
-    """`kind = "registry"` under [ig] and the registry table are the two roles the config exposes."""
+    """`kind = "package"
+    publishes = "organisation-units"` under [ig] and the registry table are the two roles the config exposes."""
     guide = FhirProjectConfig.model_validate(
         {
             "ig": {
@@ -280,14 +281,15 @@ def test_a_registry_project_is_recognised_and_a_guide_reads_its_dependency() -> 
                 "name": "Reg",
                 "title": "Reg",
                 "publisher": "P",
-                "kind": "registry",
+                "kind": "package",
+                "publishes": "organisation-units",
             }
         }
     )
 
-    assert guide.is_registry_project is False
+    assert guide.publishes_organisation_units is False
     assert guide.registry_dependency == _REGISTRY
-    assert package.is_registry_project is True
+    assert package.publishes_organisation_units is True
     assert package.registry_dependency is None
 
 
@@ -304,7 +306,13 @@ _DEPENDING_OPTIONS = _GUIDE_OPTIONS.model_copy(
     update={"registry": _REGISTRY.model_copy(update={"path": Path("../test-registry")})}
 )
 _PACKAGE_OPTIONS = _GUIDE_OPTIONS.model_copy(
-    update={"ig_id": "dhis2.fhir.test.registry", "canonical": _REGISTRY.canonical, "kind": "registry", "max_level": 2}
+    update={
+        "ig_id": "dhis2.fhir.test.registry",
+        "canonical": _REGISTRY.canonical,
+        "kind": "package",
+        "publishes": "organisation-units",
+        "max_level": 2,
+    }
 )
 
 
@@ -344,7 +352,7 @@ def test_the_registry_package_sushi_config_declares_the_registry_folder_and_a_tw
     ]
 
 
-def test_fhir_toml_carries_the_kind_and_the_registry_table_and_reads_both_back() -> None:
+def test_fhir_toml_carries_the_package_keys_and_the_registry_table_and_reads_them_back() -> None:
     """The scaffold writes what `read_project_scaffold_state` recovers, so a refresh reproduces the same render."""
     depending = tomllib.loads(_scaffold(_DEPENDING_OPTIONS)["fhir.toml"])
     assert depending["generate"]["organisation_units"]["registry"] == {
@@ -354,8 +362,10 @@ def test_fhir_toml_carries_the_kind_and_the_registry_table_and_reads_both_back()
         "path": "../test-registry",
     }
     assert "kind" not in depending["ig"]
+    assert "publishes" not in depending["ig"]
     package = tomllib.loads(_scaffold(_PACKAGE_OPTIONS)["fhir.toml"])
-    assert package["ig"]["kind"] == "registry"
+    assert package["ig"]["kind"] == "package"
+    assert package["ig"]["publishes"] == "organisation-units"
     assert package["generate"]["organisation_units"] == {"max_level": 2}
     plain = tomllib.loads(_scaffold(_GUIDE_OPTIONS)["fhir.toml"])
     assert "organisation_units" not in plain["generate"]
@@ -402,6 +412,21 @@ def test_a_refresh_lands_the_dependencies_block_on_a_guide_that_gained_the_regis
     assert sushi_config["dependencies"]["dhis2.fhir.test.registry"]["version"] == "1.2.0"
     makefile = (tmp_path / "Makefile").read_text(encoding="utf-8")
     assert "REGISTRY_TGZ ?= ../test-registry/ig/output/package.tgz" in makefile
+
+
+def test_a_package_gets_no_forward_targets() -> None:
+    """A capture starts from a Questionnaire, a package publishes none, so its spool can never fill."""
+    package = _scaffold(_PACKAGE_OPTIONS)["Makefile"]
+    guide = _scaffold(_GUIDE_OPTIONS)["Makefile"]
+
+    assert "forward:" not in package
+    assert "forward-import:" not in package
+    assert "No forward targets" in package
+    # The guide keeps them, which is where captures are made and drained.
+    assert "forward:" in guide
+    assert "forward-import:" in guide
+    # Serving is not dropped: a package served on its own is a readable FHIR endpoint over what it holds.
+    assert "serve:" in package
 
 
 def test_the_makefile_installs_the_registry_package_before_sushi_and_the_publisher() -> None:
@@ -482,17 +507,28 @@ def test_init_names_a_registry_package_through_the_registry_flags(workdir: Path)
     assert "REGISTRY_TGZ ?= ../registry/ig/output/package.tgz" in (workdir / "guide" / "Makefile").read_text()
 
 
-def test_init_scaffolds_a_registry_package_with_kind_registry(workdir: Path) -> None:
-    """`--kind registry` writes `kind = "registry"` under [ig] and the two-page site."""
+def test_init_scaffolds_a_registry_package(workdir: Path) -> None:
+    """`--publishes organisation-units` writes both [ig] keys and the two-page site."""
     result = _runner.invoke(
         build_app(),
-        ["fhir", "init", "registry", "--kind", "registry", "--id", "dhis2.fhir.test.registry", "--max-level", "3"],
+        [
+            "fhir",
+            "init",
+            "registry",
+            "--publishes",
+            "organisation-units",
+            "--id",
+            "dhis2.fhir.test.registry",
+            "--max-level",
+            "3",
+        ],
     )
     assert result.exit_code == 0, result.output
     raw = tomllib.loads((workdir / "registry" / "fhir.toml").read_text(encoding="utf-8"))
-    assert raw["ig"]["kind"] == "registry"
+    assert raw["ig"]["kind"] == "package"
+    assert raw["ig"]["publishes"] == "organisation-units"
     assert raw["generate"]["organisation_units"] == {"max_level": 3}
-    assert load_project(workdir / "registry").config.is_registry_project
+    assert load_project(workdir / "registry").config.publishes_organisation_units
 
 
 @pytest.mark.parametrize(
@@ -500,9 +536,12 @@ def test_init_scaffolds_a_registry_package_with_kind_registry(workdir: Path) -> 
     [
         (["--registry-id", "dhis2.fhir.test.registry"], "both --registry-id and --registry-canonical"),
         (["--registry-version", "2.0.0"], "both --registry-id and --registry-canonical"),
-        (["--kind", "registry", "--registry-id", "x", "--registry-canonical", "http://x"], "depends on no registry"),
-        (["--kind", "registry", "--data-set", "BfMAe6Itzgt"], "no form"),
-        (["--refresh", "--kind", "registry"], "--kind would be ignored"),
+        (
+            ["--publishes", "organisation-units", "--registry-id", "x", "--registry-canonical", "http://x"],
+            "depends on no package",
+        ),
+        (["--publishes", "organisation-units", "--data-set", "BfMAe6Itzgt"], "no form"),
+        (["--refresh", "--publishes", "organisation-units"], "--publishes would be ignored"),
     ],
 )
 def test_init_refuses_a_half_named_registry_and_a_registry_package_that_depends(
@@ -672,12 +711,17 @@ async def test_a_registry_package_runs_three_targets_and_refuses_the_form_side_o
     """The package writes its foundation slice, the registry and the registry pages, and nothing of a guide's."""
     _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
     options = _FULL_OPTIONS.model_copy(
-        update={"ig_id": "dhis2.fhir.test.registry", "canonical": _REGISTRY.canonical, "kind": "registry"}
+        update={
+            "ig_id": "dhis2.fhir.test.registry",
+            "canonical": _REGISTRY.canonical,
+            "kind": "package",
+            "publishes": "organisation-units",
+        }
     )
     await _scaffold_project(tmp_path, options)
     profile = resolve_profile("probe")
     project = load_project(tmp_path)
-    assert project.config.is_registry_project
+    assert project.config.publishes_organisation_units
 
     report = await service.generate_full(profile, project)
 
@@ -722,7 +766,7 @@ async def test_a_registry_package_runs_three_targets_and_refuses_the_form_side_o
         service.generate_questionnaires,
         service.generate_examples,
     ):
-        with pytest.raises(RegistryProjectTargetError, match="registry package"):
+        with pytest.raises(RegistryProjectTargetError, match="publishes the organisation-unit registry"):
             await target(profile, project)
     with pytest.raises(RegistryProjectTargetError, match="load-set"):
         await service.generate_load_set(profile, project)

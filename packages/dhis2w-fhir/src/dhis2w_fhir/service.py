@@ -586,10 +586,10 @@ class RegistryProjectTargetError(CliUserError):
 
 def _refuse_registry_project_target(project: FhirProject, target: str) -> None:
     """Refuse a form-side target in a registry package: it holds no data set, program or example to generate."""
-    if not project.config.is_registry_project:
+    if not project.config.publishes_organisation_units:
         return
     raise RegistryProjectTargetError(
-        f'{project.config.ig.id} is a registry package ([ig] kind = "registry" in fhir.toml), which '
+        f'{project.config.ig.id} is a package ([ig] publishes = "organisation-units" in fhir.toml), which '
         f"publishes the organisation-unit registry and nothing else, so `d2w fhir generate {target}` has "
         "nothing to write here. Run `d2w fhir generate` for the whole package, or `d2w fhir generate "
         "foundation`, `org-units` or `pages` for one of its targets."
@@ -1417,7 +1417,11 @@ async def generate_foundation(project: FhirProject, *, reporter: ProgressReporte
 def _emit_foundation(project: FhirProject, *, progress: _StepAnnouncer) -> GenerateReport:
     """Build and sync the foundation artifacts; the one target that reads nothing off the instance."""
     progress.step("foundation", "writing ig/input/fsh/foundation")
-    build = build_registry_foundation_artifacts if project.config.is_registry_project else build_foundation_artifacts
+    build = (
+        build_registry_foundation_artifacts
+        if project.config.publishes_organisation_units
+        else build_foundation_artifacts
+    )
     artifacts = build(project.config.generate, project.config.ig.canonical, ig_status=project.config.ig.status)
     sync = sync_artifacts(project.fsh_directory, "foundation", artifacts)
     report = GenerateReport(
@@ -3059,7 +3063,7 @@ async def generate_pages(
     notes: list[GenerateNote] = []
     tally = GeometryTally()
     today = datetime.now(tz=UTC).date()
-    if project.config.is_registry_project:
+    if project.config.publishes_organisation_units:
         # A registry package narrates its units alone: no form catalog, no terminology page.
         progress.step(_FETCH_LABEL, "fetching organisation units")
         async with _instance_connection(profile, client) as client:
@@ -3157,7 +3161,7 @@ def _emit_pages(
     )
     _refuse_build_aborting_member_names(option_sets)
     pages = PagesIn(forms=_published_sources(sources), option_sets=option_sets, organisation_units=organisation_units)
-    if project.config.is_registry_project:
+    if project.config.publishes_organisation_units:
         build = build_registry_page_artifacts(
             pages, project.config.generate, organisation_unit_stems=organisation_unit_stems
         )
@@ -3213,7 +3217,7 @@ async def generate_full(
     whole run screens through one gate, so a run that asks asks once, over the count the whole
     instance read holds rather than the first target's share of it.
     """
-    if project.config.is_registry_project:
+    if project.config.publishes_organisation_units:
         return await _generate_registry_package(profile, project, reporter=reporter, client=client, gate=gate)
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_FULL_STEPS)

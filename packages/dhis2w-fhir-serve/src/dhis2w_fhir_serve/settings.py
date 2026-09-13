@@ -120,6 +120,13 @@ class ServeSettings(BaseModel):
     spool_dir: str = SPOOL_RELATIVE_PATH
     basemaps: list[BasemapSource] = Field(default_factory=lambda: list(DEFAULT_BASEMAPS))
     dhis2_base_url: str | None = None
+    publishes: str | None = None
+    """What this project publishes when it is a package rather than a guide, and None for a guide.
+
+    A screen reads it to know that the absence of forms is the project's shape rather than a step
+    not taken yet, so it stops advising a generate that would not produce any.
+    """
+
     registry_package: Path | None = None
     """The registry package named on the command line, for a guide whose units another package publishes.
 
@@ -217,6 +224,7 @@ class ServeSettings(BaseModel):
         return ServeInvocation(
             settings=cls(
                 project_dir=project.project_root,
+                publishes=project.config.ig.publishes,
                 registry_package=registry_package,
                 live=live,
                 profile=profile,

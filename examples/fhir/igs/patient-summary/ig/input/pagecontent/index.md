@@ -5,7 +5,8 @@ This Implementation Guide is generated from DHIS2 metadata with `d2w fhir`.
 - Option sets are represented as CodeSystem/ValueSet pairs under Terminology.
 - Every organisation unit is represented as an Organization plus a Location;
   geometry is embedded losslessly as GeoJSON via the location-boundary-geojson
-  extension.
+  extension. The Registry page says whether this guide publishes them itself or
+  depends on a registry package that does.
 - Data sets and event programs are represented as Questionnaires, each with
   example QuestionnaireResponses answering it on the same link ids.
 

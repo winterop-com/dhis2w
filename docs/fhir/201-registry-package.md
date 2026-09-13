@@ -42,8 +42,10 @@ them.
 
 ## The two projects
 
-The registry becomes a project of its own, scaffolded with `--kind registry`.
-It publishes the organisation-unit registry and nothing else: the
+The registry becomes a project of its own, scaffolded with
+`--publishes organisation-units`.
+It carries `kind = "package"` and `publishes = "organisation-units"` under `[ig]`,
+and holds the organisation-unit registry and nothing else: the
 `D2Organization` and `D2Location` profiles, the level extension and its
 CodeSystem and ValueSet, the organisation-unit NamingSystems, the attribute-value
 extension a unit's DHIS2 attributes ride on, the registry examples, and the
@@ -51,7 +53,7 @@ Registry page with a per-unit intro where DHIS2 holds a description. Its site is
 Home, Registry, Artifacts.
 
 ```bash
-d2w fhir init example-registry --kind registry \
+d2w fhir init example-registry --publishes organisation-units \
     --id dhis2.fhir.example.registry \
     --canonical http://example.org/fhir/registry \
     --profile myserver
@@ -65,8 +67,8 @@ slice its instances name, the organisation units, and the pages - and the
 form-side targets refuse:
 
 ```
-error: dhis2.fhir.example.registry is a registry package ([ig] kind = "registry" in
-fhir.toml), which publishes the organisation-unit registry and nothing else, so
+error: dhis2.fhir.example.registry is a package ([ig] publishes = "organisation-units"
+in fhir.toml), which publishes the organisation-unit registry and nothing else, so
 `d2w fhir generate questionnaires` has nothing to write here.
 ```
 

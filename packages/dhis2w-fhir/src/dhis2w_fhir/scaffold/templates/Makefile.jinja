@@ -149,6 +149,7 @@ serve:  ## Serve the compiled IG as a FHIR endpoint, with the capture UI at / (r
 serve-live:  ## Serve straight from the DHIS2 instance, with the capture UI at / - no compile needed
 	$(D2W) fhir serve --live --ui
 
+{% if not publishes %}
 .PHONY: forward forward-import
 
 forward:  ## Dry-run the capture spool against DHIS2 - validate only, nothing written, nothing moved
@@ -156,6 +157,11 @@ forward:  ## Dry-run the capture spool against DHIS2 - validate only, nothing wr
 
 forward-import:  ## Import the capture spool into DHIS2 and file every receipt by what it became
 	$(D2W) fhir forward --import
+{% else %}
+# No forward targets: a capture starts from a Questionnaire, this package publishes none, and the
+# spool it would drain can never fill. The guide that depends on this package is where captures
+# are made and forwarded.
+{% endif %}
 
 clean:  ## Remove build output (keeps ig/input-cache, the terminology cache the next build reuses)
 	rm -rf $(IG_DIR)/fsh-generated $(IG_DIR)/output $(IG_DIR)/temp $(IG_DIR)/template \

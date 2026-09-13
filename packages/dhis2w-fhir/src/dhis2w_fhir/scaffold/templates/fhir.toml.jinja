@@ -18,11 +18,12 @@ publisher = "{{ publisher }}"
 # "draft" while building; "active" for production - drives the sushi-config status
 # and the status and experimental flag on every generated CodeSystem/ValueSet/Questionnaire.
 status = "{{ status }}"
-{% if kind == "registry" %}
-# This project publishes the DHIS2 organisation-unit registry as a package of its own, and no
-# form: a guide names it under [generate.organisation_units.registry] and references every
-# Location and Organization here by its URL under this package's canonical.
-kind = "registry"
+{% if publishes %}
+# This project is a package rather than a guide: it publishes what `publishes` names and no form.
+# A guide names it under [generate.organisation_units.registry] and references every Location and
+# Organization here by its URL under this package's canonical.
+kind = "package"
+publishes = "{{ publishes }}"
 {% endif %}
 
 [generate]

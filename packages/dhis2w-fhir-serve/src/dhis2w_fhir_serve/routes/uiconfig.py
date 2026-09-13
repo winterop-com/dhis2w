@@ -313,6 +313,14 @@ class UiConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     capture: bool = True
+    publishes: str | None = None
+    """What this project publishes when it is a package, and None for a guide.
+
+    A package holds no Questionnaire and never will, so a screen that reads this stops telling the
+    reader to generate some - the advice a guide with nothing compiled yet needs, and the wrong
+    thing to say to a project whose shape is to have none.
+    """
+
     auth: AuthUiConfig = Field(default_factory=AuthUiConfig)
     basemaps: list[BasemapLayer] = Field(default_factory=list)
     dhis2_base_url: str | None = None
@@ -343,6 +351,7 @@ async def read_ui_config(request: Request) -> UiConfig:
     settings = context.settings
     return UiConfig(
         capture=settings.capture,
+        publishes=settings.publishes,
         auth=AuthUiConfig(
             posture=settings.auth,
             scope=settings.auth_scope,

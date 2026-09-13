@@ -202,6 +202,14 @@ export interface UiConfig {
      * screen already renders that refusal; a Submit that is not there explains nothing to anybody.
      */
     capture?: boolean
+    /**
+     * What this project publishes when it is a package rather than a guide, and absent for a guide.
+     *
+     * A package holds no Questionnaire and never will, so a screen reading this stops advising a
+     * generate that would produce none - the advice a guide with nothing compiled yet needs, and
+     * the wrong thing to say to a project whose shape is to have no forms at all.
+     */
+    publishes?: string | null
     auth?: AuthSettings
     basemaps: BasemapLayer[]
     dhis2_base_url: string | null

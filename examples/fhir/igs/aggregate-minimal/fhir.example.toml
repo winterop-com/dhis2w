@@ -22,9 +22,10 @@ title = "Minimal aggregate example guide"
 publisher = "dhis2w examples"
 # "draft" while building; "active" for production. -> 301-identity#status
 status = "draft"
-# What the project publishes: a "guide" of forms, or a "registry" package holding the organisation-unit
-# registry alone for guides to depend on. -> 201-registry-package
+# What the project is: a "guide" of forms, or a "package" published for guides to depend on. -> 201-registry-package
 kind = "guide"
+# A package states `publishes` here too, saying what it holds ("organisation-units"); a guide
+# states none, which is why no line is offered to copy. -> 201-registry-package
 
 [generate]
 # Web-address stem of the DHIS2 identifiers every published entry carries. -> 301-generation#identifier_system_base

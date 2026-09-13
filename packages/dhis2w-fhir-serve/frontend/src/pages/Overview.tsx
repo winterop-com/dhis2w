@@ -11,6 +11,7 @@ import { useFhirSearch } from '@/hooks/use-fhir-search'
 import { refreshServerStatus, useServerStatus } from '@/hooks/use-server-status'
 import { useSpool } from '@/hooks/use-spool'
 import { useStatusLine } from '@/hooks/use-status-bar'
+import { useUiConfig } from '@/hooks/use-ui-config'
 import {
     formIdentifier,
     formSlice,
@@ -323,6 +324,10 @@ function CaptureSection({
     error: string | null
 }) {
     const slice = formSlice(questionnaires, QUICK_ENTRY_FORMS)
+    // A package publishes no Questionnaire and never will, so the empty state says that rather
+    // than advising a generate that would produce none.
+    const { config } = useUiConfig()
+    const publishes = config.publishes ?? null
 
     return (
         <section className="space-y-3">
@@ -335,13 +340,21 @@ function CaptureSection({
                 error={error}
                 empty={slice.total === 0}
                 emptyMessage={
-                    <>
-                        This project publishes no Questionnaires, so there is nothing to capture
-                        against. They appear once the implementation guide has been generated and
-                        compiled: <code className="font-mono">d2w fhir generate</code> - or serve
-                        straight from the DHIS2 instance with{' '}
-                        <code className="font-mono">--live</code>.
-                    </>
+                    publishes ? (
+                        <>
+                            This project is a package: it publishes {publishes} for guides to
+                            depend on, and no form. Captures are made in a guide that depends on it,
+                            not here.
+                        </>
+                    ) : (
+                        <>
+                            This project publishes no Questionnaires, so there is nothing to capture
+                            against. They appear once the implementation guide has been generated
+                            and compiled: <code className="font-mono">d2w fhir generate</code> - or
+                            serve straight from the DHIS2 instance with{' '}
+                            <code className="font-mono">--live</code>.
+                        </>
+                    )
                 }
             >
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

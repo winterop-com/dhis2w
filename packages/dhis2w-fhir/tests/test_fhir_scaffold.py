@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from dhis2w_fhir.config import FhirProjectConfig, HostileNamePosture, NoFhirProjectError
+from dhis2w_fhir.config import FHIR_CONFIG_FILENAME, FhirProjectConfig, HostileNamePosture, NoFhirProjectError
 from dhis2w_fhir.resources.pages import SITE_PAGE_FILENAMES
 from dhis2w_fhir.scaffold import (
     CONFIG_EXAMPLE_RELATIVE_PATH,
@@ -868,15 +868,21 @@ def test_refresh_keeps_the_sushi_timeout_no_other_file_records(tmp_path: Path) -
     assert (tmp_path / "ig" / "fsh.ini").read_text(encoding="utf-8") == "[FSH]\ntimeout = 5400\n"
 
 
-def test_every_committed_guide_example_matches_the_current_render() -> None:
-    """Each guide's committed fhir.example.toml is byte-identical to what the scaffold renders today.
+def test_every_committed_guide_matches_the_current_scaffold_render() -> None:
+    """Every scaffold-managed file of every committed guide is byte-identical to today's render.
 
-    The scaffold template is pinned to the config schema by the round-trip test above; the copies
-    committed under examples/fhir/igs/ are what a reader browsing the repository sees, and nothing
-    else asserts they kept up. A config table added without resweeping the guides passed silently
-    twice before this test existed; now it is a failure naming the guide, and the fix it names is
-    the one that always works: delete the guide's fhir.example.toml and run
-    `d2w fhir init --refresh .` in the guide.
+    The copies under examples/fhir/igs/ are what a reader browsing the repository sees, and nothing
+    else asserts they kept up. This once checked `fhir.example.toml` alone, and the narrowness cost
+    what narrow guards always cost: `pyproject.toml` sat on a `[tool.uv.sources]` block the scaffold
+    had stopped writing, telling readers to resolve the toolchain from a git branch when the
+    scaffold resolves it from PyPI, and `index.md` lost a sentence - both unnoticed, because a
+    refresh declines to rewrite a file whose lines it would replace rather than add, and nothing
+    read that verdict.
+
+    `fhir.toml` is the one exclusion: a refresh never writes it, because it is the file the whole
+    render is derived from.
+
+    The fix, in each guide named: delete the file and run `d2w fhir init --refresh .` there.
     """
     from dhis2w_fhir.scaffold import build_scaffold_files
     from dhis2w_fhir.scaffold.refresh import read_project_scaffold_state
@@ -887,18 +893,17 @@ def test_every_committed_guide_example_matches_the_current_render() -> None:
     stale: list[str] = []
     for config_path in guides:
         guide = config_path.parent
-        committed = guide / "fhir.example.toml"
-        if not committed.is_file():
-            stale.append(f"{guide.name}: fhir.example.toml is missing")
-            continue
         state = read_project_scaffold_state(guide)
-        rendered = {
-            f.relative_path: f.content for f in build_scaffold_files(state.options, copyright_year=state.copyright_year)
-        }
-        if committed.read_text(encoding="utf-8") != rendered["fhir.example.toml"]:
-            stale.append(f"{guide.name}: fhir.example.toml does not match the current render")
+        for scaffold_file in build_scaffold_files(state.options, copyright_year=state.copyright_year):
+            if scaffold_file.relative_path == FHIR_CONFIG_FILENAME:
+                continue
+            committed = guide / scaffold_file.relative_path
+            if not committed.is_file():
+                stale.append(f"{guide.name}: {scaffold_file.relative_path} is missing")
+            elif committed.read_text(encoding="utf-8") != scaffold_file.content:
+                stale.append(f"{guide.name}: {scaffold_file.relative_path} does not match the current render")
     assert not stale, (
-        "committed guide examples have gone stale - in each guide, delete fhir.example.toml and "
+        "committed guides have gone stale - in each, delete the named file and "
         "run `d2w fhir init --refresh .`:\n  " + "\n  ".join(stale)
     )
 

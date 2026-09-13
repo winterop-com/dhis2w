@@ -201,7 +201,8 @@ the file refuses.
 | (top level) | [`profile`](301-identity.md#profile) | unset | which saved DHIS2 connection the guide is read from |
 | `[ig]` | [`canonical`](301-identity.md#canonical) | required | the guide's permanent web address |
 | `[ig]` | [`id`](301-identity.md#id) | required | the guide's package identifier |
-| `[ig]` | [`kind`](301-identity.md#kind) | `"guide"` | a guide of forms, or a registry package guides depend on |
+| `[ig]` | [`kind`](301-identity.md#kind-and-publishes) | `"guide"` | a guide of forms, or a package guides depend on |
+| `[ig]` | [`publishes`](301-identity.md#kind-and-publishes) | absent | what a package holds, on a package alone |
 | `[ig]` | [`name`](301-identity.md#name) | required | the guide's computer-facing name |
 | `[ig]` | [`publisher`](301-identity.md#publisher) | required | the organisation standing behind the guide |
 | `[ig]` | [`status`](301-identity.md#status) | `"draft"` | draft-and-experimental, or official |

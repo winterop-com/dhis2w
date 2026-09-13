@@ -40,6 +40,7 @@ from dhis2w_fhir import (
     load_project,
 )
 from dhis2w_fhir.doctor import DEFAULT_ORACLE_SAMPLES
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -80,11 +81,14 @@ class IgStatusChoice(StrEnum):
     ACTIVE = "active"
 
 
-class ProjectKindChoice(StrEnum):
-    """The project kinds `--kind` accepts, mirroring the `ProjectKind` literal."""
+class PublishesChoice(StrEnum):
+    """What `--publishes` accepts, mirroring the `PackageContent` literal.
 
-    GUIDE = "guide"
-    REGISTRY = "registry"
+    Naming it is what makes the project a package; a project that names nothing is a guide, which
+    is why there is no `--kind` flag beside this one.
+    """
+
+    ORGANISATION_UNITS = "organisation-units"
 
 
 #: The registry package version `d2w fhir init` seeds when the flags name a registry without one.
@@ -393,14 +397,15 @@ def init_command(
             "given, never checked against an instance.",
         ),
     ] = None,
-    kind: Annotated[
-        ProjectKindChoice,
+    publishes: Annotated[
+        PublishesChoice | None,
         typer.Option(
-            "--kind",
-            help="What the project publishes: a guide of forms, or a registry package holding the "
-            "organisation-unit registry alone, for guides to depend on through --registry-id.",
+            "--publishes",
+            help="Scaffold a package rather than a guide, holding what this names and nothing else, "
+            "for guides to depend on through --registry-id. `organisation-units` is the registry "
+            "package. Omit it to scaffold a guide, which is the default.",
         ),
-    ] = ProjectKindChoice.GUIDE,
+    ] = None,
     registry_id: Annotated[
         str | None,
         typer.Option(
@@ -478,7 +483,7 @@ def init_command(
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
             tracker_program_ids=tracker_program_ids,
-            kind=kind,
+            publishes=publishes,
             registry_id=registry_id,
             registry_canonical=registry_canonical,
             registry_version=registry_version,
@@ -489,7 +494,7 @@ def init_command(
     if max_level is not None and max_level < 1:
         raise typer.BadParameter("--max-level must be 1 or greater")
     registry = _registry_dependency(
-        kind=kind,
+        publishes=publishes,
         registry_id=registry_id,
         registry_canonical=registry_canonical,
         registry_version=registry_version,
@@ -500,10 +505,10 @@ def init_command(
     )
     project_template = _resolve_project_template(template) if template is not None else None
     if project_template is not None:
-        if kind is ProjectKindChoice.REGISTRY:
+        if publishes is not None:
             raise typer.BadParameter(
-                f"--template {project_template.name} ships a guide of forms, which a registry package publishes "
-                "none of: drop --kind registry, or scaffold the registry package without a template"
+                f"--template {project_template.name} ships a guide of forms, which a package publishes "
+                f"none of: drop --publishes {publishes.value}, or scaffold the package without a template"
             )
         _reject_selection_flags(
             template=project_template.name,
@@ -533,7 +538,8 @@ def init_command(
         data_set_ids=data_set_ids or [],
         event_program_ids=event_program_ids or [],
         tracker_program_ids=tracker_program_ids or [],
-        kind="registry" if kind is ProjectKindChoice.REGISTRY else "guide",
+        kind="package" if publishes is not None else "guide",
+        publishes=ORGANISATION_UNIT_PACKAGE if publishes is PublishesChoice.ORGANISATION_UNITS else None,
         registry=registry,
     )
     report = asyncio.run(service.init_project(directory, options, force=force, template=project_template))
@@ -652,7 +658,7 @@ def _reject_selection_flags(
 
 def _registry_dependency(
     *,
-    kind: ProjectKindChoice,
+    publishes: PublishesChoice | None,
     registry_id: str | None,
     registry_canonical: str | None,
     registry_version: str | None,
@@ -676,10 +682,10 @@ def _registry_dependency(
         "--registry-path": registry_path is not None,
     }
     named = [flag for flag, was_given in given.items() if was_given]
-    if kind is ProjectKindChoice.REGISTRY:
+    if publishes is not None:
         if named:
             raise typer.BadParameter(
-                f"--kind registry scaffolds the registry package itself, which depends on no registry: "
+                f"--publishes {publishes.value} scaffolds the package itself, which depends on no package: "
                 f"drop {', '.join(named)}"
             )
         selection = {
@@ -690,7 +696,7 @@ def _registry_dependency(
         selected = [flag for flag, was_given in selection.items() if was_given]
         if selected:
             raise typer.BadParameter(
-                "--kind registry publishes the organisation-unit registry alone and no form: "
+                f"--publishes {publishes.value} publishes the organisation-unit registry alone and no form: "
                 f"drop {', '.join(selected)}"
             )
         return None
@@ -725,7 +731,7 @@ def _reject_scaffold_flags(
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
     tracker_program_ids: list[str] | None,
-    kind: ProjectKindChoice,
+    publishes: PublishesChoice | None,
     registry_id: str | None,
     registry_canonical: str | None,
     registry_version: str | None,
@@ -751,7 +757,7 @@ def _reject_scaffold_flags(
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
         "--tracker-program": bool(tracker_program_ids),
-        "--kind": kind is not ProjectKindChoice.GUIDE,
+        "--publishes": publishes is not None,
         "--registry-id": registry_id is not None,
         "--registry-canonical": registry_canonical is not None,
         "--registry-version": registry_version is not None,

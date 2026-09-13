@@ -1,6 +1,6 @@
 # {{ title }}
 
-{% if kind == "registry" %}
+{% if publishes %}
 This registry package is generated from DHIS2 metadata with `d2w fhir`. It publishes
 the DHIS2 organisation unit hierarchy and nothing else, so that guides built from the
 same instance can depend on it instead of carrying the hierarchy themselves.
