@@ -141,13 +141,47 @@ def test_the_preflight_passes_once_the_registry_is_reachable(tmp_path: Path) -> 
     assert invocation.settings.registry_package is None
 
 
-def test_a_live_run_needs_no_registry_package(tmp_path: Path) -> None:
-    """`--live` builds its units off the instance, so the package is nothing to it."""
+_PROFILES_TOML = """
+default = "probe"
+
+[profiles.probe]
+base_url = "https://dhis2.example"
+auth = "basic"
+username = "admin"
+password = "district"
+"""
+
+
+@pytest.fixture
+def resolvable_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A profile this test can resolve, from a config home of its own.
+
+    A live run requires one, and the machine running the suite must not be what supplies it: a
+    developer with a profile configured would pass while CI, which has none, would not.
+    """
+    config_directory = tmp_path / ".config" / "dhis2"
+    config_directory.mkdir(parents=True, exist_ok=True)
+    (config_directory / "profiles.toml").write_text(_PROFILES_TOML, encoding="utf-8")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config_directory.parent))
+    monkeypatch.delenv("DHIS2_PROFILE", raising=False)
+
+
+def test_a_live_run_needs_no_registry_package(
+    tmp_path: Path,
+    resolvable_profile: None,  # noqa: ARG001 - the fixture is the environment this test needs
+) -> None:
+    """`--live` builds its units off the instance, so the registry package is nothing to it.
+
+    The guide here declares a registry and can reach neither source, which a compiled run refuses
+    on; a live run resolves anyway, which is what says the preflight is skipped rather than passed.
+    """
     project = _depending_project(tmp_path / "guide")
 
-    invocation = ServeSettings.resolve(project, live=True, profile=None)
+    invocation = ServeSettings.resolve(project, live=True)
 
     assert invocation.settings.live is True
+    assert invocation.settings.registry_package is None
 
 
 def test_the_package_reaches_the_settings_for_the_runtime_to_load_from(tmp_path: Path) -> None:
