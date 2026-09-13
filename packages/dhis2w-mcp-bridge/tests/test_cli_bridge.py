@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import stat
@@ -62,6 +63,11 @@ READ_ONLY_LEAVES = frozenset(
 #: read-only mode wherever the pack is installed, and they are absent from the host's own command
 #: tree, so the drift assertions below hold them aside.
 PACK_READ_ONLY_COMMANDS = frozenset({("security", "settings")})
+#: With the pack installed (the CLI's `[security]` extra, present in the workspace venv) its leaves are
+#: part of the live tree and nothing is held aside.
+_HELD_ASIDE: frozenset[tuple[str, ...]] = (
+    frozenset() if importlib.util.find_spec("dhis2w_security") is not None else PACK_READ_ONLY_COMMANDS
+)
 
 
 @pytest.fixture(autouse=True)
@@ -368,11 +374,11 @@ def test_readonly_set_matches_live_tree(monkeypatch: pytest.MonkeyPatch) -> None
     """READ_ONLY_COMMANDS must equal what the live command tree yields, pack paths aside (no drift)."""
     monkeypatch.setenv("DHIS2_VERSION", "v42")
     leaves = _live_leaf_paths()
-    host_read_only = set(READ_ONLY_COMMANDS) - PACK_READ_ONLY_COMMANDS
+    host_read_only = set(READ_ONLY_COMMANDS) - _HELD_ASIDE
     derived = {path for path in leaves if path[-1] in READ_ONLY_VERBS or path in READ_ONLY_LEAVES}
     assert derived == host_read_only, "regenerate READ_ONLY_COMMANDS — CLI tree changed"
     assert host_read_only <= leaves, "stale read-only paths no longer in the CLI"
-    assert leaves >= READ_ONLY_LEAVES - PACK_READ_ONLY_COMMANDS, "stale READ_ONLY_LEAVES path no longer in the CLI"
+    assert leaves >= READ_ONLY_LEAVES - _HELD_ASIDE, "stale READ_ONLY_LEAVES path no longer in the CLI"
     assert not any("cleanup" in path for path in READ_ONLY_COMMANDS), "read-only path crosses a destructive container"
 
 
@@ -391,7 +397,7 @@ def test_guard_allows_exactly_read_only_leaves(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("DHIS2_VERSION", "v42")
     leaves = _live_leaf_paths()
     allowed = {path for path in leaves if is_read_only(list(path))}
-    assert allowed == set(READ_ONLY_COMMANDS) - PACK_READ_ONLY_COMMANDS
+    assert allowed == set(READ_ONLY_COMMANDS) - _HELD_ASIDE
     # Sanity: the tree really does contain mutating commands that the guard denies.
     assert leaves - allowed, "expected mutating commands to exist and be denied"
 

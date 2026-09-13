@@ -152,5 +152,6 @@ which registers the object under the given name without an entry point.
 Actions workflow). Users install your plugin alongside their `dhis2w-cli`
 install — `uv tool install --with your-plugin-name dhis2w-cli` for a
 global tool, or `uv add your-plugin-name` inside a project that already
-has `dhis2w-cli`. Version-pin `dhis2w-client` / `dhis2w-core` in your
+has `dhis2w-cli`. A pack the host knows gets an extra on `dhis2w-cli`
+instead, the way `dhis2w-security` is `'dhis2w-cli[security]'`. Version-pin `dhis2w-client` / `dhis2w-core` in your
 `dependencies` if your plugin uses generated models that might move.

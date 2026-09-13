@@ -34,6 +34,7 @@ $ d2w [OPTIONS] COMMAND [ARGS]...
 * `metadata`: DHIS2 metadata inspection.
 * `profile`: Manage DHIS2 profiles.
 * `route`: DHIS2 integration routes.
+* `security`: DHIS2 security posture (read-only).
 * `system`: DHIS2 system info.
 * `user`: DHIS2 user administration.
 
@@ -9692,6 +9693,102 @@ $ d2w route run [OPTIONS] {route}
 * `-X, --method <str>`: [default: GET]
 * `--body <path>`: JSON body file for POST/PUT.
 * `--path <str>`: Additional path segment appended to the route&#x27;s target URL.
+* `--help`: Show this message and exit.
+
+## `d2w security`
+
+DHIS2 security posture (read-only).
+
+**Usage**:
+
+```console
+$ d2w security [OPTIONS] COMMAND [ARGS]...
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+**Commands**:
+
+* `settings`: Show the server&#x27;s security-relevant system...
+* `authorities`: Show my effective authorities, categorised...
+* `audit`: Run the security checks step by step and...
+* `report`: Re-render an existing run&#x27;s report files...
+
+### `d2w security settings`
+
+Show the server&#x27;s security-relevant system settings. `--json` for the full payload.
+
+**Usage**:
+
+```console
+$ d2w security settings [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `d2w security authorities`
+
+Show my effective authorities, categorised by security risk. `--json` for the full payload.
+
+**Usage**:
+
+```console
+$ d2w security authorities [OPTIONS]
+```
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+### `d2w security audit`
+
+Run the security checks step by step and stream a report to a folder. `--json` prints the report.
+
+**Usage**:
+
+```console
+$ d2w security audit [OPTIONS]
+```
+
+**Options**:
+
+* `--output-dir <directory>`: Parent directory for the run folder (default: current dir).
+* `--format <str>`: Comma-separated formats: md,txt,csv,html (default: all).
+* `--checks <str>`: Comma-separated check keys to run (default: all). Valid keys: version, transport, settings, authorities, roles, hygiene, credential-probe, guest, apps, sharing, auth-methods, tokens, routes, audit-config.
+* `--skip <str>`: Comma-separated check keys to skip.
+* `--progress / --no-progress`: Animate step-by-step progress on a TTY.  [default: progress]
+* `--credential-probe / --no-credential-probe`: Actively test the default admin/district login against /api/me (on by default).  [default: credential-probe]
+* `--stale-days <int range>`: Days without login before a privileged account is stale.  [default: 90; x&gt;=1]
+* `--max-password-age <int range>`: Days before an unchanged password is treated as stale.  [default: 365; x&gt;=1]
+* `--two-factor-detail / --no-two-factor-detail`: On v42+, also list each superuser lacking 2FA (per-user /api/users/twoFactor read).  [default: no-two-factor-detail]
+* `--max-objects <int range>`: Max objects the sharing scan inspects across all types before stopping (default 5000; truncation is loud).  [x&gt;=1]
+* `--sharing-graph, --visualize`: Also write the interactive d3 sharing explorer (sharing-explorer.html) into the run folder.
+* `--resume <directory>`: Resume an interrupted run folder.
+* `--dhis-conf <file>`: Path to a local COPY of the server&#x27;s dhis.conf for the audit-config check. The audit posture is not API-readable; secrets are reported set/not-set only and never echoed.  [env var: DHIS2_CONF_LOCATION]
+* `--version-fallback / --no-version-fallback`: When the server&#x27;s exact generated tree is not shipped (e.g. a dev/master build), bind the nearest lower generated tree instead of failing.  [default: no-version-fallback]
+* `--help`: Show this message and exit.
+
+### `d2w security report`
+
+Re-render an existing run&#x27;s report files from its JSONL spine, without re-scanning.
+
+**Usage**:
+
+```console
+$ d2w security report [OPTIONS] {folder}
+```
+
+**Arguments**:
+
+* `folder`: An existing run folder to re-render.  [required]
+
+**Options**:
+
+* `--format <str>`: Comma-separated formats (default: all).
 * `--help`: Show this message and exit.
 
 ## `d2w system`

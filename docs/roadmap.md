@@ -130,7 +130,7 @@ Optional `ProgramStageSection` grouping (rarely used in practice) is still unaut
 
 ### Security plugin: read-only posture scanner
 
-The scanner is the [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) pack today — install it beside the CLI with `uv tool install dhis2w-cli --with dhis2w-security`. This section is the record of what it does and what is still open on it.
+The scanner is the [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) pack today — install it beside the CLI with `uv tool install 'dhis2w-cli[security]'`. This section is the record of what it does and what is still open on it.
 
 `d2w security` ships a read-only DHIS2 security scanner. Alongside `settings` (the
 security slice of `/api/systemSettings`) and `authorities` (the caller's effective
