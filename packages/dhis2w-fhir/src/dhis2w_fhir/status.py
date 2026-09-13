@@ -13,6 +13,10 @@ from typing import Literal
 #: Where the IG is in its life cycle: `draft` while it is being built, `active` in production.
 IgStatus = Literal["draft", "active"]
 
+#: What the project publishes: a `guide` of forms with its registry inline or depended on, or a
+#: `registry` package publishing the organisation-unit registry alone for guides to depend on.
+ProjectKind = Literal["guide", "registry"]
+
 
 def experimental_for_status(status: IgStatus) -> bool:
     """Whether artifacts generated under `status` are experimental - a draft IG's are, an active IG's are not."""

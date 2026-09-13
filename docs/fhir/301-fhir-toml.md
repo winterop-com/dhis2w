@@ -201,6 +201,7 @@ the file refuses.
 | (top level) | [`profile`](301-identity.md#profile) | unset | which saved DHIS2 connection the guide is read from |
 | `[ig]` | [`canonical`](301-identity.md#canonical) | required | the guide's permanent web address |
 | `[ig]` | [`id`](301-identity.md#id) | required | the guide's package identifier |
+| `[ig]` | [`kind`](301-identity.md#kind) | `"guide"` | a guide of forms, or a registry package guides depend on |
 | `[ig]` | [`name`](301-identity.md#name) | required | the guide's computer-facing name |
 | `[ig]` | [`publisher`](301-identity.md#publisher) | required | the organisation standing behind the guide |
 | `[ig]` | [`status`](301-identity.md#status) | `"draft"` | draft-and-experimental, or official |
@@ -235,6 +236,7 @@ the file refuses.
 | `[generate.organisation_units]` | [`max_level`](301-what-goes-in.md#max_level) | every level | the deepest hierarchy level published - the size lever |
 | `[generate.organisation_units]` | [`root`](301-what-goes-in.md#root) | the whole tree | which branch of the hierarchy is published |
 | `[generate.organisation_units]` | [`terminology`](301-what-goes-in.md#terminology) | `false` | whether the organisation units are also published as a code list |
+| `[generate.organisation_units.registry]` | [`id`, `canonical`, `version`, `path`](301-what-goes-in.md#registry) | absent | the registry package publishing the units instead of this guide |
 | `[generate.examples]` | [`per_target`](301-what-goes-in.md#per_target) | `1` | how many example responses each form ships with |
 | `[generate.examples]` | [`source`](301-what-goes-in.md#examples-source) | `"synthetic"` | whether example values are invented or copied off the server |
 | `[serve]` | [`capture`](301-serving.md#capture) | `true` | whether the server accepts filled-in forms at all |

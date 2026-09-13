@@ -106,11 +106,11 @@ def test_the_artifact_lands_in_the_concept_map_directory_under_its_own_prefix() 
 
 def test_the_naming_tokens_rename_the_map_the_way_they_rename_every_other_artifact() -> None:
     """A project that renames its prefix renames this map with the rest of the guide."""
-    config = GenerateConfig(naming=NamingConfig(prefix="Lao"))
+    config = GenerateConfig(naming=NamingConfig(prefix="Moh"))
 
-    assert administrative_gender_map_name(config) == "LaoSex_CM"
-    assert administrative_gender_map_id(config) == "lao-sex-cm"
-    assert _document(_NOMINATIONS, config)["id"] == "lao-sex-cm"
+    assert administrative_gender_map_name(config) == "MohSex_CM"
+    assert administrative_gender_map_id(config) == "moh-sex-cm"
+    assert _document(_NOMINATIONS, config)["id"] == "moh-sex-cm"
 
 
 def test_an_active_guide_publishes_the_map_as_it_publishes_the_rest() -> None:

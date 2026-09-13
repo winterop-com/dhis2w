@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from dhis2w_fhir.doctor import DoctorReport
     from dhis2w_fhir.hostile_names import HostileNameGate, HostileRewrite
     from dhis2w_fhir.notes import GenerateNote
+    from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
     from dhis2w_fhir.scaffold.project_templates import ProjectTemplate
     from dhis2w_fhir.scaffold.schemas import ScaffoldReport
     from dhis2w_fhir.service import (
@@ -77,6 +78,17 @@ class IgStatusChoice(StrEnum):
 
     DRAFT = "draft"
     ACTIVE = "active"
+
+
+class ProjectKindChoice(StrEnum):
+    """The project kinds `--kind` accepts, mirroring the `ProjectKind` literal."""
+
+    GUIDE = "guide"
+    REGISTRY = "registry"
+
+
+#: The registry package version `d2w fhir init` seeds when the flags name a registry without one.
+_DEFAULT_REGISTRY_VERSION = "0.1.0"
 
 
 class CodeSourceChoice(StrEnum):
@@ -381,6 +393,48 @@ def init_command(
             "given, never checked against an instance.",
         ),
     ] = None,
+    kind: Annotated[
+        ProjectKindChoice,
+        typer.Option(
+            "--kind",
+            help="What the project publishes: a guide of forms, or a registry package holding the "
+            "organisation-unit registry alone, for guides to depend on through --registry-id.",
+        ),
+    ] = ProjectKindChoice.GUIDE,
+    registry_id: Annotated[
+        str | None,
+        typer.Option(
+            "--registry-id",
+            help="Package id of the registry package this guide's organisation units are published by, "
+            "seeding `\\[generate.organisation_units.registry]`; the guide then writes no Organization or "
+            "Location of its own. Needs --registry-canonical.",
+        ),
+    ] = None,
+    registry_canonical: Annotated[
+        str | None,
+        typer.Option(
+            "--registry-canonical",
+            help="Canonical base URL of the registry package (no trailing slash); every reference to a unit is "
+            "a URL under it. Needs --registry-id.",
+        ),
+    ] = None,
+    registry_version: Annotated[
+        str | None,
+        typer.Option(
+            "--registry-version",
+            help=f"Version of the registry package `make build` installs and depends on (default: "
+            f"{_DEFAULT_REGISTRY_VERSION}).",
+        ),
+    ] = None,
+    registry_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--registry-path",
+            file_okay=False,
+            help="Local checkout of the registry project, whose build wrote the package `make build` "
+            "installs. Written as given, relative to the new project's directory.",
+        ),
+    ] = None,
     force: Annotated[bool, typer.Option("--force", help="Overwrite scaffold files that already exist.")] = False,
     refresh: Annotated[
         bool,
@@ -424,13 +478,33 @@ def init_command(
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
             tracker_program_ids=tracker_program_ids,
+            kind=kind,
+            registry_id=registry_id,
+            registry_canonical=registry_canonical,
+            registry_version=registry_version,
+            registry_path=registry_path,
         )
         _refresh_project(directory)
         return
     if max_level is not None and max_level < 1:
         raise typer.BadParameter("--max-level must be 1 or greater")
+    registry = _registry_dependency(
+        kind=kind,
+        registry_id=registry_id,
+        registry_canonical=registry_canonical,
+        registry_version=registry_version,
+        registry_path=registry_path,
+        data_set_ids=data_set_ids,
+        event_program_ids=event_program_ids,
+        tracker_program_ids=tracker_program_ids,
+    )
     project_template = _resolve_project_template(template) if template is not None else None
     if project_template is not None:
+        if kind is ProjectKindChoice.REGISTRY:
+            raise typer.BadParameter(
+                f"--template {project_template.name} ships a guide of forms, which a registry package publishes "
+                "none of: drop --kind registry, or scaffold the registry package without a template"
+            )
         _reject_selection_flags(
             template=project_template.name,
             max_level=max_level,
@@ -459,6 +533,8 @@ def init_command(
         data_set_ids=data_set_ids or [],
         event_program_ids=event_program_ids or [],
         tracker_program_ids=tracker_program_ids or [],
+        kind="registry" if kind is ProjectKindChoice.REGISTRY else "guide",
+        registry=registry,
     )
     report = asyncio.run(service.init_project(directory, options, force=force, template=project_template))
     if is_json_output():
@@ -574,6 +650,66 @@ def _reject_selection_flags(
     )
 
 
+def _registry_dependency(
+    *,
+    kind: ProjectKindChoice,
+    registry_id: str | None,
+    registry_canonical: str | None,
+    registry_version: str | None,
+    registry_path: Path | None,
+    data_set_ids: list[str] | None,
+    event_program_ids: list[str] | None,
+    tracker_program_ids: list[str] | None,
+) -> RegistryDependency | None:
+    """The registry package the `--registry-*` flags name, or None - refusing a half-named one.
+
+    A registry package publishes the registry itself and no form, so it takes neither the
+    `--registry-*` flags nor a data set or program; a guide naming a registry needs at least the
+    package id and its canonical, since both go into `sushi-config.yaml` and every reference.
+    """
+    from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
+
+    given = {
+        "--registry-id": registry_id is not None,
+        "--registry-canonical": registry_canonical is not None,
+        "--registry-version": registry_version is not None,
+        "--registry-path": registry_path is not None,
+    }
+    named = [flag for flag, was_given in given.items() if was_given]
+    if kind is ProjectKindChoice.REGISTRY:
+        if named:
+            raise typer.BadParameter(
+                f"--kind registry scaffolds the registry package itself, which depends on no registry: "
+                f"drop {', '.join(named)}"
+            )
+        selection = {
+            "--data-set": bool(data_set_ids),
+            "--event-program": bool(event_program_ids),
+            "--tracker-program": bool(tracker_program_ids),
+        }
+        selected = [flag for flag, was_given in selection.items() if was_given]
+        if selected:
+            raise typer.BadParameter(
+                "--kind registry publishes the organisation-unit registry alone and no form: "
+                f"drop {', '.join(selected)}"
+            )
+        return None
+    if not named:
+        return None
+    if registry_id is None or registry_canonical is None:
+        raise typer.BadParameter(
+            f"{', '.join(named)} names a registry package, which takes both --registry-id and "
+            "--registry-canonical: the id is what the publisher installs, the canonical is what every reference "
+            "to a unit is a URL under"
+        )
+    return RegistryDependency(
+        id=registry_id,
+        canonical=registry_canonical,
+        version=registry_version if registry_version is not None else _DEFAULT_REGISTRY_VERSION,
+        path=registry_path,
+    )
+
+
 def _reject_scaffold_flags(
     *,
     ig_id: str,
@@ -589,6 +725,11 @@ def _reject_scaffold_flags(
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
     tracker_program_ids: list[str] | None,
+    kind: ProjectKindChoice,
+    registry_id: str | None,
+    registry_canonical: str | None,
+    registry_version: str | None,
+    registry_path: Path | None,
 ) -> None:
     """Refuse a refresh that carries scaffold content, naming the flags a refresh would ignore.
 
@@ -610,6 +751,11 @@ def _reject_scaffold_flags(
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
         "--tracker-program": bool(tracker_program_ids),
+        "--kind": kind is not ProjectKindChoice.GUIDE,
+        "--registry-id": registry_id is not None,
+        "--registry-canonical": registry_canonical is not None,
+        "--registry-version": registry_version is not None,
+        "--registry-path": registry_path is not None,
     }
     named = [flag for flag, was_given in given.items() if was_given]
     if not named:
@@ -708,15 +854,18 @@ def _render_generate_report(
 
 
 def _full_outcomes(report: GenerateFullReport) -> list[_TargetOutcome]:
-    """Every target of a full run, in the order the run wrote them."""
+    """Every target the full run wrote, in the order it wrote them - three for a registry package, seven for a guide."""
+    targets = (
+        ("foundation", report.foundation),
+        ("option-sets", report.option_sets),
+        ("categories", report.categories),
+        ("questionnaires", report.questionnaires),
+        ("examples", report.examples),
+        ("org-units", report.organisation_units),
+        ("pages", report.pages),
+    )
     return [
-        _TargetOutcome(target="foundation", report=report.foundation),
-        _TargetOutcome(target="option-sets", report=report.option_sets),
-        _TargetOutcome(target="categories", report=report.categories),
-        _TargetOutcome(target="questionnaires", report=report.questionnaires),
-        _TargetOutcome(target="examples", report=report.examples),
-        _TargetOutcome(target="org-units", report=report.organisation_units),
-        _TargetOutcome(target="pages", report=report.pages),
+        _TargetOutcome(target=name, report=target_report) for name, target_report in targets if target_report.applies
     ]
 
 

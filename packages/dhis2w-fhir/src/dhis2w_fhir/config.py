@@ -17,7 +17,8 @@ import tomllib
 import zoneinfo
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from types import UnionType
+from typing import Literal, Union, get_args, get_origin
 from urllib.parse import urlsplit
 
 import tomli_w
@@ -31,10 +32,10 @@ from dhis2w_fhir.r4 import SUBJECT_RESOURCE_TYPES
 from dhis2w_fhir.resources.categories.schemas import CategorySelection
 from dhis2w_fhir.resources.examples.schemas import ExampleSelection
 from dhis2w_fhir.resources.option_sets.schemas import OptionSetSelection
-from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitSelection
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitSelection, RegistryDependency
 from dhis2w_fhir.resources.questionnaires.schemas import TargetSelection
 from dhis2w_fhir.spool import SPOOL_RELATIVE_PATH
-from dhis2w_fhir.status import IgStatus
+from dhis2w_fhir.status import IgStatus, ProjectKind
 
 FHIR_CONFIG_FILENAME = "fhir.toml"
 
@@ -65,6 +66,7 @@ class IgConfig(BaseModel):
     title: str
     publisher: str
     status: IgStatus = "draft"
+    kind: ProjectKind = "guide"
 
     _normalize_canonical = field_validator("canonical")(strip_trailing_slash)
 
@@ -966,6 +968,48 @@ class FhirProjectConfig(BaseModel):
     forward: ForwardConfig = Field(default_factory=ForwardConfig)
     ips: IpsConfig = Field(default_factory=IpsConfig)
 
+    @property
+    def is_registry_project(self) -> bool:
+        """True when this project publishes the organisation-unit registry as its own package."""
+        return self.ig.kind == "registry"
+
+    @property
+    def registry_dependency(self) -> RegistryDependency | None:
+        """The registry package this guide depends on, or None when the registry is published inline."""
+        return self.generate.organisation_units.registry
+
+    @model_validator(mode="after")
+    def _registry_roles_are_consistent(self) -> FhirProjectConfig:
+        """A registry project publishes nothing but the registry, and a guide never depends on itself."""
+        registry = self.generate.organisation_units.registry
+        if self.ig.kind == "registry":
+            selected = [
+                name
+                for name, table in (
+                    ("data_sets", self.generate.data_sets),
+                    ("event_programs", self.generate.event_programs),
+                    ("tracker_programs", self.generate.tracker_programs),
+                    ("tracked_entity_forms", self.generate.tracked_entity_forms),
+                )
+                if table.include_ids
+            ]
+            if selected:
+                raise ValueError(
+                    f'[ig] kind = "registry" publishes the organisation-unit registry alone and runs no form '
+                    f"target; remove the ids under [generate.{selected[0]}] or make this project a guide"
+                )
+            if registry is not None:
+                raise ValueError(
+                    '[ig] kind = "registry" is the registry package itself; '
+                    "[generate.organisation_units.registry] belongs in the guide that depends on it"
+                )
+        elif registry is not None and registry.canonical == self.ig.canonical:
+            raise ValueError(
+                "[generate.organisation_units.registry] canonical equals this guide's own canonical; "
+                "a registry package publishes under its own canonical"
+            )
+        return self
+
 
 class FhirProject(BaseModel):
     """A discovered FHIR IG project: parsed config plus where it lives on disk."""
@@ -1026,11 +1070,22 @@ def _config_table_at(location: tuple[int | str, ...]) -> type[BaseModel] | None:
         field = model.model_fields.get(segment)
         if field is None:
             return None
-        annotation = field.annotation
-        if not (isinstance(annotation, type) and issubclass(annotation, BaseModel)):
+        nested = _table_model(field.annotation)
+        if nested is None:
             return None
-        model = annotation
+        model = nested
     return model
+
+
+def _table_model(annotation: object) -> type[BaseModel] | None:
+    """The config model an annotation names, looking through `Model | None` for an optional table."""
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return annotation
+    if get_origin(annotation) in (Union, UnionType):
+        models = [arg for arg in get_args(annotation) if isinstance(arg, type) and issubclass(arg, BaseModel)]
+        if len(models) == 1:
+            return models[0]
+    return None
 
 
 def _unknown_key_diagnostic(location: tuple[int | str, ...]) -> str:

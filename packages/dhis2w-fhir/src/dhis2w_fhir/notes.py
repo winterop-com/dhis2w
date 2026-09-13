@@ -46,6 +46,9 @@ class GenerateNoteCategory(StrEnum):
     #: The project's own files disagree: fhir.toml states an identity ig/sushi-config.yaml does not carry.
     SCAFFOLD_DRIFT = "scaffold-drift"
 
+    #: The organisation units this guide refers to are published by another package, named here.
+    REGISTRY_DEPENDENCY = "registry-dependency"
+
     #: A DHIS2 name the IG publisher's build cannot survive, published in rewritten wording.
     NAME_SUBSTITUTION = "name-substitution"
 

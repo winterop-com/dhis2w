@@ -67,6 +67,7 @@ from dhis2w_fhir.conversion.schemas import (
 from dhis2w_fhir.conversion.values import (
     LOCATION_REFERENCE_PREFIX,
     answer_wire_value,
+    location_id_of,
     resolve_option,
     resolve_organisation_unit,
     wall_clock_notes,
@@ -851,7 +852,7 @@ def _organisation_unit(
     refusals: list[ConversionRefusal],
 ) -> str | None:
     """Resolve one `Location/<id>` reference to the DHIS2 organisation unit UID it names."""
-    if not reference or not reference.startswith(LOCATION_REFERENCE_PREFIX):
+    if not reference or location_id_of(reference) is None:
         refusals.append(
             ConversionRefusal(
                 category=ConversionRefusalCategory.MISSING_ORGANISATION_UNIT,

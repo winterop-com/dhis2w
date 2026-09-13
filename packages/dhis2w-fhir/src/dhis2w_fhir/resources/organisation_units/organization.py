@@ -60,7 +60,7 @@ from dhis2w_fhir.resources.organisation_units.naming import (
     OrganisationUnitNaming,
     organisation_unit_level_coding,
 )
-from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitLevelNames
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitLevelNames, RegistryDependency
 from dhis2w_fhir.status import IgStatus, experimental_for_status
 from dhis2w_fhir.writer import FshArtifact, JsonArtifact, JsonBuild
 
@@ -84,7 +84,9 @@ def organisation_unit_stem_subjects(organisation_units: list[OrganisationUnitIn]
     ]
 
 
-def plan_organisation_unit_stems(subjects: list[StemSubject], source: NamingSource) -> StemResolution:
+def plan_organisation_unit_stems(
+    subjects: list[StemSubject], source: NamingSource, *, registry: RegistryDependency | None = None
+) -> StemResolution:
     """Resolve the org-unit surface's identity stems once per run - the single source every emitter reads.
 
     A unit's stem is its Organization and Location resource id, both file names, and every
@@ -95,8 +97,18 @@ def plan_organisation_unit_stems(subjects: list[StemSubject], source: NamingSour
     selection resolves in one call, so the collision scan sees every peer. The stem is the whole
     resource id, so the budget is the R4 id limit itself - the same number validate states for
     this surface.
+
+    `registry` is the package publishing the units when it is not this guide - the
+    `[generate.organisation_units.registry]` table - and sets the resolution's reference base
+    so every reference the guide emits is absolute into that package. None keeps every
+    reference relative, which is what a guide publishing its own registry writes.
     """
-    return resolve_identity_stems(subjects, source, ORGANISATION_UNIT_STEM_SURFACE, max_stem_length=FHIR_ID_MAX_LENGTH)
+    resolution = resolve_identity_stems(
+        subjects, source, ORGANISATION_UNIT_STEM_SURFACE, max_stem_length=FHIR_ID_MAX_LENGTH
+    )
+    if registry is None:
+        return resolution
+    return resolution.model_copy(update={"reference_base": registry.reference_base})
 
 
 _ENVIRONMENT = Environment(

@@ -121,6 +121,22 @@ class OrganisationUnitInstanceUrls(BaseModel):
         )
 
 
+def location_profile_reference(config: GenerateConfig) -> str:
+    """What FSH types a reference to a published Location with: the guide's own profile, or the registry's canonical.
+
+    A guide publishing its own registry names its `D2Location` profile by FSH name, which SUSHI
+    resolves within the package. A guide whose units are published by the package named in
+    `[generate.organisation_units.registry]` names that package's profile by its canonical URL -
+    the same URL the registry stamps into every Location's `meta.profile` - which is what SUSHI
+    resolves across a declared dependency.
+    """
+    names = OrganisationUnitNaming.from_naming(config.naming)
+    registry = config.organisation_units.registry
+    if registry is None:
+        return names.location_profile
+    return OrganisationUnitInstanceUrls.from_config(config, registry.canonical).location_profile
+
+
 def organisation_unit_level_coding(
     level: int, urls: OrganisationUnitInstanceUrls, level_names: OrganisationUnitLevelNames
 ) -> Coding:

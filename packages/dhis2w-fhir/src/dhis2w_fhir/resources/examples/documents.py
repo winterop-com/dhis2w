@@ -58,7 +58,7 @@ from dhis2w_fhir.resources.examples import (
     example_items,
     example_period,
     example_tracker_context,
-    location_stem,
+    location_reference,
 )
 from dhis2w_fhir.resources.option_sets import (
     code_system_canonical,
@@ -352,7 +352,7 @@ def _extensions(
             Extension(
                 url=systems.organisation_unit_extension_url,
                 valueReference=Reference(
-                    reference=f"Location/{location_stem(tracker.organisation_unit_uid, organisation_unit_stems)}"
+                    reference=location_reference(tracker.organisation_unit_uid, organisation_unit_stems)
                 ),
             )
         )
@@ -427,7 +427,7 @@ def _subject(
     subject its profile admits is a tracked entity identified by DHIS2 UID.
     """
     if tracker is None:
-        return Reference(reference=f"Location/{location_stem(response.organisation_unit_uid, organisation_unit_stems)}")
+        return Reference(reference=location_reference(response.organisation_unit_uid, organisation_unit_stems))
     if tracker.tracked_entity_uid is None:
         return None
     return Reference(
@@ -483,9 +483,7 @@ def _answer(
         return QuestionnaireResponseAnswer(valueUri=_flat(answer.text_value))
     if answer.element == "valueReference":
         return QuestionnaireResponseAnswer(
-            valueReference=Reference(
-                reference=f"Location/{location_stem(answer.location_uid or '', organisation_unit_stems)}"
-            )
+            valueReference=Reference(reference=location_reference(answer.location_uid or "", organisation_unit_stems))
         )
     if answer.element == "valueCoding" and answer.coding is not None:
         identity = identities[answer.coding.option_set_uid]

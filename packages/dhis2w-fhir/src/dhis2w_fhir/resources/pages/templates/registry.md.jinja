@@ -1,5 +1,18 @@
 # Registry
 
+{% if registry.registry_id %}
+The DHIS2 organisation unit hierarchy this guide's forms refer to is published by the package
+`{{ registry.registry_id }}` (version {{ registry.registry_version }}, canonical
+`{{ registry.registry_canonical }}`), which this guide declares as a dependency. Every unit is
+an `Organization` (the reporting entity) and a `Location` (the physical place) there, both
+carrying the DHIS2 UID and code identifiers, with `partOf` mirroring the DHIS2 hierarchy on
+both sides. This guide resolves {{ registry.unit_count }} published unit(s) and references
+each one by its absolute URL under that canonical.
+
+Both halves of each pair are profiled by the registry package: `{{ registry.organization_profile }}`
+and `{{ registry.location_profile }}`. Open its own Registry page for the hierarchy, its levels
+and the identifiers each unit carries.
+{% else %}
 The DHIS2 organisation unit hierarchy is published as a registry of paired resources: every
 unit is an `Organization` (the reporting entity) and a `Location` (the physical place), both
 carrying the DHIS2 UID and code identifiers, with `partOf` mirroring the DHIS2 hierarchy on
@@ -33,3 +46,4 @@ geometry losslessly through the `location-boundary-geojson` extension. Walk the 
 either direction through `partOf`: it points at the parent unit's `Organization` and
 `Location` respectively, and is absent exactly for the root and for any unit whose parent
 falls outside the published selection.
+{% endif %}

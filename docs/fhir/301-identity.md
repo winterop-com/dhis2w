@@ -262,6 +262,35 @@ building.
 **If you get it wrong:** any other word refuses the run before anything is
 written:
 
+### `kind`
+
+**In plain words.** What the project publishes. `"guide"` - the default, and
+what every project is unless it says otherwise - is a guide of forms with its
+organisation-unit registry inline or depended on. `"registry"` is a registry
+package: the organisation-unit registry alone, published for guides to depend
+on through their `[generate.organisation_units.registry]` table.
+
+**When you would change it.** Only when scaffolding the registry package of a
+split guide; `d2w fhir init --kind registry` writes it. The walk-through is
+[Publish the registry as a package](201-registry-package.md).
+
+**Example.**
+
+```toml
+[ig]
+kind = "registry"
+```
+
+`d2w fhir generate` runs the three targets a registry package has - the
+foundation slice its instances name, the organisation units, and the pages -
+and refuses the form-side ones by name.
+
+**Default:** `"guide"` - **If you leave it out:** the project is a guide.
+
+**If you get it wrong:** a registry package that also selects a data set or a
+program, or that names a registry to depend on, is refused when the file loads,
+naming the table to remove.
+
 ```text
 pydantic_core._pydantic_core.ValidationError: 1 validation error for FhirProjectConfig
 ig.status

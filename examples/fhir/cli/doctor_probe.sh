@@ -19,7 +19,7 @@ set -euo pipefail
 #
 # The instance is named the way `d2w fhir serve` names it: the root flag, or DHIS2_PROFILE.
 # There is no local --profile, so one run is always about one stated instance.
-#   d2w -p laos fhir doctor
+#   d2w -p myserver fhir doctor
 #
 # The run writes reports/fhir-doctor-report.md under the working directory, so this one is made
 # from a scratch directory that goes away with it.

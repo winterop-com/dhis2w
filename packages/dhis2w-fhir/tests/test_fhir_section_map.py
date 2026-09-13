@@ -120,11 +120,11 @@ def test_the_artifact_lands_in_the_concept_map_directory_under_its_own_prefix() 
 
 def test_the_naming_tokens_rename_the_map_the_way_they_rename_every_other_artifact() -> None:
     """A project that renames its prefix renames this map with the rest of the guide."""
-    config = GenerateConfig(naming=NamingConfig(prefix="Lao"))
+    config = GenerateConfig(naming=NamingConfig(prefix="Moh"))
 
-    assert section_map_name(config) == "LaoSection_CM"
-    assert section_map_id(config) == "lao-section-cm"
-    assert _document(_MAPPING, config)["id"] == "lao-section-cm"
+    assert section_map_name(config) == "MohSection_CM"
+    assert section_map_id(config) == "moh-section-cm"
+    assert _document(_MAPPING, config)["id"] == "moh-section-cm"
 
 
 def test_an_active_guide_publishes_the_map_as_it_publishes_the_rest() -> None:

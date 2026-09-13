@@ -484,6 +484,41 @@ the registry entries are unaffected.
 unrecognisable stops the run with a printout naming
 `generate.organisation_units.terminology`.
 
+### `[generate.organisation_units.registry]` { #registry }
+
+**In plain words.** The registry package that publishes the organisation units
+instead of this guide. With this table the guide writes no organisation or
+place of its own, references every unit by its URL under the package's
+canonical, and declares the package as a dependency; the selection above still
+says which units the forms may refer to. Absent, the registry is published
+inline, exactly as the rest of this section describes.
+
+**When you would change it.** When the registry has grown to be most of the
+guide, or when facilities and forms need separate version numbers. The whole
+walk-through is [Publish the registry as a package](201-registry-package.md).
+
+**Example.**
+
+```toml
+[generate.organisation_units.registry]
+id = "dhis2.fhir.example.registry"
+canonical = "http://example.org/fhir/registry"
+version = "0.1.0"
+path = "../example-registry"
+```
+
+`id`, `canonical` and `version` are what `ig/sushi-config.yaml` declares under
+`dependencies:` and what `make build` installs; `path` is optional and names a
+local checkout of the registry project, whose build `make build` installs from.
+
+**Default:** absent - **If you leave it out:** the guide publishes the registry
+itself.
+
+**If you get it wrong:** a missing `id` or `canonical` stops the run naming the
+key; a `canonical` equal to the guide's own is refused, since a guide cannot
+depend on itself; the table inside a registry package (`[ig] kind =
+"registry"`) is refused, since the package is the registry.
+
 ## The `[generate.examples]` table { #examples }
 
 Every form in the guide can ship with example filled-in responses, so a reader

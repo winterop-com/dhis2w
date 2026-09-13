@@ -1,15 +1,31 @@
 # {{ title }}
 
+{% if kind == "registry" %}
+This registry package is generated from DHIS2 metadata with `d2w fhir`. It publishes
+the DHIS2 organisation unit hierarchy and nothing else, so that guides built from the
+same instance can depend on it instead of carrying the hierarchy themselves.
+
+- Every organisation unit is represented as an Organization plus a Location;
+  geometry is embedded losslessly as GeoJSON via the location-boundary-geojson
+  extension.
+- A guide names this package in its `fhir.toml` under
+  `[generate.organisation_units.registry]` and references every unit by its URL
+  under this package's canonical.
+
+See the Registry page for the hierarchy and the Artifacts page for the full list.
+{% else %}
 This Implementation Guide is generated from DHIS2 metadata with `d2w fhir`.
 
 - Option sets are represented as CodeSystem/ValueSet pairs under Terminology.
 - Every organisation unit is represented as an Organization plus a Location;
   geometry is embedded losslessly as GeoJSON via the location-boundary-geojson
-  extension.
+  extension. The Registry page says whether this guide publishes them itself or
+  depends on a registry package that does.
 - Data sets and event programs are represented as Questionnaires, each with
   example QuestionnaireResponses answering it on the same link ids.
 
 See the Artifacts page for the full list.
+{% endif %}
 
 ### Cross-version analysis
 

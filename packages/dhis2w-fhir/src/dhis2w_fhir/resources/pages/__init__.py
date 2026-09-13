@@ -36,7 +36,7 @@ from dhis2w_fhir.r4 import DEFAULT_SUBJECT_RESOURCE_TYPE
 from dhis2w_fhir.resources.examples import MULTI_VALUE_TYPE, STATUS_BY_EVENT_STATUS, answer_element
 from dhis2w_fhir.resources.option_sets import option_set_code_fallback, option_set_identities
 from dhis2w_fhir.resources.organisation_units import organisation_unit_stem_subjects, plan_organisation_unit_stems
-from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming
+from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming, location_profile_reference
 from dhis2w_fhir.resources.pages.schemas import (
     PERIOD_EXAMPLE_REFERENCE_DATE,
     CaptureFormExample,
@@ -85,6 +85,7 @@ __all__ = [
     "PAGES_DIRECTORY",
     "SITE_PAGE_FILENAMES",
     "build_page_artifacts",
+    "build_registry_page_artifacts",
 ]
 
 #: Sync directory holding every generated page, relative to `ig/input/`.
@@ -188,13 +189,15 @@ def build_page_artifacts(
         unit_stems = organisation_unit_stems
     else:
         subjects = organisation_unit_stem_subjects(pages.organisation_units)
-        unit_stems = plan_organisation_unit_stems(subjects, config.naming.source)
+        unit_stems = plan_organisation_unit_stems(
+            subjects, config.naming.source, registry=config.organisation_units.registry
+        )
     forms = [
         _form_row(source, plan.targets.stem_for(source.uid))
         for source in sorted(pages.forms, key=lambda item: (item.name, item.uid))
     ]
     build.artifacts.append(_forms_page(forms))
-    build.artifacts.append(_registry_page(pages.organisation_units, config))
+    build.artifacts.append(_registry_page(pages.organisation_units, config, unit_stems))
     build.artifacts.append(_terminology_page(pages, config))
     build.artifacts.append(_identifiers_page(config))
     build.artifacts.append(_periods_page(config))
@@ -287,9 +290,46 @@ def _tracker_program_groups(forms: list[FormRow]) -> list[TrackerProgramGroup]:
     ]
 
 
-def _registry_page(organisation_units: list[OrganisationUnitIn], config: GenerateConfig) -> FshArtifact:
-    """Build `registry.md`: the organisation-unit totals, the level table, and the profile pointers."""
+def build_registry_page_artifacts(
+    pages: PagesIn, config: GenerateConfig, *, organisation_unit_stems: StemResolution | None = None
+) -> FshBuild:
+    """Build the pages of a registry package: its Registry page plus one intro per published unit.
+
+    A registry package publishes organisation units and nothing else, so its site has no form
+    catalog, terminology, identifier or capture page to narrate.
+    """
+    build = FshBuild()
+    if organisation_unit_stems is not None:
+        unit_stems = organisation_unit_stems
+    else:
+        unit_stems = plan_organisation_unit_stems(
+            organisation_unit_stem_subjects(pages.organisation_units), config.naming.source
+        )
+    build.artifacts.append(_registry_page(pages.organisation_units, config, unit_stems))
+    build.artifacts.extend(_organization_intros(pages.organisation_units, unit_stems))
+    return build
+
+
+def _registry_page(
+    organisation_units: list[OrganisationUnitIn], config: GenerateConfig, organisation_unit_stems: StemResolution
+) -> FshArtifact:
+    """Build `registry.md`: the organisation-unit totals, the level table, and the profile pointers.
+
+    A guide whose units are published by another package states that package instead of the
+    totals - it read the stems of the published selection and nothing else about the units.
+    """
     names = OrganisationUnitNaming.from_naming(config.naming)
+    registry = config.organisation_units.registry
+    if registry is not None:
+        view = RegistryView(
+            unit_count=len(organisation_unit_stems.stems),
+            organization_profile=names.organization_profile,
+            location_profile=names.location_profile,
+            registry_id=registry.id,
+            registry_version=registry.version,
+            registry_canonical=registry.canonical,
+        )
+        return _page("registry.md", "registry.md.jinja", registry=view)
     levels: dict[int, int] = {}
     for organisation_unit in organisation_units:
         levels[organisation_unit.level] = levels.get(organisation_unit.level, 0) + 1
@@ -436,6 +476,11 @@ def _capture_page(
     """Build `capture.md`: what a capture client sends, worked once per form kind, and how answers are typed."""
     foundation = FoundationNaming.from_naming(config.naming)
     organisation_unit = min(pages.organisation_units, key=lambda item: (item.level, item.path, item.uid), default=None)
+    # A guide whose registry is another package read no unit beyond its stem, so the worked
+    # reference is the first published stem and the prose cites the UID alone.
+    worked_uid = (
+        organisation_unit.uid if organisation_unit is not None else min(organisation_unit_stems.stems, default="")
+    )
     tracker_event = _capture_form_example(pages.forms, "tracker-event", canonical, stem_plan, config)
     view = CaptureView(
         canonical=canonical,
@@ -457,11 +502,9 @@ def _capture_page(
         enrollment_system=f"{config.identifier_system_base}/id/tracker-enrollment",
         capture_server=foundation.capture_server,
         capture_server_id=foundation.capture_server_id,
-        location_profile=OrganisationUnitNaming.from_naming(config.naming).location_profile,
-        organisation_unit_uid=organisation_unit.uid if organisation_unit is not None else "",
-        organisation_unit_stem=(
-            organisation_unit_stems.stem_for(organisation_unit.uid) if organisation_unit is not None else ""
-        ),
+        location_profile=location_profile_reference(config),
+        organisation_unit_uid=worked_uid,
+        organisation_unit_reference=organisation_unit_stems.reference_for("Location", worked_uid) if worked_uid else "",
         organisation_unit_name=markdown_text(organisation_unit.name) if organisation_unit is not None else "",
         tracker_subject_type=(
             tracker_event.subject_type if tracker_event is not None else DEFAULT_SUBJECT_RESOURCE_TYPE
@@ -473,7 +516,7 @@ def _capture_page(
             EventStatusRow(event_status=event_status, response_status=STATUS_BY_EVENT_STATUS[event_status])
             for event_status in sorted(STATUS_BY_EVENT_STATUS)
         ],
-        value_literals=[_value_literal_row(value_type) for value_type in sorted(ITEM_TYPES_BY_VALUE_TYPE)],
+        value_literals=[_value_literal_row(value_type, config) for value_type in sorted(ITEM_TYPES_BY_VALUE_TYPE)],
     )
     return _page("capture.md", "capture.md.jinja", capture=view)
 
@@ -550,7 +593,7 @@ def _answer_element_label(item: QuestionnaireItemIn) -> str:
     return "valueCoding" if item.option_set_uid is not None else answer_element(item.value_type)
 
 
-def _value_literal_row(value_type: str) -> ValueLiteralRow:
+def _value_literal_row(value_type: str, config: GenerateConfig) -> ValueLiteralRow:
     """One row of the answer-typing table, read off the very tables the example emitter answers from."""
     element = answer_element(value_type)
     item_type = ITEM_TYPES_BY_VALUE_TYPE[value_type]
@@ -562,8 +605,19 @@ def _value_literal_row(value_type: str) -> ValueLiteralRow:
         value_type=value_type,
         item_type=item_type,
         answer_element=answered_as,
-        literal_rule=_VALUE_TYPE_LITERAL_RULES.get(value_type) or _ELEMENT_LITERAL_RULES[element],
+        literal_rule=_literal_rule(value_type, element, config),
     )
+
+
+def _literal_rule(value_type: str, element: str, config: GenerateConfig) -> str:
+    """The typing rule of one value type; an organisation-unit answer names the form its references take."""
+    registry = config.organisation_units.registry
+    if value_type == "ORGANISATION_UNIT" and registry is not None:
+        return (
+            f"`{registry.canonical}/Location/<organisationUnitId>` - the Location the registry package "
+            f"`{registry.id}` publishes for that unit."
+        )
+    return _VALUE_TYPE_LITERAL_RULES.get(value_type) or _ELEMENT_LITERAL_RULES[element]
 
 
 def _questionnaire_intros(forms: list[FormRow]) -> list[FshArtifact]:

@@ -64,6 +64,7 @@ __all__ = [
     "WireValue",
     "answer_wire_value",
     "decimal_wire_value",
+    "location_id_of",
     "resolve_option",
     "resolve_organisation_unit",
     "wall_clock_reading",
@@ -72,6 +73,25 @@ __all__ = [
 
 #: The prefix an organisation-unit answer references its published Location under.
 LOCATION_REFERENCE_PREFIX = "Location/"
+
+
+def location_id_of(reference: str | None) -> str | None:
+    """The Location id a reference names, or None when the reference is not a Location reference at all.
+
+    A guide publishing its own registry references a unit as the relative `Location/<id>`; a guide
+    whose registry another package publishes references it as the absolute
+    `<registry canonical>/Location/<id>`. Both name one Location by id, and a response written
+    against either guide is read the same way: the id is what follows the last `Location/`.
+    """
+    if not reference:
+        return None
+    if reference.startswith(LOCATION_REFERENCE_PREFIX):
+        return reference.removeprefix(LOCATION_REFERENCE_PREFIX) or None
+    head, separator, location_id = reference.rpartition(f"/{LOCATION_REFERENCE_PREFIX}")
+    if not separator or not head or not location_id or "/" in location_id:
+        return None
+    return location_id
+
 
 #: Every `value[x]` element an answer may carry, in the order R4 declares them.
 ANSWER_VALUE_ELEMENTS = (
@@ -296,7 +316,7 @@ def _organisation_unit_value(
 ) -> WireValue:
     """Serialise an `ORGANISATION_UNIT` answer as the DHIS2 UID behind the Location it references."""
     reference = answer.valueReference.reference if answer.valueReference is not None else None
-    if not reference or not reference.startswith(LOCATION_REFERENCE_PREFIX):
+    if not reference or location_id_of(reference) is None:
         return _refuse(
             question,
             ConversionRefusalCategory.MISSING_ORGANISATION_UNIT,
@@ -409,8 +429,8 @@ def resolve_organisation_unit(reference: str, context: ConversionContext) -> Org
     registry wrote and never assumes the id is the UID. A context given no Location table has
     nothing to go through and falls back to reading the id as a UID, which it says out loud.
     """
-    location_id = reference.removeprefix(LOCATION_REFERENCE_PREFIX)
-    if not location_id:
+    location_id = location_id_of(reference)
+    if location_id is None:
         return OrganisationUnitResolution()
     if not context.resolves_organisation_units:
         return OrganisationUnitResolution(

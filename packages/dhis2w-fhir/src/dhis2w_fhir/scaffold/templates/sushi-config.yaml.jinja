@@ -14,6 +14,16 @@ publisher:
 {% if publisher_url %}
   url: {{ publisher_url }}
 {% endif %}
+{% if registry %}
+
+# The package publishing the organisation units this guide's forms refer to - the
+# [generate.organisation_units.registry] table of fhir.toml. SUSHI and the publisher resolve it
+# from the package cache, which `make registry-install` fills from that project's own build.
+dependencies:
+  {{ registry.id }}:
+    uri: {{ registry.implementation_guide_url }}
+    version: {{ registry.version }}
+{% endif %}
 
 # The publisher writes every resource as JSON, XML and Turtle, plus a rendered page per
 # format. A DHIS2-derived IG publishes thousands of instances, so the two extra formats
@@ -44,18 +54,24 @@ parameters:
     - {{ identifier_system_base }}/id/category-option-combo-code
   path-resource:
     - input/resources/registry/*
+{% if kind != "registry" %}
     - input/resources/terminology/*
     - input/resources/concept-maps/*
     - input/resources/categories/*
     - input/resources/attribute-option-combos/*
     - input/resources/assignments/*
+{% endif %}
 
 menu:
   Home: index.html
+{% if kind == "registry" %}
+  Registry: registry.html
+{% else %}
   Forms: forms.html
   Registry: registry.html
   Terminology: terminology.html
   Identifiers: identifiers.html
   Periods: periods.html
   Capture: capture.html
+{% endif %}
   Artifacts: artifacts.html

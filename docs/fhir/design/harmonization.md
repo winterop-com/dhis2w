@@ -80,7 +80,7 @@ URI - the mechanism the category axes on a category-option-combo concept already
 **The gap in that path is specific and already recorded.** Attribute values on
 *individual options* are not emitted, because `CodeSystem.concept` has no carrier chosen
 for them - property or extension - and the choice has a volume cost worth measuring
-before it is made: the Lao data-element CodeSystem carries 45,880 concepts. That is
+before it is made: a national data-element CodeSystem carries 45,880 concepts. That is
 roadmap entry
 [9.2 "Attribute values on CodeSystem concepts"](roadmap.md#92-mid-term), and it is
 the one repository-side prerequisite that tier 1's seeded route genuinely blocks on. A
@@ -158,7 +158,7 @@ This is [decision H4](#7-decisions-reserved-for-the-owner).
 | Two real country guides, published, that a shared layer can be extracted *from* | One real national instance in play; zero published country guides |
 | The identifier-namespace question answered | Open - decision H4 |
 | A place for a master package to be published and versioned | Does not exist |
-| Country projects able to declare a dependency | Not expressed - the scaffolded `sushi-config.yaml` writes no `dependencies:` block |
+| Country projects able to declare a dependency | Expressed - the scaffold writes a `dependencies:` block for the one dependency it knows, a registry package named under `[generate.organisation_units.registry]`; a master package would be a second entry in the same block |
 
 The first row is the one that matters. A shared layer extracted from one guide is that
 guide with a second name on it, and every place it guessed wrong about the second
@@ -244,7 +244,7 @@ agree about its contents. It writes nothing to any instance, emits no ConceptMap
 picks no winner. It is a fact sheet.
 
 ```
-d2w fhir compare terminology -p lao -p tanzania -p play-2-42
+d2w fhir compare terminology -p country-a -p country-b -p play-2-42
 ```
 
 The verb is provisional; the noun is [decision H8](#7-decisions-reserved-for-the-owner).
