@@ -52,6 +52,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
+from dhis2w_fhir.registry_package import RegistryMissingError, load_registry_documents
 from dhis2w_fhir.validation import build_aborting_code, build_aborting_name
 from dhis2w_fhir.writer import is_generated_file
 
@@ -156,8 +158,8 @@ class ArtifactFinding(BaseModel):
     value: str
     """The offending string, byte-true, so a reader can search the instance for it."""
 
-    kind: Literal["name", "code"]
-    """Which emit-site predicate refused it: a DHIS2 name, or a DHIS2 code emitted as an identifier."""
+    kind: Literal["name", "code", "registry"]
+    """What refused it: a DHIS2 name, a DHIS2 code emitted as an identifier, or a dangling registry reference."""
 
     message: str
     """Why the IG publisher aborts on this string, in the words the generate-time refusal uses."""
@@ -209,11 +211,16 @@ class _HostileString(BaseModel):
     kind: Literal["name", "code"]
 
 
-def check_publishable_artifacts(project: FhirProject) -> ArtifactCheckReport:
+def check_publishable_artifacts(project: FhirProject, *, registry_package: Path | None = None) -> ArtifactCheckReport:
     """Scan one project's on-disk publishable inputs for every string the IG publisher would abort on.
 
     Offline and connectionless: the artifacts are the whole input. Findings sort by file, then by
     resource, then by element, so two runs over one unchanged tree read identically.
+
+    A guide depending on an organisation-unit registry package is additionally checked against what
+    that package publishes, so a reference to a unit it does not carry is caught here rather than by
+    the publisher after it has rendered everything else. `registry_package` names the archive when
+    no checkout answers, exactly as it does for the facade.
     """
     root = project.project_root
     json_paths = _json_paths(project)
@@ -228,6 +235,7 @@ def check_publishable_artifacts(project: FhirProject) -> ArtifactCheckReport:
         findings.extend(_findings_in_document(document, path, root))
     for path in fsh_paths:
         findings.extend(_findings_in_fsh(path, root))
+    findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
     return ArtifactCheckReport(
         project_root=str(root),
@@ -376,6 +384,130 @@ def _fsh_element(path: str) -> str:
 def _message(kind: Literal["name", "code"]) -> str:
     """Why the IG publisher aborts on one kind of string, in the words the emit-site refusal uses."""
     return _NAME_MESSAGE if kind == "name" else _CODE_MESSAGE
+
+
+#: Why a reference into the registry package the guide does not publish stops a build.
+_REGISTRY_MESSAGE = (
+    "the guide references an organisation unit the registry package it depends on does not publish, "
+    "and the IG publisher cannot resolve it"
+)
+
+#: What answers a dangling registry reference: the two projects disagree about the selection.
+_REGISTRY_REMEDY = (
+    "regenerate both projects against the same instance - the guide's "
+    "[generate.organisation_units] selection and the registry package's have gone apart"
+)
+
+#: What answers a registry the scan could not read at all.
+_REGISTRY_UNREADABLE_REMEDY = (
+    "run `d2w fhir generate` in the registry checkout `path` names, or pass "
+    "`--registry-package <package.tgz>` so the scan can read what the package publishes"
+)
+
+
+def _registry_findings(project: FhirProject, root: Path, package: Path | None) -> list[ArtifactFinding]:
+    """Every reference into the registry package that the package does not publish a resource for.
+
+    Offline, like the rest of the scan: the references are already on disk, in the examples, the
+    assignment Lists and the pages the guide wrote, and the registry supplies the ids it publishes.
+    A guide publishing its own registry has no such reference and nothing to compare.
+
+    A guide whose registry cannot be read at all is one finding rather than a silent pass, because
+    a build against an uninstalled package fails on every reference at once.
+    """
+    registry = project.config.registry_dependency
+    if registry is None:
+        return []
+    try:
+        published = {
+            document.body["id"]
+            for document in load_registry_documents(project, package=package)
+            if document.body.get("resourceType") == "Location" and isinstance(document.body.get("id"), str)
+        }
+    except RegistryMissingError as error:
+        return [
+            ArtifactFinding(
+                file=FHIR_CONFIG_FILENAME,
+                resource_id=registry.id,
+                field="generate.organisation_units.registry",
+                value=registry.canonical,
+                kind="registry",
+                message=str(error),
+                remedy=_REGISTRY_UNREADABLE_REMEDY,
+            )
+        ]
+    prefix = f"{registry.canonical}/Location/"
+    findings = [
+        ArtifactFinding(
+            file=reference.file,
+            resource_id=reference.resource_id,
+            field=reference.field,
+            value=reference.value,
+            kind="registry",
+            message=_REGISTRY_MESSAGE,
+            remedy=_REGISTRY_REMEDY,
+        )
+        for reference in _registry_references(project, root, prefix)
+        if reference.value.removeprefix(prefix).split("/", 1)[0] not in published
+    ]
+    return findings
+
+
+class _RegistryReference(BaseModel):
+    """One reference into the registry package, and where on disk the guide states it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    file: str
+    resource_id: str
+    field: str
+    value: str
+
+
+def _registry_references(project: FhirProject, root: Path, prefix: str) -> list[_RegistryReference]:
+    """Every `<registry canonical>/Location/<id>` the guide states, in JSON and in FSH alike."""
+    references: list[_RegistryReference] = []
+    for path in _json_paths(project):
+        document = _read_document(path)
+        if not isinstance(document, dict) or not isinstance(document.get(_RESOURCE_TYPE_ELEMENT), str):
+            continue
+        resource_id = document.get("id")
+        named = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
+        references.extend(
+            _RegistryReference(file=_relative(path, root), resource_id=named, field=field, value=value)
+            for field, value in _strings(document, prefix="")
+            if value.startswith(prefix)
+        )
+    for path in _fsh_paths(project):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        references.extend(
+            _RegistryReference(file=_relative(path, root), resource_id=path.stem, field=f"line {number}", value=value)
+            for number, line in enumerate(lines, start=1)
+            for value in _FSH_REGISTRY_REFERENCE.findall(line)
+            if value.startswith(prefix)
+        )
+    return references
+
+
+#: A `Reference(<url>)` as FSH writes one, which is how every generated reference into the registry reads.
+_FSH_REGISTRY_REFERENCE = re.compile(r"Reference\((https?://[^)\s]+)\)")
+
+
+def _strings(node: Any, *, prefix: str) -> Iterator[tuple[str, str]]:  # noqa: ANN401 - JSON is Any
+    """Yield every string under one JSON node with the element path down to it."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _strings(value, prefix=f"{prefix}.{key}" if prefix else str(key))
+        return
+    if isinstance(node, list):
+        for index, item in enumerate(node):
+            yield from _strings(item, prefix=f"{prefix}[{index}]")
+        return
+    if isinstance(node, str):
+        yield prefix, node
 
 
 def _relative(path: Path, root: Path) -> str:

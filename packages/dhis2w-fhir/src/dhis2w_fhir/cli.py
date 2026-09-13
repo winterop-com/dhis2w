@@ -1542,6 +1542,15 @@ def check_artifacts_command(
         ),
     ] = None,
     fail: Annotated[bool, typer.Option("--fail/--no-fail", help="Exit 1 when findings are found.")] = True,
+    registry_package: Annotated[
+        Path | None,
+        typer.Option(
+            "--registry-package",
+            help="The organisation-unit registry package to check this guide's unit references against, "
+            "when no `path` checkout answers. Only for a guide naming "
+            "`\\[generate.organisation_units.registry]`.",
+        ),
+    ] = None,
 ) -> None:
     """Refuse the build before it begins: scan the artifacts on disk for what aborts the IG publisher.
 
@@ -1560,7 +1569,7 @@ def check_artifacts_command(
     from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
 
     project = load_project(directory)
-    report = check_publishable_artifacts(project)
+    report = check_publishable_artifacts(project, registry_package=registry_package)
     if is_json_output():
         typer.echo(report.model_dump_json(indent=2))
         if report.finding_count and fail:
@@ -1783,6 +1792,16 @@ def serve_command(
             "can read the posture it has to meet.",
         ),
     ] = None,
+    registry_package: Annotated[
+        Path | None,
+        typer.Option(
+            "--registry-package",
+            help="The organisation-unit registry package to serve this guide's units from - the "
+            "`package.tgz` the registry project's `make build` wrote, or a directory it was "
+            r"extracted into. Only for a guide naming `\[generate.organisation_units.registry]`, and "
+            "only when no `path` checkout answers: the checkout is read first.",
+        ),
+    ] = None,
     strict_codes: Annotated[
         bool | None,
         typer.Option(
@@ -1864,6 +1883,7 @@ def serve_command(
             basemaps=basemap,
             auth=auth,
             auth_scope=auth_scope,
+            registry_package=registry_package,
         )
     except ServeAuthConfigurationError as error:
         raise typer.BadParameter(str(error), param_hint="--auth") from error

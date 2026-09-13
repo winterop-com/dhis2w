@@ -1409,6 +1409,25 @@ registration form become `Questionnaire` instances.
 - **The translator reads both reference forms.** `location_id_of` takes the id
   off `Location/<id>` and off `<canonical>/Location/<id>`, so a response
   written against either guide resolves its organisation unit.
+- **Serving, forwarding and checking a depending guide** all find the units
+  through one resolver (`dhis2w_fhir.registry_package`): the checkout
+  `[generate.organisation_units.registry] path` names, then a `package.tgz` or
+  extracted directory given as `--registry-package`, then a `RegistryMissingError`
+  naming both remedies. A tarball is read in place with `tarfile`, never
+  unpacked to disk, and only `Location` and `Organization` are taken out of it -
+  the package's own profiles and ImplementationGuide stay where they are, so a
+  facade answering for one guide never holds a second ImplementationGuide.
+  `d2w fhir serve` preflights the registry in `ServeSettings.resolve`, so the
+  refusal lands before the starting banner; `--live` needs no package. The
+  refusal is deliberate rather than a fall-back: with no Location loaded,
+  reference resolution reads the id as the DHIS2 UID, which is right under
+  `naming.source = "id"` and silently wrong under `"code"`.
+- **`d2w fhir check-artifacts` reports a dangling registry reference** as a
+  finding of the new `registry` kind, comparing the `<canonical>/Location/<id>`
+  references already on disk - in compiled JSON and in generated FSH - against
+  the ids the package publishes. It stays offline and connectionless, which is
+  what lets `make build` run it; a registry it cannot read at all is one finding
+  against `fhir.toml` rather than silence.
 
 #### Site pages
 
