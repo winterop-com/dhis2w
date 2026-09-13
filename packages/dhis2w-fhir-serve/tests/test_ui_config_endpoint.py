@@ -154,11 +154,24 @@ async def test_the_settings_carry_nothing_a_browser_has_no_business_knowing(
     """The model is the enumeration of what the UI acts on, and the omissions are the point."""
     body = (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()
 
-    assert set(body) == {"auth", "capture", "basemaps", "dhis2_base_url", "tracked_entities", "metadata_health"}
+    assert set(body) == {
+        "auth",
+        "capture",
+        "publishes",
+        "basemaps",
+        "dhis2_base_url",
+        "tracked_entities",
+        "metadata_health",
+    }
     assert set(body["auth"]) == {"posture", "scope", "issuer"}
     serialised = str(body)
     for leaked in ("profile", "project_dir", "strict_codes", "live", "port", "token", "realm"):
         assert leaked not in serialised, serialised
+
+
+async def test_a_guide_states_no_package_content(ui_config_client: httpx2.AsyncClient) -> None:
+    """`publishes` is what a package holds, so a guide answers null and the screen advises a generate."""
+    assert (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["publishes"] is None
 
 
 async def test_a_compiled_run_reports_no_register_surface_to_navigate_to(

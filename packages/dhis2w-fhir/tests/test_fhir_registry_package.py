@@ -414,6 +414,21 @@ def test_a_refresh_lands_the_dependencies_block_on_a_guide_that_gained_the_regis
     assert "REGISTRY_TGZ ?= ../test-registry/ig/output/package.tgz" in makefile
 
 
+def test_a_package_gets_no_forward_targets() -> None:
+    """A capture starts from a Questionnaire, a package publishes none, so its spool can never fill."""
+    package = _scaffold(_PACKAGE_OPTIONS)["Makefile"]
+    guide = _scaffold(_GUIDE_OPTIONS)["Makefile"]
+
+    assert "forward:" not in package
+    assert "forward-import:" not in package
+    assert "No forward targets" in package
+    # The guide keeps them, which is where captures are made and drained.
+    assert "forward:" in guide
+    assert "forward-import:" in guide
+    # Serving is not dropped: a package served on its own is a readable FHIR endpoint over what it holds.
+    assert "serve:" in package
+
+
 def test_the_makefile_installs_the_registry_package_before_sushi_and_the_publisher() -> None:
     """The three knobs follow fhir.toml, the install target fills the package cache, and both builds depend on it."""
     makefile = _scaffold(_DEPENDING_OPTIONS)["Makefile"]
