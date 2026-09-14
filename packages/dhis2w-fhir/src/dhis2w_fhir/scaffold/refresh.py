@@ -20,9 +20,18 @@ when lines are missing in both directions, since the user's edits and a scaffold
 changed read identically from disk. `fhir.toml` is the user's configuration and is never written at
 all.
 
+A directory holding both projects of a split guide carries two files of its own, and both take
+the same two rules: the `Makefile` that drives the two projects is named in
+`OWNED_WHOLE_RELATIVE_PATHS` like any other and lands whole, and the `README.md` beside it goes
+through the line ladder, so prose written under the scaffold's own sections stays. Two lines of
+that README are the guide's identity rather than the reader's - the title on its cover and the
+registry canonical it names - so they are owned lines like the front page's heading, and a rename
+in the guide's `fhir.toml` lands on both while the prose around them is kept.
+
 The identity lines are the exception to line preservation, because `fhir.toml` declares them. Five
-files carry the identity - `ig/sushi-config.yaml`, `fhir.example.toml`, the front page at
-`ig/input/pagecontent/index.md`, `ig/ig.ini`, and `pyproject.toml` - and each owns the lines listed in
+files carry the identity in every project - `ig/sushi-config.yaml`, `fhir.example.toml`, the front
+page at `ig/input/pagecontent/index.md`, `ig/ig.ini`, and `pyproject.toml`, joined by the pair's
+`README.md` where there is one - and each owns the lines listed in
 `dhis2w_fhir.scaffold.identity`, so a refresh substitutes each of them into the file and reports it
 refreshed. Every other line of every one of those files is the project's and survives
 byte-identical.
@@ -50,6 +59,7 @@ from dhis2w_fhir.scaffold.schemas import (
     DEFAULT_SUSHI_TIMEOUT_SECONDS,
     InitOptions,
     ProjectScaffoldState,
+    ScaffoldFile,
     ScaffoldReport,
 )
 
@@ -115,12 +125,14 @@ def _holds_guide_and_registry(directory: Path) -> bool:
 
 
 def _refresh_guide_and_registry(directory: Path) -> ScaffoldReport:
-    """Refresh both projects of a split guide and the Makefile that drives them.
+    """Refresh both projects of a split guide and the two files the directory itself holds.
 
     Each project refreshes exactly as it would on its own - its `fhir.toml` is what its render is
-    derived from, and neither is written. The root Makefile has no `fhir.toml` of its own, so it is
-    re-rendered from the guide's recovered inputs and landed whole, the way every other file the
-    scaffold owns outright is.
+    derived from, and neither is written. The two root files have no `fhir.toml` of their own, so
+    they are re-rendered from the guide's recovered inputs and land on the same two rules every
+    other file takes: the `Makefile` that drives the two projects is the scaffold's outright and is
+    rewritten whole whenever it differs, and the `README.md` beside it goes through the line ladder,
+    so a paragraph written under the scaffold's sections is reported and kept rather than replaced.
     """
     report = ScaffoldReport(directory=directory.resolve())
     for root in (REGISTRY_RELATIVE_ROOT, GUIDE_RELATIVE_ROOT):
@@ -132,15 +144,7 @@ def _refresh_guide_and_registry(directory: Path) -> ScaffoldReport:
     for scaffold_file in build_guide_and_registry_files(state.options, copyright_year=state.copyright_year):
         if "/" in scaffold_file.relative_path:
             continue
-        destination = directory / scaffold_file.relative_path
-        if not destination.exists():
-            destination.write_text(scaffold_file.content, encoding="utf-8")
-            report.created_files.append(scaffold_file.relative_path)
-        elif _read_file(destination) == scaffold_file.content:
-            report.unchanged_files.append(scaffold_file.relative_path)
-        else:
-            destination.write_text(scaffold_file.content, encoding="utf-8")
-            report.refreshed_files.append(scaffold_file.relative_path)
+        _land_scaffold_file(directory / scaffold_file.relative_path, scaffold_file, report)
     return report
 
 
@@ -165,42 +169,47 @@ def refresh_project(directory: Path) -> ScaffoldReport:
         relative_path = scaffold_file.relative_path
         if relative_path == FHIR_CONFIG_FILENAME:
             continue
-        destination = directory / relative_path
-        if not destination.exists():
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(scaffold_file.content, encoding="utf-8")
-            report.created_files.append(relative_path)
-            continue
-        current = _read_file(destination)
-        if current is None:
-            report.diverged_files.append(relative_path)
-            continue
-        if current == scaffold_file.content:
-            report.unchanged_files.append(relative_path)
-            continue
-        if relative_path in OWNED_WHOLE_RELATIVE_PATHS:
-            destination.write_text(scaffold_file.content, encoding="utf-8")
-            report.refreshed_files.append(relative_path)
-            continue
-        comparable = adopt_scaffold_owned_lines(relative_path, current, scaffold_file.content)
-        if preserves_every_line(comparable, scaffold_file.content):
-            destination.write_text(scaffold_file.content, encoding="utf-8")
-            report.refreshed_files.append(relative_path)
-        elif comparable != current:
-            # The identity fhir.toml declares lands on its own lines, and every other line the
-            # project wrote - its own additions included - stays exactly where it is.
-            destination.write_text(comparable, encoding="utf-8")
-            report.refreshed_files.append(relative_path)
-        elif preserves_every_line(scaffold_file.content, comparable):
-            # The file holds every line the current render produces, plus lines of its own:
-            # user additions on a current scaffold, with nothing for a refresh to add.
-            report.extended_files.append(relative_path)
-        else:
-            # Lines missing in both directions. The user's edits and a scaffold line that has
-            # since changed read identically here, so the verdict claims neither author.
-            report.diverged_files.append(relative_path)
+        _land_scaffold_file(directory / relative_path, scaffold_file, report)
     report.notes.extend(_files_the_scaffold_no_longer_writes(directory))
     return report
+
+
+def _land_scaffold_file(destination: Path, scaffold_file: ScaffoldFile, report: ScaffoldReport) -> None:
+    """Land one rendered file where nothing of the project's own is at stake, and report what it got."""
+    relative_path = scaffold_file.relative_path
+    if not destination.exists():
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(scaffold_file.content, encoding="utf-8")
+        report.created_files.append(relative_path)
+        return
+    current = _read_file(destination)
+    if current is None:
+        report.diverged_files.append(relative_path)
+        return
+    if current == scaffold_file.content:
+        report.unchanged_files.append(relative_path)
+        return
+    if relative_path in OWNED_WHOLE_RELATIVE_PATHS:
+        destination.write_text(scaffold_file.content, encoding="utf-8")
+        report.refreshed_files.append(relative_path)
+        return
+    comparable = adopt_scaffold_owned_lines(relative_path, current, scaffold_file.content)
+    if preserves_every_line(comparable, scaffold_file.content):
+        destination.write_text(scaffold_file.content, encoding="utf-8")
+        report.refreshed_files.append(relative_path)
+    elif comparable != current:
+        # The identity fhir.toml declares lands on its own lines, and every other line the
+        # project wrote - its own additions included - stays exactly where it is.
+        destination.write_text(comparable, encoding="utf-8")
+        report.refreshed_files.append(relative_path)
+    elif preserves_every_line(scaffold_file.content, comparable):
+        # The file holds every line the current render produces, plus lines of its own:
+        # user additions on a current scaffold, with nothing for a refresh to add.
+        report.extended_files.append(relative_path)
+    else:
+        # Lines missing in both directions. The user's edits and a scaffold line that has
+        # since changed read identically here, so the verdict claims neither author.
+        report.diverged_files.append(relative_path)
 
 
 def _files_the_scaffold_no_longer_writes(directory: Path) -> list[str]:

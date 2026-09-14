@@ -6,6 +6,19 @@
 #
 # THE ORDER IS THE POINT. The registry builds first and writes a package; the guide installs that
 # package and builds against it. A guide built first has a dependency the publisher cannot resolve.
+#
+# So this file runs its own targets one at a time, and `make -j2 build` or a `-j` inherited through
+# MAKEFLAGS builds the registry to completion before the guide starts. `.NOTPARALLEL` says that in
+# one line and says it for every target here, which a recipe spelling the steps out serially would
+# have to repeat in `build` and in `all`. It reaches no further than this file: each `$(MAKE) -C`
+# below is a make of its own and parallelises its own recipes as usual.
+#
+# The cost is `generate`: its two reads of the DHIS2 instance are independent and could have run
+# together, so a `-j` here buys nothing and the two generates take their two turns. Run them side
+# by side with two shells when that matters - `make generate-registry` and `make generate-guide`
+# are each a target of its own.
+.NOTPARALLEL:
+
 REGISTRY := {{ registry_root }}
 GUIDE    := {{ guide_root }}
 
