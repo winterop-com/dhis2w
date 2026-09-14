@@ -248,11 +248,22 @@ def load_compiled_store(project: FhirProject, *, registry_package: Path | None =
     predefined_paths = sorted(predefined_directory.rglob("*.json")) if predefined_directory.is_dir() else []
 
     entries = [_read_entry(path, project.project_root) for path in [*compiled_paths, *predefined_paths]]
-    entries.extend(
-        _entry_from_body(document.body, document.source)
-        for document in load_registry_documents(project, package=registry_package)
-    )
+    entries.extend(registry_entries(project, package=registry_package))
     return ResourceStore(entries=tuple(entries))
+
+
+def registry_entries(project: FhirProject, *, package: Path | None = None) -> tuple[StoreEntry, ...]:
+    """The organisation-unit resources of the registry package this guide depends on, indexed as store entries.
+
+    Empty for a guide that publishes its registry inline, and a refusal for one that depends on a
+    package it can reach through neither a checkout nor `package` - the two answers
+    `load_registry_documents` gives. Both store modes read the registry through here, so a guide
+    serves one hierarchy whether it was started over its compiled build or over its instance.
+    """
+    return tuple(
+        _entry_from_body(document.body, document.source)
+        for document in load_registry_documents(project, package=package)
+    )
 
 
 BUILTIN_CONFORMANCE_DIRECTORY = "conformance"

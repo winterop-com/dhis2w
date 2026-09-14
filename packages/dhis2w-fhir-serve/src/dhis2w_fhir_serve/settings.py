@@ -218,9 +218,11 @@ class ServeSettings(BaseModel):
             raise CompiledIgMissingError
         # The registry a guide depends on is preflighted for the reason every other refusal is: a
         # facade that starts and then serves no organisation unit is a failure nobody meets until
-        # they open the picker. A live run reads its units off the instance and needs none.
-        if not live:
-            resolve_registry_source(project, package=registry_package)
+        # they open the picker. Both store modes read the package, so both are preflighted: a live
+        # run over a registry-mode guide serves the package's units rather than building its own,
+        # and a run that can reach neither source refuses here rather than publishing a second
+        # identity for every place at the guide's base URL.
+        resolve_registry_source(project, package=registry_package)
         return ServeInvocation(
             settings=cls(
                 project_dir=project.project_root,

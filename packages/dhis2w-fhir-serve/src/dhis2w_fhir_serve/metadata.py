@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel, ConfigDict
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -29,17 +30,35 @@ if TYPE_CHECKING:
 router = APIRouter()
 
 
-def build_metadata_body(
+class ServedMetadata(BaseModel):
+    """The `/metadata` document this process answers with, and the resource types it declares.
+
+    The types ride beside the body because two lines of a starting server state them - the document
+    itself and the log line `dhis2w_fhir_serve.app` writes - and a count derived twice is a count
+    that can disagree with itself. Reading them back out of the body would mean walking the wire
+    document as a dict, which is the one thing the body is not for.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    body: dict[str, Any]
+    """The wire document itself - the same HTTP-boundary escape hatch `StoreEntry.body` documents."""
+
+    declared_resource_types: tuple[str, ...]
+    """Every resource type the statement declares an interaction for, in the order it declares them."""
+
+
+def build_served_metadata(
     project: FhirProject,
     store_summary: StoreSummary,
     settings: ServeSettings,
     register_surface: RegisterSurface,
     server_version: str,
-) -> dict[str, Any]:
-    """Render the server's CapabilityStatement as the JSON body `/metadata` answers with.
+) -> ServedMetadata:
+    """Render the server's CapabilityStatement, and name the resource types it declares.
 
-    The dict is the wire document itself - the same HTTP-boundary escape hatch `StoreEntry.body`
-    documents - held pre-rendered so the endpoint serialises nothing per request.
+    The body is held pre-rendered so the endpoint serialises nothing per request, and the declared
+    types are read off the statement that was just built rather than recomposed from the inputs.
     """
     capability = build_server_capability(
         project=project,
@@ -48,7 +67,17 @@ def build_metadata_body(
         register_surface=register_surface,
         server_version=server_version,
     )
-    return capability.model_dump(mode="json", exclude_none=True, by_alias=True)
+    return ServedMetadata(
+        body=capability.model_dump(mode="json", exclude_none=True, by_alias=True),
+        # R4 leaves `CapabilityStatementResource.type` optional and every entry this builder writes
+        # states one, so an entry without a type is not a type this server declares.
+        declared_resource_types=tuple(
+            resource.type
+            for rest in capability.rest or []
+            for resource in rest.resource or []
+            if resource.type is not None
+        ),
+    )
 
 
 @router.get("/metadata")

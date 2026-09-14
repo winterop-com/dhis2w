@@ -54,8 +54,11 @@ is a property of the guide this process loaded, so the read router dispatches to
 only be named once the store was open.
 
 `capture` picks which router claims `POST /QuestionnaireResponse`: the create route, or the refusal
-that names `[serve] capture = false`. One of the two is always mounted, so the address never falls
-through to the read catch-all - which would answer the same 405 without saying why.
+that names `[serve] capture = false`. A package - `[ig] publishes` states what it holds - claims it
+with a third router, the one that says a package publishes no form for a submission to answer,
+because a key about receiving is not what is wrong when the project has nothing to receive against.
+One of the three is always mounted, so the address never falls through to the read catch-all - which
+would answer the same 405 without saying why.
 
 The capture UI sits on both sides of that line, which is why `serve_ui` is an argument here rather
 than something the UI module could arrange for itself. Its asset tree is a fixed path and mounts
@@ -264,8 +267,13 @@ def serve_routers(
     serve_ui: bool = False,
     auth: ServeAuth = ServeAuth.NONE,
     auth_scope: ServeAuthScope = ServeAuthScope.WRITE,
+    publishes: str | None = None,
 ) -> ServeRouters:
     """The facade's routers for one posture, with what mounting each group requires stated as data.
+
+    `publishes` is `[ig] publishes`, and a package - a project that holds no form and never will -
+    claims `POST /QuestionnaireResponse` with the refusal that says so, whatever `capture` says. A
+    package's `capture` key is not a decision anybody made about this address.
 
     `capture` picks which router claims `POST /QuestionnaireResponse` - the create route, or the
     refusal that names `[serve] capture = false`. `serve_ui` decides whether the service base router
@@ -285,6 +293,7 @@ def serve_routers(
     importing the route modules from this package's body would close the cycle.
     """
     from dhis2w_fhir_serve.metadata import router as metadata_router
+    from dhis2w_fhir_serve.routes.capture import package_refusal_router
     from dhis2w_fhir_serve.routes.capture import refusal_router as capture_refusal_router
     from dhis2w_fhir_serve.routes.capture import router as capture_router
     from dhis2w_fhir_serve.routes.cds import router as cds_router
@@ -305,7 +314,13 @@ def serve_routers(
     from dhis2w_fhir_serve.routes.whoami import refusal_router as whoami_refusal_router
     from dhis2w_fhir_serve.routes.whoami import router as whoami_router
 
-    submissions = capture_router if capture else capture_refusal_router
+    submissions = _submissions_router(
+        create=capture_router,
+        disabled=capture_refusal_router,
+        package=package_refusal_router,
+        capture=capture,
+        publishes=publishes,
+    )
     fhir = (
         metadata_router,
         submissions,
@@ -352,6 +367,20 @@ def serve_routers(
             read=read_router,
         ),
     )
+
+
+def _submissions_router(
+    *,
+    create: APIRouter,
+    disabled: APIRouter,
+    package: APIRouter,
+    capture: bool,
+    publishes: str | None,
+) -> APIRouter:
+    """Which router claims `POST /QuestionnaireResponse`, out of the three answers that address has."""
+    if publishes is not None:
+        return package
+    return create if capture else disabled
 
 
 def _guarded_routers(
@@ -513,6 +542,7 @@ def register_routes(
     auth: ServeAuth = ServeAuth.NONE,
     auth_scope: ServeAuthScope = ServeAuthScope.WRITE,
     authentication: Any = None,
+    publishes: str | None = None,
 ) -> None:
     """Mount the facade's routes: FHIR at the base URL, this facade's own API at `/facade`, the shell last.
 
@@ -533,7 +563,7 @@ def register_routes(
     from dhis2w_fhir_serve.ui import mount_ui_assets, mount_ui_shell
 
     check = require_authenticated if authentication is None else authentication
-    routers = serve_routers(capture=capture, serve_ui=serve_ui, auth=auth, auth_scope=auth_scope)
+    routers = serve_routers(capture=capture, serve_ui=serve_ui, auth=auth, auth_scope=auth_scope, publishes=publishes)
     if serve_ui:
         mount_ui_assets(app)
     for router in routers.in_mount_order():

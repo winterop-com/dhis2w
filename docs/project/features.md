@@ -1477,10 +1477,21 @@ registration form become `Questionnaire` instances.
   the package's own profiles and ImplementationGuide stay where they are, so a
   facade answering for one guide never holds a second ImplementationGuide.
   `d2w fhir serve` preflights the registry in `ServeSettings.resolve`, so the
-  refusal lands before the starting banner; `--live` needs no package. The
-  refusal is deliberate rather than a fall-back: with no Location loaded,
-  reference resolution reads the id as the DHIS2 UID, which is right under
+  refusal lands before the starting banner - in both store modes. **A `--live`
+  run over a depending guide serves the package's units too** and walks no
+  hierarchy on the instance: units of its own would publish a second identity
+  for every place at this guide's base URL, so a client developed against
+  `--live` would resolve units the published guide never names. The refusal is
+  deliberate rather than a fall-back: with no Location loaded, reference
+  resolution reads the id as the DHIS2 UID, which is right under
   `naming.source = "id"` and silently wrong under `"code"`.
+- **A package serves no capture surface.** `[ig] publishes` says the project
+  holds no form, so `d2w fhir serve` over one declares no `QuestionnaireResponse`
+  and no `$generate` in its CapabilityStatement, says what it publishes on the
+  starting banner and at the service base, and refuses a posted
+  QuestionnaireResponse with the same sentence the capture UI shows: "This
+  project is a package: it publishes organisation units for guides to depend on,
+  and no form. Captures are made in a guide that depends on it, not here."
 - **`d2w fhir check-artifacts` reports a dangling registry reference** as a
   finding of the new `registry` kind, comparing the `<canonical>/Location/<id>`
   references already on disk - in compiled JSON and in generated FSH - against

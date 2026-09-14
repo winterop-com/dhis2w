@@ -49,6 +49,16 @@ to state.
 The example instances are the one thing a compiled store holds and a live one does not, and that is
 by design: an example is a teaching document a build writes into the guide, not a read a capture
 client resolves.
+
+THE ORGANISATION UNITS ARE THE ONE READ-SET A GUIDE MAY NOT OWN. A guide naming
+`[generate.organisation_units.registry]` publishes no `Organization` and no `Location` of its own,
+and a live run honours that exactly as a compiled one does: the units come out of the registry
+package - the checkout beside the project, or the archive `--registry-package` names - and the
+instance's hierarchy is never walked. Synthesising units from DHIS2 here would publish a second
+identity for every place at the guide's own base URL, which is the one address a client developed
+against `--live` would then resolve nothing at once the guide is published. A guide that can reach
+neither source refuses before the banner, in `dhis2w_fhir_serve.settings`, with the message compiled
+mode gives.
 """
 
 from __future__ import annotations
@@ -93,7 +103,13 @@ from dhis2w_fhir.service import fetch_live_ig_inputs, resolve_generation_profile
 from dhis2w_fhir.writer import JsonBuild
 
 from dhis2w_fhir_serve.log import LOGGER_NAME
-from dhis2w_fhir_serve.store import IdentifierToken, ResourceStore, StoreEntry, load_compiled_conformance_entries
+from dhis2w_fhir_serve.store import (
+    IdentifierToken,
+    ResourceStore,
+    StoreEntry,
+    load_compiled_conformance_entries,
+    registry_entries,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -146,11 +162,18 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
     through, for the same reason the serialisation does: one project means one set of names, and a
     UID a compiled guide publishes as "Mortality under 5 years" is not one a live facade may serve
     as something else. `_serving_gate` is which screening that is.
+
+    A guide whose organisation units another package publishes reads them out of that package and
+    leaves the instance's hierarchy unwalked, which is the module docstring's last paragraph and the
+    one place a live store serves documents it did not build.
     """
     config = project.config.generate
     canonical = project.config.ig.canonical
     ig_status = project.config.ig.status
-    inputs = await fetch_live_ig_inputs(client, config, gate=_serving_gate(config))
+    registry = project.config.registry_dependency
+    inputs = await fetch_live_ig_inputs(
+        client, config, gate=_serving_gate(config), read_organisation_units=registry is None
+    )
     assignments = build_assignment_artifacts(
         inputs.sources,
         inputs.assignments,
@@ -200,12 +223,18 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
         JsonBuild(
             artifacts=build_category_identifier_artifacts(inputs.categories, config, canonical, ig_status=ig_status)
         ),
-        build_organisation_unit_instances(
-            inputs.organisation_units,
-            config,
-            canonical,
-            attribute_codes=inputs.attribute_codes,
-            level_names=inputs.organisation_unit_levels,
+        *(
+            ()
+            if registry is not None
+            else (
+                build_organisation_unit_instances(
+                    inputs.organisation_units,
+                    config,
+                    canonical,
+                    attribute_codes=inputs.attribute_codes,
+                    level_names=inputs.organisation_unit_levels,
+                ),
+            )
         ),
         assignments,
         attribute_combos,
@@ -231,10 +260,12 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
         *[value_set for build in organisation_unit_terminology for value_set in build.value_sets],
     ]
     conformance = load_compiled_conformance_entries(project)
+    published_registry = registry_entries(project, package=settings.registry_package)
     entries = [
         *(_entry(_document(resource)) for resource in documents),
         *(_entry(json.loads(artifact.content)) for build in json_builds for artifact in build.artifacts),
         *conformance,
+        *published_registry,
     ]
     for note in [*inputs.notes, *questionnaires.notes, *(note for build in json_builds for note in build.notes)]:
         logger.info("live store: %s", note.message)
@@ -242,6 +273,13 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
         "live store: hosting %d conformance resources from the compiled guide beside the project",
         len(conformance),
     )
+    if registry is not None:
+        logger.info(
+            "live store: serving %d organisation-unit resources published by %s %s",
+            len(published_registry),
+            registry.id,
+            registry.version,
+        )
     return ResourceStore(entries=tuple(entries))
 
 

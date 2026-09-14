@@ -429,6 +429,22 @@ def test_serve_announces_the_address_before_the_server_starts(workdir: Path, rec
     assert recorded_run.calls == 1
 
 
+def test_serving_a_package_says_what_it_publishes_on_the_banner(workdir: Path, recorded_run: _RecordedRun) -> None:
+    """A package holds no form, so the line that starts it names what it publishes instead."""
+    result = _runner.invoke(
+        build_app(),
+        ["fhir", "init", "registry", "--publishes", "organisation-units", "--id", "dhis2.fhir.test.registry"],
+    )
+    assert result.exit_code == 0, result.output
+    _compile(workdir / "registry")
+
+    result = _runner.invoke(build_app(), ["fhir", "serve", "registry", "--port", "9125"])
+
+    assert result.exit_code == 0, result.output
+    assert "as a FHIR endpoint publishing organisation units and no forms (ctrl-c to stop)" in result.stderr
+    assert "receiving no submissions" not in result.stderr
+
+
 def test_serve_ui_without_a_built_bundle_refuses_before_the_banner(
     workdir: Path, monkeypatch: pytest.MonkeyPatch, recorded_run: _RecordedRun
 ) -> None:

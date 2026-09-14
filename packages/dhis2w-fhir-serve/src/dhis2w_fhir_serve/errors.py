@@ -16,6 +16,7 @@ import logging
 from typing import Literal
 
 from dhis2w_fhir.r4 import OperationOutcome, OperationOutcomeIssue
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -414,15 +415,58 @@ class BadOperationError(ServeError):
         super().__init__(diagnostics)
 
 
+#: What the one package kind publishes, spelled as prose beside the `organisation-units` token.
+#:
+#: `[ig] publishes` is a machine value and reads as one; a sentence a person meets says the words.
+ORGANISATION_UNIT_PACKAGE_SUBJECT = "organisation units"
+
+
+def package_subject(publishes: str) -> str:
+    """What a package publishes, in prose; a content value with no prose spelling is stated as it stands."""
+    return ORGANISATION_UNIT_PACKAGE_SUBJECT if publishes == ORGANISATION_UNIT_PACKAGE else publishes
+
+
+def package_statement(publishes: str) -> str:
+    """The one sentence a package facade says about itself, wherever it has to say it.
+
+    The banner, the service base, the refusal of a submission and the CapabilityStatement all say
+    it, in the words the capture UI's own empty state says it in - a person who met the screens and
+    a client that met the endpoint are told the same thing about the same project.
+    """
+    return (
+        f"This project is a package: it publishes {package_subject(publishes)} for guides to depend on, and "
+        "no form. Captures are made in a guide that depends on it, not here."
+    )
+
+
 class NotAnEndpointError(ServeError):
     """Nothing is served at that path, whatever method it was asked for."""
 
     status_code = 404
     issue_code = "not-found"
 
-    def __init__(self, path: str) -> None:
-        super().__init__(f"`{path}` is not an endpoint this server serves")
+    def __init__(self, path: str, *, publishes: str | None = None) -> None:
+        stated = f"`{path}` is not an endpoint this server serves"
+        super().__init__(stated if publishes is None else f"{stated}. {package_statement(publishes)}")
         self.path = path
+        self.publishes = publishes
+
+
+class PackagePublishesNoFormsError(ServeError):
+    """A submission was posted to a package, which holds no form to answer and never will.
+
+    405 rather than 404 for the reason `CaptureDisabledError` gives - the address is served for
+    reads - and the sentence is the package's own rather than a form-type complaint, because what
+    is wrong is the address rather than the document: nothing a client could send would be right.
+    """
+
+    status_code = 405
+    issue_code = "not-supported"
+
+    def __init__(self, resource_type: str, publishes: str) -> None:
+        super().__init__(f"this server receives no {resource_type}. {package_statement(publishes)}")
+        self.resource_type = resource_type
+        self.publishes = publishes
 
 
 class CaptureDisabledError(ServeError):

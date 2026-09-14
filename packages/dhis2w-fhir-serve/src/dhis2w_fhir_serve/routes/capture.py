@@ -37,6 +37,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
@@ -49,7 +50,12 @@ from dhis2w_fhir_serve.capture.index import CaptureIndexCache
 from dhis2w_fhir_serve.capture.naming import CaptureNaming
 from dhis2w_fhir_serve.capture.outcome import CaptureIssue, CaptureRejection, rejection_outcome, success_outcome
 from dhis2w_fhir_serve.capture.validate import CaptureLifecyclePostures, ValidatedCapture, validate_response
-from dhis2w_fhir_serve.errors import FHIR_JSON_MEDIA_TYPE, CaptureDisabledError, UnsupportedMediaTypeError
+from dhis2w_fhir_serve.errors import (
+    FHIR_JSON_MEDIA_TYPE,
+    CaptureDisabledError,
+    PackagePublishesNoFormsError,
+    UnsupportedMediaTypeError,
+)
 from dhis2w_fhir_serve.routes.context import serve_context
 from dhis2w_fhir_serve.spool import StoredResponseEnvelope, current_instant, new_response_id
 
@@ -73,11 +79,28 @@ router = APIRouter()
 #: What a viewer-posture run mounts in the create route's place - the same path, answering why.
 refusal_router = APIRouter()
 
+#: What a package mounts there instead - the same path, answering with what the project is.
+package_refusal_router = APIRouter()
+
 
 @refusal_router.post(f"/{QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE}")
 async def refuse_questionnaire_response(request: Request) -> Response:
     """Refuse a submission this project does not receive, naming the key that decided it."""
     raise CaptureDisabledError(QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE)
+
+
+@package_refusal_router.post(f"/{QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE}")
+async def refuse_questionnaire_response_on_a_package(request: Request) -> Response:
+    """Refuse a submission to a package, which publishes no form for one to answer.
+
+    The sentence says what the project is rather than what this document lacks: a package's forms
+    are not missing, they are somewhere else, and the form-type check further down would have told
+    a client to fix a body that no body could fix.
+    """
+    # Mounted only where `[ig] publishes` states something, so the content value is always there;
+    # the one content value a package may hold names itself where a reader would otherwise see None.
+    publishes = serve_context(request).settings.publishes or ORGANISATION_UNIT_PACKAGE
+    raise PackagePublishesNoFormsError(QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE, publishes)
 
 
 class CaptureState(BaseModel):

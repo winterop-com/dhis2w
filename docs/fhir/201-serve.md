@@ -358,7 +358,7 @@ screens are being served:
 starting /home/you/demo-ig on http://127.0.0.1:8390 as a FHIR endpoint + capture UI (ctrl-c to stop)
 links: the screens link identities into http://localhost:8080 (local_basic, from fhir.toml)
 2026-08-15 20:06:23,044 INFO dhis2w_fhir_serve loaded the compiled IG at /home/you/demo-ig:
-2830 resources across 14 types, 0 stored responses
+2830 resources across 14 types in the store, 12 resource types declared at /metadata, 0 stored responses
 ```
 
 Only the address crosses to the browser. The profile's name, its credentials,
@@ -370,7 +370,7 @@ A `--live` run says so in the same place, and names what it read:
 2026-08-15 20:12:26,781 INFO dhis2w_fhir_serve live store: reading http://localhost:8080 as
 profile local_basic (from fhir.toml)
 2026-08-15 20:12:28,693 INFO dhis2w_fhir_serve loaded live DHIS2 at /home/you/demo-ig:
-2757 resources across 7 types, 30 stored responses
+2757 resources across 7 types in the store, 8 resource types declared at /metadata, 30 stored responses
 ```
 
 Seven types against a compiled run's fourteen is the definitional layer
@@ -379,6 +379,13 @@ project has never been compiled, so there is nothing on disk to read them from;
 compile it and a live run over it serves them too
 ([the guide's own definitions](#the-guides-own-definitions-are-served)). The
 stored-response count is the spool on disk, which both modes read the same way.
+
+The two type counts are two different things and the line says which is which.
+What the store holds includes types this server answers no interaction for - the
+NamingSystems a build writes, a StructureMap - and what `/metadata` declares
+includes QuestionnaireResponse, which the store holds none of until a receipt
+arrives. The CapabilityStatement's own description states the same pair, so
+neither number can be read as a contradiction of the other.
 
 ## Serve from a synced copy { #serve-from-a-synced-copy }
 

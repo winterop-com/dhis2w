@@ -22,6 +22,7 @@ import respx
 from dhis2w_core.client_context import open_client
 from dhis2w_fhir import build_option_set_artifacts
 from dhis2w_fhir.config import FhirProject, load_fhir_config
+from dhis2w_fhir.registry_package import RegistryMissingError
 from dhis2w_fhir.service import fetch_live_ig_inputs, resolve_generation_profile
 from dhis2w_fhir_serve.app import create_app
 from dhis2w_fhir_serve.live import build_live_store, open_live_client
@@ -781,3 +782,97 @@ async def test_every_other_posture_serves_live_what_the_instance_holds_and_refus
 
     assert _bodies(store, "Questionnaire")["BfMAe6Itzgt"]["title"] == _HOSTILE_NAME
     assert {"code": "dhis2-code", "valueString": _HOSTILE_CODE} in _option_concepts(store)[0]["property"]
+
+
+#: The registry package a live guide may depend on, and the one place it publishes.
+_REGISTRY_ID = "dhis2.fhir.live.registry"
+_REGISTRY_CANONICAL = f"{_CANONICAL}/registry"
+_PACKAGED_UNIT = "ImspTQPwCqd"
+_PACKAGED_UNIT_NAME = "Sierra Leone, as the registry publishes it"
+
+
+def _registry_table(path: str | None) -> str:
+    """The `[generate.organisation_units.registry]` table a depending guide carries."""
+    stated = "" if path is None else f'path = "{path}"\n'
+    return (
+        "\n[generate.organisation_units.registry]\n"
+        f'id = "{_REGISTRY_ID}"\n'
+        f'canonical = "{_REGISTRY_CANONICAL}"\n'
+        'version = "0.1.0"\n'
+        f"{stated}"
+    )
+
+
+def _depending_live_project(root: Path, *, path: str | None) -> FhirProject:
+    """A live project whose organisation units another package publishes."""
+    root.mkdir(parents=True, exist_ok=True)
+    config_path = root / "fhir.toml"
+    config_path.write_text(_LIVE_FHIR_TOML + _registry_table(path), encoding="utf-8")
+    return FhirProject(config=load_fhir_config(config_path), config_path=config_path.resolve())
+
+
+def _published_registry(root: Path) -> None:
+    """The registry project beside the guide, holding the one place it publishes."""
+    directory = root / "ig" / "input" / "resources" / "registry"
+    directory.mkdir(parents=True, exist_ok=True)
+    for resource_type in ("Location", "Organization"):
+        (directory / f"{resource_type}-{_PACKAGED_UNIT}.json").write_text(
+            json.dumps(
+                {
+                    "resourceType": resource_type,
+                    "id": _PACKAGED_UNIT,
+                    "name": _PACKAGED_UNIT_NAME,
+                    "identifier": [{"system": f"{_IDENTIFIER_BASE}/org-unit", "value": _PACKAGED_UNIT}],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+
+@respx.mock
+async def test_a_live_run_serves_the_registry_package_rather_than_units_of_its_own(
+    live_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+) -> None:
+    """A guide whose registry another package publishes serves that package's places in either mode.
+
+    Synthesising the instance's hierarchy here would publish a second identity for every place at
+    this guide's own base URL - places the published guide resolves in the package instead - so a
+    client developed against `--live` would resolve units nowhere the published guide does.
+    """
+    _mock_instance()
+    _published_registry(tmp_path / "registry")
+
+    store = await _built_store(_depending_live_project(tmp_path / "guide", path="../registry"))
+
+    locations = _bodies(store, "Location")
+    assert sorted(locations) == [_PACKAGED_UNIT]
+    assert sorted(_bodies(store, "Organization")) == [_PACKAGED_UNIT]
+    assert locations[_PACKAGED_UNIT]["name"] == _PACKAGED_UNIT_NAME
+
+
+@respx.mock
+async def test_a_live_run_reaching_no_registry_refuses_before_the_banner(
+    live_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+) -> None:
+    """The refusal is the compiled one: a registry nothing supplies is refused rather than fallen back on."""
+    _mock_instance()
+    project = _depending_live_project(tmp_path / "guide", path="../registry")
+
+    with pytest.raises(RegistryMissingError, match=_REGISTRY_ID):
+        ServeSettings.resolve(project, live=True)
+
+
+@respx.mock
+async def test_a_live_guide_publishing_its_own_registry_still_builds_it_off_the_instance(
+    live_profile: None,  # noqa: ARG001
+    live_project: FhirProject,
+) -> None:
+    """A guide naming no registry package is unchanged: its places are the instance's, built here."""
+    _mock_instance()
+
+    store = await _built_store(live_project)
+
+    assert sorted(_bodies(store, "Location")) == ["ImspTQPwCqd", "O6uvpzGd5pu"]
+    assert sorted(_bodies(store, "Organization")) == ["ImspTQPwCqd", "O6uvpzGd5pu"]

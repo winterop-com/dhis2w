@@ -90,6 +90,17 @@ in fhir.toml), which publishes the organisation-unit registry and nothing else, 
 `d2w fhir generate questionnaires` has nothing to write here.
 ```
 
+`d2w fhir serve` in a registry package serves the places it publishes and no
+capture surface at all. The banner says which project it is - `as a FHIR
+endpoint publishing organisation units and no forms` - the CapabilityStatement
+declares no `QuestionnaireResponse` and no `$generate`, and the base URL and a
+posted submission both answer with the same sentence:
+
+```
+This project is a package: it publishes organisation units for guides to depend
+on, and no form. Captures are made in a guide that depends on it, not here.
+```
+
 The guide then names the package. Either scaffold it with the registry flags or
 add the table to an existing guide's `fhir.toml` and refresh:
 
@@ -231,8 +242,12 @@ registry project, or name the package the registry's `make build` wrote with
 `--registry-package <package.tgz>`.
 ```
 
-`--live` is unaffected: it builds its units from the instance and needs no
-package at all.
+`--live` reads the registry the same way. A live run over a depending guide
+serves the package's `Location` and `Organization` resources and walks no
+hierarchy on the instance: publishing units of its own would put a second
+identity for every place at this guide's base URL, which is an address the
+published guide resolves nothing at. Reaching neither source refuses a live run
+with the line above, before the banner, exactly as it refuses a compiled one.
 
 The absolute references the guide carries are read as the units they name
 wherever the facade needs one. An assignment `List` naming

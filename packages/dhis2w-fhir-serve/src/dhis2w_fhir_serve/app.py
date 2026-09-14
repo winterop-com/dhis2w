@@ -62,7 +62,8 @@ def create_app(settings: ServeSettings) -> FastAPI:
 
     `settings.capture` decides which router claims `POST /QuestionnaireResponse` - the create route,
     or the refusal that names the key. It is settled here, at build time, because it is what this
-    server offers rather than something a request could be judged against.
+    server offers rather than something a request could be judged against. `settings.publishes` beats
+    it on a package, which claims that address with the refusal saying a package holds no form.
 
     `settings.auth` and `settings.auth_scope` decide which routers carry the authentication check,
     which is settled at build time for the same reason. What the check then DOES is a request-time
@@ -87,6 +88,7 @@ def create_app(settings: ServeSettings) -> FastAPI:
         capture=settings.capture,
         auth=settings.auth,
         auth_scope=settings.auth_scope,
+        publishes=settings.publishes,
     )
     return app
 
@@ -102,12 +104,20 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None]:
         # This line fires before the server binds its socket - ASGI lifespan startup completes
         # first, then uvicorn opens the listeners - so it states what was loaded, never that the
         # server is up. The CLI's bind preflight owns the taken-port failure mode.
+        #
+        # TWO COUNTS OF TWO DIFFERENT THINGS, both named. The store holds every resource the project
+        # wrote, types this server answers no interaction for included; the statement declares the
+        # types it serves, QuestionnaireResponse among them whether or not a receipt exists. A line
+        # saying only the first sits two lines above a `/metadata` saying only the second, and the
+        # pair read as a contradiction. `capability._statement_description` states the same pair.
         logger.info(
-            "loaded %s at %s: %d resources across %d types, %d stored responses",
+            "loaded %s at %s: %d resources across %d types in the store, %d resource types declared at "
+            "/metadata, %d stored responses",
             "live DHIS2" if settings.live else "the compiled IG",
             context.project.project_root,
             summary.total,
             len(summary.counts_by_type),
+            len(context.declared_resource_types),
             context.spool.count(),
         )
         yield
