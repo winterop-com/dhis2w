@@ -83,9 +83,16 @@ def reporting_unit(index: CaptureIndex, store: ResourceStore) -> str:
     """An organisation unit the form may be reported for, as the `Location/<uid>` a submission names it by."""
     # A form publishes the organisation units it is assigned to as a List. Reporting for a unit
     # outside that assignment is what DHIS2 refuses at import with E1029. A form that publishes no
-    # assignment is open to every unit the guide published, so any one of them will do.
-    if index.assignment is not None:
-        return sorted(index.assignment.references)[0]
+    # assignment is open to every unit the guide published, so any one of them will do. The
+    # assignment is held as the Location ids its entries name, whether the guide publishes its own
+    # registry or depends on a registry package that names every unit by absolute URL. An assignment
+    # naming no published unit is a form with nowhere to report from, which `$generate` refuses too.
+    assigned = sorted(index.assignment.location_ids) if index.assignment is not None else []
+    if index.assignment is not None and not assigned:
+        message = f"`{index.assignment.list_id}` names no organisation unit this guide publishes"
+        raise SystemExit(message)
+    if assigned:
+        return f"Location/{assigned[0]}"
     return f"Location/{store.search('Location', SearchQuery())[0].resource_id}"
 
 

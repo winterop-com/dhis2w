@@ -101,6 +101,7 @@ from dhis2w_fhir.resources.questionnaires.schemas import FormKind
 from pydantic import BaseModel, ConfigDict, PrivateAttr, ValidationError
 
 from dhis2w_fhir_serve.capture.index import (
+    ASSIGNMENT_REFERENCE_PREFIX,
     QUESTIONNAIRE_RESOURCE_TYPE,
     CaptureIndex,
     CaptureQuestion,
@@ -192,6 +193,14 @@ _WORD_SYLLABLES = 3
 def draw_seed() -> int:
     """Draw the seed a `$generate` call that named none is answered from."""
     return random.randrange(MAXIMUM_SEED + 1)  # noqa: S311 - a reproducibility handle, not a secret
+
+
+class UnreportableAssignmentError(LookupError):
+    """Raised when a form's published assignment names no organisation unit a response could report from."""
+
+    def __init__(self, diagnostics: str) -> None:
+        super().__init__(diagnostics)
+        self.diagnostics = diagnostics
 
 
 class DateWindow(BaseModel):
@@ -846,11 +855,23 @@ def _capture_location_id(index: CaptureIndex, store: ResourceStore, seed: int) -
     `E1029` - intersected with the served registry so the drawn unit really exists (the whole
     assignment stands when the store serves none of it). A form publishing no assignment draws
     across the whole served registry. The unit is part of the seed's draw like every other value:
-    the same seed names the same unit, and different seeds range over the whole admitted set. A
-    store publishing no registry (a project generated without an org-unit selection) falls back to
-    a seeded UID, which the capture contract admits because it checks the reference's shape rather
-    than its target.
+    the same seed names the same unit, and different seeds range over the whole admitted set.
+
+    The one form that gets no draw at all is the one whose assignment names no organisation unit
+    this project publishes, because the two halves of the same rule have to agree: such a form
+    admits nothing on receipt, so drawing it a unit would be drafting the very capture the facade
+    then warns about and DHIS2 refuses with `E1029`. It is refused instead, by name.
+
+    A store publishing no registry at all (a project generated without an organisation-unit
+    selection) is a different absence, and it falls back to a seeded UID, which the capture contract
+    admits because it checks the reference's shape rather than its target.
     """
+    assignment = index.assignment
+    if assignment is not None and not assignment.location_ids:
+        raise UnreportableAssignmentError(
+            f"its organisation-unit assignment `{ASSIGNMENT_REFERENCE_PREFIX}{assignment.list_id}` names no "
+            f"published organisation unit, so there is nowhere a response to it could report from"
+        )
     admitted = _admitted_location_ids(index, store)
     generator = random.Random(seed)  # noqa: S311 - a reproducibility handle, not a secret
     if admitted:
@@ -859,14 +880,14 @@ def _capture_location_id(index: CaptureIndex, store: ResourceStore, seed: int) -
 
 
 def _admitted_location_ids(index: CaptureIndex, store: ResourceStore) -> tuple[str, ...]:
-    """The Location ids a generated response may report for, sorted so the seeded draw is stable."""
-    prefix = f"{LOCATION_RESOURCE_TYPE}/"
+    """The Location ids a generated response may report for, sorted so the seeded draw is stable.
+
+    The assignment is already held as Location ids rather than as the reference text the List
+    entries carry, so a guide naming its units absolutely against a published registry package
+    draws from the same set a guide naming them relatively does.
+    """
     assignment = index.assignment
-    assigned = (
-        sorted({reference.removeprefix(prefix) for reference in assignment.references if reference.startswith(prefix)})
-        if assignment is not None
-        else []
-    )
+    assigned = sorted(assignment.location_ids) if assignment is not None else []
     served = {entry.resource_id for entry in store.entries if entry.resource_type == LOCATION_RESOURCE_TYPE}
     if assigned:
         intersected = [resource_id for resource_id in assigned if resource_id in served]

@@ -8,6 +8,7 @@ import {
     admittedUnitIds,
     ancestorsOf,
     assignedUnitIds,
+    locationIdOf,
     attachmentGeometryOf,
     dedupeByOrgUnitIdentifier,
     orgUnitIdentifierValue,
@@ -507,6 +508,34 @@ describe('reading the whole registry geometry', () => {
     })
 })
 
+/** The canonical a separately published organisation-unit registry package serves its units under. */
+const REGISTRY_PACKAGE_CANONICAL = 'http://example.org/play43review/fhir/registry'
+
+describe('reading the unit a Location reference names', () => {
+    // The same table `dhis2w_fhir.location_id_of` is read against, so the picker offers exactly the
+    // units the facade admits.
+    const readings: Array<[string, string | null]> = [
+        ['Location/O6uvpzGd5pu', 'O6uvpzGd5pu'],
+        [`${REGISTRY_PACKAGE_CANONICAL}/Location/O6uvpzGd5pu`, 'O6uvpzGd5pu'],
+        ['Location/', null],
+        ['', null],
+        ['Organization/O6uvpzGd5pu', null],
+        [`${REGISTRY_PACKAGE_CANONICAL}/Location/O6uvpzGd5pu/_history/1`, null],
+        ['/Location/O6uvpzGd5pu', null],
+        ['Location/O6uvpzGd5pu/_history/2', null],
+        ['Location/O6uvpzGd5pu?_format=json', null],
+        [`${REGISTRY_PACKAGE_CANONICAL}/Location/O6uvpzGd5pu?_format=json`, null],
+    ]
+
+    it.each(readings)('reads `%s` as %s', (reference, expected) => {
+        expect(locationIdOf(reference)).toBe(expected)
+    })
+
+    it('reads a reference that is not there at all as nothing', () => {
+        expect(locationIdOf(undefined)).toBeNull()
+    })
+})
+
 describe('joining the forms to their organisation-unit assignments', () => {
     const served = [...questionnaires, scopedQuestionnaire]
 
@@ -549,6 +578,83 @@ describe('joining the forms to their organisation-unit assignments', () => {
         expect(index.unresolvedAssignmentFormIds).toEqual(['PrScoped001'])
         expect(index.universalFormIds).toContain('PrScoped001')
         expect(index.restrictedFormIds).toEqual([])
+    })
+
+    it('reads the unit off a List naming it under a published registry package', () => {
+        // ONE UNIT, TWO SPELLINGS. A guide depending on a separately published organisation-unit
+        // registry names every unit absolutely, because a relative reference does not resolve
+        // across a package dependency - and the id is the same id either way.
+        const absolute: ResourceList = {
+            resourceType: 'List',
+            id: 'absolute',
+            entry: [
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8` } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/O6uvpzGd5pu` } },
+            ],
+        }
+
+        expect(assignedUnitIds(absolute)).toEqual(['DiszpKrYNg8', 'O6uvpzGd5pu'])
+    })
+
+    it('reads a List that names one unit relatively and the next one absolutely', () => {
+        const mixed: ResourceList = {
+            resourceType: 'List',
+            id: 'mixed-spellings',
+            entry: [
+                { item: { reference: 'Location/O6uvpzGd5pu' } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8` } },
+            ],
+        }
+
+        expect(assignedUnitIds(mixed)).toEqual(['O6uvpzGd5pu', 'DiszpKrYNg8'])
+    })
+
+    it('lists a unit once when the List names it in both spellings', () => {
+        // One unit is one entry however many times the List names it: a unit listed twice would
+        // list its assigned forms twice in the rail that reads this.
+        const twice: ResourceList = {
+            resourceType: 'List',
+            id: 'twice',
+            entry: [
+                { item: { reference: 'Location/DiszpKrYNg8' } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8` } },
+                { item: { reference: 'Location/O6uvpzGd5pu' } },
+            ],
+        }
+
+        expect(assignedUnitIds(twice)).toEqual(['DiszpKrYNg8', 'O6uvpzGd5pu'])
+    })
+
+    it('drops an entry that names no single Location, however it is spelled', () => {
+        const rejected: ResourceList = {
+            resourceType: 'List',
+            id: 'rejected',
+            entry: [
+                { item: { reference: 'Location/' } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/` } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Organization/DiszpKrYNg8` } },
+                { item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8/_history/1` } },
+                { item: { reference: 'Location/DiszpKrYNg8/_history/1' } },
+                { item: { reference: 'Location/DiszpKrYNg8?_format=json' } },
+                { item: { reference: '/Location/DiszpKrYNg8' } },
+                { item: { reference: '' } },
+            ],
+        }
+
+        expect(assignedUnitIds(rejected)).toEqual([])
+    })
+
+    it('resolves a form assigned by absolute reference at the unit that reference names', () => {
+        const absoluteList: ResourceList = {
+            resourceType: 'List',
+            id: 'd2-pr-PrScoped001-org-units',
+            entry: [{ item: { reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8` } }],
+        }
+        const index = buildFormAssignments(served, [absoluteList])
+
+        expect(index.restrictedFormIds).toEqual(['PrScoped001'])
+        expect(reportableFormsAt(index, 'DiszpKrYNg8').restrictedFormIds).toEqual(['PrScoped001'])
+        expect(reportableFormsAt(index, 'O6uvpzGd5pu').restrictedFormIds).toEqual([])
     })
 
     it('ignores a List entry naming something other than a Location', () => {
@@ -879,5 +985,25 @@ describe('the extent one unit is framed on', () => {
         const none = unitExtent(buildOrgUnitTree(bare), 'P0000000001', readGeometry(bare))
         expect(none.coverage).toBe('none')
         expect(none.bounds).toBeNull()
+    })
+})
+
+describe('reading the unit a response reports from', () => {
+    it('reads a unit named relatively, as the capture UI writes one', () => {
+        expect(referencedUnitId({ reference: 'Location/DiszpKrYNg8' })).toBe('DiszpKrYNg8')
+    })
+
+    it('reads a unit named absolutely, as the generator writes one into a depending guide', () => {
+        // The facade accepts this document, so the receipt that renders it has to resolve the unit
+        // and show its name and its place in the hierarchy rather than the raw reference.
+        expect(referencedUnitId({ reference: `${REGISTRY_PACKAGE_CANONICAL}/Location/DiszpKrYNg8` })).toBe(
+            'DiszpKrYNg8',
+        )
+    })
+
+    it('reads nothing off a reference that names something other than one Location', () => {
+        expect(referencedUnitId({ reference: 'Organization/DiszpKrYNg8' })).toBeNull()
+        expect(referencedUnitId({ reference: 'Location/DiszpKrYNg8/_history/1' })).toBeNull()
+        expect(referencedUnitId(null)).toBeNull()
     })
 })

@@ -394,7 +394,10 @@ sit above the questions - both visible in the screenshot:
   - exactly the set the facade grades a submission against, so the control
   cannot produce a capture the server refuses with `E1029`. It says how large
   that set is - *1166 organisation units are assigned to this form* - and what
-  stepping outside it would cost. Search by name, uid, or DHIS2 code, or
+  stepping outside it would cost. The assignment is read as the units it names
+  whichever way it names them: `Location/<id>` from a guide publishing its own
+  registry, and `<registry canonical>/Location/<id>` from a guide depending on a
+  [registry package](201-registry-package.md). Search by name, uid, or DHIS2 code, or
   switch the popover to **Browse** and walk the hierarchy, where units the
   assignment does not name are shown disabled as the parent chain that tells
   two facilities of the same name apart.

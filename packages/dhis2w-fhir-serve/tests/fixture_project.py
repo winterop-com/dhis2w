@@ -37,6 +37,7 @@ from __future__ import annotations
 import base64
 import json
 import shutil
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -1095,15 +1096,28 @@ def build_registry_exemplar() -> dict[str, Any]:
     }
 
 
-def build_assignment_list(list_id: str, title: str) -> dict[str, Any]:
-    """One assignment artifact restricting a form, in the shape the generate target writes it."""
+def build_assignment_list(
+    list_id: str,
+    title: str,
+    *,
+    units: Sequence[str] = SCOPED_ASSIGNMENT_UNITS,
+    registry_canonical: str | None = None,
+) -> dict[str, Any]:
+    """One assignment artifact restricting a form, in the shape the generate target writes it.
+
+    `registry_canonical` names the unit the way a guide depending on a published organisation-unit
+    registry package does - `<registry canonical>/Location/<id>`, because a relative reference does
+    not resolve across a package dependency. Leaving it out names the unit relatively, which is what
+    a guide publishing its own registry writes.
+    """
+    prefix = "Location/" if registry_canonical is None else f"{registry_canonical}/Location/"
     return {
         "resourceType": "List",
         "id": list_id,
         "status": "current",
         "mode": "snapshot",
         "title": title,
-        "entry": [{"item": {"reference": f"Location/{uid}"}} for uid in SCOPED_ASSIGNMENT_UNITS],
+        "entry": [{"item": {"reference": f"{prefix}{uid}"}} for uid in units],
     }
 
 

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from dhis2w_fhir.conversion.values import location_id_of
 from dhis2w_fhir.r4 import Extension, QuestionnaireResponse, QuestionnaireResponseItem
 from dhis2w_fhir.service import ForwardImportOutcome, WithdrawalRecord
 from dhis2w_fhir.spool import ForwardRefusalRecord, QuarantinedFile
@@ -65,9 +66,6 @@ SPOOL_PATH = "/spool"
 
 #: What this operation is grouped under in the facade API's document.
 SPOOL_TAG = "Receipts"
-
-#: The prefix a Location reference carries before the DHIS2 organisation-unit uid.
-LOCATION_REFERENCE_PREFIX = "Location/"
 
 router = APIRouter()
 
@@ -479,14 +477,17 @@ def _period(response: QuestionnaireResponse, naming: CaptureNaming) -> tuple[str
 
 
 def _organisation_unit(response: QuestionnaireResponse, naming: CaptureNaming) -> str | None:
-    """Where the capture happened: a tracker event's own extension, or the Location subject of the rest."""
+    """Where the capture happened: a tracker event's own extension, or the Location subject of the rest.
+
+    The unit is read out of the reference in whichever spelling the response carries it, relative or
+    absolute into the registry package the guide depends on, so a receipt names the same unit the
+    capture was graded against.
+    """
     extension = _extension(response.extension, naming.organisation_unit_url)
     reference = extension.valueReference.reference if extension and extension.valueReference else None
     if reference is None and response.subject is not None:
         reference = response.subject.reference
-    if reference is None or not reference.startswith(LOCATION_REFERENCE_PREFIX):
-        return None
-    return reference.removeprefix(LOCATION_REFERENCE_PREFIX) or None
+    return None if reference is None else location_id_of(reference)
 
 
 def _enrollment(response: QuestionnaireResponse, naming: CaptureNaming) -> str | None:

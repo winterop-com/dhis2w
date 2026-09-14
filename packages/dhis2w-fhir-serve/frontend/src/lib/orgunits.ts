@@ -80,8 +80,47 @@ export const BOUNDARY_EXTENSION_URL = 'http://hl7.org/fhir/StructureDefinition/l
  */
 export const ORG_UNIT_IDENTIFIER_SYSTEM_SUFFIX = '/id/org-unit'
 
-/** The prefix an assignment List entry names a unit with. */
+/** The prefix a relative Location reference names a unit with. */
 export const LOCATION_REFERENCE_PREFIX = 'Location/'
+
+/**
+ * The Location id a reference names, or null when the reference names something other than a Location.
+ *
+ * ONE UNIT, TWO SPELLINGS. A guide publishing its own organisation-unit registry names a unit by
+ * the relative `Location/<id>`; a guide whose registry a separate package publishes names it by the
+ * absolute `<registry canonical>/Location/<id>`, because a relative reference does not resolve
+ * across an implementation-guide package dependency. Both name one Location, and the id is what
+ * follows the last `Location/`. What follows it has to be the id and nothing else: a history entry
+ * or a query string names something other than the current instance, so `Location/abc/_history/2`
+ * and `<canonical>/Location/abc?_format=json` read as no Location rather than as an id nothing
+ * resolves. So does a reference whose head or tail is empty.
+ *
+ * This is `dhis2w_fhir.location_id_of` written in TypeScript, rule for rule, so the picker offers
+ * exactly the units `dhis2w_fhir_serve.capture.index.CaptureAssignment` admits.
+ *
+ * WHICH AUTHORITY PUBLISHED THE UNIT IS THE SERVER'S CHECK, NOT THIS ONE. The facade admits an
+ * absolute reference only under a canonical it serves - the guide's own, or its registry package's
+ * (`CaptureNaming.organisation_unit_authorities`) - and neither canonical reaches the browser: the
+ * UI config carries the basemaps and the DHIS2 base url and nothing else. So this reads the id off
+ * whatever authority a reference names, and what the page does with it is offer the units the
+ * server itself published in the List it answered with.
+ */
+export function locationIdOf(reference: string | undefined): string | null {
+    if (reference === undefined || reference === '') return null
+    if (reference.startsWith(LOCATION_REFERENCE_PREFIX)) {
+        return locationIdTail(reference.slice(LOCATION_REFERENCE_PREFIX.length))
+    }
+    const separator = `/${LOCATION_REFERENCE_PREFIX}`
+    const separatorIndex = reference.lastIndexOf(separator)
+    if (separatorIndex <= 0) return null
+    return locationIdTail(reference.slice(separatorIndex + separator.length))
+}
+
+/** What follows `Location/` read as an id, or null when it carries more than one. */
+function locationIdTail(tail: string): string | null {
+    if (tail === '' || tail.includes('/') || tail.includes('?')) return null
+    return tail
+}
 
 /** The prefix a Questionnaire's assignment extension names its List with. */
 export const LIST_REFERENCE_PREFIX = 'List/'
@@ -653,9 +692,11 @@ export function visibleBrowseRows(
 /**
  * The reference a chosen unit is written as.
  *
- * `Location/<stem>` is the whole of what the capture contract checks - `_is_location_reference` in
- * `dhis2w_fhir_serve.capture.validate` reads the shape, and the forwarder reads the stem back as
- * the DHIS2 organisation-unit uid. The display rides along only when the registry states a name:
+ * The relative `Location/<stem>` is what a capture written here names its unit by, and the
+ * forwarder reads the stem back as the DHIS2 organisation-unit uid. The facade accepts the
+ * absolute spelling too - it is what the generator writes into a depending guide's own examples -
+ * but a page that already holds the unit has no authority to name it under and no reason to reach
+ * for one. The display rides along only when the registry states a name:
  * `orgUnitName` falls back to the id, and a reference whose display repeats its own reference says
  * nothing and would read as a name on every receipt that showed it.
  */
@@ -667,12 +708,17 @@ export function orgUnitReference(choice: OrgUnitChoice): Reference {
     }
 }
 
-/** The unit id a `Location/<stem>` reference names, or null when it names something else. */
+/**
+ * The unit id a Location reference names, or null when it names something else.
+ *
+ * A response reaches this page in either spelling. The capture UI writes `Location/<id>`, and the
+ * generator writes `<registry canonical>/Location/<id>` into the example responses of a guide
+ * depending on a registry package - which is the body that guide's capture page documents, and
+ * which the facade accepts. Reading both is what shows a receipt the unit's name and its place in
+ * the hierarchy rather than a reference nothing resolved.
+ */
 export function referencedUnitId(reference: Reference | null | undefined): string | null {
-    const stated = reference?.reference
-    if (stated === undefined || !stated.startsWith(LOCATION_REFERENCE_PREFIX)) return null
-    const id = stated.slice(LOCATION_REFERENCE_PREFIX.length)
-    return id === '' ? null : id
+    return locationIdOf(reference?.reference)
 }
 
 /**
@@ -971,13 +1017,20 @@ export function assignmentListIdOf(questionnaire: Questionnaire): string | null 
     return id === '' ? null : id
 }
 
-/** The unit ids an assignment List admits, dropping entries that name something other than a Location. */
+/**
+ * The unit ids an assignment List admits, dropping entries that name something other than a Location.
+ *
+ * One unit is one entry in the answer however many times the List names it. The same unit reaches
+ * a List twice when its entries are written in both spellings, and a unit listed twice would list
+ * its assigned forms twice in the rail that reads this.
+ */
 export function assignedUnitIds(list: ResourceList): string[] {
+    const seen = new Set<string>()
     return (list.entry ?? []).flatMap((entry) => {
-        const reference = entry.item.reference
-        if (reference === undefined || !reference.startsWith(LOCATION_REFERENCE_PREFIX)) return []
-        const id = reference.slice(LOCATION_REFERENCE_PREFIX.length)
-        return id === '' ? [] : [id]
+        const unitId = locationIdOf(entry.item.reference)
+        if (unitId === null || seen.has(unitId)) return []
+        seen.add(unitId)
+        return [unitId]
     })
 }
 

@@ -136,6 +136,9 @@ def test_a_unit_outside_the_resolution_keeps_its_uid_under_the_registry_base() -
         ("Organization/O6uvpzGd5pu", None),
         ("http://example.org/fhir/registry/Location/O6uvpzGd5pu/_history/1", None),
         ("/Location/O6uvpzGd5pu", None),
+        ("Location/O6uvpzGd5pu/_history/2", None),
+        ("Location/O6uvpzGd5pu?_format=json", None),
+        ("http://example.org/fhir/registry/Location/O6uvpzGd5pu?_format=json", None),
     ],
 )
 def test_the_translator_reads_a_location_id_off_both_reference_forms(reference: str, expected: str | None) -> None:

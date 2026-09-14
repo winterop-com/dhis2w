@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from dhis2w_fhir.conversion.values import LOCATION_REFERENCE_PREFIX, location_id_of
 from dhis2w_fhir.foundation.schemas import IDENTIFIER_SYSTEM_SUBJECTS, FoundationNaming
 from dhis2w_fhir.names import join_id_tokens
 from dhis2w_fhir.r4 import Extension, Period
@@ -105,6 +106,35 @@ class CaptureNaming(BaseModel):
     tracker_event_response_profile_url: str
     tracked_entity_response_profile_url: str
 
+    organisation_unit_authorities: tuple[str, ...] = ()
+    """The canonicals an absolute Location reference may name a unit under: this guide's, and its registry's."""
+
+    @property
+    def organisation_unit_authority(self) -> str:
+        """Where this project's organisation units are published - the registry package's canonical, or its own."""
+        return self.organisation_unit_authorities[-1] if self.organisation_unit_authorities else ""
+
+    def location_id_named(self, reference: str) -> str | None:
+        """The unit a response reference names, or None when this project publishes no unit it could name.
+
+        A relative `Location/<id>` names a unit of whatever guide is serving it, so it is read as it
+        stands. An absolute reference names an authority as well as an id, and only two authorities
+        publish a unit this project holds: the guide's own canonical, and the canonical of the
+        registry package it depends on. A reference under any other authority names somebody else's
+        Location, which is a different organisation unit however familiar the id looks.
+        """
+        location_id = location_id_of(reference)
+        if location_id is None or reference.startswith(LOCATION_REFERENCE_PREFIX):
+            return location_id
+        return location_id if self.unserved_authority_of(reference) is None else None
+
+    def unserved_authority_of(self, reference: str) -> str | None:
+        """The authority an absolute Location reference names, when this project publishes nothing under it."""
+        if location_id_of(reference) is None or reference.startswith(LOCATION_REFERENCE_PREFIX):
+            return None
+        authority = reference.rpartition(f"/{LOCATION_REFERENCE_PREFIX}")[0]
+        return None if authority in self.organisation_unit_authorities else authority
+
     @classmethod
     def from_project(cls, project: FhirProject) -> CaptureNaming:
         """Derive every capture name from the project's canonical, naming tokens, and identifier base."""
@@ -140,6 +170,7 @@ class CaptureNaming(BaseModel):
             ),
             tracker_event_response_profile_url=_definition_url(canonical, names.tracker_event_response_profile_id),
             tracked_entity_response_profile_url=_definition_url(canonical, names.tracked_entity_response_profile_id),
+            organisation_unit_authorities=_organisation_unit_authorities(project),
         )
 
     def response_profile_url(self, form_kind: FormKind) -> str:
@@ -168,6 +199,19 @@ def period_extension(period: PeriodValue, naming: CaptureNaming) -> Extension:
             ),
         ],
     )
+
+
+def _organisation_unit_authorities(project: FhirProject) -> tuple[str, ...]:
+    """The canonicals this project publishes an organisation unit under, the registry package's last.
+
+    A guide publishing its own registry publishes its units under its own canonical. A guide
+    depending on a registry package publishes none of its own and references the package's, and the
+    package's canonical is what an absolute reference in one of its own documents names - so it is
+    the one the refusal message points a client at, which is why it comes last.
+    """
+    canonical = project.config.ig.canonical
+    registry = project.config.registry_dependency
+    return (canonical,) if registry is None else (canonical, registry.canonical)
 
 
 def _definition_url(canonical: str, definition_id: str) -> str:

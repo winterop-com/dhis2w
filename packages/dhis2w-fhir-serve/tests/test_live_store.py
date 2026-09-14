@@ -147,6 +147,9 @@ _PROGRAMS_PAYLOAD = {
             "id": "IpHINAT79UW",
             "name": "Child Programme",
             "programType": "WITH_REGISTRATION",
+            # A proper subset of the registry, so this program publishes an assignment List its
+            # stage shares - which is what a response generated against the stage reports from.
+            "organisationUnits": [{"id": "O6uvpzGd5pu"}],
             "programStages": [
                 {
                     "id": "A03MvHHogjR",

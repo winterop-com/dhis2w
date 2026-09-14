@@ -1253,8 +1253,10 @@ A whole number outside the range answers ``` `seed` takes a value between 0 and
 
 The organisation unit a response reports for is drawn from the seed like
 every other value. The set it is drawn over is the one the form admits: the
-organisation units its published assignment names, intersected with the
-served registry, and the whole registry for a form publishing no assignment.
+organisation units its published assignment names - in either spelling, the
+relative `Location/<id>` or the absolute `<registry canonical>/Location/<id>`
+a guide depending on a registry package writes - intersected with the served
+registry, and the whole registry for a form publishing no assignment.
 Same seed, same organisation unit; a different seed ranges over the rest of
 the set, so a corpus generated from a handful of seeds is spread across the
 places the form is captured at rather than filed at one of them. Staying

@@ -1427,6 +1427,20 @@ registration form become `Questionnaire` instances.
 - **The translator reads both reference forms.** `location_id_of` takes the id
   off `Location/<id>` and off `<canonical>/Location/<id>`, so a response
   written against either guide resolves its organisation unit.
+- **The facade reads both forms too.** The capture UI's reporting-unit picker,
+  the `$generate` draw, the assignment grading on receipt, the shape check a
+  submission's own subject and organisation-unit extension pass, and the unit a
+  receipt names all read a reference through the same rule - so a form assigned
+  by absolute registry reference is offered at the units it names, drafts
+  inside them, and accepts the example response the generator wrote for it. An
+  absolute reference is admitted under an authority this project publishes
+  units at - the guide's canonical or its registry package's - and one under
+  any other authority is refused by name, because the same id under somebody
+  else's registry is a different organisation unit.
+- **A form assigned nowhere drafts nothing.** An assignment `List` naming no
+  organisation unit this project publishes admits nothing on receipt, so
+  `$generate` answers 422 naming that List rather than drafting a capture DHIS2
+  would refuse with `E1029`.
 - **Serving, forwarding and checking a depending guide** all find the units
   through one resolver (`dhis2w_fhir.registry_package`): the checkout
   `[generate.organisation_units.registry] path` names, then a `package.tgz` or
@@ -2858,7 +2872,9 @@ control per R4 item type.
   display and the code DHIS2 stores, a boolean as Yes or No, a repeating
   question showing every answer, an organisation-unit answer named off the
   served `Location` when the stored reference carries no display, which is what
-  turns a bare `Location/<uid>` into the place it names. The receipt's own
+  turns a bare reference into the place it names - read in both spellings, so an
+  answer naming `<registry canonical>/Location/<uid>` resolves to its name and
+  its hierarchy link exactly as `Location/<uid>` does. The receipt's own
   capture-context organisation unit is resolved the same way.
 - **A capture-context grid** merges what the spool derived with what the stored
   resource carries, so a fact reaching it from both sources is stated once -

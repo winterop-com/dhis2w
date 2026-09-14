@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from dhis2w_fhir.config import FhirProject, load_fhir_config
 from dhis2w_fhir.registry_package import RegistryMissingError
+from dhis2w_fhir_serve.capture.naming import CaptureNaming
 from dhis2w_fhir_serve.settings import ServeSettings
 from dhis2w_fhir_serve.store import load_compiled_store
 
@@ -192,3 +193,38 @@ def test_the_package_reaches_the_settings_for_the_runtime_to_load_from(tmp_path:
     invocation = ServeSettings.resolve(project, registry_package=package)
 
     assert invocation.settings.registry_package == package
+
+
+def test_the_capture_contract_reads_a_unit_under_the_guide_and_under_its_registry(tmp_path: Path) -> None:
+    """Two canonicals publish a unit of this project, and a reference under either names one.
+
+    A guide depending on a registry package carries both: its own, which its compiled artifacts are
+    published under, and the package's, which is what the generator prefixes every organisation-unit
+    reference with. A reference under anything else names a Location of somebody else's registry.
+    """
+    project = _depending_project(tmp_path, path=str(_checkout(tmp_path)))
+    naming = CaptureNaming.from_project(project)
+
+    assert naming.organisation_unit_authorities == (_CANONICAL, _REGISTRY_CANONICAL)
+    assert naming.organisation_unit_authority == _REGISTRY_CANONICAL
+    assert naming.location_id_named(f"Location/{_UNIT}") == _UNIT
+    assert naming.location_id_named(f"{_REGISTRY_CANONICAL}/Location/{_UNIT}") == _UNIT
+    assert naming.location_id_named(f"{_CANONICAL}/Location/{_UNIT}") == _UNIT
+    assert naming.location_id_named(f"https://hapi.fhir.org/baseR4/Location/{_UNIT}") is None
+    assert naming.unserved_authority_of(f"https://hapi.fhir.org/baseR4/Location/{_UNIT}") == (
+        "https://hapi.fhir.org/baseR4"
+    )
+
+
+def test_a_guide_publishing_its_own_registry_names_one_authority(tmp_path: Path) -> None:
+    """With no registry package named, the guide's own canonical is where its units are published."""
+    config_path = tmp_path / "fhir.toml"
+    config_path.write_text(_MINIMAL_FHIR_TOML, encoding="utf-8")
+    (tmp_path / "ig" / "fsh-generated" / "resources").mkdir(parents=True)
+    project = FhirProject(config=load_fhir_config(config_path), config_path=config_path.resolve())
+
+    naming = CaptureNaming.from_project(project)
+
+    assert naming.organisation_unit_authorities == (_CANONICAL,)
+    assert naming.location_id_named(f"{_CANONICAL}/Location/{_UNIT}") == _UNIT
+    assert naming.location_id_named(f"{_CANONICAL}/registry/Location/{_UNIT}") is None

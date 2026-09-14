@@ -175,6 +175,57 @@ def test_a_strict_facade_refuses_the_subject_a_lenient_one_warns_about(
     assert refused[0].expression == "QuestionnaireResponse.subject.reference"
 
 
+#: The unit the golden aggregate response reports for, named absolutely under the authority this
+#: project publishes its organisation units at - the spelling a guide whose registry a package
+#: publishes uses, and the only one that resolves across an implementation-guide package dependency.
+_ADMITTED_LOCATION_ABSOLUTE = f"{CANONICAL}/{_ADMITTED_LOCATION}"
+
+#: A Location under somebody else's authority. The id is this project's, the registry is not.
+_FOREIGN_LOCATION = f"https://hapi.fhir.org/baseR4/{_ADMITTED_LOCATION}"
+
+
+def test_an_absolute_assignment_entry_admits_the_unit_it_names(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """One unit, two spellings: an assignment written against a registry package admits a relative subject."""
+    store = _scoped_store(capture_store, _ADMITTED_LOCATION_ABSOLUTE)
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, store)
+
+    assert _assignment_issues(accepted.warnings) == ()
+
+
+def test_an_absolute_assignment_entry_still_refuses_a_unit_it_does_not_name(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """Reading the id off an absolute entry narrows the assignment to that unit, not to the registry."""
+    store = _scoped_store(capture_store, f"{CANONICAL}/Location/O6uvpzGd5pu")
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, store)
+
+    assert len(_assignment_issues(accepted.warnings)) == 1
+
+
+def test_an_assignment_entry_naming_something_other_than_a_location_admits_nothing(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """An `Organization` entry names the same DHIS2 unit and is still not a Location the form is captured at."""
+    store = _scoped_store(capture_store, "Organization/ImspTQPwCqd", f"{CANONICAL}/Organization/x")
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, store)
+
+    assert len(_assignment_issues(accepted.warnings)) == 1
+
+
 def test_an_empty_assignment_admits_nothing(
     aggregate_response: dict[str, Any],
     capture_indexes: CaptureIndexCache,
@@ -330,3 +381,53 @@ def test_an_organisation_unit_answer_outside_the_assignment_grades_on_the_dial(
 
     assert len(issues) == 1
     assert issues[0].expression == "QuestionnaireResponse.item.where(linkId='DeVisitUnit1')"
+
+
+def test_an_organisation_unit_answer_written_absolutely_is_read_as_the_unit_it_names(
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """A response naming its unit under the registry package's canonical is graded against the same unit."""
+    store = _temporal_store(capture_store, _ADMITTED_LOCATION_ABSOLUTE)
+
+    accepted = _accept(_temporal_response(_ADMITTED_LOCATION_ABSOLUTE), capture_indexes, capture_naming, store)
+
+    assert _assignment_issues(accepted.warnings) == ()
+
+
+def test_a_subject_naming_a_location_under_another_authority_is_refused(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """The id is this project's and the registry is not, so the reference names a different place."""
+    store = _scoped_store(capture_store, _ADMITTED_LOCATION)
+    aggregate_response["subject"] = {"reference": _FOREIGN_LOCATION}
+
+    rejection = _refuse(aggregate_response, capture_indexes, capture_naming, store)
+
+    refused = _errors(rejection)
+    assert len(refused) == 1
+    assert refused[0].expression == "QuestionnaireResponse.subject.reference"
+    assert refused[0].diagnostics is not None
+    assert "names an organisation unit under `https://hapi.fhir.org/baseR4`" in refused[0].diagnostics
+    assert f"published under `{CANONICAL}`" in refused[0].diagnostics
+
+
+def test_an_organisation_unit_answer_under_another_authority_is_refused(
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """An answer naming somebody else's registry is refused rather than read as a unit of this one."""
+    store = _temporal_store(capture_store, _ADMITTED_LOCATION)
+
+    rejection = _refuse(_temporal_response(_FOREIGN_LOCATION), capture_indexes, capture_naming, store)
+
+    refused = _errors(rejection)
+    assert len(refused) == 1
+    assert refused[0].expression == "QuestionnaireResponse.item.where(linkId='DeVisitUnit1')"
+    assert refused[0].diagnostics is not None
+    assert "names an organisation unit under `https://hapi.fhir.org/baseR4`" in refused[0].diagnostics

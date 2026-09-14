@@ -95,7 +95,20 @@ differ.
 | `D2SubjectExists` | not read | not read | optional, 0..1 | not read | not read |
 | `D2AttributeOptionCombo` | form-driven | form-driven | form-driven | form-driven | form-driven |
 
-Three readings of that table are worth stating out loud.
+Four readings of that table are worth stating out loud.
+
+**A Location reference is read in both spellings.** `Location/<uid>` names a
+unit of the guide serving it. `<canonical>/Location/<uid>` names the same unit
+under the authority that published it, which is what the generator writes into
+every document of a guide depending on an organisation-unit
+[registry package](201-registry-package.md), because a relative reference does
+not resolve across a package dependency. Both are admitted wherever the table
+says `Location/<uid>` - the subject, the `D2OrganisationUnit` extension, and an
+`ORGANISATION_UNIT` answer - and the authority is checked: the guide's own
+canonical and its registry package's are the two a unit may be published under,
+and a reference under any other is refused naming the authority it should have
+carried. What follows `Location/` has to be the uid and nothing else, so a
+history entry or a query string names no unit.
 
 **"Not read" means exactly that.** An extension outside its kind's column is
 neither refused nor warned about - it rides into the receipt untouched. There
