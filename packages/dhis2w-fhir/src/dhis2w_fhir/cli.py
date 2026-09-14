@@ -1985,7 +1985,7 @@ def serve_command(
     # The app is built before the banner so a missing UI bundle refuses as one line here, the way
     # a taken port does, rather than under a message saying the server is starting.
     application = create_app(settings)
-    surface = _serve_surface(capture=settings.capture, ui=settings.ui)
+    surface = _serve_surface(capture=settings.capture, ui=settings.ui, publishes=settings.publishes)
     _line(
         f"starting {project.project_root} on http://{invocation.host}:{invocation.port} as a {surface} (ctrl-c to stop)"
     )
@@ -2000,13 +2000,20 @@ def serve_command(
     _run_server(application, host=invocation.host, port=invocation.port)
 
 
-def _serve_surface(*, capture: bool, ui: bool) -> str:
+def _serve_surface(*, capture: bool, ui: bool, publishes: str | None = None) -> str:
     """What one run is, as the starting line names it: what it serves, and whether it receives.
 
     A run that receives nothing says so on the line that starts it, because every other sign of it
     is a refusal somebody meets later - a 405 on a submission, a Submit the screens will not offer.
+
+    A package says what it publishes rather than what it receives: it holds no form, so "receiving
+    no submissions" would read as a dial somebody turned off rather than as the shape of the project.
     """
+    from dhis2w_fhir_serve import package_subject
+
     surface = ("FHIR endpoint + capture UI" if capture else "FHIR endpoint + screens") if ui else "FHIR endpoint"
+    if publishes is not None:
+        return f"{surface} publishing {package_subject(publishes)} and no forms"
     return surface if capture else f"{surface}, receiving no submissions"
 
 

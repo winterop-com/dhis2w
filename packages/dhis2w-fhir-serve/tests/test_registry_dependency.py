@@ -168,21 +168,38 @@ def resolvable_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DHIS2_PROFILE", raising=False)
 
 
-def test_a_live_run_needs_no_registry_package(
+def test_a_live_run_reads_the_registry_the_compiled_run_reads(
     tmp_path: Path,
     resolvable_profile: None,  # noqa: ARG001 - the fixture is the environment this test needs
 ) -> None:
-    """`--live` builds its units off the instance, so the registry package is nothing to it.
+    """`--live` serves the package's units, so a reachable registry is what it resolves against.
 
-    The guide here declares a registry and can reach neither source, which a compiled run refuses
-    on; a live run resolves anyway, which is what says the preflight is skipped rather than passed.
+    The guide here declares a registry and a checkout answers for it, and the run resolves with no
+    package named - the same answer the compiled preflight gives on the same project.
     """
-    project = _depending_project(tmp_path / "guide")
+    _checkout(tmp_path / "registry")
+    project = _depending_project(tmp_path / "guide", path="../registry")
 
     invocation = ServeSettings.resolve(project, live=True)
 
     assert invocation.settings.live is True
     assert invocation.settings.registry_package is None
+
+
+def test_a_live_run_reaching_no_registry_refuses_exactly_as_a_compiled_one_does(
+    tmp_path: Path,
+    resolvable_profile: None,  # noqa: ARG001 - the fixture is the environment this test needs
+) -> None:
+    """A missing registry is refused rather than fallen back on, whichever store the run was started over.
+
+    Falling back would publish a unit of this guide's own at this guide's base URL for every place
+    the package publishes elsewhere, so a client developed against `--live` would resolve units the
+    published guide never names - and under `naming.source = "code"` it would resolve the wrong one.
+    """
+    project = _depending_project(tmp_path / "guide")
+
+    with pytest.raises(RegistryMissingError, match=_REGISTRY_ID):
+        ServeSettings.resolve(project, live=True)
 
 
 def test_the_package_reaches_the_settings_for_the_runtime_to_load_from(tmp_path: Path) -> None:

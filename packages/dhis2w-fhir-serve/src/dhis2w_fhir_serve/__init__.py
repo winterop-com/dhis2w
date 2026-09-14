@@ -65,6 +65,7 @@ from dhis2w_fhir_serve.errors import (
     NotFoundError,
     NotServedError,
     NotServedFromCompiledIgError,
+    PackagePublishesNoFormsError,
     ProjectionEmptyError,
     ProjectionNotConfiguredError,
     RecordDisabledError,
@@ -74,6 +75,8 @@ from dhis2w_fhir_serve.errors import (
     UnknownFilterAttributeError,
     UpstreamError,
     outcome,
+    package_statement,
+    package_subject,
     register_error_handlers,
 )
 from dhis2w_fhir_serve.evaluation import (
@@ -97,7 +100,7 @@ from dhis2w_fhir_serve.history.wire import (
 )
 from dhis2w_fhir_serve.live import build_live_store, open_live_client
 from dhis2w_fhir_serve.log import RequestLogMiddleware, configure_logging
-from dhis2w_fhir_serve.metadata import build_metadata_body
+from dhis2w_fhir_serve.metadata import ServedMetadata, build_served_metadata
 from dhis2w_fhir_serve.oidc import (
     CLOCK_LEEWAY_SECONDS,
     JWKS_MINIMUM_CACHE_SECONDS,
@@ -361,10 +364,10 @@ __all__ = [
     "BROWSER_SAFE_BASIC_SCHEME",
     "build_capture_index",
     "build_live_store",
-    "build_metadata_body",
     "build_name_search_index",
     "build_projection_store",
     "build_security",
+    "build_served_metadata",
     "build_server_capability",
     "build_store",
     "cache_seconds",
@@ -478,6 +481,9 @@ __all__ = [
     "open_projection_store",
     "open_serve_runtime",
     "outcome",
+    "package_statement",
+    "package_subject",
+    "PackagePublishesNoFormsError",
     "page_of",
     "PAGE_PARAMETER",
     "PassThroughUnavailableError",
@@ -556,6 +562,7 @@ __all__ = [
     "SERVE_TOKENS_VARIABLE",
     "ServeAuthConfigurationError",
     "ServeContext",
+    "ServedMetadata",
     "ServedRegister",
     "ServeError",
     "ServeInvocation",

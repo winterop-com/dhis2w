@@ -423,7 +423,7 @@ as a live FHIR endpoint a client can call:
 ```console
 $ uv run d2w fhir serve --port 8091
 starting /home/you/my-ig on http://127.0.0.1:8091 as a FHIR endpoint (ctrl-c to stop)
-INFO dhis2w_fhir_serve loaded the compiled IG at /home/you/my-ig: 2803 resources across 14 types, 0 stored responses
+INFO dhis2w_fhir_serve loaded the compiled IG at /home/you/my-ig: 2803 resources across 14 types in the store, 12 resource types declared at /metadata, 0 stored responses
 ```
 
 It binds loopback, and by default it asks nobody who they are - so reaching it

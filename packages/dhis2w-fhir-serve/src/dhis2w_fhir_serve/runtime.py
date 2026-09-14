@@ -50,7 +50,7 @@ from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir_serve.auth import JWT_VERIFIER_ATTRIBUTE, open_jwt_verifier
 from dhis2w_fhir_serve.live import build_live_store, open_live_client
-from dhis2w_fhir_serve.metadata import build_metadata_body
+from dhis2w_fhir_serve.metadata import build_served_metadata
 from dhis2w_fhir_serve.oidc import JwtVerifier
 from dhis2w_fhir_serve.passthrough import open_pass_through_client
 from dhis2w_fhir_serve.projection.base import ProjectionStore
@@ -92,6 +92,9 @@ class ServeContext(BaseModel):
 
     capability_body: dict[str, Any]
     """The `/metadata` document, pre-rendered - the same HTTP-boundary escape hatch `StoreEntry.body` documents."""
+
+    declared_resource_types: tuple[str, ...] = ()
+    """The resource types that document declares, which the starting line counts beside the store's own."""
 
 
 class ServeRuntime(BaseModel):
@@ -176,6 +179,13 @@ async def open_serve_runtime(
         register_surface = RegisterSurface.resolve(
             TrackedEntityIndex.from_store(project, store), settings.tracked_entities
         )
+        metadata = build_served_metadata(
+            project=project,
+            store_summary=store.summary(),
+            settings=settings,
+            register_surface=register_surface,
+            server_version=server_version(),
+        )
         yield ServeRuntime(
             context=ServeContext(
                 project=project,
@@ -183,13 +193,8 @@ async def open_serve_runtime(
                 spool=spool,
                 settings=settings,
                 register_surface=register_surface,
-                capability_body=build_metadata_body(
-                    project=project,
-                    store_summary=store.summary(),
-                    settings=settings,
-                    register_surface=register_surface,
-                    server_version=server_version(),
-                ),
+                capability_body=metadata.body,
+                declared_resource_types=metadata.declared_resource_types,
             ),
             live_client=live,
             caller_client=caller,

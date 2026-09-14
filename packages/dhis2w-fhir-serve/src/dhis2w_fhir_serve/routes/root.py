@@ -25,6 +25,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from dhis2w_fhir_serve.errors import BatchNotSupportedError, NotAnEndpointError
+from dhis2w_fhir_serve.routes.context import serve_context
 
 #: The path a FHIR service base is, and the methods this facade refuses on it.
 SERVICE_BASE_PATH = "/"
@@ -43,7 +44,12 @@ def build_root_router(serve_ui: bool) -> APIRouter:
 
 
 async def _refuse_base_interaction(request: Request) -> Response:
-    """Refuse the interaction the service base was asked for, in the terms it was asked in."""
+    """Refuse the interaction the service base was asked for, in the terms it was asked in.
+
+    A package says what it is while refusing the read: the base URL is where a person points a
+    browser first, and "not an endpoint" alone leaves them looking for the forms a package has none
+    of. A guide's base answers the sentence it always has.
+    """
     if request.method in READ_METHODS:
-        raise NotAnEndpointError(request.url.path)
+        raise NotAnEndpointError(request.url.path, publishes=serve_context(request).settings.publishes)
     raise BatchNotSupportedError(request.method)

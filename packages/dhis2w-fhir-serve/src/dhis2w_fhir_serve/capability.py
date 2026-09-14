@@ -37,6 +37,13 @@ data set, at one organisation unit, over the periods a client names, is read at
 `/facade/data-sets/{uid}/responses`, in the shape that data set's own published form describes. Its
 address is the data set's, so it is prose here and no interaction anywhere.
 
+A PACKAGE DECLARES NO QUESTIONNAIRERESPONSE AT ALL, and no `$generate` beside it. `[ig] publishes`
+says this project holds no form and never will - it publishes organisation units for guides to
+depend on - so the entry a guide declares to say "post your submissions here" would name an address
+nothing could ever be posted to. The statement says what the project is instead, in the sentence the
+banner, the service base and the refusal of a submission all say, and every other entry is
+unchanged: a package serves its reads exactly as a guide serves its own.
+
 A process serving `[serve] capture = false` declares that entry without `create`, and with nothing
 else about it changed. The receipts it already holds are read and searched at the same address, so
 dropping their interactions would be this statement claiming less than the server does. `$generate`
@@ -119,6 +126,7 @@ from dhis2w_fhir.r4 import (
     Extension,
 )
 
+from dhis2w_fhir_serve.errors import package_statement, package_subject
 from dhis2w_fhir_serve.register.filtering import ATTRIBUTE_FILTER_PARAMETER
 from dhis2w_fhir_serve.register.projection import PERSON_RESOURCE_TYPES
 from dhis2w_fhir_serve.spool import current_instant
@@ -378,6 +386,12 @@ _VIEWER_REST_DOCUMENTATION = (
     "it has already received."
 )
 
+#: What one interaction with a package is, where the other two sentences would both name a receipt.
+PACKAGE_REST_DOCUMENTATION = (
+    "Every interaction is a read over the resources this package publishes. It holds no form and "
+    "receives no QuestionnaireResponse."
+)
+
 #: R4's own code system for the schemes a `rest.security` may name.
 SECURITY_SERVICE_SYSTEM = "http://terminology.hl7.org/CodeSystem/restful-security-service"
 
@@ -506,16 +520,23 @@ def build_server_capability(
     """State what this process serves: the capture contract, the read types the store holds, and the register."""
     canonical = project.config.ig.canonical
     names = FoundationNaming.from_naming(project.config.generate.naming)
+    forms = settings.publishes is None
     resources = [
-        _response_resource(
-            project,
-            canonical,
-            capture=settings.capture,
-            record=settings.live and register_surface.serves_events(),
-            data_set_responses=settings.live and settings.data_sets.responses,
+        *(
+            [
+                _response_resource(
+                    project,
+                    canonical,
+                    capture=settings.capture,
+                    record=settings.live and register_surface.serves_events(),
+                    data_set_responses=settings.live and settings.data_sets.responses,
+                )
+            ]
+            if forms
+            else []
         ),
         *(
-            _read_resource(resource_type, project.config.generate.identifier_system_base, canonical, names)
+            _read_resource(resource_type, project.config.generate.identifier_system_base, canonical, names, forms=forms)
             for resource_type in SERVED_READ_RESOURCE_TYPES
             if resource_type in store_summary.counts_by_type
         ),
@@ -525,17 +546,7 @@ def build_server_capability(
         status="active",
         date=current_instant(),
         kind="instance",
-        description=(
-            f"{project.config.ig.title} served as a FHIR capture facade: {store_summary.total} resources "
-            f"in the store, served under the {len(resources)} resource types this statement declares. "
-            f"`GET /facade/spool` states how many responses "
-            f"are stored, which is a number that changes while this server runs. Beside the FHIR surface "
-            f"this process also answers `POST /facade/evaluate` (the same evaluation the declared `$evaluate` "
-            f"operation answers, in this project's own JSON shape, with the line and column a parser "
-            f"stopped on), "
-            f"`GET /facade/terminology/validate-code` and `GET /facade/terminology/lookup` (this guide's own "
-            f"vocabularies, not a terminology server), and `GET /cds-services` (CDS Hooks, one service)."
-        ),
+        description=_statement_description(project, store_summary, settings, declared=len(resources)),
         instantiates=[f"{canonical}/CapabilityStatement/{names.capture_server_id}"],
         software=CapabilityStatementSoftware(name=SOFTWARE_NAME, version=server_version),
         implementation=CapabilityStatementImplementation(description=_implementation_description(settings)),
@@ -544,7 +555,7 @@ def build_server_capability(
         rest=[
             CapabilityStatementRest(
                 mode="server",
-                documentation=_REST_DOCUMENTATION if settings.capture else _VIEWER_REST_DOCUMENTATION,
+                documentation=_rest_documentation(settings),
                 security=build_security(
                     settings.auth,
                     settings.auth_scope,
@@ -564,6 +575,47 @@ def build_server_capability(
     )
 
 
+def _statement_description(
+    project: FhirProject, store_summary: StoreSummary, settings: ServeSettings, *, declared: int
+) -> str:
+    """What this process holds and what it declares, counted the way the startup line counts it.
+
+    THE TWO COUNTS ARE DIFFERENT NUMBERS AND EACH SAYS WHICH IT IS. The store holds every resource
+    the project wrote, including types this server answers no interaction for - a NamingSystem, a
+    StructureMap - and the statement declares the types it serves, QuestionnaireResponse among them
+    whether or not a receipt has ever been stored. So the sentence states both, names each, and says
+    what a type in one and not the other means. `dhis2w_fhir_serve.app` logs the same pair.
+    """
+    held = (
+        f"{store_summary.total} resources across {len(store_summary.counts_by_type)} types in the store, "
+        f"served under the {declared} resource types this statement declares - a type the store holds that "
+        "this statement declares no interaction for is not served."
+    )
+    beside = (
+        "Beside the FHIR surface this process also answers `POST /facade/evaluate` (the same evaluation the "
+        "declared `$evaluate` operation answers, in this project's own JSON shape, with the line and column "
+        "a parser stopped on), `GET /facade/terminology/validate-code` and `GET /facade/terminology/lookup` "
+        "(this project's own vocabularies, not a terminology server), and `GET /cds-services` (CDS Hooks, "
+        "one service)."
+    )
+    if settings.publishes is not None:
+        return (
+            f"{project.config.ig.title} served as a FHIR endpoint: {held} "
+            f"{package_statement(settings.publishes)} {beside}"
+        )
+    return (
+        f"{project.config.ig.title} served as a FHIR capture facade: {held} `GET /facade/spool` states how "
+        f"many responses are stored, which is a number that changes while this server runs. {beside}"
+    )
+
+
+def _rest_documentation(settings: ServeSettings) -> str:
+    """What one interaction with this server is, for the three things a process may be."""
+    if settings.publishes is not None:
+        return PACKAGE_REST_DOCUMENTATION
+    return _REST_DOCUMENTATION if settings.capture else _VIEWER_REST_DOCUMENTATION
+
+
 def _implementation_description(settings: ServeSettings) -> str:
     """What this installation is, in the words of the mode it was started in.
 
@@ -571,7 +623,16 @@ def _implementation_description(settings: ServeSettings) -> str:
     stands in front of a DHIS2 instance, and a compiled one stands in front of a build, so each says
     what it is rather than sharing a sentence with a parenthesis in it. What they share is the fact
     about the receipts, which is true of both and is what a client reading one back has to know.
+
+    A package is the third thing and shares neither sentence: it receives nothing and holds no
+    receipt to describe, so it says what it publishes instead.
     """
+    if settings.publishes is not None:
+        stood_in_front_of = "a live DHIS2 instance" if settings.live else "a compiled package"
+        return (
+            f"A FHIR endpoint over {stood_in_front_of}, publishing {package_subject(settings.publishes)} and "
+            "no form. It receives no submission and stores no receipt."
+        )
     if settings.live:
         return LIVE_IMPLEMENTATION_DESCRIPTION
     return COMPILED_IMPLEMENTATION_DESCRIPTION
@@ -764,15 +825,19 @@ def _read_documentation(resource_type: str) -> str | None:
 
 
 def _operations(
-    resource_type: str, canonical: str, names: FoundationNaming
+    resource_type: str, canonical: str, names: FoundationNaming, *, forms: bool
 ) -> list[CapabilityStatementOperation] | None:
     """The operations one read type is answered under, or nothing for a type this server only reads.
 
     Two types carry one each, and each is the type its own URL names: `$generate` fills a served
     form, so it rides Questionnaire; `$translate` reads a mapping back into DHIS2 identifiers, so it
     rides ConceptMap. A client following either entry reaches the endpoint that answers it.
+
+    `forms` is false on a package, which publishes no form to fill: `$generate` is left undeclared
+    as a fact about the project rather than as a consequence of a store that happens to hold no
+    Questionnaire today.
     """
-    if resource_type == QUESTIONNAIRE_RESOURCE_TYPE:
+    if resource_type == QUESTIONNAIRE_RESOURCE_TYPE and forms:
         return [
             CapabilityStatementOperation(
                 name=GENERATE_OPERATION_CODE,
@@ -842,12 +907,14 @@ def _read_resource(
     identifier_system_base: str,
     canonical: str,
     names: FoundationNaming,
+    *,
+    forms: bool = True,
 ) -> CapabilityStatementResource:
     """Declare one read type the store holds, with the three search parameters the facade answers."""
     return CapabilityStatementResource(
         type=resource_type,
         documentation=_read_documentation(resource_type),
-        operation=_operations(resource_type, canonical, names),
+        operation=_operations(resource_type, canonical, names, forms=forms),
         interaction=[
             CapabilityStatementInteraction(code="read"),
             CapabilityStatementInteraction(code="search-type"),

@@ -9,7 +9,7 @@ from dhis2w_fhir_serve.capability import (
     SECURITY_SERVICE_SYSTEM,
     build_server_capability,
 )
-from dhis2w_fhir_serve.metadata import build_metadata_body
+from dhis2w_fhir_serve.metadata import build_served_metadata
 from dhis2w_fhir_serve.register.index import TrackedEntityIndex
 from dhis2w_fhir_serve.register.surface import RegisterSurface
 from dhis2w_fhir_serve.settings import ServeSettings
@@ -67,18 +67,19 @@ def test_capability_reports_the_store_and_points_at_the_spool_for_the_queue(comp
     capability = _capability(compiled_project, FULL_SUMMARY)
 
     assert capability.description is not None
-    assert "24 resources in the store" in capability.description
+    assert "24 resources across 7 types in the store" in capability.description
     assert "`GET /facade/spool` states how many responses are stored" in capability.description
     assert "stored responses at startup" not in capability.description
 
 
 def test_the_stated_type_count_is_the_one_the_statement_itself_declares(compiled_project: FhirProject) -> None:
-    """The summary sentence counts the entries below it, never the store's own types.
+    """The sentence states both counts and names each: what the store holds, and what is declared.
 
     The two numbers are different in both directions. A StructureMap is a compiled artifact this
     facade serves no read for, so it is in the store and in no entry; QuestionnaireResponse is the
-    capture type, so it is an entry whether or not a receipt has ever been stored. Counting the store
-    would put a number in the prose that the table of entries beside it contradicts.
+    capture type, so it is an entry whether or not a receipt has ever been stored. Stating one
+    number alone would put a figure in the prose that the table of entries beside it contradicts -
+    and the same pair two lines apart in the starting line.
     """
     with_unserved = StoreSummary(counts_by_type={**FULL_SUMMARY.counts_by_type, "StructureMap": 1})
 
@@ -87,8 +88,11 @@ def test_the_stated_type_count_is_the_one_the_statement_itself_declares(compiled
 
     assert "StructureMap" not in [resource.type for resource in declared]
     assert capability.description is not None
+    assert f"across {len(with_unserved.counts_by_type)} types in the store" in capability.description
     assert f"served under the {len(declared)} resource types this statement declares" in capability.description
-    assert "8 resource types" in capability.description
+    assert "a type the store holds that this statement declares no interaction for is not served" in (
+        capability.description
+    )
 
 
 def test_each_store_mode_says_what_this_installation_is(compiled_project: FhirProject) -> None:
@@ -241,18 +245,21 @@ def test_a_type_the_store_lost_drops_out_of_the_statement(compiled_project: Fhir
 def test_capability_round_trips_through_the_r4_model(compiled_project: FhirProject) -> None:
     capability = _capability(compiled_project, FULL_SUMMARY)
 
-    body = build_metadata_body(
+    metadata = build_served_metadata(
         project=compiled_project,
         store_summary=FULL_SUMMARY,
         settings=ServeSettings(project_dir=compiled_project.project_root),
         register_surface=_register_surface(compiled_project),
         server_version="9.9.9",
     )
-    revalidated = CapabilityStatement.model_validate(body)
+    revalidated = CapabilityStatement.model_validate(metadata.body)
 
     assert revalidated.model_dump(exclude={"date"}) == capability.model_dump(exclude={"date"})
-    assert "url" not in body
-    assert "experimental" not in body
+    assert "url" not in metadata.body
+    assert "experimental" not in metadata.body
+    assert metadata.declared_resource_types == tuple(
+        resource.type for rest in capability.rest or [] for resource in rest.resource or [] if resource.type is not None
+    )
 
 
 def test_the_security_element_is_declared_in_every_posture_including_the_one_that_checks_no_credential(
