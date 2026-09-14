@@ -295,3 +295,153 @@ def test_the_command_scans_a_project_named_on_the_command_line(project_root: Pat
     )
     result = _runner.invoke(build_app(), ["fhir", "check-artifacts", str(project_root)])
     assert result.exit_code == 1, result.output
+
+
+def _write_sushi_config(root: Path, **identity: str) -> None:
+    """Write the identity lines of a sushi-config in the shape the scaffold writes them."""
+    description = identity.get("description", "Check example guide, generated from DHIS2 metadata by d2w fhir.")
+    lines = [
+        "id: dhis2.fhir.check",
+        "canonical: http://example.org/fhir/check",
+        f"name: {identity.get('name', 'CheckExample')}",
+        f"title: {identity.get('title', 'Check example guide')}",
+        f"description: {description}",
+        "status: draft",
+        "publisher:",
+        f"  name: {identity.get('publisher', 'Example Organisation')}",
+    ]
+    (root / "ig/sushi-config.yaml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_the_ig_title_is_scanned_before_anything_has_compiled(project_root: Path) -> None:
+    """The guide's own title aborts the publisher too, and a project that has only generated carries it nowhere else."""
+    (project_root / "fhir.toml").write_text(
+        _MINIMAL_TOML.replace('title = "Check example guide"', 'title = "Demo <Guide>"'), encoding="utf-8"
+    )
+    finding = _report(project_root).findings[0]
+    assert finding.file == "fhir.toml"
+    assert finding.field == "ig.title"
+    assert finding.value == "Demo <Guide>"
+    assert finding.origin is artifacts.FindingOrigin.IG_IDENTITY
+    assert finding.severity == "build-aborting"
+
+
+def test_an_ig_identity_finding_names_the_key_that_states_it(project_root: Path) -> None:
+    """The publisher name came from fhir.toml, so the remedy is that table and a refresh - not a rename in DHIS2."""
+    (project_root / "fhir.toml").write_text(
+        _MINIMAL_TOML.replace('publisher = "Example Organisation"', 'publisher = "Ministry <Health>"'),
+        encoding="utf-8",
+    )
+    finding = _report(project_root).findings[0]
+    assert finding.remedy == "Change `[ig] publisher` in fhir.toml, then run `d2w fhir init --refresh`."
+    assert "DHIS2" not in finding.remedy
+
+
+def test_a_dhis2_name_keeps_the_remedy_that_names_dhis2(project_root: Path) -> None:
+    """A finding on a generated artifact is still answered where the name lives, which is the instance."""
+    _write_resource(
+        project_root / "ig/fsh-generated/resources/CodeSystem-d2-os-Age.json",
+        {"resourceType": "CodeSystem", "id": "d2-os-Age", "title": _ABORTING_NAME},
+    )
+    finding = _report(project_root).findings[0]
+    assert finding.origin is artifacts.FindingOrigin.DHIS2
+    assert "Rename it in DHIS2" in finding.remedy
+
+
+def test_the_ig_description_is_scanned_where_the_publisher_reads_it(project_root: Path) -> None:
+    """fhir.toml spells no description, so the one sushi-config carries is read off that file."""
+    _write_sushi_config(project_root, description="Demo <Guide>, generated from DHIS2 metadata by d2w fhir.")
+    finding = _report(project_root).findings[0]
+    assert finding.file == "ig/sushi-config.yaml"
+    assert finding.field == "description"
+    assert finding.remedy.startswith("Change the `[ig]` table in fhir.toml")
+
+
+def test_one_identity_stated_in_both_files_is_one_finding(project_root: Path) -> None:
+    """fhir.toml is the source, so a sushi-config carrying the same value is not a second row about it."""
+    (project_root / "fhir.toml").write_text(
+        _MINIMAL_TOML.replace('title = "Check example guide"', 'title = "Demo <Guide>"'), encoding="utf-8"
+    )
+    _write_sushi_config(project_root, title="Demo <Guide>")
+    assert [(finding.file, finding.field) for finding in _report(project_root).findings] == [("fhir.toml", "ig.title")]
+
+
+def test_a_sushi_config_edited_away_from_fhir_toml_is_read_as_the_publisher_finds_it(project_root: Path) -> None:
+    """The publisher reads sushi-config, so a title only that file carries is found where it sits."""
+    _write_sushi_config(project_root, title="Demo <Guide>")
+    finding = next(item for item in _report(project_root).findings if item.field == "title")
+    assert finding.file == "ig/sushi-config.yaml"
+    assert finding.remedy == "Change `[ig] title` in fhir.toml, then run `d2w fhir init --refresh`."
+
+
+def _write_assignment_list(root: Path, list_id: str, *, entries: list[str]) -> None:
+    """Write one organisation-unit assignment List where the generate target writes it."""
+    directory = root / "ig/input/resources/assignments"
+    directory.mkdir(parents=True, exist_ok=True)
+    document: dict[str, Any] = {
+        "resourceType": "List",
+        "id": list_id,
+        "status": "current",
+        "mode": "snapshot",
+        "title": "ANC 1st visit - assigned organisation units",
+    }
+    if entries:
+        document["entry"] = [{"item": {"reference": f"Location/{uid}"}} for uid in entries]
+    _write_resource(directory / f"List-{list_id}.json", document)
+
+
+def _write_assigned_form(root: Path, stem: str, list_id: str) -> None:
+    """Write one generated Questionnaire naming the assignment List that scopes it."""
+    _write_generated_fsh(
+        root / f"ig/input/fsh/foundation/{stem}.fsh",
+        f"Instance: Q{stem}\nInstanceOf: Questionnaire\n"
+        f"* extension[assignment].valueReference = Reference(List/{list_id})\n",
+    )
+
+
+def test_a_form_whose_assignment_names_no_unit_is_a_warning(project_root: Path) -> None:
+    """A form nobody can submit publishes perfectly well, so the build runs and the scan says what it costs."""
+    _write_assignment_list(project_root, "d2-ds-BfMAe6Itzgt-org-units", entries=[])
+    _write_assigned_form(project_root, "anc", "d2-ds-BfMAe6Itzgt-org-units")
+    report = _report(project_root)
+    finding = report.findings[0]
+    assert finding.kind == "assignment"
+    assert finding.severity == "warning"
+    assert finding.resource_id == "anc"
+    assert finding.value == "List/d2-ds-BfMAe6Itzgt-org-units"
+    assert "max_level" in finding.remedy
+    assert report.build_aborting_count == 0
+    assert report.warning_count == 1
+
+
+def test_an_assignment_that_names_a_unit_raises_nothing(project_root: Path) -> None:
+    """A narrowed assignment is the artifact working as designed; only an empty one is a form nobody may report."""
+    _write_assignment_list(project_root, "d2-ds-BfMAe6Itzgt-org-units", entries=["ImspTQPwCqd"])
+    _write_assigned_form(project_root, "anc", "d2-ds-BfMAe6Itzgt-org-units")
+    assert _report(project_root).finding_count == 0
+
+
+def test_every_form_on_one_empty_assignment_is_counted(project_root: Path) -> None:
+    """A tracker program's stages share one List and each publishes a form, so the count is of forms."""
+    _write_assignment_list(project_root, "d2-pr-IpHINAT79UW-org-units", entries=[])
+    for stage in ("A03MvHHogjR", "ZzYYXq4fJie"):
+        _write_assigned_form(project_root, stage, "d2-pr-IpHINAT79UW-org-units")
+    report = _report(project_root)
+    assert report.warning_count == 2
+    assert {finding.resource_id for finding in report.findings} == {"A03MvHHogjR", "ZzYYXq4fJie"}
+
+
+def test_a_warning_alone_lets_the_build_start(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`make build` runs this to refuse a publisher run; an unusable form is not a reason to refuse one."""
+    _write_assignment_list(project_root, "d2-ds-BfMAe6Itzgt-org-units", entries=[])
+    _write_assigned_form(project_root, "anc", "d2-ds-BfMAe6Itzgt-org-units")
+    monkeypatch.chdir(project_root)
+    # Rich reads COLUMNS when stderr is captured; a wide surface keeps the remedy on one line, so
+    # the assertion below meets the cell rather than the wrap of a narrow tty.
+    monkeypatch.setenv("COLUMNS", "300")
+    result = _runner.invoke(build_app(), ["fhir", "check-artifacts"])
+    assert result.exit_code == 0, result.output
+    assert "warning" in result.output
+    # The bracketed table name reaches the reader: Rich reads `[generate.organisation_units]` as a
+    # style tag and prints nothing in its place unless the cell states its own brackets.
+    assert "[generate.organisation_units] max_level" in result.output

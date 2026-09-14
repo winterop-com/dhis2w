@@ -2100,11 +2100,18 @@ before the gate existed, output from an older pinned toolchain, and hand-authore
 the publisher, and cost its full run before failing in its final pass.
 
 This is that refusal applied to the files themselves, through the very predicates the generate
-gate uses. It names the file, the resource, the element, and the value, so what comes back is the
-object rather than the page the publisher happened to die on.
+gate uses, plus the guide&#x27;s own identity in `fhir.toml` and `ig/sushi-config.yaml` - which no
+DHIS2 selection supplies and no compiled resource carries until SUSHI has run. It names the file,
+the resource, the element, and the value, so what comes back is the object rather than the page
+the publisher happened to die on, and the line that answers it follows from where the value came
+from rather than assuming DHIS2 wrote it.
+
+One finding is a warning rather than a refusal: a published form whose organisation-unit
+assignment names no unit this project publishes. That guide builds and publishes; what it costs
+is a form nobody can submit a response to.
 
 No connection, no profile, no compile - the artifacts are the whole input, so it answers in
-seconds. Exit 1 when anything is found, which is what `make build` runs it for.
+seconds. Exit 1 when anything build-aborting is found, which is what `make build` runs it for.
 
 **Usage**:
 

@@ -125,6 +125,40 @@ Outside a project every selection table is empty, which selects everything
 of its kind - so the whole instance grades as being on the build path.
 Inside a project, findings grade against that project's own selection.
 
+### A package is graded against what it publishes
+
+An [organisation-unit registry package](201-registry-package.md) - `[ig] kind =
+"package"`, `publishes = "organisation-units"` - holds no data set, no program
+and no form. `d2w fhir generate` refuses those targets in such a project by
+name, and validate scopes to the same thing: it resolves the organisation units
+and nothing else, costs one id-only read instead of five, and grades every
+form-side finding as the instance hygiene it is for a project that publishes no
+form.
+
+The summary says so, and names the checks that do not apply:
+
+```console
+$ d2w fhir validate
+                              fhir validate
+┌──────────────────┬────────────────────────────────────────────────┐
+│profile           │ play43 (fhir.toml)                             │
+│...               │                                                │
+│scope             │ organisation units alone - [ig] publishes =    │
+│                  │ "organisation-units", so this project holds no  │
+│                  │ data set, program or form for the other checks  │
+│                  │ to grade                                       │
+└──────────────────┴────────────────────────────────────────────────┘
+note: not applicable: data sets, programs, program stages, data elements,
+tracked entity types, tracked entity attributes, option sets, categories,
+category options - this project publishes none of them, so what the instance
+holds of each is hygiene rather than this build's problem
+```
+
+The written Markdown and PDF reports carry the same two lines, so a reader of
+the file is never left to work out why a package's report is quiet. The facade's
+`/facade/metadata-health` reads the scoping off the project it serves, so it
+answers the same way.
+
 ## Grade under your hostile-names posture
 
 A severity says what an object costs *this* project, and half of that is

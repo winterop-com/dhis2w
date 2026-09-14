@@ -124,6 +124,15 @@ does not read a selection - it publishes whatever `ig/fsh-generated/` and
 toolchain pin, and hand-authored FSH all reach the publisher without ever
 passing it.
 
+It reads the guide's own identity as well - `title`, `name`, `publisher` and
+`description`, in `fhir.toml`'s `[ig]` table and in `ig/sushi-config.yaml`. No
+DHIS2 selection supplies those, and no compiled resource carries them until
+SUSHI has run, so on a project that has only run `d2w fhir generate` there is
+nowhere else on disk for a title carrying a `<` to be found - and the publisher
+dies on it in the very same last pass. One identity stated in both files is one
+finding, named at `fhir.toml`, which is where `d2w fhir init --refresh` writes
+the other from.
+
 The scan catches one more build-stopper, for a guide that depends on an
 [organisation-unit registry package](201-registry-package.md): a reference to a
 unit that package does not publish. It compares the references already on disk
@@ -144,12 +153,13 @@ so it answers in seconds, offline, on any project:
 ```console
 $ d2w fhir check-artifacts
                         fhir check-artifacts
-┌───────────┬────────────────────────────────────────────────┐
-│project    │ /home/you/anc-guide                            │
-│json files │ 240                                            │
-│fsh files  │ 42                                             │
-│findings   │ 0                                              │
-└───────────┴────────────────────────────────────────────────┘
+┌──────────────┬─────────────────────────────────────────────┐
+│project       │ /home/you/anc-guide                         │
+│json files    │ 240                                         │
+│fsh files     │ 42                                          │
+│build-aborting│ 0                                           │
+│warnings      │ 0                                           │
+└──────────────┴─────────────────────────────────────────────┘
 ok: 282 publishable file(s) scanned; nothing the IG publisher aborts on
 ```
 
@@ -160,21 +170,21 @@ generate wrote:
 ```console
 $ d2w fhir check-artifacts
                         fhir check-artifacts
-┌───────────┬────────────────────────────────────────────────┐
-│project    │ /home/you/anc-guide                            │
-│json files │ 240                                            │
-│fsh files  │ 42                                             │
-│findings   │ 3                                              │
-└───────────┴────────────────────────────────────────────────┘
-                    build-aborting artifacts (3)
-┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
-┃File               ┃ Resource  ┃ Field               ┃ Value             ┃
-┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩
-│ig/fsh-generated/r │ d2-os-Age │ concept[0].display  │ <5 y              │
-│esources/CodeSyste │           │ identifier[0].value │ AGE<5             │
-│m-d2-os-Age.json   │           │ title               │ Age (<5 - 49) &   │
-│                   │           │                     │ over              │
-└───────────────────┴───────────┴─────────────────────┴───────────────────┘
+┌──────────────┬─────────────────────────────────────────────┐
+│project       │ /home/you/anc-guide                         │
+│json files    │ 240                                         │
+│fsh files     │ 42                                          │
+│build-aborting│ 3                                           │
+│warnings      │ 0                                           │
+└──────────────┴─────────────────────────────────────────────┘
+                       artifact findings (3)
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃Severity        ┃ File              ┃ Resource  ┃ Field               ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│build-aborting  │ig/fsh-generated/r │ d2-os-Age │ concept[0].display  │
+│build-aborting  │esources/CodeSyste │           │ identifier[0].value │
+│build-aborting  │m-d2-os-Age.json   │           │ title               │
+└────────────────┴───────────────────┴───────────┴─────────────────────┘
 note: what it costs: a name carrying '<' stays byte-true on the resource, and
 the IG publisher writes it into pages it strict-parses after writing, so `make
 build` aborts in its last pass, once every resource has already been rendered.
@@ -185,12 +195,44 @@ $ echo $?
 1
 ```
 
-Each finding also carries the one line that answers it, in a `What to do`
-column left out above for width. Which line depends on what wrote the file: an
-artifact this toolchain generated asks for a rename in DHIS2 or a narrower
-`fhir.toml` selection followed by another `d2w fhir generate`, while a
-hand-authored FSH source asks for an edit, because no regeneration rewrites
-one. `--json` puts the whole typed report on stdout.
+Each finding also carries the offending value and the one line that answers it,
+in `Value` and `What to do` columns left out above for width. Which line a
+finding gets follows from where the value came from, which the finding records
+rather than the printer guessing:
+
+| The value came from | What the finding asks for |
+| --- | --- |
+| DHIS2, through a generated artifact | a rename in DHIS2 or a narrower `fhir.toml` selection, then another `d2w fhir generate` |
+| the `[ig]` table of `fhir.toml` | that key changed there, then `d2w fhir init --refresh` |
+| a hand-authored FSH source | an edit of the file, because no regeneration rewrites one |
+| a registry package the guide depends on | both projects regenerated against the same instance |
+
+`--json` puts the whole typed report on stdout.
+
+### One finding the build survives
+
+A published Questionnaire whose organisation-unit assignment `List` names no
+unit this project publishes is a `warning` rather than a refusal. That guide
+compiles, publishes, and renders; what it does not have is anywhere for that
+form to be submitted from, so [`$generate` answers 422](201-serve.md) and DHIS2
+would refuse the capture with `E1029`. The command still exits 0 - `make build`
+runs it to refuse a doomed publisher run, and this build is not doomed - and the
+finding names the form, the List it points at, and the way out:
+
+```console
+$ d2w fhir check-artifacts
+...
+warning: 29 finding(s) the build survives; the guide publishes and what it costs
+is read in the table above
+
+$ echo $?
+0
+```
+
+The usual cause is `[generate.organisation_units] max_level` set above the level
+the forms are assigned at; `d2w fhir generate` says the same thing at the end of
+its own run. [Set up a project](201-set-up-a-project.md#choosing-a-max-level)
+carries that trade-off.
 
 The scan covers three trees, and each position it reads is one the emitted
 resource carries byte-true into a page:
@@ -200,6 +242,8 @@ resource carries byte-true into a page:
 | `ig/fsh-generated/**/*.json` | `name`, `title`, `display`, `text`, `identifier[].value` | the compiled resources it renders a page each from |
 | `ig/input/resources/**/*.json` | the same five | the registry, terminology, and ConceptMap documents SUSHI passes through untouched |
 | `ig/input/fsh/**/*.fsh` | `Title:`, assignments to those elements, `* #code "display"` rules | the FSH sources, generated and hand-authored alike |
+| `fhir.toml` | `[ig]` `title`, `name`, `publisher` | the ImplementationGuide resource and every page rendered from it |
+| `ig/sushi-config.yaml` | `title`, `name`, `publisher`, `description` | the same, on a project whose sushi-config was edited away from `fhir.toml` |
 
 `ig/input/pagecontent/**/*.md` is deliberately left out: markdown carries HTML
 by design, so a `<` there is the page's own markup.

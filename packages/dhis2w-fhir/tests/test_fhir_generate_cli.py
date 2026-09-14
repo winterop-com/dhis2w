@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_fhir import (
+    EmptyAssignmentSummary,
     FhirValidationReport,
     GenerateFullReport,
     GenerateReport,
@@ -230,6 +231,55 @@ def test_bare_generate_counts_its_notes_and_writes_them_to_a_file(fhir_project: 
     assert "## examples" in body
     assert "- no data values for the period" in body
     assert "https://dhis2.example" in body
+
+
+def _unreportable_forms_report(project_root: Path, **overrides: object) -> GenerateFullReport:
+    """The seven-target report of a run whose forms have no organisation unit to report from."""
+    report = _noted_report(project_root)
+    defaults: dict[str, object] = {"form_count": 29, "containers": ["Child Programme (IpHINAT79UW)"], "max_level": 2}
+    defaults.update(overrides)
+    report.questionnaires.empty_assignments = EmptyAssignmentSummary.model_validate(defaults)
+    return report
+
+
+def test_a_run_that_published_unreportable_forms_says_so_on_its_own_line(fhir_project: Path) -> None:
+    """A form nobody can submit is its own warning, not one note among the several hundred a sweep raises."""
+    mock = AsyncMock(return_value=_unreportable_forms_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 29 published form(s) carry an empty organisation-unit assignment" in result.stderr
+    assert "max_level 2" in result.stderr
+    assert "Raise max_level" in result.stderr
+
+
+def test_a_run_with_no_max_level_still_names_the_forms_nobody_may_report(fhir_project: Path) -> None:
+    """A narrow root narrows the registry just as a level ceiling does, so the line stands without one."""
+    mock = AsyncMock(return_value=_unreportable_forms_report(fhir_project, max_level=None))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 29 published form(s) carry an empty organisation-unit assignment:" in result.stderr
+    assert "max_level 2" not in result.stderr
+
+
+def test_a_run_every_form_can_be_reported_from_carries_no_warning(fhir_project: Path) -> None:
+    """The line states an exception, so an ordinary run does not carry a reassurance nobody asked for."""
+    mock = AsyncMock(return_value=_noted_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "empty organisation-unit assignment" not in result.stderr
+
+
+def test_the_questionnaires_target_alone_says_the_same_thing(fhir_project: Path) -> None:
+    """One target run alone reports what the full run reports, so neither reading hides the forms."""
+    report = _report("questionnaires", empty_assignments=EmptyAssignmentSummary(form_count=3, containers=["A (u1)"]))
+    mock = AsyncMock(return_value=report)
+    with patch("dhis2w_fhir.service.generate_questionnaires", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate", "questionnaires"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 3 published form(s) carry an empty organisation-unit assignment" in result.stderr
 
 
 def _echoing_report(project_root: Path) -> GenerateFullReport:
@@ -683,6 +733,58 @@ def test_validate_renders_findings_and_exit_code(fhir_project: Path) -> None:
     for suffix in ("md", "csv", "pdf"):
         assert f"fhir-validate-report.{suffix}" in result.output
     mock.assert_awaited_once()
+
+
+#: A package project's fhir.toml: it publishes the organisation-unit registry and no form at all.
+_PACKAGE_TOML = """
+[ig]
+id = "dhis2.fhir.registry"
+canonical = "http://example.org/fhir/registry"
+name = "Dhis2FhirRegistry"
+title = "DHIS2 organisation unit registry"
+publisher = "Test Organisation"
+kind = "package"
+publishes = "organisation-units"
+"""
+
+
+def test_validate_grades_a_package_against_what_it_publishes(fhir_project: Path) -> None:
+    """A package publishes the organisation-unit registry alone, so the form-side checks have nothing to grade."""
+    (fhir_project / "fhir.toml").write_text(_PACKAGE_TOML, encoding="utf-8")
+    mock = AsyncMock(return_value=FhirValidationReport(publishes_forms=False))
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate"])
+    assert result.exit_code == 0, result.output
+    assert mock.await_args is not None
+    assert mock.await_args.kwargs["publishes_forms"] is False
+    # The bracketed table name reaches the reader: Rich reads `[ig]` as a style tag and prints
+    # nothing in its place unless the cell states its own brackets.
+    assert 'organisation units alone - [ig] publishes = "organisation-units"' in result.output
+    assert "not applicable: data sets, programs" in result.output
+
+
+def test_validate_grades_a_guide_against_its_whole_selection(fhir_project: Path) -> None:  # noqa: ARG001
+    """A guide publishes forms, so every surface is graded and nothing reports as not applicable."""
+    mock = AsyncMock(return_value=FhirValidationReport())
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate"])
+    assert result.exit_code == 0, result.output
+    assert mock.await_args is not None
+    assert mock.await_args.kwargs["publishes_forms"] is True
+    assert "the whole configured selection" in result.output
+    assert "not applicable" not in result.output
+
+
+def test_the_written_report_states_what_a_package_was_graded_against(fhir_project: Path) -> None:
+    """A reader of the file gets the same scoping the terminal states, so neither reads as a clean instance."""
+    (fhir_project / "fhir.toml").write_text(_PACKAGE_TOML, encoding="utf-8")
+    mock = AsyncMock(return_value=FhirValidationReport(publishes_forms=False))
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate", "--format", "md"])
+    assert result.exit_code == 0, result.output
+    body = (fhir_project / "reports" / "fhir-validate-report.md").read_text(encoding="utf-8")
+    assert "- graded against: organisation units alone" in body
+    assert "- not applicable: data sets, programs" in body
 
 
 def test_validate_writes_into_the_output_directory(fhir_project: Path) -> None:

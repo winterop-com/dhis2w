@@ -75,6 +75,23 @@ REGISTRY_DIRECTORY = "registry"
 #: The surface label organisation-unit stem notes and refusals name their offenders under.
 ORGANISATION_UNIT_STEM_SURFACE = "organisation unit"
 
+#: The DHIS2 identifier and code the worked registry examples state, on both identifier systems.
+#: A DHIS2 UID is eleven letter-leading alphanumerics and carries no hyphen, so this value is one no
+#: instance can issue - which is what keeps the pair from claiming to be a unit the registry
+#: publishes. The two profiles require both identifier slices 1..1, so a value has to be stated.
+REGISTRY_EXAMPLE_IDENTIFIER = "d2-example"
+
+#: What the worked registry examples call themselves, said plainly so a reader of the published guide
+#: never takes the pair for a unit of the instance.
+REGISTRY_EXAMPLE_NAME = "Example organisation unit"
+
+#: The sentence each exemplar's description closes on, so the synthetic identity is stated and not
+#: merely implied by the name.
+REGISTRY_EXAMPLE_IDENTITY_SENTENCE = (
+    f"Its identifier value {REGISTRY_EXAMPLE_IDENTIFIER} belongs to no organisation unit, so this "
+    "example never answers a search for a published one."
+)
+
 
 def organisation_unit_stem_subjects(organisation_units: list[OrganisationUnitIn]) -> list[StemSubject]:
     """Project the fetched selection onto the stem subjects its identity resolution runs over."""
@@ -182,8 +199,20 @@ def build_registry_examples(
 
     The registry itself ships as pre-built JSON, which SUSHI loads verbatim and never compiles,
     so `D2Organization` and `D2Location` would otherwise publish no worked example at all. This
-    pair fills that gap from the selection's own root unit: real UID, real code, real name, real
-    level, so the publisher validates the profiles against data the instance actually holds.
+    pair fills that gap.
+
+    **Its identity is synthetic, and that is the whole point.** Both profiles require the two DHIS2
+    identifier slices 1..1, so the pair has to state a UID and a code - and a published guide serves
+    these two documents beside the registry's own. Stating a real unit's UID there would publish two
+    documents claiming one organisation unit: an identifier search would answer with both, a facade
+    would count one unit more than the run wrote, and a registry package - whose only task is to say
+    what each unit is - would ship a duplicate of one of them. So the pair states `d2-example` on
+    both systems, which no DHIS2 UID can be (eleven letter-leading alphanumerics, no hyphen), and
+    names itself an example.
+
+    The level and the position are still the selection's own root unit's: they are shape rather than
+    identity, so the publisher validates the profiles against a level the guide's own CodeSystem
+    publishes and a position of the kind an instance really holds.
 
     The exemplar carries what the profiles constrain and nothing more - the level the D2Location
     profile requires 1..1, but no boundary attachment and no attribute values. A base64 GeoJSON
@@ -195,8 +224,7 @@ def build_registry_examples(
 
     The exemplar ids (`d2-organization-example`) derive from the profile ids rather than from the
     unit's identity stem: the pair illustrates the profiles, and its `Reference(...)` targets are
-    FSH instance names SUSHI resolves, so no stem enters this file under any naming source. The
-    unit's DHIS2 id and code appear only as the identifier values they are.
+    FSH instance names SUSHI resolves, so no stem enters this file under any naming source.
     """
     root = _root_organisation_unit(organisation_units)
     if root is None:
@@ -221,11 +249,10 @@ def _root_organisation_unit(organisation_units: list[OrganisationUnitIn]) -> Org
 def _registry_example_view(
     root: OrganisationUnitIn, names: OrganisationUnitNaming, level_names: OrganisationUnitLevelNames
 ) -> _RegistryExampleView:
-    """Project the root unit onto the two exemplar instances the registry profiles are illustrated with."""
-    label = f"{root.name} ({root.uid})"
+    """Project the root unit's shape onto the two exemplar instances, under a synthetic identity."""
     location_description = (
-        f"A worked {names.location_profile}: DHIS2 organisation unit {label} as the physical place, "
-        f"managed by the {names.organization_profile} of the same unit."
+        f"A worked {names.location_profile}: {REGISTRY_EXAMPLE_NAME} as the physical place, managed by the "
+        f"{names.organization_profile} of the same example. {REGISTRY_EXAMPLE_IDENTITY_SENTENCE}"
     )
     return _RegistryExampleView(
         organization_profile=names.organization_profile,
@@ -234,20 +261,21 @@ def _registry_example_view(
         location_name=f"{names.location_profile}Example",
         organization_id=f"{names.organization_profile_id}-example",
         location_id=f"{names.location_profile_id}-example",
-        organization_title_literal=page_text(f"Example DHIS2 Organization - {label}"),
-        location_title_literal=page_text(f"Example DHIS2 Location - {label}"),
+        organization_title_literal=page_text("Example DHIS2 Organization"),
+        location_title_literal=page_text("Example DHIS2 Location"),
         organization_description_literal=page_text(
-            f"A worked {names.organization_profile}: DHIS2 organisation unit {label} as the legal entity, "
-            "carrying both DHIS2 identifiers and its hierarchy level."
+            f"A worked {names.organization_profile}: {REGISTRY_EXAMPLE_NAME} as the legal entity, carrying both "
+            f"DHIS2 identifier slices the profile requires and its hierarchy level. "
+            f"{REGISTRY_EXAMPLE_IDENTITY_SENTENCE}"
         ),
         location_description_literal=page_text(location_description),
         location_description_element_literal=quote(location_description),
         level_code_system=names.level_code_system,
         level=root.level,
         level_display_literal=quote(level_names.display(root.level)),
-        uid_literal=quote(root.uid),
-        code_literal=quote(code_or_uid(root.code, root.uid)),
-        name_literal=quote(root.name),
+        uid_literal=quote(REGISTRY_EXAMPLE_IDENTIFIER),
+        code_literal=quote(REGISTRY_EXAMPLE_IDENTIFIER),
+        name_literal=quote(REGISTRY_EXAMPLE_NAME),
         longitude=root.longitude,
         latitude=root.latitude,
     )

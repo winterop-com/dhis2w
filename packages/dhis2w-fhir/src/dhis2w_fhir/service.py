@@ -173,6 +173,7 @@ from dhis2w_fhir.resources.questionnaires import (
 from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
     AssignmentIndex,
+    EmptyAssignmentSummary,
     assignment_container_uid,
     build_assignment_artifacts,
 )
@@ -522,6 +523,8 @@ class GenerateReport(BaseModel):
     applies: bool = True
     """False for a target the project kind has none of - a registry package's form-side targets - so a
     full run still reports every slot and a reader skips the ones that had nothing to do."""
+    empty_assignments: EmptyAssignmentSummary | None = None
+    """The published forms no organisation unit may report, which the run says out loud rather than noting."""
 
 
 class LoadSetReport(BaseModel):
@@ -892,12 +895,15 @@ def resolve_generation_profile(project: FhirProject, explicit: str | None = None
 
 
 class ValidationContext(BaseModel):
-    """Resolved inputs for a validate run: the profile plus the effective generate config."""
+    """Resolved inputs for a validate run: the profile, the effective generate config, and what is published."""
 
     model_config = ConfigDict(frozen=True)
 
     generation: GenerationProfile
     config: GenerateConfig
+    publishes_forms: bool = True
+    """False for a package publishing the organisation-unit registry alone, whose form-side checks have nothing
+    to grade."""
 
 
 def resolve_validation_context(explicit: str | None = None) -> ValidationContext:
@@ -910,7 +916,11 @@ def resolve_validation_context(explicit: str | None = None) -> ValidationContext
         origin = "--profile/DHIS2_PROFILE" if (explicit or environment) else resolved.source
         generation = GenerationProfile(name=resolved.name, origin=origin, profile=resolved.profile)
         return ValidationContext(generation=generation, config=GenerateConfig())
-    return ValidationContext(generation=resolve_generation_profile(project, explicit), config=project.config.generate)
+    return ValidationContext(
+        generation=resolve_generation_profile(project, explicit),
+        config=project.config.generate,
+        publishes_forms=not project.config.publishes_organisation_units,
+    )
 
 
 #: Collections excluded from the instance-wide sweep: options get the deeper per-set pass.
@@ -988,6 +998,7 @@ async def validate_codes(
     code_source: str | None = None,
     hostile_names: HostileNamePosture | None = None,
     *,
+    publishes_forms: bool = True,
     reporter: ProgressReporter | None = None,
     client: Dhis2Client | None = None,
 ) -> FhirValidationReport:
@@ -995,6 +1006,10 @@ async def validate_codes(
 
     The run first resolves the configured selection into a `ValidationScope`, so every finding's
     severity means build impact on this project's IG rather than instance-wide alarm.
+
+    `publishes_forms` is False for a package publishing the organisation-unit registry alone: only
+    the organisation-unit checks then grade against the build path, and every form-side finding is
+    the instance hygiene it is for a project that publishes no form.
 
     `hostile_names` overrides the project's `[generate] hostile_names` for this run, which is the
     what-if reading `d2w fhir validate --hostile-names` asks for; with none the project's own
@@ -1008,7 +1023,9 @@ async def validate_codes(
     progress.step("connecting")
     async with _instance_connection(profile, client, timeout=_SWEEP_TIMEOUT_SECONDS) as connection:
         progress.complete(profile.base_url)
-        return await _validated_codes(connection, config, code_source, hostile_names, progress=progress)
+        return await _validated_codes(
+            connection, config, code_source, hostile_names, publishes_forms=publishes_forms, progress=progress
+        )
 
 
 async def validate_instance_codes(
@@ -1017,6 +1034,7 @@ async def validate_instance_codes(
     code_source: str | None = None,
     hostile_names: HostileNamePosture | None = None,
     *,
+    publishes_forms: bool = True,
     scope: ValidationScope | None = None,
 ) -> FhirValidationReport:
     """The analysis `d2w fhir validate` runs, over a connection the caller already holds open.
@@ -1030,7 +1048,9 @@ async def validate_instance_codes(
     saves resolving it twice where the caller needs the UID sets for something of its own; with none
     the run resolves its own, exactly as the command does.
     """
-    return await _validated_codes(client, config, code_source, hostile_names, scope=scope)
+    return await _validated_codes(
+        client, config, code_source, hostile_names, publishes_forms=publishes_forms, scope=scope
+    )
 
 
 async def _validated_codes(
@@ -1039,6 +1059,7 @@ async def _validated_codes(
     code_source: str | None,
     hostile_names: HostileNamePosture | None,
     *,
+    publishes_forms: bool = True,
     scope: ValidationScope | None = None,
     progress: _StepAnnouncer | None = None,
 ) -> FhirValidationReport:
@@ -1047,7 +1068,9 @@ async def _validated_codes(
     effective_source = resolve_code_source(config, code_source)
     effective_posture = resolve_hostile_names_posture(config, hostile_names)
     announcer.step("selection", "resolving the configured selection")
-    resolved = scope if scope is not None else await resolve_validation_scope(client, config)
+    resolved = (
+        scope if scope is not None else await resolve_validation_scope(client, config, publishes_forms=publishes_forms)
+    )
     announcer.complete(_scope_summary(resolved))
     announcer.step("instance sweep", "sweeping instance metadata (can take a minute on a large instance)")
     raw = await client.get_raw("/api/metadata", params={"fields": _SWEEP_FIELDS, "defaults": "EXCLUDE"})
@@ -1188,8 +1211,15 @@ async def _resolve_scope_tracked_entity_types(
     return frozenset(resolved)
 
 
-async def resolve_validation_scope(client: Dhis2Client, config: GenerateConfig) -> ValidationScope:
+async def resolve_validation_scope(
+    client: Dhis2Client, config: GenerateConfig, *, publishes_forms: bool = True
+) -> ValidationScope:
     """Resolve the UID sets the configured selection emits, from a handful of id-only reads.
+
+    `publishes_forms` is False for a package publishing the organisation-unit registry alone. Its
+    form-side targets are the ones `generate` refuses by name, so the surfaces they would emit are
+    resolved to nothing here - and the reads that would have resolved them are never made, which is
+    every request of the five but the organisation-unit one.
 
     The same selection semantics `generate` applies - an empty table selects everything of its
     kind, the option sets add the closure the selected forms bind (through the
@@ -1212,6 +1242,11 @@ async def resolve_validation_scope(client: Dhis2Client, config: GenerateConfig) 
     selected categories, the tracked entity types publishing a person-only form, and the
     attributes those forms ask are all resolved here for exactly that reason.
     """
+    if not publishes_forms:
+        return ValidationScope(
+            publishes_forms=False,
+            organisation_units=await _fetch_published_organisation_unit_uids(client, config),
+        )
     bindings = _ScopeBindings()
     data_set_ids = config.data_sets.include_ids
     data_set_models: list[DataSet] = []
@@ -1315,7 +1350,13 @@ async def resolve_validation_scope(client: Dhis2Client, config: GenerateConfig) 
 
 
 def _scope_summary(scope: ValidationScope) -> str:
-    """One line of in-scope set sizes - the durable outcome of the resolving-selection step."""
+    """One line of in-scope set sizes - the durable outcome of the resolving-selection step.
+
+    A package publishing the organisation-unit registry alone reports the one set it has, rather
+    than six zeros that read as an instance holding nothing.
+    """
+    if not scope.publishes_forms:
+        return f"{len(scope.organisation_units):,} organisation units; this package publishes nothing else"
     return (
         f"{len(scope.data_sets):,} data sets, {len(scope.programs):,} programs, "
         f"{len(scope.program_stages):,} stages, {len(scope.data_elements):,} data elements, "
@@ -1936,6 +1977,7 @@ def _emit_questionnaires(
         subject=GenerateSubject(count=len(sources), noun="questionnaire"),
         assignment_count=len(assignment_build.artifacts),
         attribute_combo_count=len(attribute_combo_build.artifacts),
+        empty_assignments=assignment_build.empty_assignments,
         notes=[
             *notes,
             *build.notes,

@@ -658,13 +658,30 @@ chain in one command.
   `title`, `display`, `text`, and `identifier[].value` through the shared
   `build_aborting_name` / `build_aborting_code` predicates rather than a second
   copy of the rule. Each finding names the file, the resource, the element, the
-  value, and the one line that answers it, which differs for a generated file
-  (rename in DHIS2 or narrow the selection, then regenerate) and a hand-authored
-  one (edit the file). It opens no connection and reads no profile, exits 1 on
-  findings, and takes `--no-fail`, `--json`, and an optional project directory.
-  `ig/input/pagecontent/**/*.md` is out of scope on purpose: markdown carries
-  HTML by design. An existing project takes the gate up with one
-  `d2w fhir init --refresh`.
+  value, and the one line that answers it. It opens no connection and reads no
+  profile, exits 1 on a build-aborting finding, and takes `--no-fail`, `--json`,
+  and an optional project directory. `ig/input/pagecontent/**/*.md` is out of
+  scope on purpose: markdown carries HTML by design. An existing project takes
+  the gate up with one `d2w fhir init --refresh`.
+- **The scan reads the guide's own identity too**, in `fhir.toml`'s `[ig]` table
+  and in `ig/sushi-config.yaml` (`title`, `name`, `publisher`, `description`).
+  No DHIS2 selection supplies those, and no compiled resource carries them until
+  SUSHI has run, so a project that has only generated has nowhere else on disk
+  for a title carrying a `<` to be found - and the publisher dies on it in the
+  same last pass. One identity stated in both files is one finding, named at
+  `fhir.toml`, which is where a refresh writes the other from.
+- **Each finding carries its origin, and the remedy follows from it.** A value
+  from DHIS2 asks for a rename there or a narrower selection followed by
+  `d2w fhir generate`; a value from `[ig]` asks for that key in `fhir.toml` and
+  a `d2w fhir init --refresh`; a hand-authored source asks for an edit, because
+  nothing regenerates one. The origin is modelled on `ArtifactFinding`, so the
+  line a reader is given never guesses at where the string came from.
+- **A form nobody can submit is a warning rather than a refusal.** A published
+  Questionnaire whose organisation-unit assignment List names no unit the project
+  publishes is reported once per form, with `max_level` named as what usually
+  narrows the registry. The build is valid and would publish, so the command
+  still exits 0; what it costs is the form, and the scan says so instead of
+  letting a guide full of unusable forms read as clean.
 - **`JAVA_HEAP`** is the publisher's JVM heap ceiling, derived from the memory
   docker reports less 2 GB (floored at `4g`, capped at `31g` where the JVM
   drops compressed object pointers, falling back to `8g` when docker cannot be
@@ -909,6 +926,15 @@ NamingSystems declaring them, plus these extensions:
   stage.
 - `List` rather than `Group` because R4 admits no Location as a
   `Group.member.entity`.
+- **A run that published forms nobody may report says so on its own line.** When
+  an assignment intersects the published registry at nothing, `d2w fhir generate`
+  closes with a warning naming how many published forms carry an empty
+  assignment and the `[generate.organisation_units] max_level` in force, and
+  suggests raising it or narrowing the form selection. Forms are the unit
+  counted - a tracker program's stages each publish a Questionnaire and share
+  one `List` - so the run, the facade's 422, and `d2w fhir check-artifacts` all
+  state one number. A national instance raises several hundred terminology notes
+  per run, which is why this is a line of its own rather than one of them.
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
   dial coded answers take, and `$generate` draws its Location from it.
@@ -1422,10 +1448,15 @@ registration form become `Questionnaire` instances.
   under `[generate] locales`; the table is one unpaged read per generate run -
   as does a curated
   `registry-examples.fsh` (`D2OrganizationExample` / `D2LocationExample`,
-  `Usage: #example`) drawn from the selection's own root unit so the publisher
-  validates both registry profiles against real instance data - kept beside the
-  profiles rather than under `examples/`, whose sync deletes every file it did
-  not produce.
+  `Usage: #example`) taking its level and position from the selection's own root
+  unit so the publisher validates both registry profiles against shapes the
+  instance really holds - kept beside the profiles rather than under `examples/`,
+  whose sync deletes every file it did not produce. Its identity is synthetic:
+  both profiles require the two DHIS2 identifier slices 1..1, and the pair states
+  `d2-example` on each, under the name "Example organisation unit". No DHIS2 UID
+  can be that value, so an identifier search over a published guide answers with
+  exactly one resource per organisation unit rather than two for whichever unit
+  the example was drawn from.
 - **These stay FSH** under `ig/input/fsh/organization/`, along with the
   optional whole-selection CodeSystem representation
   (`[generate.organisation_units] terminology`).
@@ -1645,6 +1676,16 @@ semantics `generate` uses.
   `code coverage` fraction counting the in-scope objects whose code can serve
   as an identity stem (`usable_code_stem`, the R4 `id` bar). The resolved
   `ValidationScope` costs five id-only reads rather than a second sweep.
+- **A package is graded against what it publishes.** With
+  `[ig] publishes = "organisation-units"` the project holds no data set, program
+  or form - `generate` refuses those targets by name - so the run resolves the
+  organisation units and nothing else, makes one id-only read instead of five,
+  and every form-side finding is the instance hygiene it is for a project that
+  publishes no form. The terminal summary, the Markdown report and the PDF cover
+  each carry a `graded against` line and name the surfaces that do not apply
+  (data sets, programs, program stages, data elements, tracked entity types,
+  tracked entity attributes, option sets, categories, category options).
+  `/facade/metadata-health` reads the same scoping off the project it serves.
 - **Three deep passes** for what the sweep structurally cannot see: an
   option-set pass gated on `--code-source`; a code-stem pass previewing a
   code-sourced `[generate.naming]` source over the six naming surfaces

@@ -940,6 +940,29 @@ def _render_generate_report(
     render_detail(title, rows, console=STDERR_CONSOLE)
     for note in report.notes:
         _hint("note", note.message)
+    _render_empty_assignments(report)
+
+
+def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
+    """Say out loud that a run published forms no organisation unit may report, when it did.
+
+    Its own line at the end of the run, rather than one note among the several hundred a national
+    instance raises: a form nobody can submit is not a detail of the terminology, and a reader who
+    chose `max_level` to keep a build small has no other way to learn what it cost.
+    """
+    if not isinstance(report, GenerateReport) or report.empty_assignments is None:
+        return
+    summary = report.empty_assignments
+    narrowed = (
+        f" under [generate.organisation_units] max_level {summary.max_level}" if summary.max_level is not None else ""
+    )
+    _hint(
+        "warning",
+        f"{summary.form_count} published form(s) carry an empty organisation-unit assignment{narrowed}: no unit "
+        "may report them, and the facade refuses to draft a response for one. Raise max_level, or narrow the "
+        "form selection in fhir.toml to what the registry covers.",
+        style="yellow",
+    )
 
 
 def _full_outcomes(report: GenerateFullReport) -> list[_TargetOutcome]:
@@ -1098,6 +1121,7 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
         console=STDERR_CONSOLE,
     )
     _render_full_notes(outcomes, generation, details=details)
+    _render_empty_assignments(report.questionnaires)
 
 
 @generate_app.callback(invoke_without_command=True)
@@ -1467,6 +1491,7 @@ def validate_command(
                 context.config,
                 requested_source,
                 hostile_names,
+                publishes_forms=context.publishes_forms,
                 reporter=reporter,
             )
         )
@@ -1514,9 +1539,16 @@ def validate_command(
                     ),
                 ]
             )
+        summary_rows.append(DetailRow("scope", _literal_cell(report.scope_line)))
         summary_rows.append(DetailRow("code source", service.resolve_code_source(context.config, requested_source)))
         summary_rows.append(DetailRow("hostile names", report.hostile_names_line))
         render_detail("fhir validate", summary_rows, console=STDERR_CONSOLE)
+        if report.not_applicable_surfaces:
+            _hint(
+                "note",
+                f"not applicable: {', '.join(report.not_applicable_surfaces)} - this project publishes none of "
+                "them, so what the instance holds of each is hygiene rather than this build's problem",
+            )
         _render_finding_rollup(report)
         listed = [finding for finding in report.findings if details or finding.severity == "error"]
         if listed:
@@ -1621,6 +1653,18 @@ def _render_finding_rollup(report: FhirValidationReport) -> None:
 _ARTIFACT_VALUE_WIDTH = 60
 
 
+def _literal_cell(value: object) -> str:
+    """One table cell rendered as the text it is, rather than as the Rich markup it may look like.
+
+    These cells carry strings nobody wrote for a terminal: a DHIS2 name, a file path, and a line
+    naming a `fhir.toml` table. Rich reads `[ig]` as a style tag and prints nothing where the table
+    name should be, so a cell that can hold one states its own brackets.
+    """
+    from rich.markup import escape
+
+    return escape(str(value))
+
+
 @app.command("check-artifacts")
 def check_artifacts_command(
     directory: Annotated[
@@ -1649,11 +1693,18 @@ def check_artifacts_command(
     the publisher, and cost its full run before failing in its final pass.
 
     This is that refusal applied to the files themselves, through the very predicates the generate
-    gate uses. It names the file, the resource, the element, and the value, so what comes back is the
-    object rather than the page the publisher happened to die on.
+    gate uses, plus the guide's own identity in `fhir.toml` and `ig/sushi-config.yaml` - which no
+    DHIS2 selection supplies and no compiled resource carries until SUSHI has run. It names the file,
+    the resource, the element, and the value, so what comes back is the object rather than the page
+    the publisher happened to die on, and the line that answers it follows from where the value came
+    from rather than assuming DHIS2 wrote it.
+
+    One finding is a warning rather than a refusal: a published form whose organisation-unit
+    assignment names no unit this project publishes. That guide builds and publishes; what it costs
+    is a form nobody can submit a response to.
 
     No connection, no profile, no compile - the artifacts are the whole input, so it answers in
-    seconds. Exit 1 when anything is found, which is what `make build` runs it for.
+    seconds. Exit 1 when anything build-aborting is found, which is what `make build` runs it for.
     """
     from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
 
@@ -1661,7 +1712,7 @@ def check_artifacts_command(
     report = check_publishable_artifacts(project, registry_package=registry_package)
     if is_json_output():
         typer.echo(report.model_dump_json(indent=2))
-        if report.finding_count and fail:
+        if report.build_aborting_count and fail:
             raise typer.Exit(code=1)
         return
     render_detail(
@@ -1670,7 +1721,8 @@ def check_artifacts_command(
             DetailRow("project", str(project.project_root)),
             DetailRow("json files", str(report.json_file_count)),
             DetailRow("fsh files", str(report.fsh_file_count)),
-            DetailRow("findings", str(report.finding_count)),
+            DetailRow("build-aborting", str(report.build_aborting_count)),
+            DetailRow("warnings", str(report.warning_count)),
         ],
         console=STDERR_CONSOLE,
     )
@@ -1678,9 +1730,10 @@ def check_artifacts_command(
         _hint("note", f"{unreadable} is not readable as a JSON object; nothing in it was checked")
     if report.findings:
         render_list(
-            "build-aborting artifacts",
+            "artifact findings",
             [
                 {
+                    "severity": finding.severity,
                     "file": finding.file,
                     "resource": finding.resource_id,
                     "field": finding.field,
@@ -1690,11 +1743,12 @@ def check_artifacts_command(
                 for finding in report.findings
             ],
             [
-                ColumnSpec("File", "file"),
-                ColumnSpec("Resource", "resource", no_wrap=True),
-                ColumnSpec("Field", "field", no_wrap=True),
-                ColumnSpec("Value", "value"),
-                ColumnSpec("What to do", "remedy"),
+                ColumnSpec("Severity", "severity", no_wrap=True),
+                ColumnSpec("File", "file", formatter=_literal_cell),
+                ColumnSpec("Resource", "resource", no_wrap=True, formatter=_literal_cell),
+                ColumnSpec("Field", "field", no_wrap=True, formatter=_literal_cell),
+                ColumnSpec("Value", "value", formatter=_literal_cell),
+                ColumnSpec("What to do", "remedy", formatter=_literal_cell),
             ],
             console=STDERR_CONSOLE,
         )
@@ -1702,14 +1756,21 @@ def check_artifacts_command(
             _hint("note", f"what it costs: {message}")
     else:
         _hint("ok", f"{report.file_count} publishable file(s) scanned; nothing the IG publisher aborts on")
-    if report.finding_count and fail:
+    if report.build_aborting_count and fail:
         _hint(
             "error",
-            f"{report.finding_count} build-aborting artifact(s) found; exiting 1 before the publisher runs "
+            f"{report.build_aborting_count} build-aborting artifact(s) found; exiting 1 before the publisher runs "
             "(--no-fail to suppress)",
             style="red",
         )
         raise typer.Exit(code=1)
+    if report.warning_count:
+        _hint(
+            "warning",
+            f"{report.warning_count} finding(s) the build survives; the guide publishes and what it costs is "
+            "read in the table above",
+            style="yellow",
+        )
 
 
 #: What a caller is told when the serve extra is not installed, naming the command they actually

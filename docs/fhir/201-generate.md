@@ -490,6 +490,27 @@ response that did would not be a response to this form. The note names each
 one as `<data element>.<category option combo>` and counts the rest, and the
 same note is raised by every target that reads the form.
 
+### One outcome the notes do not carry
+
+A national instance raises several hundred terminology notes per run, and a form
+nobody can submit would be lost among them. So when an organisation-unit
+assignment names no unit the run publishes, the run closes with a line of its
+own:
+
+```text
+warning: 29 published form(s) carry an empty organisation-unit assignment under
+[generate.organisation_units] max_level 2: no unit may report them, and the
+facade refuses to draft a response for one. Raise max_level, or narrow the form
+selection in fhir.toml to what the registry covers.
+```
+
+The count is of published Questionnaires, which is what a capture client is
+refused at - a tracker program's stages each publish a form and share their
+program's one `List` - so this line, the facade's 422 and
+`d2w fhir check-artifacts` all state one number.
+[Choosing a max-level](201-set-up-a-project.md#choosing-a-max-level) carries the
+trade-off that usually produces it.
+
 Every command with an instance behind it narrates its steps on stderr - a
 spinner on a terminal, one plain `[k/N] label: summary` line per step when
 redirected. `--no-progress` turns it off; `d2w --json fhir generate` implies

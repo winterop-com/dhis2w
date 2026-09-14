@@ -47,6 +47,7 @@ __all__ = [
     "AssignmentContainerKind",
     "AssignmentIndex",
     "AssignmentPlan",
+    "EmptyAssignmentSummary",
     "assignment_container",
     "assignment_container_kind",
     "assignment_container_uid",
@@ -119,10 +120,33 @@ class AssignmentPlan(BaseModel):
         return None if list_id is None else f"{ASSIGNMENT_LIST_RESOURCE_TYPE}/{list_id}"
 
 
+class EmptyAssignmentSummary(BaseModel):
+    """The published forms no organisation unit may report: their assignment List names none.
+
+    Counted in forms rather than in the data sets and programs DHIS2 hangs the assignment on,
+    because the form is what a capture client is refused at: every stage of a tracker program
+    publishes a Questionnaire of its own and the whole program shares one List, so a run reporting
+    containers reports a number no other command can be made to agree with.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    form_count: int
+    """How many published Questionnaires carry an assignment no unit is on."""
+
+    containers: list[str]
+    """The data sets and programs the assignment hangs on, as `name (uid)`, sorted."""
+
+    max_level: int | None = None
+    """The `[generate.organisation_units] max_level` in force, which is what usually narrows the registry."""
+
+
 class AssignmentBuild(JsonBuild):
     """The assignment Lists one run publishes, plus the plan the questionnaire emitters reference them by."""
 
     plan: AssignmentPlan = Field(default_factory=AssignmentPlan)
+    empty_assignments: EmptyAssignmentSummary | None = None
+    """The forms no unit may report, or None when every published form has somewhere to report from."""
 
 
 def assignment_container_uid(source: QuestionnaireSourceIn) -> str:
@@ -180,11 +204,16 @@ def build_assignment_artifacts(
     publishes a Location for, and its stems are the ids those Locations carry. The assignment is
     intersected with that set before it is judged, so a unit DHIS2 assigns but the registry does
     not publish can never make an assignment look narrower than it is.
+
+    A container left with no member at all takes its forms with it: they publish, and no unit may
+    report them. That outcome is summarised on the build as well as noted, because the terminal says
+    it out loud at the end of a run rather than filing it with the terminology notes.
     """
     naming = QuestionnaireNaming.from_naming(config.naming)
     published_uids = frozenset(published.stems)
     build = AssignmentBuild()
     list_ids: dict[str, str] = {}
+    empty_container_uids: set[str] = set()
     empty_containers: list[str] = []
     for container in _containers(sources, stem_plan):
         assigned = assignments.assigned(container.uid)
@@ -199,17 +228,42 @@ def build_assignment_artifacts(
             _json_artifact(list_id, _assignment_list(list_id, container, members, published, config))
         )
         if not members:
+            empty_container_uids.add(container.uid)
             empty_containers.append(f"{container.name} ({container.uid})")
-    if empty_containers:
-        build.notes.append(
-            generate_note(
-                GenerateNoteCategory.SELECTION_GAP,
-                f"{len(empty_containers)} form(s) are assigned to no organisation unit the registry publishes, so "
-                f"their assignment List is empty and no unit may report them: {', '.join(sorted(empty_containers))}",
-            )
-        )
     build.plan = AssignmentPlan(list_ids=list_ids)
+    if empty_containers:
+        build.empty_assignments = EmptyAssignmentSummary(
+            form_count=_forms_on(sources, empty_container_uids),
+            containers=sorted(empty_containers),
+            max_level=config.organisation_units.max_level,
+        )
+        build.notes.append(
+            generate_note(GenerateNoteCategory.SELECTION_GAP, _empty_assignment_message(build.empty_assignments))
+        )
     return build
+
+
+def _forms_on(sources: list[QuestionnaireSourceIn], container_uids: set[str]) -> int:
+    """How many published forms hang on one of these assignment containers - the unit the facade counts."""
+    return sum(
+        1
+        for source in sources
+        if FORM_KIND_PROFILES[source.kind].assigned and assignment_container_uid(source) in container_uids
+    )
+
+
+def _empty_assignment_message(summary: EmptyAssignmentSummary) -> str:
+    """The note one run files about the forms no unit may report, naming what narrowed the registry."""
+    narrowed = (
+        f"; `[generate.organisation_units] max_level = {summary.max_level}` is what narrows the registry"
+        if summary.max_level is not None
+        else ""
+    )
+    return (
+        f"{summary.form_count} published form(s) are assigned to no organisation unit the registry publishes, "
+        f"so their assignment List is empty and no unit may report them{narrowed}. The assignment hangs on: "
+        f"{', '.join(summary.containers)}"
+    )
 
 
 def _containers(sources: list[QuestionnaireSourceIn], stem_plan: QuestionnaireStemPlan) -> list[AssignmentContainer]:

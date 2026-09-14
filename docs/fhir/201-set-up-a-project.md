@@ -85,6 +85,36 @@ survive ([what it does](301-generation.md#hostile_names)) - plus
 `fhir.example.toml` documenting every option with its default; copy what you
 need across, and anything you omit keeps its default.
 
+## Choosing a max-level
+
+`--max-level` is the one flag whose value costs something on the other side of
+the guide. It caps the depth of the organisation-unit registry, which is most of
+what a national build renders: dropping from every level to level 2 can take a
+registry of thousands of units down to a dozen, and a multi-hour publisher run
+down to minutes.
+
+What it also caps is where a form may be reported from. DHIS2 assigns a data set
+or a program to organisation units, usually facilities at the deepest level, and
+a generated guide publishes that assignment as a `List` of the Locations it
+admits. Intersect an assignment with a registry that stops at level 2 and the
+`List` is frequently empty: the form publishes, nobody can submit a response to
+it, `$generate` answers 422, and DHIS2 would refuse the capture with `E1029`.
+On the DHIS2 demo instance at `--max-level 2`, 29 of 41 published Questionnaires
+land that way.
+
+So the level to pick is the shallowest one that still reaches the units your
+selected forms are assigned to. Two ways to read it off a project you already
+have:
+
+- `d2w fhir generate` closes with a warning naming how many published forms
+  carry an empty organisation-unit assignment and the `max_level` in force.
+- `d2w fhir check-artifacts` reports the same forms as warning-level findings,
+  offline, one per form.
+
+If the number is not zero, either raise `max_level` until the registry reaches
+the assigned units, or narrow the form selection to forms the registry covers. A
+guide of forms nobody may report is a valid build and a useless one.
+
 ## Start from a template
 
 Everything above scaffolds an empty project: the skeleton is there, and the

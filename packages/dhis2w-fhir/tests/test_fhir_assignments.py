@@ -15,6 +15,7 @@ from dhis2w_fhir.config import GenerateConfig, NamingConfig
 from dhis2w_fhir.names import StemResolution, StemSubject, resolve_identity_stems
 from dhis2w_fhir.resources.option_sets.schemas import OptionSetIdentityPlan
 from dhis2w_fhir.resources.organisation_units import ORGANISATION_UNIT_STEM_SURFACE
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitSelection
 from dhis2w_fhir.resources.questionnaires import build_questionnaire_artifacts
 from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
@@ -144,6 +145,40 @@ def test_an_assignment_no_published_unit_is_on_publishes_an_empty_list_and_a_not
     assert "entry" not in _document(build)
     assert len(build.notes) == 1
     assert "assigned to no organisation unit the registry publishes" in build.notes[0].message
+
+
+def test_the_empty_assignments_are_summarised_for_the_terminal_to_say_out_loud() -> None:
+    """The run carries the outcome as a value, not only as one note among the hundreds a sweep raises."""
+    build = _build([_DATA_SET], {"BfMAe6Itzgt": frozenset({"Unpublished1"})})
+
+    assert build.empty_assignments is not None
+    assert build.empty_assignments.form_count == 1
+    assert build.empty_assignments.containers == ["Child Health (BfMAe6Itzgt)"]
+
+
+def test_a_run_every_form_can_report_from_summarises_nothing() -> None:
+    """The summary is the exception being reported, so an ordinary run carries none."""
+    assert _build([_DATA_SET], {"BfMAe6Itzgt": frozenset({"ImspTQPwCqd"})}).empty_assignments is None
+
+
+def test_the_forms_are_counted_rather_than_the_programs_the_assignment_hangs_on() -> None:
+    """The facade refuses a Questionnaire, so a run counting programs states a number nothing else agrees with."""
+    build = _build([_STAGE_ONE, _STAGE_TWO], {"IpHINAT79UW": frozenset({"Unpublished1"})})
+
+    assert build.empty_assignments is not None
+    assert build.empty_assignments.form_count == 2
+    assert build.empty_assignments.containers == ["Child Programme (IpHINAT79UW)"]
+    assert "2 published form(s)" in build.notes[0].message
+
+
+def test_the_note_names_the_max_level_that_narrowed_the_registry() -> None:
+    """`max_level` is what usually leaves a form with nothing to report from, so the note says which one."""
+    config = GenerateConfig(organisation_units=OrganisationUnitSelection(max_level=2))
+    build = _build([_DATA_SET], {"BfMAe6Itzgt": frozenset({"Unpublished1"})}, config)
+
+    assert build.empty_assignments is not None
+    assert build.empty_assignments.max_level == 2
+    assert "max_level = 2" in build.notes[0].message
 
 
 def test_a_registry_that_publishes_nothing_leaves_every_form_unscoped() -> None:

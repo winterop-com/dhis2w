@@ -70,6 +70,16 @@ extension a unit's DHIS2 attributes ride on, the registry examples, and the
 Registry page with a per-unit intro where DHIS2 holds a description. Its site is
 Home, Registry, Artifacts.
 
+The registry examples are the one published pair that is not an organisation
+unit. Both profiles require the two DHIS2 identifier slices, so the worked
+`D2Organization` / `D2Location` pair has to state a UID and a code; it states
+`d2-example` on each, under the name "Example organisation unit". No DHIS2 UID
+can be that value, so an identifier search over the package answers with exactly
+one resource per unit - which is the whole job of a package whose only task is
+to say what each unit is. Its level and position are taken from the selection's
+own root unit, so the publisher still validates the profiles against shapes the
+instance really holds.
+
 ```bash
 d2w fhir init example-registry --publishes organisation-units \
     --id dhis2.fhir.example.registry \

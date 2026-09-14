@@ -332,6 +332,7 @@ def build_code_validation(
         object_count=object_count,
         code_coverage=None if scope is None else _code_coverage(collections, scope),
         findings=findings,
+        publishes_forms=scope is None or scope.publishes_forms,
     )
 
 

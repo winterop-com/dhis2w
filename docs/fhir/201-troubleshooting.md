@@ -79,15 +79,33 @@ error: 3 build-aborting artifact(s) found; exiting 1 before the publisher runs
 (--no-fail to suppress)
 ```
 
-Cause: `d2w fhir check-artifacts` found a `<` in the artifacts on disk. That
-is a different question from the two above, which read the instance and the
-selection - a build publishes whatever `ig/fsh-generated/` and `ig/input/`
-hold, so output from before the gate existed, output from an older toolchain
-pin, and hand-authored FSH all reach the publisher without passing it. Fix:
-what each finding's own line says - regenerate after narrowing the selection
-for a generated file, edit the file for a hand-authored one. [The build
-refuses before it begins](201-build-and-publish.md#the-build-refuses-before-it-begins)
+Cause: `d2w fhir check-artifacts` found a `<` in the artifacts on disk, or in
+the guide's own identity. That is a different question from the two above, which
+read the instance and the selection - a build publishes whatever
+`ig/fsh-generated/` and `ig/input/` hold, so output from before the gate
+existed, output from an older toolchain pin, and hand-authored FSH all reach the
+publisher without passing it. Fix: what each finding's own line says, which
+follows from where the value came from - regenerate after narrowing the
+selection for a value from DHIS2, change `[ig] <key>` in `fhir.toml` and run
+`d2w fhir init --refresh` for the guide's own title, name, publisher or
+description, edit the file for a hand-authored one. [The build refuses before it
+begins](201-build-and-publish.md#the-build-refuses-before-it-begins)
 covers the scan.
+
+**A scan that exits 0 with warnings:**
+
+```text
+warning: 29 finding(s) the build survives; the guide publishes and what it costs
+is read in the table above
+```
+
+Cause: those forms carry an organisation-unit assignment `List` naming no unit
+this project publishes, usually because
+[`max_level`](201-set-up-a-project.md#choosing-a-max-level) stops above the
+level the forms are assigned at. The build is valid, which is why it is not a
+refusal; what the guide publishes is forms nobody can submit a response to, and
+`$generate` answers 422 for each. Fix: raise `max_level`, or narrow the form
+selection to what the registry covers, then regenerate.
 
 **Every finding sits under `fsh-generated/`, right after a generate that
 changed posture:** those findings are a stale compile, not stale sources. The

@@ -152,6 +152,15 @@ class _ValidationPdf(FPDF):
             0, 5.5, f"Generated: {generated_at.isoformat(timespec='seconds')}", new_x="LMARGIN", new_y="NEXT"
         )
         self.multi_cell(0, 5.5, f"Hostile names: {report.hostile_names_line}", new_x="LMARGIN", new_y="NEXT")
+        self.multi_cell(0, 5.5, f"Graded against: {report.scope_line}", new_x="LMARGIN", new_y="NEXT")
+        if report.not_applicable_surfaces:
+            self.multi_cell(
+                0,
+                5.5,
+                f"Not applicable: {', '.join(report.not_applicable_surfaces)}",
+                new_x="LMARGIN",
+                new_y="NEXT",
+            )
         self.set_text_color(*_INK)
         self.ln(6)
         self.set_font(_FONT_FAMILY, "B", 12)

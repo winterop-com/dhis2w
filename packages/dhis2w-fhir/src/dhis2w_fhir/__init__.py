@@ -438,6 +438,9 @@ from dhis2w_fhir.resources.option_sets.schemas import (
 from dhis2w_fhir.resources.organisation_units import (
     ORGANISATION_UNIT_STEM_SURFACE,
     REGISTRY_DIRECTORY,
+    REGISTRY_EXAMPLE_IDENTIFIER,
+    REGISTRY_EXAMPLE_IDENTITY_SENTENCE,
+    REGISTRY_EXAMPLE_NAME,
     build_organisation_unit_instances,
     build_organisation_unit_level_terminology,
     build_organisation_unit_level_terminology_documents,
@@ -496,6 +499,7 @@ from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
     AssignmentIndex,
     AssignmentPlan,
+    EmptyAssignmentSummary,
     build_assignment_artifacts,
 )
 from dhis2w_fhir.resources.questionnaires.documents import (
@@ -693,7 +697,12 @@ from dhis2w_fhir.validation import (
     render_validation_markdown,
     usable_code_stem,
 )
-from dhis2w_fhir.validation.artifacts import ArtifactCheckReport, ArtifactFinding, check_publishable_artifacts
+from dhis2w_fhir.validation.artifacts import (
+    ArtifactCheckReport,
+    ArtifactFinding,
+    FindingOrigin,
+    check_publishable_artifacts,
+)
 from dhis2w_fhir.validation.pdf import render_validation_pdf
 from dhis2w_fhir.validation.report import display_code, render_validation_csv
 from dhis2w_fhir.validation.schemas import (
@@ -936,6 +945,7 @@ __all__ = [
     "DriftKind",
     "DriftReport",
     "DriftSubject",
+    "EmptyAssignmentSummary",
     "EvaluationContext",
     "EvaluationDiagnostic",
     "EvaluationLanguage",
@@ -978,6 +988,7 @@ __all__ = [
     "FhirProjectConfig",
     "FhirValidationReport",
     "find_project_fhir_config",
+    "FindingOrigin",
     "form_date_labels",
     "FORM_KIND_PROFILES",
     "form_period_type",
@@ -1230,6 +1241,9 @@ __all__ = [
     "REGISTRATION_FILE_STEM",
     "RegistrationTranslation",
     "REGISTRY_DIRECTORY",
+    "REGISTRY_EXAMPLE_IDENTIFIER",
+    "REGISTRY_EXAMPLE_IDENTITY_SENTENCE",
+    "REGISTRY_EXAMPLE_NAME",
     "registry_scope_line",
     "REJECTED_RESPONSES_RELATIVE_PATH",
     "render_doctor_markdown",

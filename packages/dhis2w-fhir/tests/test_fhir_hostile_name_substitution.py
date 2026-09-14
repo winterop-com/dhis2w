@@ -5,7 +5,7 @@ name carries '<'. This covers the other answer: publishing the name in wording t
 survives and the code with its spaces hyphenated, leaving DHIS2 untouched. The load-bearing test is
 the parity one, which generates a whole guide off an instance whose names carry '<' everywhere a
 name can sit and then runs the `d2w fhir check-artifacts` scan over every file the run wrote,
-asserting it finds nothing; the code half is guarded by the emission tests at the foot of the file,
+asserting it refuses nothing; the code half is guarded by the emission tests at the foot of the file,
 which read the published concepts, ConceptMaps, and identifier CodeSystems back off the disk.
 """
 
@@ -25,7 +25,7 @@ from dhis2w_fhir.hostile_names import HostileNameGate, HostileRewrite
 from dhis2w_fhir.i18n import TranslationIn
 from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory
 from dhis2w_fhir.validation import build_aborting_name
-from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
+from dhis2w_fhir.validation.artifacts import ArtifactCheckReport, ArtifactFinding, check_publishable_artifacts
 from dhis2w_fhir.validation.substitution import first_control_character, substitute_build_aborting_text
 
 _HOST = "https://dhis2.example"
@@ -48,6 +48,15 @@ _REWRITES: list[tuple[str, str]] = [
     ("Mortality > 5 years", "Mortality over 5 years"),
     ("Age &gt;= 5", "Age at least 5"),
 ]
+
+
+def _build_aborting(report: ArtifactCheckReport) -> list[ArtifactFinding]:
+    """The findings of one scan that stop a build - what a hostile name is answered at.
+
+    A scan also raises warnings, which say a published form is unusable rather than that a name
+    escaped the rewrite. Those belong to their own tests.
+    """
+    return [finding for finding in report.findings if finding.severity == "build-aborting"]
 
 
 def test_the_rewrite_reads_as_the_words_the_character_stands_for() -> None:
@@ -592,6 +601,10 @@ async def test_a_substituted_run_publishes_nothing_the_artifact_check_refuses(
     The scan is `d2w fhir check-artifacts` itself - the same predicates, over `ig/input/fsh`,
     `ig/input/resources`, and `ig/fsh-generated` - so a name that escaped the rewrite anywhere in
     the emission is a finding here, whichever target published it.
+
+    Build-aborting findings are what the parity is about. The instance behind this run assigns its
+    forms to a unit the selection leaves out, which the scan says so about at warning level; that is
+    a form nobody can submit, not a name that escaped the rewrite.
     """
     mock_system_info("v42")
     await _scaffold_project(tmp_path)
@@ -602,7 +615,7 @@ async def test_a_substituted_run_publishes_nothing_the_artifact_check_refuses(
 
     report = check_publishable_artifacts(project)
     assert report.file_count > 0
-    assert report.findings == []
+    assert _build_aborting(report) == []
 
 
 @respx.mock
@@ -737,8 +750,8 @@ async def test_the_names_no_gate_reads_reach_the_disk_when_nothing_is_rewritten(
     await service.generate_full(resolve_profile("probe"), project, gate=HostileNameGate())
 
     report = check_publishable_artifacts(project)
-    assert report.findings
-    assert {finding.kind for finding in report.findings} == {"name"}
+    assert _build_aborting(report)
+    assert {finding.kind for finding in _build_aborting(report)} == {"name"}
 
 
 @respx.mock
@@ -755,7 +768,7 @@ async def test_the_same_names_are_rewritten_when_the_run_is_answered_with_yes(
 
     await service.generate_full(resolve_profile("probe"), project, gate=_substituting_gate())
 
-    assert check_publishable_artifacts(project).findings == []
+    assert _build_aborting(check_publishable_artifacts(project)) == []
 
 
 @respx.mock
@@ -773,7 +786,7 @@ async def test_a_named_target_rewrites_what_the_full_run_rewrites(
     await service.generate_questionnaires(resolve_profile("probe"), project, gate=_substituting_gate())
 
     report = check_publishable_artifacts(project)
-    assert report.findings == []
+    assert _build_aborting(report) == []
 
 
 def _spaced_code_instance() -> dict[str, list[dict[str, Any]]]:
