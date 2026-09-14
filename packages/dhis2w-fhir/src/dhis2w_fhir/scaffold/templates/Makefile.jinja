@@ -4,16 +4,40 @@
 DOCKER_IMAGE := fhir-ig
 IG_DIR := ig
 TX_SERVER ?= http://tx.fhir.org
-# The publisher JVM heap ceiling, sized to this machine: the docker VM less 2G. A build wants the
-# machine to itself - the publisher and Jekyll share one container, and Jekyll renders the site at
-# the very end with the JVM still resident - so stop your other containers for the run. If the
-# kernel kills it anyway the build says so and names every way out. This is a ceiling, not a
-# reservation: a guide that needs less simply uses less. Override it freely on the command line or
-# in the environment (`make build JAVA_HEAP=8g`); the value lives outside this file, so a refresh
-# leaves it alone.
-{% raw %}JAVA_HEAP ?= $(shell docker info --format '{{.MemTotal}}' 2>/dev/null \
-	| awk '{ gigabytes = int(($$1 / 1073741824) - 2); if (gigabytes < 4) gigabytes = 4; print gigabytes "g" }' \
-	| grep . || echo 8g){% endraw %}
+# The publisher JVM heap ceiling. Leave it empty and each build sizes it to this machine: the
+# memory docker reports, less 2G, floored at 4g and capped at 31g. On macOS and Windows that figure
+# is the VM Docker Desktop runs; on Linux it is the whole machine's RAM, whatever else is running on
+# it - so name a ceiling yourself on a shared build host.
+#
+# The 2G of headroom is deliberately generous. A publisher build is a monthly act and it wants the
+# machine to itself: the publisher and Jekyll share one container, Jekyll renders the site at the
+# very end with the JVM still resident, and a heap has the JVM's own metaspace and native memory
+# around it. Stop your other containers for the run, and if the kernel's out-of-memory killer takes
+# the publisher anyway, the build says so and names every way out.
+#
+# 31g is the top because the JVM drops compressed object pointers above roughly 32 GB, where the
+# same live set suddenly costs materially more heap; the largest guide measured peaked at 16.
+#
+# It is a ceiling, not a reservation: a guide that needs less simply uses less. Set JAVA_HEAP
+# whenever you want a particular ceiling - on the command line (`make build JAVA_HEAP=8g`) or in the
+# environment - and an empty value derives exactly as an unset one does. The value lives outside
+# this file, so a refresh leaves it alone.
+JAVA_HEAP ?=
+# The one question a build puts to docker, asked when something first needs the answer and
+# remembered from then on: `$(eval ...)` rewrites this variable to what the shell said, so `help`,
+# `clean` and `generate` never ask, and a build asks once however many places read it. Only the
+# first record is taken - a daemon that prints a warning line ahead of the number would otherwise
+# hand make two values and the publisher two -Xmx arguments - and anything but a number lands on 8g
+# with the memory reported as unknown. The answer is "<ceiling> <memory>", split apart below.
+DOCKER_MEMORY_READING = $(eval DOCKER_MEMORY_READING := $(shell docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null \
+	| awk 'NR == 1 { if ($$1 ~ /^[0-9]+$$/) { gigabytes = int(($$1 / 1073741824) - 2); \
+		if (gigabytes < 4) gigabytes = 4; if (gigabytes > 31) gigabytes = 31; \
+		printf "%dg %.1f GB\n", gigabytes, $$1 / 1073741824 } else print "8g unknown"; exit } \
+		END { if (NR == 0) print "8g unknown" }'))$(DOCKER_MEMORY_READING)
+# What the publisher is actually given, and where that number came from. A JAVA_HEAP set to a value
+# is taken as it stands and docker is never asked; empty or unset derives.
+PUBLISHER_HEAP = $(if $(strip $(JAVA_HEAP)),$(strip $(JAVA_HEAP)),$(word 1,$(DOCKER_MEMORY_READING)))
+HEAP_SOURCE = $(if $(strip $(JAVA_HEAP)),set by JAVA_HEAP,docker memory $(wordlist 2,3,$(DOCKER_MEMORY_READING)))
 
 # The toolchain uv.lock pins. Override to run a checkout: D2W="uv run --project /path/to/dhis2w d2w"
 D2W ?= uv run d2w
@@ -28,40 +52,80 @@ BUILD_WORKDIR := /home/publisher/work
 # and they are the bulk of what a build writes.
 BUILD_CARRIED_BACK := output fsh-generated input-cache
 
-# What `build` and `build-bind` print when the kernel kills the publisher. Exit 137 on its own says
-# nothing, and the two memory failures need opposite fixes - too large a ceiling for the box is a
-# SIGKILL, too small a one for the guide is an OutOfMemoryError - so the message names both. The
-# list of other containers is omitted when there are none, rather than advising a fix that does not
-# apply.
+# The tail both builds run once the container is gone: read what the run left behind, say which
+# kill it was, and hand the publisher's own status back to make. Exit 137 says only that something
+# SIGKILLed the publisher, and a `docker stop`, a `docker kill` and a timeout around the build all
+# look identical from here - so the container reports its own cgroup's out-of-memory count as it
+# exits, and that count is what tells the two apart.
+define REPORT_KILL
+	status=$$(cat "$$run/status" 2>/dev/null || echo 1); \
+	oom_kills=$$(awk '/^container out-of-memory kills: / { count = $$NF } END { print count + 0 }' \
+		"$$run/log" 2>/dev/null); \
+	rm -rf "$$run"; \
+	if [ $$status -eq 137 ] && [ $$oom_kills -gt 0 ]; then $(REPORT_OOM_KILL); \
+	elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); fi; \
+	exit $$status
+endef
+
+# What a build prints when the kernel's out-of-memory killer took the publisher. The two memory
+# failures need opposite fixes - too large a ceiling for the machine is a SIGKILL, too small a one
+# for the guide is an OutOfMemoryError - so the message names both. The container list and the step
+# that acts on it are printed only when something else is in fact running, rather than heading the
+# list with advice that does not apply.
 define REPORT_OOM_KILL
 	printf '%s\n' \
 		'' \
 		'================================================================' \
 		'  BUILD KILLED - out of memory (exit 137)' \
 		'================================================================' \
-		'  The kernel SIGKILLed the publisher. This is not a build error:' \
-		'  ig/output is empty or partial because the site is written last.' \
+		"  The kernel's out-of-memory killer took the publisher. This is" \
+		'  not a build error: ig/output holds whatever the last completed' \
+		'  build wrote, or is partial - the site is written last, so' \
+		'  nothing from this run is trustworthy.' \
 		''; \
-	printf '    %-14s %s\n' \
-		'heap ceiling' '-Xmx$(JAVA_HEAP)' \
-		'docker VM' "$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null \
-			| awk '{ printf "%.1f GB", $$1 / 1073741824 }')"; \
+	printf '    %-14s %s\n' 'heap ceiling' '-Xmx$(PUBLISHER_HEAP) ($(HEAP_SOURCE))'; \
 	others=$$(docker ps --format '{% raw %}{{.Names}}  {{.Image}}{% endraw %}' 2>/dev/null); \
 	if [ -n "$$others" ]; then \
-		printf '%s\n' '' '  Other containers were holding this VM during the build:'; \
+		printf '%s\n' '' '  Containers running now, sampled after the kill:'; \
 		printf '%s\n' "$$others" | sed 's/^/      /'; \
 	fi; \
+	printf '%s\n' '' '  Ways out, best first:' ''; \
+	step=1; \
+	if [ -n "$$others" ]; then \
+		printf '    %d. Stop those containers and run it again - a publisher\n' $$step; \
+		printf '%s\n' '       build wants the machine to itself.'; \
+		step=$$((step + 1)); \
+	fi; \
+	printf '    %d. Give docker more memory. Docker Desktop: Settings >\n' $$step; \
+	printf '%s\n' '       Resources > Memory. Linux: docker uses the memory of' \
+		'       the machine it runs on, so free some there.'; \
+	step=$$((step + 1)); \
+	printf '    %d. Lower the ceiling:  make build JAVA_HEAP=<smaller>\n' $$step; \
 	printf '%s\n' \
-		'' \
-		'  Ways out, best first:' \
-		'' \
-		'    1. Stop any other containers and run it again - a publisher' \
-		'       build wants the machine to itself.' \
-		'    2. Raise the VM:  Docker Desktop > Settings > Resources > Memory' \
-		'    3. Lower the ceiling:  make build JAVA_HEAP=<smaller>' \
 		'' \
 		'  The opposite failure looks different: OutOfMemoryError with a Java' \
 		'  stack trace means the ceiling is too SMALL. Raise it instead.' \
+		'================================================================' \
+		''
+endef
+
+# What a build prints on the other 137: the publisher was SIGKILLed, and the container's cgroup
+# counted no out-of-memory kill.
+define REPORT_OTHER_KILL
+	printf '%s\n' \
+		'' \
+		'================================================================' \
+		'  BUILD KILLED (exit 137)' \
+		'================================================================' \
+		"  Something other than the kernel's out-of-memory killer SIGKILLed" \
+		'  the publisher: a docker stop, a docker kill, a timeout around the' \
+		'  build. No out-of-memory kill was counted in the container cgroup -' \
+		'  a host on cgroup v1 counts none either way, so read the log again' \
+		'  if memory is what you suspect.' \
+		'' \
+		'  ig/output holds whatever the last completed build wrote, or is' \
+		'  partial - the site is written last, so nothing from this run is' \
+		'  trustworthy.' \
 		'================================================================' \
 		''
 endef
@@ -156,34 +220,36 @@ build: cache-init  ## Run the full IG publisher
 # in, built there, and the results streamed back - two bulk copies instead of one file at a time.
 # Linux mounts a host directory directly and pays none of that; the recipe is the same either way
 # because a project that builds one way on one machine should build the same way on the other.
-# The heap is stated up front because it is derived from this machine rather than written in this
-# file, and a number nobody can see is a number nobody can question. The peak the container actually
-# reached is read back out of its own cgroup before it exits - `--rm` takes the container away, so
-# it cannot be asked afterwards - and printed either way. On a kill it is the evidence; on a success
-# it is the only thing that ever answers "is the ceiling big enough" with a measurement.
-	@printf 'publisher heap %s, docker VM %s\n' '$(JAVA_HEAP)' \
-		"$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null | awk '{ printf "%.1f GB", $$1 / 1073741824 }')"
-	@status=0; \
-	docker run --rm -v $$(pwd)/$(IG_DIR):/mnt/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
+# The heap is stated up front because it is sized to this machine rather than written in this file,
+# and a number nobody can see is a number nobody can question. The peak the container actually
+# reached and its cgroup's out-of-memory count are read from inside before it exits - `--rm` takes
+# the container away, so it cannot be asked afterwards - and printed either way. On a kill they are
+# the evidence for which kill it was; on a success the peak is the only thing that ever answers "is
+# the ceiling big enough" with a measurement. `tee` keeps a copy of the run for the two lines make
+# reads back, and the status comes out in a file because the pipe would otherwise swallow it.
+	@printf 'publisher heap %s, %s\n' '$(PUBLISHER_HEAP)' '$(HEAP_SOURCE)'
+	@run=$$(mktemp -d "$${TMPDIR:-/tmp}/publisher-build.XXXXXX") || exit 1; \
+	{ docker run --rm -v $$(pwd)/$(IG_DIR):/mnt/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
 		$(DOCKER_IMAGE) bash -c 'set -e; \
 			rm -rf $(BUILD_WORKDIR); mkdir -p $(BUILD_WORKDIR); \
 			tar -C /mnt/ig --exclude=./output --exclude=./temp --exclude=./template -cf - . \
 				| tar -C $(BUILD_WORKDIR) -xf -; \
 			cd $(BUILD_WORKDIR); \
 			status=0; \
-			java -Xmx$(JAVA_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
+			java -Xmx$(PUBLISHER_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
 				|| status=$$?; \
 			awk "{ printf \"peak container memory %.1f GB\n\", \$$1 / 1073741824 }" \
 				/sys/fs/cgroup/memory.peak 2>/dev/null || true; \
+			awk "/^oom_kill / { printf \"container out-of-memory kills: %d\n\", \$$2 }" \
+				/sys/fs/cgroup/memory.events 2>/dev/null || true; \
 			for carried in $(BUILD_CARRIED_BACK); do \
 				if [ -d "$(BUILD_WORKDIR)/$$carried" ]; then \
 					rm -rf "/mnt/ig/$$carried"; \
 					tar -C $(BUILD_WORKDIR) -cf - "$$carried" | tar -C /mnt/ig -xf -; \
 				fi; \
 			done; \
-			exit $$status' || status=$$?; \
-	if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi; \
-	exit $$status
+			exit $$status'; echo $$? > "$$run/status"; } | tee "$$run/log"; \
+	$(REPORT_KILL)
 
 .PHONY: build-bind
 
@@ -195,17 +261,21 @@ build-bind: cache-init  ## Run the publisher straight over the mounted project, 
 # The same build without the two copies. Worth reaching for when you want to watch output/ fill up
 # as it is written, or when a copy is what you suspect. On macOS it is the slower of the two.
 	$(MAKE) check
-# The publisher is the container's own command here, with no shell of ours around it, so there is
-# nowhere inside to read the cgroup from - this build reports the kill but not the peak.
-	@printf 'publisher heap %s, docker VM %s\n' '$(JAVA_HEAP)' \
-		"$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null | awk '{ printf "%.1f GB", $$1 / 1073741824 }')"
-	@status=0; \
-	docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
-		$(DOCKER_IMAGE) \
-		java -Xmx$(JAVA_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
-		|| status=$$?; \
-	if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi; \
-	exit $$status
+# The publisher runs over the mounted project, and the shell around it is there for one reason: to
+# read the peak and the cgroup's out-of-memory count once the JVM is done, which is what tells a
+# kernel out-of-memory kill from any other SIGKILL.
+	@printf 'publisher heap %s, %s\n' '$(PUBLISHER_HEAP)' '$(HEAP_SOURCE)'
+	@run=$$(mktemp -d "$${TMPDIR:-/tmp}/publisher-build.XXXXXX") || exit 1; \
+	{ docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
+		$(DOCKER_IMAGE) bash -c 'status=0; \
+			java -Xmx$(PUBLISHER_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
+				|| status=$$?; \
+			awk "{ printf \"peak container memory %.1f GB\n\", \$$1 / 1073741824 }" \
+				/sys/fs/cgroup/memory.peak 2>/dev/null || true; \
+			awk "/^oom_kill / { printf \"container out-of-memory kills: %d\n\", \$$2 }" \
+				/sys/fs/cgroup/memory.events 2>/dev/null || true; \
+			exit $$status'; echo $$? > "$$run/status"; } | tee "$$run/log"; \
+	$(REPORT_KILL)
 
 .PHONY: serve serve-live
 

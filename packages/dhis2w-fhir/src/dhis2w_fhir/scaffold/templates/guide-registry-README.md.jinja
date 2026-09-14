@@ -63,8 +63,9 @@ reference the package does not publish.
 
 The two builds never share a container, which is the point of the split: the
 registry's depth is a dial on the registry project, not on the guide. Each sizes
-the publisher's heap from this machine's docker VM, so neither needs telling;
-`make build JAVA_HEAP=8g` overrides both at once when you want to say.
+the publisher's heap from the memory docker reports on this machine, so neither
+needs telling; `make build JAVA_HEAP=8g` sets both at once whenever you want a
+particular ceiling.
 
 ## Reading further
 

@@ -1,6 +1,8 @@
 """Unit tests for `d2w fhir init` scaffold contents and the `--refresh` comparison."""
 
 import re
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -18,6 +20,7 @@ from dhis2w_fhir.scaffold import (
 from dhis2w_fhir.scaffold.identity import adopt_scaffold_owned_lines
 from dhis2w_fhir.scaffold.refresh import preserves_every_line, read_project_scaffold_state, refresh_project
 from dhis2w_fhir.scaffold.schemas import DEFAULT_SUSHI_TIMEOUT_SECONDS, InitOptions, normalize_project_name
+from makefile_harness import run_make, stub_docker
 
 _OPTIONS = InitOptions(
     ig_id="dhis2.fhir.test",
@@ -562,57 +565,209 @@ def test_makefile_uses_real_tabs() -> None:
     assert "\t$(D2W) fhir validate" in makefile
 
 
-def test_makefile_publisher_heap_is_derived_from_the_docker_vm() -> None:
-    """The ceiling is sized to the machine, because the constraint is the box and not the guide.
+def test_makefile_publisher_heap_is_derived_from_the_memory_docker_reports() -> None:
+    """The ceiling is sized to the machine, because the constraint is the machine and not the guide.
 
     A literal would be wrong on some machine either way: too small for a national registry on a
-    workstation, too large to survive on a laptop. The VM knows, and is asked.
+    workstation, too large to survive on a laptop. Docker knows what it has, and is asked.
     """
     makefile = _by_path()["Makefile"]
-    assert "JAVA_HEAP ?= $(shell docker info --format '{{.MemTotal}}'" in makefile
-    assert "java -Xmx$(JAVA_HEAP) -jar" in makefile
+    assert "DOCKER_MEMORY_READING = $(eval DOCKER_MEMORY_READING := $(shell docker info" in makefile
+    assert "java -Xmx$(PUBLISHER_HEAP) -jar" in makefile
     assert "-Xmx8g" not in makefile
+
+
+def test_makefile_asks_docker_once_and_only_where_the_answer_is_needed() -> None:
+    """One `$(shell)`, memoised on first use: three references must not become three daemon calls.
+
+    The recursively expanded form would re-run the pipeline at every reference - the banner, the
+    `-Xmx`, the kill report - and a daemon answering differently between them would announce one
+    ceiling and run another.
+    """
+    makefile = _by_path()["Makefile"]
+    assert makefile.count("$(shell docker info") == 1
+    assert "$(eval DOCKER_MEMORY_READING := " in makefile
+    # Every reader goes through the memoised variable, so nothing else can ask the daemon.
+    assert "$$(docker info" not in makefile
 
 
 def test_makefile_publisher_heap_falls_back_when_docker_cannot_be_asked() -> None:
     """A docker that will not answer must leave a usable number, not an empty `-Xmx`."""
     makefile = _by_path()["Makefile"]
-    assert "|| echo 8g)" in makefile
-    assert "2>/dev/null" in makefile.split("JAVA_HEAP ?=", 1)[1].split("\n\n", 1)[0]
+    assert makefile.count('print "8g unknown"') == 2
+    assert "2>/dev/null" in makefile.split("DOCKER_MEMORY_READING = ", 1)[1].split("\n#", 1)[0]
 
 
 def test_makefile_names_the_kill_and_both_ways_memory_fails() -> None:
     """Exit 137 says nothing on its own, and the two memory failures need opposite fixes.
 
-    Too large a ceiling for the box is a SIGKILL; too small a one for the guide is an
+    Too large a ceiling for the machine is a SIGKILL; too small a one for the guide is an
     OutOfMemoryError. A message naming only one of them sends half its readers the wrong way.
     """
     makefile = _by_path()["Makefile"]
     assert "define REPORT_OOM_KILL" in makefile
     assert "BUILD KILLED - out of memory (exit 137)" in makefile
     assert "OutOfMemoryError" in makefile
-    assert "Raise the VM" in makefile
+    assert "Give docker more memory. Docker Desktop: Settings >" in makefile
+    assert "Linux: docker uses the memory of" in makefile
     assert "Lower the ceiling" in makefile
-    assert "Stop any other containers" in makefile
+    assert "Stop those containers" in makefile
+
+
+def test_the_stop_containers_advice_is_numbered_with_the_list_it_acts_on() -> None:
+    """A step telling a reader to stop the other containers is printed only when there are some.
+
+    Read on a machine running nothing else, it led the list of ways out with an act the reader had
+    already performed, and pushed the two that could help down the page.
+    """
+    report = _by_path()["Makefile"].split("define REPORT_OOM_KILL", 1)[1].split("endef", 1)[0]
+    assert "'  Ways out, best first:'" in report
+    assert "step=1; \\" in report
+    assert report.count("step=$$((step + 1)); \\") == 2
+    assert report.count("$$step") == 3
+    containers_step = report.split('if [ -n "$$others" ]; then', 2)[2]
+    assert "Stop those containers" in containers_step
+
+
+def test_the_container_list_is_what_is_running_now() -> None:
+    """`docker ps` after a kill is a sample taken afterwards, not a record of the build."""
+    report = _by_path()["Makefile"].split("define REPORT_OOM_KILL", 1)[1].split("endef", 1)[0]
+    assert "'  Containers running now, sampled after the kill:'" in report
+
+
+def test_the_output_directory_is_described_as_the_last_completed_build() -> None:
+    """The container dies before the carry-back, so `ig/output` holds the build before this one."""
+    makefile = _by_path()["Makefile"]
+    assert makefile.count("ig/output holds whatever the last completed") == 2
+    assert "ig/output is empty" not in makefile
+
+
+def test_only_a_counted_out_of_memory_kill_reads_as_one() -> None:
+    """137 is any SIGKILL, so the report that names the kernel waits for the count that proves it.
+
+    A `docker stop`, a `docker kill` and a timeout around the build exit 137 too, and a reader sent
+    to the memory knobs by one of those is sent away from the actual cause.
+    """
+    makefile = _by_path()["Makefile"]
+    assert "define REPORT_OTHER_KILL" in makefile
+    assert "if [ $$status -eq 137 ] && [ $$oom_kills -gt 0 ]; then $(REPORT_OOM_KILL); \\" in makefile
+    assert "elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); fi; \\" in makefile
+    assert "  BUILD KILLED (exit 137)" in makefile
+    assert "a docker stop, a docker kill, a timeout around the" in makefile
 
 
 @pytest.mark.parametrize("target", ["build", "build-bind"])
 def test_both_publisher_builds_report_a_kill(target: str) -> None:
-    """`build-bind` runs the publisher as the container's own command, so it is easy to leave out."""
+    """`build-bind` is the easy one to leave out, and make's own dispatch is the easy half to miss.
+
+    The container script carries an `exit $$status` of its own, so asserting that alone passes on a
+    build that never reports anything: the last line of the recipe is what hands make the status.
+    """
     recipe = _makefile_recipe(_by_path()["Makefile"], target)
-    assert "if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi" in recipe
-    assert "exit $$status" in recipe
+    assert "\t$(REPORT_KILL)" in recipe
+    assert recipe.rstrip().splitlines()[-1] == "\t$(REPORT_KILL)"
+    assert 'echo $$? > "$$run/status"; } | tee "$$run/log"' in recipe
 
 
-def test_the_copying_build_reports_the_peak_it_reached() -> None:
+@pytest.mark.parametrize("target", ["build", "build-bind"])
+def test_both_publisher_builds_report_the_peak_and_the_kill_count(target: str) -> None:
     """Read from inside the container: `--rm` takes it away, so it cannot be asked afterwards.
 
-    On a kill this is the evidence. On a success it is the only thing that answers "is the ceiling
-    big enough" with a measurement rather than a guess.
+    The peak is the only thing that ever answers "is the ceiling big enough" with a measurement
+    rather than a guess, and the cgroup's out-of-memory count is what tells one 137 from the other.
     """
-    recipe = _makefile_recipe(_by_path()["Makefile"], "build")
+    recipe = _makefile_recipe(_by_path()["Makefile"], target)
     assert "/sys/fs/cgroup/memory.peak" in recipe
     assert "peak container memory" in recipe
+    assert "/sys/fs/cgroup/memory.events" in recipe
+    assert "container out-of-memory kills: %d" in recipe
+
+
+# --- the derivation, run rather than read ----------------------------------------------------------
+
+
+def _heap_derivation_program(makefile: str) -> str:
+    """The awk program the Makefile pipes `docker info` through, as make hands it to the shell."""
+    lines = makefile.splitlines()
+    start = next(index for index, line in enumerate(lines) if line.startswith("DOCKER_MEMORY_READING = "))
+    assignment: list[str] = []
+    for line in lines[start:]:
+        assignment.append(line.removesuffix("\\").strip())
+        if not line.endswith("\\"):
+            break
+    program = " ".join(assignment).split("| awk '", 1)[1].rsplit("'))", 1)[0]
+    return program.replace("$$", "$")
+
+
+@pytest.mark.skipif(shutil.which("awk") is None, reason="awk is what the derivation runs on")
+@pytest.mark.parametrize(
+    ("docker_info", "ceiling", "memory"),
+    [
+        ("0\n", "4g", "0.0 GB"),
+        (f"{2 * 1024**3}\n", "4g", "2.0 GB"),
+        (f"{8 * 1024**3}\n", "6g", "8.0 GB"),
+        (f"{16 * 1024**3}\n", "14g", "16.0 GB"),
+        (f"{32 * 1024**3}\n", "30g", "32.0 GB"),
+        (f"{64 * 1024**3}\n", "31g", "64.0 GB"),
+        ("", "8g", "unknown"),
+        ("Cannot connect to the Docker daemon\n", "8g", "unknown"),
+        (f"{16 * 1024**3}\nWARNING: a daemon with something to add\n", "14g", "16.0 GB"),
+    ],
+)
+def test_the_heap_derivation_answers_one_ceiling_for_what_docker_reports(
+    docker_info: str, ceiling: str, memory: str
+) -> None:
+    """Run the pipeline the Makefile carries: a substring check passes on an awk that cannot parse.
+
+    The floor keeps a small machine buildable, the 31g cap keeps the JVM on compressed object
+    pointers, a daemon that cannot be reached lands on 8g rather than on the floor, and a second
+    line of output is ignored rather than turned into a second `-Xmx` argument.
+    """
+    program = _heap_derivation_program(_by_path()["Makefile"])
+    answer = subprocess.run(
+        ["awk", program], input=docker_info, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+    assert answer.splitlines() == [f"{ceiling} {memory}"]
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+@pytest.mark.parametrize(
+    ("arguments", "environment_heap", "expected_calls", "expected_heap"),
+    [
+        (["-n", "help"], None, 0, None),
+        (["-n", "clean"], None, 0, None),
+        (["-n", "build"], None, 1, "-Xmx14g"),
+        (["-n", "build", "JAVA_HEAP=4g"], None, 0, "-Xmx4g"),
+        (["-n", "build", "JAVA_HEAP="], None, 1, "-Xmx14g"),
+        (["-n", "build"], "", 1, "-Xmx14g"),
+    ],
+)
+def test_make_asks_docker_once_per_build_and_never_outside_one(
+    tmp_path: Path,
+    arguments: list[str],
+    environment_heap: str | None,
+    expected_calls: int,
+    expected_heap: str | None,
+) -> None:
+    """Run make against a stand-in daemon: `help` and `clean` ask nothing, a build asks exactly once.
+
+    An empty `JAVA_HEAP` arrives from a CI wrapper with an unset variable and from a parent make
+    alike, and derives exactly as an unset one does rather than handing the publisher a bare `-Xmx`.
+    """
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "Makefile").write_text(_by_path()["Makefile"], encoding="utf-8")
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+    if environment_heap is not None:
+        stub.environment["JAVA_HEAP"] = environment_heap
+
+    completed = run_make(project, stub, *arguments)
+
+    assert completed.returncode == 0, completed.stderr
+    assert stub.subcommands() == ["info"] * expected_calls
+    if expected_heap is not None:
+        assert expected_heap in completed.stdout
 
 
 def test_makefile_drives_d2w_through_the_projects_own_environment() -> None:

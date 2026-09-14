@@ -412,7 +412,7 @@ $ open ig/output/index.html
 The scaffold's Makefile wraps every command on this page, and that is the only
 mention it gets here: `make validate` and `make generate` are the `uv run d2w`
 lines above verbatim, while `make build` adds the cache chown and sizes the
-publisher's heap to this machine's docker VM. [Set up an IG
+publisher's heap to the memory docker reports on this machine. [Set up an IG
 project](201-set-up-a-project.md) documents the targets.
 
 ## 7. Serve it as a FHIR endpoint

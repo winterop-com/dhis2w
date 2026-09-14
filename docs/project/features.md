@@ -661,21 +661,31 @@ chain in one command.
   `ig/input/pagecontent/**/*.md` is out of scope on purpose: markdown carries
   HTML by design. An existing project takes the gate up with one
   `d2w fhir init --refresh`.
-- **`JAVA_HEAP`** is the publisher's JVM heap ceiling, derived from the docker
-  VM's memory less 2 GB (floored at `4g`, falling back to `8g` when docker
-  cannot be asked) and stated on every build. It is a ceiling, not a
-  reservation. When the kernel kills a build, `build` and `build-bind` report
-  exit 137 in full - the ceiling, the VM, the peak the container reached, and
-  any other containers holding the VM - and name the opposite failure, an
-  `OutOfMemoryError`, so the two are not confused.
+- **`JAVA_HEAP`** is the publisher's JVM heap ceiling, derived from the memory
+  docker reports less 2 GB (floored at `4g`, capped at `31g` where the JVM
+  drops compressed object pointers, falling back to `8g` when docker cannot be
+  asked) and stated on every build. The daemon is asked once per build, on
+  first use, so `help`, `clean` and `generate` never wake it and every line of
+  a build quotes one answer. A value set on the command line or in the
+  environment is taken as it stands and asks docker nothing; an empty one
+  derives exactly as an unset one does. It is a ceiling, not a reservation.
+- **Exit 137 is diagnosed, not asserted.** The container reads its own cgroup's
+  `oom_kill` count as it exits and prints it beside the peak it reached, so
+  `build` and `build-bind` report a kernel out-of-memory kill in full - the
+  ceiling, the memory docker reports, the peak, the containers running when it
+  was sampled, and the ways out, numbered so the stop-the-containers step
+  appears only when there are containers to stop - and name the opposite
+  failure, an `OutOfMemoryError`, so the two are not confused. A 137 the cgroup
+  did not count as an out-of-memory kill - a `docker stop`, a `docker kill`, a
+  timeout around the build - gets a shorter message saying exactly that.
 - **`make registry-install`** in a guide that depends on a registry package
   streams the package's `package.tgz` (`REGISTRY_TGZ`, defaulting to
   `<registry.path>/ig/output/package.tgz`) into the shared package-cache volume
   under `<id>#<version>/package/`; `sushi`, `build` and `build-bind` depend on
   it. The registry project builds in its own container, so neither build
   carries the other's resources; one `JAVA_HEAP` on the root Makefile reaches
-  both, and is forwarded only when set so each project keeps its own derived
-  default otherwise.
+  both through make's own variable propagation, and each project derives its
+  own ceiling when none is set.
 - **Registry scale.** `d2w fhir generate org-units` warns at generate time once
   the registry passes 2,000 instances, because the IG publisher validates and
   renders every resource and the registry therefore sets the wall clock of
