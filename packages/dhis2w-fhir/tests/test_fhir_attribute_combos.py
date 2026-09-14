@@ -1,12 +1,13 @@
 """Tests for the attribute-option-combo terminology: the pair, its economy, and the extensions binding it.
 
 A DHIS2 data value set is keyed by `(orgUnit, period, attributeOptionCombo)`, and the third key
-comes from the data set's own category combo. The family publishes that key as terminology - one
+comes from the data set's own category combo; an event and an enrollment carry the attribute option
+combo of their program's own category combo. The family publishes that key as terminology - one
 CodeSystem/ValueSet pair per distinct non-default combo - and binds it in two places: the
 Questionnaire declares the vocabulary by canonical, and the response names one concept out of it.
 
-The economy is the assignment target's: a default-combo data set publishes nothing, because
-absence already means the default attribute option combo.
+The economy is the assignment target's: a default-combo data set or program publishes nothing,
+because absence already means the default attribute option combo.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ from dhis2w_fhir.resources.questionnaires.documents import build_questionnaire_d
 from dhis2w_fhir.resources.questionnaires.schemas import (
     CategoryComboIn,
     CategoryOptionComboIn,
+    ProgramContextIn,
     QuestionnaireItemIn,
     QuestionnaireSourceIn,
 )
@@ -87,7 +89,47 @@ _DEFAULT_DATA_SET = QuestionnaireSourceIn(
 )
 
 _EVENT_PROGRAM = QuestionnaireSourceIn(
-    uid="VBqh0ynB2wv", name="Malaria case registration", kind="event", flat_items=[_ITEM]
+    uid="VBqh0ynB2wv",
+    name="Malaria case registration",
+    kind="event",
+    attribute_combo=_DEFAULT_COMBO,
+    flat_items=[_ITEM],
+)
+
+_PARTNER_COMBO = CategoryComboIn(
+    uid="nM3u9s5a52V",
+    name="Implementing Partner",
+    code="PARTNER",
+    is_default=False,
+    option_combos=[
+        CategoryOptionComboIn(uid="el3bfHS1QDV", name="Plan International", code="COC_PLAN"),
+        CategoryOptionComboIn(uid="w5hsiyYZfuR", name="International Rescue Committee", code="COC_IRC"),
+    ],
+)
+
+_PARTNER_EVENT_PROGRAM = QuestionnaireSourceIn(
+    uid="bMcwwoVnbSR",
+    name="Malaria testing and surveillance",
+    kind="event",
+    attribute_combo=_PARTNER_COMBO,
+    flat_items=[_ITEM],
+)
+
+_PARTNER_REGISTRATION = QuestionnaireSourceIn(
+    uid="kla3mAPgvCH",
+    name="Contraceptives Voucher Program",
+    kind="tracker",
+    attribute_combo=_PARTNER_COMBO,
+    flat_items=[_ITEM],
+)
+
+_PARTNER_STAGE = QuestionnaireSourceIn(
+    uid="A03MvHHogjR",
+    name="Voucher redemption",
+    kind="tracker-event",
+    program=ProgramContextIn(uid="kla3mAPgvCH", name="Contraceptives Voucher Program"),
+    attribute_combo=_PARTNER_COMBO,
+    flat_items=[_ITEM],
 )
 
 
@@ -203,10 +245,71 @@ def test_two_data_sets_on_one_combo_share_one_pair() -> None:
         } in _questionnaire_extensions(sources, build, uid)
 
 
-def test_only_an_aggregate_form_contributes_a_combo() -> None:
-    """An event data value has no attribute option combo on the wire, so no program publishes one."""
+def test_a_default_combo_form_of_either_kind_contributes_nothing() -> None:
+    """A form on the default combo has one attribute option combo, so there is nothing to publish."""
     assert attribute_combo_sources([_EVENT_PROGRAM, _DEFAULT_DATA_SET]) == []
     assert [combo.uid for combo in attribute_combo_sources([_EPI_STOCK, _EVENT_PROGRAM])] == ["idcDPkDtepR"]
+
+
+def test_a_non_default_program_declares_its_attribute_option_combos_like_a_data_set() -> None:
+    """DHIS2 refuses an event of such a program with E1055, so the form publishes the vocabulary to name."""
+    sources = [_PARTNER_EVENT_PROGRAM]
+    build = _build(sources)
+
+    assert [artifact.relative_path for artifact in build.artifacts] == [
+        f"{ATTRIBUTE_COMBO_DIRECTORY}/CodeSystem-d2-aoc-nM3u9s5a52V-cs.json",
+        f"{ATTRIBUTE_COMBO_DIRECTORY}/ValueSet-d2-aoc-nM3u9s5a52V-vs.json",
+    ]
+    assert build.plan.combo_uids == {"bMcwwoVnbSR": "nM3u9s5a52V"}
+    assert {
+        "url": f"{_CANONICAL}/StructureDefinition/d2-attribute-option-combos",
+        "valueCanonical": f"{_CANONICAL}/ValueSet/d2-aoc-nM3u9s5a52V-vs",
+    } in _questionnaire_extensions(sources, build, "bMcwwoVnbSR")
+
+
+def test_every_form_of_a_tracker_program_declares_the_programs_own_combo() -> None:
+    """A stage states no combo of its own, so the registration form and each stage form ride the program's."""
+    sources = [_PARTNER_REGISTRATION, _PARTNER_STAGE]
+    build = _build(sources)
+
+    assert len(build.artifacts) == 2
+    assert build.plan.combo_uids == {"kla3mAPgvCH": "nM3u9s5a52V", "A03MvHHogjR": "nM3u9s5a52V"}
+    canonical = f"{_CANONICAL}/ValueSet/d2-aoc-nM3u9s5a52V-vs"
+    for uid in ("kla3mAPgvCH", "A03MvHHogjR"):
+        assert {
+            "url": f"{_CANONICAL}/StructureDefinition/d2-attribute-option-combos",
+            "valueCanonical": canonical,
+        } in _questionnaire_extensions(sources, build, uid)
+
+
+def test_a_data_set_and_a_program_on_one_combo_share_one_pair() -> None:
+    """The pair belongs to the category combo, so a program on a data set's combo publishes nothing new."""
+    shared = _EPI_STOCK.model_copy(update={"attribute_combo": _PARTNER_COMBO})
+    build = _build([shared, _PARTNER_EVENT_PROGRAM])
+
+    assert len(build.artifacts) == 2
+    assert build.plan.combo_uids == {"TuL8IOPzpHh": "nM3u9s5a52V", "bMcwwoVnbSR": "nM3u9s5a52V"}
+
+
+def test_a_default_combo_program_publishes_no_vocabulary_and_declares_none() -> None:
+    """A program on the default combo emits exactly what it emitted before there was a vocabulary to emit."""
+    build = _build([_EVENT_PROGRAM])
+
+    assert build.artifacts == []
+    assert build.plan.combo_uids == {}
+    assert _questionnaire_extensions([_EVENT_PROGRAM], build, "VBqh0ynB2wv") == [
+        {"url": f"{_CANONICAL}/StructureDefinition/d2-form-type", "valueCode": "event"}
+    ]
+
+
+def test_a_synthetic_program_response_draws_a_combo_from_the_declared_set() -> None:
+    """The draft a program form answers carries the very key DHIS2 demands of the event it becomes."""
+    build = _build([_PARTNER_EVENT_PROGRAM])
+    codings = _combo_codings(_synthetic_documents([_PARTNER_EVENT_PROGRAM], build))
+
+    assert len(codings) == 3
+    assert {coding["system"] for coding in codings} == {f"{_CANONICAL}/CodeSystem/d2-aoc-nM3u9s5a52V-cs"}
+    assert {coding["code"] for coding in codings} <= {"el3bfHS1QDV", "w5hsiyYZfuR"}
 
 
 def test_the_stem_follows_the_code_naming_source() -> None:

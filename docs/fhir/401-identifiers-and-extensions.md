@@ -115,9 +115,13 @@ $ curl -s localhost:8389/Questionnaire/TuL8IOPzpHh | jq -c '.extension[2]'
 {"url":"http://localhost:8080/fhir/StructureDefinition/d2-attribute-option-combos","valueCanonical":"http://localhost:8080/fhir/ValueSet/d2-aoc-idcDPkDtepR-vs"}
 ```
 
-**Absent means the default.** A data set on DHIS2's default category combo has
-exactly one attribute option combo, so naming it would be noise; its form
-carries no such extension and its responses carry no combo.
+**Absent means the default.** A data set or a program on DHIS2's default
+category combo has exactly one attribute option combo, so naming it would be
+noise; its form carries no such extension and its responses carry no combo.
+A program whose category combo is *not* the default one declares the vocabulary
+on every form it publishes - the event program's own form, a tracker program's
+registration form, and each of its stage forms - because DHIS2 files what each
+of them captures under one of that combo's option combos.
 
 #### `D2OrganisationUnitAssignment`
 
@@ -302,10 +306,12 @@ dates they cover - so the two can never disagree.
 #### `D2AttributeOptionCombo`
 
 `{canonical}/StructureDefinition/d2-attribute-option-combo`, a `Coding`. The
-one DHIS2 attribute option combo this response's values are keyed under - a
-project or funder dimension that keys the whole submission. It is drawn from
-the ValueSet the form's [`D2AttributeOptionCombos`](#d2attributeoptioncombos)
-extension names.
+one DHIS2 attribute option combo this response is filed under - a project or
+funder dimension that keys the whole submission. On an aggregate response it is
+the third key of the data value set; on a program response it is the
+`attributeOptionCombo` of the event or the enrollment the response creates. It
+is drawn from the ValueSet the form's
+[`D2AttributeOptionCombos`](#d2attributeoptioncombos) extension names.
 
 ```console
 $ curl -s 'localhost:8389/Questionnaire/TuL8IOPzpHh/$generate?seed=7' | jq -c '.extension[1]'

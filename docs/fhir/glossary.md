@@ -119,12 +119,14 @@ carries. Every referenced combo is a concept in `D2COC_CS`, decomposed into one
 `Coding` property per category it splits over.
 
 **attribute option combo (AOC)**
-: The second key on an aggregate data value - the one that says *which* funding
-stream, project, or partner the value belongs to. A data set on a non-default
-attribute category combo publishes a `D2AOC_<stem>` CodeSystem/ValueSet pair
-naming the combos its responses may be keyed under, and a response names one of
-them on the `D2AttributeOptionCombo` extension. A response naming none against
-such a form is refused, because DHIS2 answers `E8023`.
+: The key that says *which* funding stream, project, or partner a submission
+belongs to - the second key on an aggregate data value, and the
+`attributeOptionCombo` of an event or an enrollment. A data set or a program on
+a non-default attribute category combo publishes a `D2AOC_<stem>`
+CodeSystem/ValueSet pair naming the combos its responses may be filed under, and
+a response names one of them on the `D2AttributeOptionCombo` extension. A
+response naming none against such a form is refused, because DHIS2 answers
+`E8023` to the data value set and `E1055` to the event.
 
 **data value**
 : One measured number or answer, keyed in DHIS2 by

@@ -25,7 +25,7 @@ are filling forms from your own system rather than driving the toolchain.
 | --- | --- |
 | [`build_aggregate_response.py`](build_aggregate_response.py) | The minimal aggregate capture: a data set's numbers for one period at one organisation unit, and the five elements that are required |
 | [`build_aggregate_disaggregated_response.py`](build_aggregate_disaggregated_response.py) | A data element cut by a category combination — why the link id carries the category option combo after a dot |
-| [`build_aggregate_attribute_option_combo_response.py`](build_aggregate_attribute_option_combo_response.py) | A data set on a non-default attribute category combination — the second key DHIS2 files the whole submission under |
+| [`build_aggregate_attribute_option_combo_response.py`](build_aggregate_attribute_option_combo_response.py) | A data set on a non-default attribute category combination — the second key DHIS2 files the whole submission under, and the one a program on such a combination declares too |
 | [`build_event_response.py`](build_event_response.py) | One event of a program without registration: no person, an occurrence date, an organisation unit |
 | [`build_registration_response.py`](build_registration_response.py) | Registering a person and enrolling them, minting both DHIS2 UIDs client-side |
 | [`build_stage_response.py`](build_stage_response.py) | A visit for a person the instance already holds — naming the existing subject and the enrollment it belongs to |

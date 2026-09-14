@@ -711,9 +711,9 @@ $ for response in load/*.json; do
 ```
 
 The corpus is drawn to be instance-valid - every response is captured at a
-unit its form's DHIS2 assignment admits, a data set on a non-default
-category combo carries its attribute option combo, and a tracker program's
-registrations and stage events agree on the identities they mint - so
+unit its form's DHIS2 assignment admits, a data set or a program on a
+non-default category combo carries its attribute option combo, and a tracker
+program's registrations and stage events agree on the identities they mint - so
 forwarding it measures what DHIS2 accepts, not refusals already known
 about. A corpus imports once, because it mints the DHIS2 identities it
 names; `--salt second-run` draws a fresh corpus, and the same salt

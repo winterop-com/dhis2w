@@ -727,6 +727,7 @@ def build_response_profile_declarations(config: GenerateConfig) -> list[Response
                 "organisation unit, answered on the linkIds of the event program's Questionnaire."
             ),
             authored_required=True,
+            attribute_option_combo_allowed=True,
         ),
         ResponseProfileDeclaration(
             name=names.tracker_registration_response_profile,
@@ -744,6 +745,7 @@ def build_response_profile_declarations(config: GenerateConfig) -> list[Response
             ),
             authored_required=True,
             registration_context_required=True,
+            attribute_option_combo_allowed=True,
         ),
         ResponseProfileDeclaration(
             name=names.tracker_event_response_profile,
@@ -757,6 +759,7 @@ def build_response_profile_declarations(config: GenerateConfig) -> list[Response
             ),
             authored_required=True,
             tracker_context_required=True,
+            attribute_option_combo_allowed=True,
         ),
         ResponseProfileDeclaration(
             name=names.tracked_entity_response_profile,

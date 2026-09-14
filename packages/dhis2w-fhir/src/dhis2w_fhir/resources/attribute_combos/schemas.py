@@ -14,10 +14,11 @@ class AttributeComboIn(ConceptSourceIn):
     """One DHIS2 attribute category combo as the emitter projection, its attribute option combos included.
 
     A data set's own category combo is the third key of every value it holds - a data value set
-    is keyed by `(orgUnit, period, attributeOptionCombo)` - and its category option combos are
-    the values that key may take, which is the shape an option set and a category already have.
-    So the combo lands on the shared concept-source projection and emits the same pair, built by
-    the same concept-code assignment.
+    is keyed by `(orgUnit, period, attributeOptionCombo)` - and a program's own category combo is
+    what every event and enrollment it files is keyed by. The category option combos are the values
+    that key may take, which is the shape an option set and a category already have. So the combo
+    lands on the shared concept-source projection and emits the same pair, built by the same
+    concept-code assignment.
     """
 
     source_label: ClassVar[str] = "attribute category combo"
@@ -68,9 +69,9 @@ class AttributeComboPlan(BaseModel):
     """Which attribute-option-combo vocabulary each form declares, keyed by the form's DHIS2 UID.
 
     A form absent from the plan publishes no vocabulary and its Questionnaire carries no
-    `D2AttributeOptionCombos` extension - its data set rides the default category combo, so the
-    default attribute option combo is the only key its values can take and absence says exactly
-    that. Two data sets on one combo share one entry, because the plan is keyed by the form and
+    `D2AttributeOptionCombos` extension - its data set or program rides the default category combo,
+    so the default attribute option combo is the only key its captures can take and absence says
+    exactly that. Two forms on one combo share one entry, because the plan is keyed by the form and
     valued by the combo's single identity.
     """
 

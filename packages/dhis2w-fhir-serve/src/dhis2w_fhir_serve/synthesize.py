@@ -439,11 +439,11 @@ class _Generator(BaseModel):
         return extensions
 
     def _attribute_option_combo(self) -> tuple[Extension, ...]:
-        """The third key of an aggregate report, drawn from the vocabulary the form declares - or nothing.
+        """The combo a submission is filed under, drawn from the vocabulary the form declares - or nothing.
 
-        A data set on the default category combo declares none and its responses carry none, which
-        is what the capture contract expects of them. Where a vocabulary is declared the concept is
-        a real one of the published CodeSystem, carried in the spelling the contract asks for, so a
+        A data set or program on the default category combo declares none and its responses carry
+        none, which is what the capture contract expects of them. Where a vocabulary is declared
+        the concept is a real one of the published CodeSystem, carried in the spelling the contract asks for, so a
         `--strict-codes` server accepts the response its own `$generate` produced. A declared
         vocabulary this project never published leaves the extension off: inventing a code would
         make the server warn about its own output, exactly as an unpublished `answerValueSet` does.

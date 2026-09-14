@@ -68,6 +68,7 @@ import json
 from typing import Any, Final, cast
 
 from dhis2w_fhir.config import CorrectionPosture, FhirProject, WithdrawalPosture
+from dhis2w_fhir.conversion.schemas import COMBO_REFUSAL_CODES, ComboRefusalCodes
 from dhis2w_fhir.names import DHIS2_UID_LENGTH, is_dhis2_uid
 from dhis2w_fhir.period import parse_period
 from dhis2w_fhir.r4 import (
@@ -802,13 +803,14 @@ def _attribute_option_combo_issues(
 ) -> tuple[CaptureIssue, ...]:
     """Grade the attribute option combo a response is filed under against what its form declares.
 
-    A data value set is keyed by `(orgUnit, period, attributeOptionCombo)`, and whether the third
-    key has to be stated is a fact about the form: a data set on the default category combo has one
-    attribute option combo and declares no vocabulary, so its responses name none. Where the form
-    does declare one - a `D2AttributeOptionCombos` extension naming the ValueSet - a response that
-    names none is exactly the write DHIS2 refuses with `E8023`, and it grades on the dial an
-    organisation unit outside the assignment grades on: a warning on the receipt by default, a
-    refusal under `--strict-codes`.
+    A data value set is keyed by `(orgUnit, period, attributeOptionCombo)`, and an event or an
+    enrollment carries the attribute option combo of its program's own category combo. Whether that
+    key has to be stated is a fact about the form: a data set or program on the default category
+    combo has one attribute option combo and declares no vocabulary, so its responses name none.
+    Where the form does declare one - a `D2AttributeOptionCombos` extension naming the ValueSet - a
+    response that names none is exactly the write DHIS2 refuses (`E8023` on a data value set,
+    `E1055` on a program capture), and it grades on the dial an organisation unit outside the
+    assignment grades on: a warning on the receipt by default, a refusal under `--strict-codes`.
 
     The mirror grades too. A response naming a combo against a form that declares none would be
     stored and then silently not written, because the payload has no field for it - so the client
@@ -816,17 +818,19 @@ def _attribute_option_combo_issues(
     """
     declared = index.attribute_option_combos
     carried = _extensions(response, naming.attribute_option_combo_url)
+    codes = COMBO_REFUSAL_CODES[index.form_kind]
     if declared is None:
         return () if not carried else (_undeclared_combo_issue(index, naming, strict=strict),)
     if len(carried) != 1:
-        return (_missing_combo_issue(declared, naming, len(carried), strict=strict),)
-    return _combo_coding_issues(carried[0], declared, resolvers, strict=strict)
+        return (_missing_combo_issue(declared, naming, len(carried), codes, strict=strict),)
+    return _combo_coding_issues(carried[0], declared, resolvers, codes, strict=strict)
 
 
 def _combo_coding_issues(
     extension: Extension,
     declared: CaptureAttributeOptionCombos,
     resolvers: CodingResolverSet,
+    codes: ComboRefusalCodes,
     *,
     strict: bool,
 ) -> tuple[CaptureIssue, ...]:
@@ -880,7 +884,7 @@ def _combo_coding_issues(
                 expression=_COMBO_EXPRESSION,
                 diagnostics=(
                     f"`{coding.code}` is no attribute option combo of `{declared.value_set}`; DHIS2 refuses a "
-                    f"write keyed to a combo its data set does not carry with E8023"
+                    f"write keyed to a combo the form's category combo does not carry with {codes.unknown}"
                 ),
             ),
         )
@@ -897,7 +901,12 @@ def _combo_coding_issues(
 
 
 def _missing_combo_issue(
-    declared: CaptureAttributeOptionCombos, naming: CaptureNaming, carried: int, *, strict: bool
+    declared: CaptureAttributeOptionCombos,
+    naming: CaptureNaming,
+    carried: int,
+    codes: ComboRefusalCodes,
+    *,
+    strict: bool,
 ) -> CaptureIssue:
     """What a client is told when the form declares a vocabulary and the response names no one concept of it."""
     return CaptureIssue(
@@ -905,9 +914,9 @@ def _missing_combo_issue(
         code="business-rule",
         expression=_COMBO_EXPRESSION,
         diagnostics=(
-            f"the form keys its values from `{declared.value_set}`, so its responses carry exactly one "
-            f"`{naming.attribute_option_combo_url}` extension, not {carried}; DHIS2 refuses a write naming no "
-            f"attribute option combo with E8023"
+            f"the form files what it captures under `{declared.value_set}`, so its responses carry exactly "
+            f"one `{naming.attribute_option_combo_url}` extension, not {carried}; DHIS2 refuses a write naming "
+            f"no attribute option combo with {codes.missing}"
         ),
     )
 
@@ -920,7 +929,7 @@ def _undeclared_combo_issue(index: CaptureIndex, naming: CaptureNaming, *, stric
         expression=_COMBO_EXPRESSION,
         diagnostics=(
             f"`{index.canonical}` declares no `{naming.attribute_option_combos_url}` vocabulary, so the "
-            f"attribute option combo this response names is not written: its values are keyed under the "
+            f"attribute option combo this response names is not written: what it captures is filed under the "
             f"default attribute option combo"
         ),
     )

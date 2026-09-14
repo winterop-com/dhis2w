@@ -102,10 +102,11 @@ class ExampleResponseIn(BaseModel):
     `enrolled_at` and `incident_at` are carried by a registration response alone: they are the
     two dates the enrollment it creates holds, and only the form that creates one states them.
 
-    `attribute_option_combo_uid` is the third key of an aggregate response - a data value set is
-    keyed by `(orgUnit, period, attributeOptionCombo)`. It rides onto the response as the
-    `D2AttributeOptionCombo` extension when the form publishes a vocabulary to code it from, and
-    is otherwise the default combo, which the guide says by publishing nothing.
+    `attribute_option_combo_uid` is the key the response is filed under: the third key of a data
+    value set, which is keyed by `(orgUnit, period, attributeOptionCombo)`, and the attribute
+    option combo of the event or enrollment a program response creates. It rides onto the response
+    as the `D2AttributeOptionCombo` extension when the form publishes a vocabulary to code it from,
+    and is otherwise the default combo, which the guide says by publishing nothing.
     """
 
     model_config = ConfigDict(frozen=True)

@@ -5,16 +5,19 @@
                       a vocabulary for one, and one data value per answered cell, each carrying its
                       category option combo.
     event          -> one `/api/tracker` event of an event program: the UID derived from the
-                      receipt's own logical id, program, organisation unit, occurrence, status,
-                      and one data value per answered question.
+                      receipt's own logical id, program, organisation unit, the attribute option
+                      combo the event is filed under where the form declares a vocabulary for one,
+                      occurrence, status, and one data value per answered question.
     tracker        -> one `/api/tracker` tracked entity: its client-minted UID, the tracked entity
                       type the form names, the organisation unit that owns it, one attribute per
                       answered entity-level question, and the single enrollment the response
-                      creates - minted UID, program, organisation unit, enrolment date, incident
-                      date where one was stated, `ACTIVE` status, and one attribute per answered
-                      program-only question. A response stating `D2SubjectExists` names a person
-                      the instance already holds, and produces that enrollment alone - naming the
-                      existing tracked entity, with no tracked entity beside it to rewrite.
+                      creates - minted UID, program, organisation unit, the attribute option combo
+                      the enrollment is filed under where the form declares a vocabulary for one,
+                      enrolment date, incident date where one was stated, `ACTIVE` status, and one
+                      attribute per answered program-only question. A response stating
+                      `D2SubjectExists` names a person the instance already holds, and produces that
+                      enrollment alone - naming the existing tracked entity, with no tracked entity
+                      beside it to rewrite.
     tracker-event  -> the same event as `event`, plus the program stage it belongs to, the tracked
                       entity it was captured for, and the enrollment it sits on.
 
@@ -57,6 +60,7 @@ from dhis2w_client.v43.aggregate import CompleteDataSetRegistration
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir.conversion.schemas import (
+    COMBO_REFUSAL_CODES,
     ConversionNote,
     ConversionNoteCategory,
     ConversionRefusal,
@@ -298,6 +302,7 @@ def translate_event_response(
     organisation_unit = _subject_organisation_unit(response, context, notes, refusals)
     occurred_at = _occurred_at(response, context, notes, refusals)
     status = _event_status(response, notes, refusals)
+    attribute_option_combo = _attribute_option_combo(response, form, context, notes, refusals)
     translated = translate_answers(response, form, context)
     notes.extend(translated.notes)
     refusals.extend(translated.refusals)
@@ -310,6 +315,7 @@ def translate_event_response(
             program=program,
             programStage=form.program_stage_uid,
             orgUnit=organisation_unit,
+            attributeOptionCombo=attribute_option_combo,
             occurredAt=occurred_at,
             status=status,
             dataValues=_tracker_data_values(translated),
@@ -330,6 +336,7 @@ def translate_tracker_event_response(
     status = _event_status(response, notes, refusals)
     tracked_entity = _tracked_entity(response, context, notes, refusals)
     enrollment = _enrollment(response, context, refusals)
+    attribute_option_combo = _attribute_option_combo(response, form, context, notes, refusals)
     translated = translate_answers(response, form, context)
     notes.extend(translated.notes)
     refusals.extend(translated.refusals)
@@ -349,6 +356,7 @@ def translate_tracker_event_response(
             program=program,
             programStage=stage,
             orgUnit=organisation_unit,
+            attributeOptionCombo=attribute_option_combo,
             trackedEntity=tracked_entity,
             enrollment=enrollment,
             occurredAt=occurred_at,
@@ -399,6 +407,7 @@ def translate_tracker_registration_response(
     enrollment = _enrollment(response, context, refusals)
     enrolled_at = _enrollment_date(response, context.naming.enrolled_at_url, context, notes, refusals, required=True)
     incident_at = _enrollment_date(response, context.naming.incident_at_url, context, notes, refusals, required=False)
+    attribute_option_combo = _attribute_option_combo(response, form, context, notes, refusals)
     subject_exists = _subject_exists(response, context)
     translated = translate_answers(response, form, context)
     notes.extend(translated.notes)
@@ -415,6 +424,7 @@ def translate_tracker_registration_response(
         trackedEntity=tracked_entity if subject_exists else None,
         program=program,
         orgUnit=organisation_unit,
+        attributeOptionCombo=attribute_option_combo,
         enrolledAt=enrolled_at,
         occurredAt=incident_at,
         status=REGISTERED_ENROLLMENT_STATUS,
@@ -709,14 +719,19 @@ def _attribute_option_combo(
     notes: list[ConversionNote],
     refusals: list[ConversionRefusal],
 ) -> str | None:
-    """The third key of a data value set, resolved off the response's D2AttributeOptionCombo extension.
+    """The attribute option combo a capture is filed under, off the response's D2AttributeOptionCombo extension.
 
-    Whether the response has to carry one is a fact about the form: a data set on the default
-    category combo declares no vocabulary, its values are keyed under the one attribute option
-    combo it has, and DHIS2 fills the field itself - so a form declaring none writes nothing here
-    and a response carrying the extension anyway is noted rather than written. A form that does
+    It is the third key of a data value set and the `attributeOptionCombo` of the event or
+    enrollment a program response creates, and one resolver serves both because the form declares
+    the vocabulary the same way for both.
+
+    Whether the response has to carry one is a fact about the form: a data set or program on the
+    default category combo declares no vocabulary, what it captures is filed under the one attribute
+    option combo it has, and DHIS2 fills the field itself - so a form declaring none writes nothing
+    here and a response carrying the extension anyway is noted rather than written. A form that does
     declare one and a response that does not name it is refused, because DHIS2 refuses that write
-    with `E8023` and a payload we know it will not take is worse than a named refusal.
+    itself - `E8023` on a data value set, `E1055` on a program capture - and a payload we know it
+    will not take is worse than a named refusal.
 
     Resolution is the coded answer's, against the very option table a coded answer resolves
     through: the concept code first (which is the DHIS2 UID under `concept_code_source = "id"`),
@@ -726,6 +741,7 @@ def _attribute_option_combo(
     """
     extensions = _extensions(response, context.naming.attribute_option_combo_url)
     declared = form.attribute_option_combo_value_set
+    refusal_codes = COMBO_REFUSAL_CODES[form.form_kind]
     if declared is None:
         if extensions:
             notes.append(
@@ -733,7 +749,7 @@ def _attribute_option_combo(
                     category=ConversionNoteCategory.ATTRIBUTE_OPTION_COMBO_IGNORED,
                     message=f"`{form.canonical}` declares no attribute-option-combo vocabulary, so the "
                     f"response's `{context.naming.attribute_option_combo_url}` extension is not written; its "
-                    f"data set rides the default category combo",
+                    f"data set or program rides the default category combo",
                 )
             )
         return None
@@ -742,9 +758,9 @@ def _attribute_option_combo(
             ConversionRefusal(
                 category=ConversionRefusalCategory.MISSING_ATTRIBUTE_OPTION_COMBO,
                 element="QuestionnaireResponse.extension",
-                reason=f"`{form.canonical}` keys its values from `{declared}`, and the response carries "
+                reason=f"`{form.canonical}` files what it captures under `{declared}`, and the response carries "
                 f"{len(extensions)} `{context.naming.attribute_option_combo_url}` extensions rather than "
-                f"exactly one; DHIS2 refuses a write naming no attribute option combo with E8023",
+                f"exactly one; DHIS2 refuses a write naming no attribute option combo with {refusal_codes.missing}",
             )
         )
         return None
@@ -788,7 +804,7 @@ def _attribute_option_combo(
                 element="QuestionnaireResponse.extension",
                 reason=f"`{table.system}` holds no attribute option combo `{code}` under the "
                 f"`{context.coded_answer_mode}` coded-answer dial; DHIS2 refuses a write keyed to a combo "
-                f"its data set does not carry with E8023",
+                f"the form's category combo does not carry with {refusal_codes.unknown}",
             )
         )
         return None

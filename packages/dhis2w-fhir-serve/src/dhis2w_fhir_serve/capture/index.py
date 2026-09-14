@@ -550,8 +550,8 @@ def _attribute_option_combos(
 ) -> CaptureAttributeOptionCombos | None:
     """The attribute-option-combo vocabulary the form declares, or None when it rides the default combo.
 
-    A data set on the default category combo has one attribute option combo and declares nothing,
-    so absence here is the contract saying its responses carry no `D2AttributeOptionCombo`.
+    A data set or program on the default category combo has one attribute option combo and declares
+    nothing, so absence here is the contract saying its responses carry no `D2AttributeOptionCombo`.
     """
     for extension in questionnaire.extension or []:
         if extension.url != naming.attribute_option_combos_url or not extension.valueCanonical:

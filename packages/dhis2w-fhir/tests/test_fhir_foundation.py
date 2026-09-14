@@ -321,8 +321,8 @@ set's Questionnaire."
     D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2Period] ^short = "The DHIS2 reporting period the values were captured for."
-* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo the values were \
-captured under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has \
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission \
+is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has \
 to carry it, coded from that ValueSet; absent means the default attribute option combo, which is \
 the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
@@ -340,7 +340,13 @@ Description: "One submission of a DHIS2 event program form: the values captured 
 at one organisation unit, answered on the linkIds of the event program's Questionnaire."
 * ^status = #draft
 * ^experimental = true
-* extension contains D2FormType named D2FormType 1..1
+* extension contains
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
+    D2FormType named D2FormType 1..1
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission \
+is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has \
+to carry it, coded from that ValueSet; absent means the default attribute option combo, which is \
+the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #event (exactly)
 * questionnaire 1..1
@@ -368,6 +374,7 @@ enrollment alone."
     D2EnrolledAt named D2EnrolledAt 1..1 and
     D2IncidentAt named D2IncidentAt 0..1 and
     D2SubjectExists named D2SubjectExists 0..1 and
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the person is enrolled at, \
 which becomes the organisation unit of both the tracked entity and the enrollment. A response \
@@ -386,6 +393,10 @@ false means the client minted the subject identifier and the response creates th
 with the enrollment. A response stating true answers only the questions the program asks: an \
 answer belonging to the person's own record cannot ride an enrollment, and rewriting the record \
 of a person this contract does not own is not something an enrollment does."
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission \
+is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has \
+to carry it, coded from that ValueSet; absent means the default attribute option combo, which is \
+the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #tracker (exactly)
 * questionnaire 1..1
@@ -415,9 +426,14 @@ entity by identifier."
 * extension contains
     D2OrganisationUnit named D2OrganisationUnit 1..1 and
     D2TrackerEnrollment named D2TrackerEnrollment 1..1 and
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the event was captured at."
 * extension[D2TrackerEnrollment] ^short = "The DHIS2 tracker enrollment the event belongs to."
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission \
+is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has \
+to carry it, coded from that ValueSet; absent means the default attribute option combo, which is \
+the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #tracker-event (exactly)
 * questionnaire 1..1

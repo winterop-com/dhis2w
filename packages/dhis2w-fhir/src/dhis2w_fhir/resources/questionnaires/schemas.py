@@ -704,10 +704,12 @@ class QuestionnaireSourceIn(CodedProjectionIn):
     it *is* one: the registration form is the tracker program's own form, so `uid`, `name`, and
     `code` are the program's and its questions are the program's tracked entity attributes.
 
-    `attribute_combo` is the data set's own category combo - the third key of every value it
-    holds, beside the organisation unit and the period. Only an aggregate form carries one, and
-    a non-default one is what makes the form publish an attribute-option-combo vocabulary and
-    its responses name a combo out of it.
+    `attribute_combo` is the form's own category combo: on an aggregate form the data set's, which
+    is the third key of every value it holds beside the organisation unit and the period; on the
+    three program forms the program's, which keys every event it files and every enrollment it
+    creates. A stage form carries the program's, because a stage states none of its own. A
+    tracked-entity form carries none - it belongs to no program. A non-default combo is what makes
+    the form publish an attribute-option-combo vocabulary and its responses name a combo out of it.
 
     `displays_incident_date` is the tracker program's `displayIncidentDate`, which says whether an
     enrollment states the date of the incident it tracks beside the date it began. Only a `tracker`

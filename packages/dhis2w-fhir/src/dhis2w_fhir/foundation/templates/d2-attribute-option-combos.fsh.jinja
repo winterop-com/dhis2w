@@ -1,7 +1,7 @@
 Extension: {{ names.attribute_option_combos_extension }}
 Id: {{ names.attribute_option_combos_extension_id }}
 Title: "DHIS2 attribute option combos"
-Description: "The attribute option combos a form's responses may be keyed under, as the canonical of the ValueSet publishing them. Absent means the form's data set rides the default category combo, and its responses carry no {{ names.attribute_option_combo_extension }} extension."
+Description: "The attribute option combos a form's responses may be filed under, as the canonical of the ValueSet publishing them. Absent means the form's data set or program rides the default category combo, and its responses carry no {{ names.attribute_option_combo_extension }} extension."
 * ^status = #{{ ig_status }}
 * ^experimental = {{ "true" if experimental else "false" }}
 * ^context[+].type = #element

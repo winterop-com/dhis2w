@@ -261,7 +261,7 @@ a DHIS2 fact has no FHIR element to sit in:
 | `D2OrganisationUnit` | The organisation unit an event was captured at, as a reference to its `Location`. |
 | `D2OrganisationUnitAssignment` | Which organisation units may report this form, as a reference to a `List` of their Locations. |
 | `D2OrganisationUnitLevel` | The hierarchy level a place sits at. |
-| `D2AttributeOptionCombo`, `D2AttributeOptionCombos` | The attribute option combo an aggregate response's values are keyed under, and the set a form allows. |
+| `D2AttributeOptionCombo`, `D2AttributeOptionCombos` | The attribute option combo a response is filed under - the third key of an aggregate submission, the key of a program's event or enrollment - and the set a form allows. |
 | `D2AttributeValue` | One DHIS2 attribute value on any object. |
 | `D2TrackedEntityAttributeValue` | One tracked entity attribute value on a registration response. |
 | `D2TrackerEnrollment`, `D2EnrolledAt`, `D2IncidentAt`, `D2CollectsIncidentDate` | The enrollment a response belongs to, its enrollment and incident dates, and whether the program collects an incident date at all. |
