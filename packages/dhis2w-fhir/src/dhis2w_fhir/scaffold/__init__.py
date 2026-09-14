@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 
+from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
 from dhis2w_fhir.scaffold.project_templates import ProjectTemplate, build_template_files, template_selection
 from dhis2w_fhir.scaffold.schemas import InitOptions, ScaffoldFile, normalize_project_name
+from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 
 __all__ = [
     "CONFIG_EXAMPLE_RELATIVE_PATH",
@@ -20,6 +23,9 @@ __all__ = [
     "PYPROJECT_RELATIVE_PATH",
     "PYTHON_VERSION_RELATIVE_PATH",
     "SUSHI_CONFIG_RELATIVE_PATH",
+    "GUIDE_RELATIVE_ROOT",
+    "REGISTRY_RELATIVE_ROOT",
+    "build_guide_and_registry_files",
     "build_scaffold_files",
 ]
 
@@ -64,6 +70,20 @@ OWNED_WHOLE_RELATIVE_PATHS: tuple[str, ...] = (
     IG_INI_RELATIVE_PATH,
     FSH_INI_RELATIVE_PATH,
 )
+
+#: Where each project sits when `d2w fhir init --with-registry` scaffolds both under one directory.
+#:
+#: The guide names the registry by this relative path in two places - `path` in its fhir.toml and
+#: `REGISTRY_TGZ` in its Makefile - so the two constants are what keeps those in step with the
+#: directories actually written.
+GUIDE_RELATIVE_ROOT = "guide"
+REGISTRY_RELATIVE_ROOT = "registry"
+
+#: What the guide's `[generate.organisation_units.registry] path` states, from the guide's own root.
+_REGISTRY_FROM_GUIDE = Path("..") / REGISTRY_RELATIVE_ROOT
+
+#: The suffix the registry package's id takes from the guide's, so one `--id` decides both.
+_REGISTRY_ID_SUFFIX = "registry"
 
 _ENVIRONMENT = Environment(
     loader=PackageLoader("dhis2w_fhir.scaffold", "templates"),
@@ -123,6 +143,93 @@ def build_scaffold_files(
         canonical=options.canonical,
         scaffold_managed={scaffold_file.relative_path for scaffold_file in files},
     )
+
+
+def build_guide_and_registry_files(options: InitOptions, *, copyright_year: int | None = None) -> list[ScaffoldFile]:
+    """Build both projects of a split guide under one directory, wired to each other.
+
+    The guide publishes the forms and depends on the registry package for its organisation units.
+    Scaffolding them apart means stating four values twice - the package id, its canonical, the
+    guide's own, and the path between them - and a disagreement surfaces late and indirectly, as a
+    dependency the publisher cannot resolve or as every unit reference reported dangling. So both
+    are derived here from the one identity `options` carries, and cannot disagree.
+
+    `options` is the guide's: its id, canonical and selection are the guide's own. The registry
+    takes the id with `.registry` appended and the canonical with `/registry`, publishes the
+    organisation units alone, and carries no form selection - which is what
+    `FhirProjectConfig` refuses a package for anyway.
+
+    `max_level` reaches both on purpose. The guide's `[generate.organisation_units]` says which
+    units its forms may refer to and the registry's says which it publishes; the two have to agree,
+    and `d2w fhir check-artifacts` reports every reference where they do not.
+    """
+    guide = options.model_copy(update={"registry": _registry_dependency_for(options)})
+    registry = _registry_options_for(options)
+    files = [
+        *_under(REGISTRY_RELATIVE_ROOT, build_scaffold_files(registry, copyright_year=copyright_year)),
+        *_under(GUIDE_RELATIVE_ROOT, build_scaffold_files(guide, copyright_year=copyright_year)),
+    ]
+    year = copyright_year if copyright_year is not None else datetime.now(tz=UTC).year
+    root = {"guide_root": GUIDE_RELATIVE_ROOT, "registry_root": REGISTRY_RELATIVE_ROOT, "year": year}
+    return [
+        *files,
+        _render(MAKEFILE_RELATIVE_PATH, "guide-registry-Makefile.jinja", options, **root),
+        _render("README.md", "guide-registry-README.md.jinja", options, **root),
+    ]
+
+
+def registry_id_for(ig_id: str) -> str:
+    """The registry package's id, derived from the guide's so one `--id` decides both."""
+    return f"{ig_id}.{_REGISTRY_ID_SUFFIX}"
+
+
+def registry_canonical_for(canonical: str) -> str:
+    """The registry package's canonical, derived from the guide's so one `--canonical` decides both."""
+    return f"{canonical}/{REGISTRY_RELATIVE_ROOT}"
+
+
+def _registry_dependency_for(options: InitOptions) -> RegistryDependency:
+    """The dependency the guide states on the registry sitting beside it."""
+    return RegistryDependency(
+        id=registry_id_for(options.ig_id),
+        canonical=registry_canonical_for(options.canonical),
+        path=_REGISTRY_FROM_GUIDE,
+    )
+
+
+def _registry_options_for(options: InitOptions) -> InitOptions:
+    """The registry package's own scaffold inputs, derived from the guide's identity.
+
+    The selection tables are dropped rather than carried: a package publishes the organisation-unit
+    registry and no form, and a package naming a data set is refused when its fhir.toml loads.
+    `max_level` is the one selection value both keep, because both have to mean the same units.
+    """
+    return options.model_copy(
+        update={
+            "ig_id": registry_id_for(options.ig_id),
+            "canonical": registry_canonical_for(options.canonical),
+            "name": f"{options.name}Registry",
+            "title": f"{options.title} - organisation unit registry",
+            "kind": "package",
+            "publishes": ORGANISATION_UNIT_PACKAGE,
+            "registry": None,
+            "data_set_ids": [],
+            "event_program_ids": [],
+            "tracker_program_ids": [],
+        }
+    )
+
+
+def _under(root: str, files: list[ScaffoldFile]) -> list[ScaffoldFile]:
+    """One project's scaffold, re-pathed under the directory it occupies.
+
+    `init_project` writes every file at `directory / relative_path`, and a relative path may name
+    a subdirectory, so both projects land under one parent without the writer knowing there are two.
+    """
+    return [
+        scaffold_file.model_copy(update={"relative_path": f"{root}/{scaffold_file.relative_path}"})
+        for scaffold_file in files
+    ]
 
 
 def _render(relative_path: str, template_name: str, options: InitOptions, **extra: object) -> ScaffoldFile:

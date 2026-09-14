@@ -38,8 +38,11 @@ from dhis2w_fhir.config import FHIR_CONFIG_FILENAME, NoFhirProjectError, load_fh
 from dhis2w_fhir.scaffold import (
     CONFIG_EXAMPLE_RELATIVE_PATH,
     FSH_INI_RELATIVE_PATH,
+    GUIDE_RELATIVE_ROOT,
     OWNED_WHOLE_RELATIVE_PATHS,
+    REGISTRY_RELATIVE_ROOT,
     SUSHI_CONFIG_RELATIVE_PATH,
+    build_guide_and_registry_files,
     build_scaffold_files,
 )
 from dhis2w_fhir.scaffold.identity import adopt_scaffold_owned_lines
@@ -102,6 +105,45 @@ def read_project_scaffold_state(directory: Path) -> ProjectScaffoldState:
     return ProjectScaffoldState(options=options, copyright_year=year)
 
 
+def _holds_guide_and_registry(directory: Path) -> bool:
+    """Whether this directory is the root of a split guide rather than a project itself."""
+    if (directory / FHIR_CONFIG_FILENAME).is_file():
+        return False
+    return all(
+        (directory / root / FHIR_CONFIG_FILENAME).is_file() for root in (REGISTRY_RELATIVE_ROOT, GUIDE_RELATIVE_ROOT)
+    )
+
+
+def _refresh_guide_and_registry(directory: Path) -> ScaffoldReport:
+    """Refresh both projects of a split guide and the Makefile that drives them.
+
+    Each project refreshes exactly as it would on its own - its `fhir.toml` is what its render is
+    derived from, and neither is written. The root Makefile has no `fhir.toml` of its own, so it is
+    re-rendered from the guide's recovered inputs and landed whole, the way every other file the
+    scaffold owns outright is.
+    """
+    report = ScaffoldReport(directory=directory.resolve())
+    for root in (REGISTRY_RELATIVE_ROOT, GUIDE_RELATIVE_ROOT):
+        nested = refresh_project(directory / root)
+        for field in ("created_files", "refreshed_files", "unchanged_files", "extended_files", "diverged_files"):
+            getattr(report, field).extend(f"{root}/{path}" for path in getattr(nested, field))
+        report.notes.extend(nested.notes)
+    state = read_project_scaffold_state(directory / GUIDE_RELATIVE_ROOT)
+    for scaffold_file in build_guide_and_registry_files(state.options, copyright_year=state.copyright_year):
+        if "/" in scaffold_file.relative_path:
+            continue
+        destination = directory / scaffold_file.relative_path
+        if not destination.exists():
+            destination.write_text(scaffold_file.content, encoding="utf-8")
+            report.created_files.append(scaffold_file.relative_path)
+        elif _read_file(destination) == scaffold_file.content:
+            report.unchanged_files.append(scaffold_file.relative_path)
+        else:
+            destination.write_text(scaffold_file.content, encoding="utf-8")
+            report.refreshed_files.append(scaffold_file.relative_path)
+    return report
+
+
 def preserves_every_line(current: str, rendered: str) -> bool:
     """Report whether `rendered` carries every line of `current`, in order - rewriting loses nothing."""
     remaining = iter(rendered.splitlines())
@@ -109,7 +151,14 @@ def preserves_every_line(current: str, rendered: str) -> bool:
 
 
 def refresh_project(directory: Path) -> ScaffoldReport:
-    """Re-render the scaffold for the project in `directory`, landing every file nothing of the project's is in."""
+    """Re-render the scaffold for the project in `directory`, landing every file nothing of the project's is in.
+
+    A directory holding no `fhir.toml` of its own but holding both projects of a split guide is
+    refreshed as those two plus the Makefile that drives them, so the file nobody's `fhir.toml`
+    describes cannot drift while the projects beneath it stay current.
+    """
+    if _holds_guide_and_registry(directory):
+        return _refresh_guide_and_registry(directory)
     state = read_project_scaffold_state(directory)
     report = ScaffoldReport(directory=directory.resolve())
     for scaffold_file in build_scaffold_files(state.options, copyright_year=state.copyright_year):

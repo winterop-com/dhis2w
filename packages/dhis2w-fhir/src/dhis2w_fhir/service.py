@@ -194,7 +194,11 @@ from dhis2w_fhir.resources.questionnaires.schemas import (
     ordered_option_combos,
     plan_questionnaire_stems,
 )
-from dhis2w_fhir.scaffold import SUSHI_CONFIG_RELATIVE_PATH, build_scaffold_files
+from dhis2w_fhir.scaffold import (
+    SUSHI_CONFIG_RELATIVE_PATH,
+    build_guide_and_registry_files,
+    build_scaffold_files,
+)
 from dhis2w_fhir.scaffold.identity import sushi_config_identity_disagreements
 from dhis2w_fhir.scaffold.project_templates import ProjectTemplate
 from dhis2w_fhir.scaffold.schemas import InitOptions, ScaffoldReport
@@ -1321,16 +1325,29 @@ def _scope_summary(scope: ValidationScope) -> str:
 
 
 async def init_project(
-    directory: Path, options: InitOptions, *, force: bool = False, template: ProjectTemplate | None = None
+    directory: Path,
+    options: InitOptions,
+    *,
+    force: bool = False,
+    template: ProjectTemplate | None = None,
+    with_registry: bool = False,
 ) -> ScaffoldReport:
     """Scaffold a SUSHI IG project into `directory`, skipping files that already exist unless `force`.
 
     `template` pre-populates the project from a guide already generated against a real DHIS2
     instance, so the tree that lands compiles and serves without reaching an instance at all. Its
     payload is reported apart from the scaffold's own files, which the payload never overwrites.
+
+    `with_registry` scaffolds two projects rather than one - the guide, and the organisation-unit
+    registry package it depends on - wired to each other under `directory`. Every file is still
+    written at `directory / relative_path`; the two projects are subdirectories named there, which
+    is why this loop does not know there are two.
     """
     report = ScaffoldReport(directory=directory.resolve(), template=template.name if template else None)
-    for scaffold_file in build_scaffold_files(options, template=template):
+    scaffold_files = (
+        build_guide_and_registry_files(options) if with_registry else build_scaffold_files(options, template=template)
+    )
+    for scaffold_file in scaffold_files:
         destination = directory / scaffold_file.relative_path
         if destination.exists() and not force:
             skipped = report.skipped_template_files if scaffold_file.from_template else report.skipped_files

@@ -406,6 +406,16 @@ def init_command(
             "package. Omit it to scaffold a guide, which is the default.",
         ),
     ] = None,
+    with_registry: Annotated[
+        bool,
+        typer.Option(
+            "--with-registry",
+            help="Scaffold the guide and the organisation-unit registry package it depends on, as two "
+            "wired projects under this directory: `registry/` publishes the units, `guide/` publishes "
+            "the forms and references them. Both identities derive from --id and --canonical, so they "
+            "cannot disagree, and a Makefile beside them drives the pair in the order that resolves.",
+        ),
+    ] = False,
     registry_id: Annotated[
         str | None,
         typer.Option(
@@ -484,6 +494,7 @@ def init_command(
             event_program_ids=event_program_ids,
             tracker_program_ids=tracker_program_ids,
             publishes=publishes,
+            with_registry=with_registry,
             registry_id=registry_id,
             registry_canonical=registry_canonical,
             registry_version=registry_version,
@@ -493,6 +504,15 @@ def init_command(
         return
     if max_level is not None and max_level < 1:
         raise typer.BadParameter("--max-level must be 1 or greater")
+    if with_registry:
+        _reject_with_registry_conflicts(
+            publishes=publishes,
+            template=template,
+            registry_id=registry_id,
+            registry_canonical=registry_canonical,
+            registry_version=registry_version,
+            registry_path=registry_path,
+        )
     registry = _registry_dependency(
         publishes=publishes,
         registry_id=registry_id,
@@ -542,7 +562,9 @@ def init_command(
         publishes=ORGANISATION_UNIT_PACKAGE if publishes is PublishesChoice.ORGANISATION_UNITS else None,
         registry=registry,
     )
-    report = asyncio.run(service.init_project(directory, options, force=force, template=project_template))
+    report = asyncio.run(
+        service.init_project(directory, options, force=force, template=project_template, with_registry=with_registry)
+    )
     if is_json_output():
         typer.echo(report.model_dump_json(indent=2))
         return
@@ -563,10 +585,28 @@ def init_command(
     if project_template is not None:
         _print_template_next_steps(project_template, report, directory)
         return
+    if with_registry:
+        _print_with_registry_next_steps(directory, profile=profile)
+        return
     if profile:
         _hint("next", f"run `d2w fhir generate` (profile `{profile}`)")
     else:
         _hint("next", "set `profile` in fhir.toml, then run `d2w fhir generate`")
+
+
+def _print_with_registry_next_steps(directory: Path, *, profile: str | None) -> None:
+    """Say what two wired projects need next, which is not what one project needs.
+
+    The order is the part worth stating: the registry writes the package the guide's build installs,
+    so a guide built first has a dependency the publisher cannot resolve. The Makefile beside them
+    encodes that, which is why the hint names it rather than the two builds.
+    """
+    from dhis2w_fhir.scaffold import GUIDE_RELATIVE_ROOT, REGISTRY_RELATIVE_ROOT
+
+    _hint("info", f"{REGISTRY_RELATIVE_ROOT}/ publishes the organisation units; {GUIDE_RELATIVE_ROOT}/ the forms")
+    if not profile:
+        _hint("next", f"set `profile` in {REGISTRY_RELATIVE_ROOT}/fhir.toml and {GUIDE_RELATIVE_ROOT}/fhir.toml")
+    _hint("next", f"cd {directory} && make generate, then `make build` - the registry builds first")
 
 
 def _resolve_project_template(name: str) -> ProjectTemplate:
@@ -716,6 +756,47 @@ def _registry_dependency(
     )
 
 
+def _reject_with_registry_conflicts(
+    *,
+    publishes: PublishesChoice | None,
+    template: str | None,
+    registry_id: str | None,
+    registry_canonical: str | None,
+    registry_version: str | None,
+    registry_path: Path | None,
+) -> None:
+    """Refuse a `--with-registry` run carrying flags it would have to contradict.
+
+    The flag scaffolds a guide and derives the registry beside it, so a stated package content, a
+    template, or a registry named by hand each say something the derivation would overwrite.
+    """
+    if publishes is not None:
+        raise typer.BadParameter(
+            f"--with-registry scaffolds a guide and the registry package it depends on; "
+            f"--publishes {publishes.value} scaffolds that package alone. Drop one."
+        )
+    if template is not None:
+        raise typer.BadParameter(
+            f"--template {template} ships one project's guide, and --with-registry scaffolds two: "
+            "drop --template, or scaffold the guide from the template and its registry separately"
+        )
+    named = [
+        flag
+        for flag, was_given in (
+            ("--registry-id", registry_id is not None),
+            ("--registry-canonical", registry_canonical is not None),
+            ("--registry-version", registry_version is not None),
+            ("--registry-path", registry_path is not None),
+        )
+        if was_given
+    ]
+    if named:
+        raise typer.BadParameter(
+            f"--with-registry derives the registry package from --id and --canonical, so the two "
+            f"projects cannot disagree: drop {', '.join(named)}"
+        )
+
+
 def _reject_scaffold_flags(
     *,
     ig_id: str,
@@ -732,6 +813,7 @@ def _reject_scaffold_flags(
     event_program_ids: list[str] | None,
     tracker_program_ids: list[str] | None,
     publishes: PublishesChoice | None,
+    with_registry: bool,
     registry_id: str | None,
     registry_canonical: str | None,
     registry_version: str | None,
@@ -758,6 +840,7 @@ def _reject_scaffold_flags(
         "--event-program": bool(event_program_ids),
         "--tracker-program": bool(tracker_program_ids),
         "--publishes": publishes is not None,
+        "--with-registry": with_registry,
         "--registry-id": registry_id is not None,
         "--registry-canonical": registry_canonical is not None,
         "--registry-version": registry_version is not None,
