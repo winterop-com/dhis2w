@@ -148,6 +148,20 @@ def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
     assert "GUIDE_HEAP" in root
 
 
+def test_clean_all_reaches_both_terminology_caches() -> None:
+    """Each project keeps its own ig/input-cache, and only that project's own clean-all removes it.
+
+    Giving the guide `clean` here left several megabytes behind that a reader had asked to be gone,
+    which only shows up when someone measures the directory before sharing it.
+    """
+    clean_all = _by_path()["Makefile"].split("clean-all:", 1)[1]
+
+    assert "$(REGISTRY)) clean-all" in clean_all
+    assert "$(GUIDE)) clean-all" in clean_all
+    # `clean` would leave that project's ig/input-cache behind, which is the bug this pins.
+    assert "$(GUIDE)) clean\n" not in clean_all
+
+
 def test_a_plain_init_is_untouched_by_any_of_this() -> None:
     """The flag is opt-in: one project scaffolds exactly what it scaffolded before."""
     alone = {f.relative_path for f in build_scaffold_files(_OPTIONS, copyright_year=2026)}

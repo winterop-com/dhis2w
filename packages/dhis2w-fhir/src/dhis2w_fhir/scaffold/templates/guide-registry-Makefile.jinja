@@ -90,6 +90,9 @@ clean:  ## Remove build output from both, keeping the caches that cost hours to 
 	@$(call MAKE_PROJECT,$(GUIDE)) clean
 
 .PHONY: clean-all
-clean-all:  ## Also remove the terminology and package caches - the next build is cold
+clean-all:  ## Also remove both terminology caches and the shared package volume - the next build is cold
+# Both projects, not just the registry: each keeps its own ig/input-cache, and only that project's
+# own `clean-all` removes it. The docker package-cache volume is shared, so the first call takes it
+# and the second reports it already gone rather than failing.
 	@$(call MAKE_PROJECT,$(REGISTRY)) clean-all
-	@$(call MAKE_PROJECT,$(GUIDE)) clean
+	@$(call MAKE_PROJECT,$(GUIDE)) clean-all
