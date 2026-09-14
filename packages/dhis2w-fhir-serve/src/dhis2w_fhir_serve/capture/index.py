@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
+from dhis2w_fhir.conversion.values import location_id_of
 from dhis2w_fhir.period import PERIOD_TYPE_NAMES
 from dhis2w_fhir.r4 import (
     DEFAULT_SUBJECT_RESOURCE_TYPE,
@@ -244,19 +245,29 @@ class QuestionFacts(BaseModel):
 class CaptureAssignment(BaseModel):
     """The organisation units one form may be captured against, as its published assignment List names them.
 
-    `references` holds the literal `Location/<id>` references the List entries carry, which is the
-    exact spelling a subject, a tracker organisation-unit extension, and an `ORGANISATION_UNIT`
-    answer are written in - so membership is a set lookup rather than a resolution.
+    `location_ids` holds the Location id each List entry names, read off the entry through
+    `CaptureNaming.location_id_named`. A guide publishing its own organisation-unit registry names a
+    unit by the relative `Location/<id>`; a guide whose registry a separate package publishes names
+    it by the absolute `<registry canonical>/Location/<id>`, because a relative reference does not
+    resolve across an implementation-guide package dependency. Both spellings name one unit, so the
+    assignment is held as the ids the two agree on and a subject, a tracker organisation-unit
+    extension, and an `ORGANISATION_UNIT` answer are graded against those.
+
+    An entry naming a Location under an authority this project publishes nothing under names no unit
+    of this registry, so it holds no id here. The authority a submission names its own unit under is
+    graded where the submission is read, in `capture.validate`, so that a client is told which
+    authority it should have named rather than that its unit is unassigned.
     """
 
     model_config = ConfigDict(frozen=True)
 
     list_id: str
-    references: frozenset[str] = frozenset()
+    location_ids: frozenset[str] = frozenset()
 
     def admits(self, reference: str) -> bool:
-        """Whether one Location reference is inside the assignment."""
-        return reference in self.references
+        """Whether one Location reference, in either spelling, names a unit inside the assignment."""
+        location_id = location_id_of(reference)
+        return location_id is not None and location_id in self.location_ids
 
 
 class CaptureAttributeOptionCombos(BaseModel):
@@ -620,8 +631,11 @@ def _assignment(questionnaire: Questionnaire, naming: CaptureNaming, store: Reso
             return None
         return CaptureAssignment(
             list_id=list_id,
-            references=frozenset(
-                item.item.reference for item in published.entry or [] if item.item.reference is not None
+            location_ids=frozenset(
+                location_id
+                for item in published.entry or []
+                if item.item.reference is not None
+                and (location_id := naming.location_id_named(item.item.reference)) is not None
             ),
         )
     return None

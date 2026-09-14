@@ -233,6 +233,24 @@ registry project, or name the package the registry's `make build` wrote with
 `--live` is unaffected: it builds its units from the instance and needs no
 package at all.
 
+The absolute references the guide carries are read as the units they name
+wherever the facade needs one. An assignment `List` naming
+`<registry canonical>/Location/<id>` narrows the capture UI's **Reporting
+from** control to that unit, `Questionnaire/{id}/$generate` draws its draft
+inside it, and a submission is graded against it on receipt - the same reading
+a guide publishing its own registry gets from `Location/<id>`. A submission
+names its own unit in the same spelling: the example responses the generator
+writes for a depending guide name their subject, their `D2OrganisationUnit`
+extension and their organisation-unit answers absolutely, which is the body the
+guide's capture page documents, and `d2w fhir serve` accepts it and names the
+unit it resolves on the receipt.
+
+Which authority published the unit is checked. A reference is admitted under a
+canonical this project publishes organisation units at - the guide's own, or
+the registry package's - and a reference under any other authority is refused
+saying which one it named and which one was expected, because the same DHIS2
+uid under somebody else's registry is a different organisation unit.
+
 `d2w fhir check-artifacts` additionally compares the unit references already on
 disk against what the registry publishes, and reports each one the package does
 not carry as a `registry` finding. That is the check for two projects whose

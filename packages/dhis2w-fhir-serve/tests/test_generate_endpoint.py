@@ -35,10 +35,12 @@ from fixture_project import (
     ORG_UNITS,
     OUTBREAK_FIRST_DAY,
     OUTBREAK_LAST_DAY,
+    REGISTRATION_ASSIGNMENT_LIST_ID,
     REGISTRATION_GENERATED_ATTRIBUTE,
     REGISTRATION_QUESTIONNAIRE_BODY,
     REGISTRATION_UNIQUE_ATTRIBUTE,
     SCOPED_ASSIGNMENT_UNITS,
+    build_assignment_list,
     golden,
 )
 
@@ -576,6 +578,112 @@ async def test_the_organisation_unit_is_part_of_the_seeded_draw_inside_the_assig
         drawn.add(reference)
 
     assert drawn == ASSIGNED_UNIT_REFERENCES
+
+
+#: The one unit an absolutely named assignment admits, so the draw has exactly one answer to give.
+ABSOLUTE_ASSIGNMENT_UNIT = SCOPED_ASSIGNMENT_UNITS[1]
+
+#: The registry file the fixture publishes the tracker program's assignment as, rewritten per test.
+_REGISTRATION_ASSIGNMENT_FILE = f"List-{REGISTRATION_ASSIGNMENT_LIST_ID}.json"
+
+
+async def test_a_form_assigned_by_absolute_registry_reference_draws_the_unit_it_names(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """A guide depending on a registry package names its assigned units absolutely, and the draw reads them.
+
+    `<authority>/Location/<id>` is the only spelling that resolves across an implementation-guide
+    package dependency, so it is what the generator writes for a guide in that mode. It names one
+    unit exactly as `Location/<id>` does, and a draft is meant to be postable straight on to DHIS2 -
+    which refuses a capture outside the assignment with `E1029`. The assignment here admits one
+    unit, so every seed has one answer to give and a draw ranging wider is a draw that read the
+    assignment as empty. The authority is this project's own canonical, which is what the fixture
+    publishes its units under; a guide depending on a registry package names the package's instead,
+    and `CaptureNaming` carries both.
+    """
+    write_resource(
+        capture_project.ig_directory / "input" / "resources" / "registry" / _REGISTRATION_ASSIGNMENT_FILE,
+        build_assignment_list(
+            REGISTRATION_ASSIGNMENT_LIST_ID,
+            "Antenatal care - assigned organisation units",
+            units=(ABSOLUTE_ASSIGNMENT_UNIT,),
+            registry_canonical=CANONICAL,
+        ),
+    )
+    app = create_app(ServeSettings(project_dir=capture_project.project_root))
+
+    async with app.router.lifespan_context(app):
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+            drawn = {
+                _extensions((await _generate(client, REGISTRATION_ID, seed=seed)).json(), ORGANISATION_UNIT_URL)[0][
+                    "valueReference"
+                ]["reference"]
+                for seed in VARIANCE_SEEDS
+            }
+
+    assert drawn == {f"Location/{ABSOLUTE_ASSIGNMENT_UNIT}"}
+
+
+async def test_a_form_whose_assignment_names_no_published_unit_is_not_drafted(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """One rule, both halves: a form assigned nowhere admits nothing on receipt, so nothing is drafted for it.
+
+    The two readings of an assignment have to agree. Drawing across the whole registry for a form
+    whose List names no organisation unit would draft the very capture the facade then warns about
+    and DHIS2 refuses with `E1029`, so the operation says why it cannot answer instead.
+    """
+    write_resource(
+        capture_project.ig_directory / "input" / "resources" / "registry" / _REGISTRATION_ASSIGNMENT_FILE,
+        build_assignment_list(
+            REGISTRATION_ASSIGNMENT_LIST_ID,
+            "Antenatal care - assigned organisation units",
+            units=(),
+        ),
+    )
+    app = create_app(ServeSettings(project_dir=capture_project.project_root))
+
+    async with app.router.lifespan_context(app):
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+            refused = await _generate(client, REGISTRATION_ID, seed=3)
+
+    outcome = refused.json()
+
+    assert refused.status_code == 422
+    assert outcome["resourceType"] == "OperationOutcome"
+    assert f"List/{REGISTRATION_ASSIGNMENT_LIST_ID}" in outcome["issue"][0]["diagnostics"]
+    assert "names no published organisation unit" in outcome["issue"][0]["diagnostics"]
+
+
+async def test_an_assignment_naming_only_something_other_than_a_location_is_not_drafted_either(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """An `Organization` entry names a DHIS2 unit and no place a capture reports from, so the form drafts none."""
+    write_resource(
+        capture_project.ig_directory / "input" / "resources" / "registry" / _REGISTRATION_ASSIGNMENT_FILE,
+        {
+            "resourceType": "List",
+            "id": REGISTRATION_ASSIGNMENT_LIST_ID,
+            "status": "current",
+            "mode": "snapshot",
+            "title": "Antenatal care - assigned organisation units",
+            "entry": [{"item": {"reference": f"Organization/{ABSOLUTE_ASSIGNMENT_UNIT}"}}],
+        },
+    )
+    app = create_app(ServeSettings(project_dir=capture_project.project_root))
+
+    async with app.router.lifespan_context(app):
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+            refused = await _generate(client, REGISTRATION_ID, seed=3)
+
+    assert refused.status_code == 422
+    assert "names no published organisation unit" in refused.json()["issue"][0]["diagnostics"]
 
 
 async def test_an_unrestricted_form_draws_its_unit_across_the_served_registry(

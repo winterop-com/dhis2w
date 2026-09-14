@@ -38,7 +38,12 @@ from dhis2w_fhir_serve.capture.index import QUESTIONNAIRE_RESOURCE_TYPE, Unreada
 from dhis2w_fhir_serve.errors import FHIR_JSON_MEDIA_TYPE, BadOperationError, NotFoundError, ServeError
 from dhis2w_fhir_serve.routes.capture import capture_state
 from dhis2w_fhir_serve.routes.context import serve_context
-from dhis2w_fhir_serve.synthesize import MAXIMUM_SEED, draw_seed, generate_response
+from dhis2w_fhir_serve.synthesize import (
+    MAXIMUM_SEED,
+    UnreportableAssignmentError,
+    draw_seed,
+    generate_response,
+)
 
 #: The path the operation is served at; `capability.py` declares it by the name R4 gives it.
 GENERATE_PATH = f"/{QUESTIONNAIRE_RESOURCE_TYPE}/{{resource_id}}/$generate"
@@ -128,23 +133,25 @@ def _generated(request: Request, resource_id: str, seed: int | None) -> Response
     try:
         index = state.indexes.resolve(entry.canonical_url, state.naming, context.store)
         questionnaire = Questionnaire.model_validate(entry.body)
-    except (UnreadableQuestionnaireError, ValidationError) as error:
+        response = generate_response(
+            questionnaire,
+            index,
+            state.naming,
+            context.store,
+            seed=seed if seed is not None else draw_seed(),
+            today=datetime.date.today(),
+            spool=context.spool,
+        )
+    except (UnreadableQuestionnaireError, UnreportableAssignmentError, ValidationError) as error:
         raise UngeneratableFormError(resource_id, _diagnostics(error)) from error
-    response = generate_response(
-        questionnaire,
-        index,
-        state.naming,
-        context.store,
-        seed=seed if seed is not None else draw_seed(),
-        today=datetime.date.today(),
-        spool=context.spool,
-    )
     return Response(
         content=response.model_dump_json(exclude_none=True, by_alias=True),
         media_type=FHIR_JSON_MEDIA_TYPE,
     )
 
 
-def _diagnostics(error: UnreadableQuestionnaireError | ValidationError) -> str:
+def _diagnostics(error: UnreadableQuestionnaireError | UnreportableAssignmentError | ValidationError) -> str:
     """Say why a served Questionnaire could not be generated against, in the terms it failed on."""
-    return error.diagnostics if isinstance(error, UnreadableQuestionnaireError) else str(error)
+    if isinstance(error, UnreadableQuestionnaireError | UnreportableAssignmentError):
+        return error.diagnostics
+    return str(error)

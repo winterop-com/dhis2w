@@ -236,7 +236,8 @@ def validate_response(
     _settle(_attribute_option_combo_issues(response, index, naming, resolvers, strict=strict_codes), warnings)
     if form_kind == "aggregate":
         _settle(_period_issues(response, naming), warnings)
-    _settle(_ItemValidator(index=index, resolvers=resolvers, strict=strict_codes).run(response), warnings)
+    items = _ItemValidator(index=index, naming=naming, resolvers=resolvers, strict=strict_codes)
+    _settle(items.run(response), warnings)
 
     return ValidatedCapture(
         form_kind=form_kind,
@@ -369,7 +370,7 @@ def _profile_issues(
         issues.extend(_aggregate_issues(response, naming))
     elif form_kind == "event":
         issues.extend(_authored_issues(response))
-        issues.extend(_location_subject_issues(response))
+        issues.extend(_location_subject_issues(response, naming))
     elif form_kind == "tracker":
         issues.extend(_authored_issues(response))
         issues.extend(_tracker_subject_issues(response, naming))
@@ -387,7 +388,7 @@ def _profile_issues(
 
 def _aggregate_issues(response: QuestionnaireResponse, naming: CaptureNaming) -> tuple[CaptureIssue, ...]:
     """The aggregate contract: a reporting period, an organisation unit, and a completed submission."""
-    issues: list[CaptureIssue] = list(_location_subject_issues(response))
+    issues: list[CaptureIssue] = list(_location_subject_issues(response, naming))
     if response.status is not None and response.status != AGGREGATE_REQUIRED_STATUS:
         issues.append(
             _error(
@@ -453,7 +454,7 @@ def _authored_issues(response: QuestionnaireResponse) -> tuple[CaptureIssue, ...
     return ()
 
 
-def _location_subject_issues(response: QuestionnaireResponse) -> tuple[CaptureIssue, ...]:
+def _location_subject_issues(response: QuestionnaireResponse, naming: CaptureNaming) -> tuple[CaptureIssue, ...]:
     """The organisation unit an aggregate or event response reports for, as a Location reference."""
     subject = response.subject
     if subject is None:
@@ -466,15 +467,7 @@ def _location_subject_issues(response: QuestionnaireResponse) -> tuple[CaptureIs
                 f"the subject carries no `{LOCATION_REFERENCE_PREFIX}<uid>` reference",
             ),
         )
-    if not _is_location_reference(subject.reference):
-        return (
-            _error(
-                "value",
-                "QuestionnaireResponse.subject.reference",
-                f"`{subject.reference}` is not a `{LOCATION_REFERENCE_PREFIX}<uid>` reference",
-            ),
-        )
-    return ()
+    return _location_reference_issues(subject.reference, naming, "QuestionnaireResponse.subject.reference")
 
 
 def _tracker_subject_issues(response: QuestionnaireResponse, naming: CaptureNaming) -> tuple[CaptureIssue, ...]:
@@ -620,7 +613,7 @@ def _organisation_unit_extension_issues(
             ),
         )
     reference = organisation_units[0].valueReference
-    if reference is None or not reference.reference or not _is_location_reference(reference.reference):
+    if reference is None or not reference.reference:
         return (
             _error(
                 "value",
@@ -628,7 +621,7 @@ def _organisation_unit_extension_issues(
                 f"the organisation unit extension carries no `{LOCATION_REFERENCE_PREFIX}<uid>` reference",
             ),
         )
-    return ()
+    return _location_reference_issues(reference.reference, naming, "QuestionnaireResponse.extension")
 
 
 def _enrollment_extension_issues(
@@ -999,6 +992,7 @@ class _ItemValidator(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     index: CaptureIndex
+    naming: CaptureNaming
     resolvers: CodingResolverSet
     strict: bool
 
@@ -1137,14 +1131,26 @@ class _ItemValidator(BaseModel):
         self._coding(question, answer, selections)
 
     def _reference(self, question: CaptureQuestion, answer: QuestionnaireResponseAnswer) -> None:
-        """Grade an ORGANISATION_UNIT answer against the form's assignment, on the same dial as a code."""
-        assignment = self.assignment
+        """Grade an ORGANISATION_UNIT answer: the authority it names its unit under, then the form's assignment.
+
+        An answer naming a Location under an authority this project publishes nothing under is
+        refused outright, because the id it carries belongs to somebody else's registry and would
+        otherwise be read as a unit of this one. An answer naming something that is no Location at
+        all is left to the question's own binding, which is what grades a reference to anything else
+        DHIS2 stores.
+        """
         reference = answer.valueReference.reference if answer.valueReference else None
-        if assignment is None or reference is None or assignment.admits(reference):
+        if reference is None:
             return
-        self._issues.append(
-            _assignment_issue(assignment, reference, _item_expression(question.link_id), strict=self.strict)
-        )
+        expression = _item_expression(question.link_id)
+        unserved = _unserved_authority_issue(reference, self.naming, expression)
+        if unserved is not None:
+            self._issues.append(unserved)
+            return
+        assignment = self.assignment
+        if assignment is None or assignment.admits(reference):
+            return
+        self._issues.append(_assignment_issue(assignment, reference, expression, strict=self.strict))
 
     def _temporal(self, question: CaptureQuestion, answer: QuestionnaireResponseAnswer) -> None:
         """Check a date, dateTime, or time answer against the R4 primitive it is written as."""
@@ -1372,9 +1378,41 @@ def _item_expression(link_id: str) -> str:
     return f"QuestionnaireResponse.item.where(linkId='{link_id}')"
 
 
-def _is_location_reference(reference: str) -> bool:
-    """Whether a reference names a DHIS2 organisation unit's Location instance."""
-    return reference.startswith(LOCATION_REFERENCE_PREFIX) and len(reference) > len(LOCATION_REFERENCE_PREFIX)
+def _location_reference_issues(reference: str, naming: CaptureNaming, expression: str) -> tuple[CaptureIssue, ...]:
+    """Whether one reference names an organisation unit this project publishes, and why not when it does not.
+
+    A response names its unit in whichever spelling the guide it was written against uses: the
+    relative `Location/<id>` a guide publishing its own registry writes, and the absolute
+    `<registry canonical>/Location/<id>` the generator writes into the examples of a guide
+    depending on a registry package - the body that guide's own capture page documents. Both are
+    read, and a reference under an authority this project publishes nothing under is told which
+    authority its units are published under rather than that its shape is wrong.
+    """
+    if naming.location_id_named(reference) is not None:
+        return ()
+    unserved = _unserved_authority_issue(reference, naming, expression)
+    if unserved is not None:
+        return (unserved,)
+    return (
+        _error(
+            "value",
+            expression,
+            f"`{reference}` is not a `{LOCATION_REFERENCE_PREFIX}<uid>` reference",
+        ),
+    )
+
+
+def _unserved_authority_issue(reference: str, naming: CaptureNaming, expression: str) -> CaptureIssue | None:
+    """What a client is told when it names a Location under an authority this project publishes nothing under."""
+    unserved = naming.unserved_authority_of(reference)
+    if unserved is None:
+        return None
+    return _error(
+        "value",
+        expression,
+        f"`{reference}` names an organisation unit under `{unserved}`, but this guide's "
+        f"organisation units are published under `{naming.organisation_unit_authority}`",
+    )
 
 
 def _is_full_date(value: str) -> bool:

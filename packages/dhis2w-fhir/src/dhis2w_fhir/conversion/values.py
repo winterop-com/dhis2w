@@ -82,15 +82,27 @@ def location_id_of(reference: str | None) -> str | None:
     whose registry another package publishes references it as the absolute
     `<registry canonical>/Location/<id>`. Both name one Location by id, and a response written
     against either guide is read the same way: the id is what follows the last `Location/`.
+
+    What follows it has to be the id and nothing else. A version, a history entry or a query string
+    rides in the same string and names something other than the current instance, so `Location/abc`
+    reads as `abc` while `Location/abc/_history/2` and `<canonical>/Location/abc?_format=json` read
+    as no Location at all rather than as an id nothing resolves.
     """
     if not reference:
         return None
     if reference.startswith(LOCATION_REFERENCE_PREFIX):
-        return reference.removeprefix(LOCATION_REFERENCE_PREFIX) or None
-    head, separator, location_id = reference.rpartition(f"/{LOCATION_REFERENCE_PREFIX}")
-    if not separator or not head or not location_id or "/" in location_id:
+        return _location_id_tail(reference.removeprefix(LOCATION_REFERENCE_PREFIX))
+    head, separator, tail = reference.rpartition(f"/{LOCATION_REFERENCE_PREFIX}")
+    if not separator or not head:
         return None
-    return location_id
+    return _location_id_tail(tail)
+
+
+def _location_id_tail(tail: str) -> str | None:
+    """What follows `Location/` read as an id, or None when it carries more than one."""
+    if not tail or "/" in tail or "?" in tail:
+        return None
+    return tail
 
 
 #: Every `value[x]` element an answer may carry, in the order R4 declares them.

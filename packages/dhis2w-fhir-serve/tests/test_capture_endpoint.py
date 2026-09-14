@@ -254,3 +254,76 @@ async def test_creating_any_other_resource_type_is_not_allowed(capture_client: h
 
     assert refused.status_code == 405
     assert refused.json()["issue"][0]["code"] == "not-supported"
+
+
+#: The unit every document below reports from, named absolutely under the authority this project
+#: publishes its organisation units at - the spelling the generator writes into the examples of a
+#: guide whose registry a package publishes, and the body that guide's own capture page documents.
+_ABSOLUTE_UNIT = "ImspTQPwCqd"
+_ABSOLUTE_REFERENCE = f"{CANONICAL}/Location/{_ABSOLUTE_UNIT}"
+
+
+async def test_a_response_naming_its_unit_absolutely_is_created_like_any_other(
+    capture_client: httpx2.AsyncClient,
+    capture_project: FhirProject,
+    aggregate_response: dict[str, Any],
+) -> None:
+    """The generator writes this subject into a depending guide's own examples, so the facade takes it.
+
+    One document, one answer: `d2w fhir forward` reads an absolute subject as the organisation unit
+    it names, and so does the facade that receives it. The receipt names the same unit a relative
+    subject would have named, which is what makes the spelling an authoring detail rather than a
+    second contract.
+    """
+    aggregate_response["subject"] = {"reference": _ABSOLUTE_REFERENCE}
+
+    created = await capture_client.post("/QuestionnaireResponse", json=aggregate_response)
+    response_id = created.headers["Location"].rsplit("/", 1)[-1]
+    listed = (await capture_client.get("/facade/spool")).json()
+
+    assert created.status_code == 201
+    assert [issue for issue in created.json()["issue"] if issue["severity"] == "error"] == []
+    assert _spooled(capture_project, response_id)["form_kind"] == "aggregate"
+    assert listed["responses"][0]["organisation_unit"] == _ABSOLUTE_UNIT
+
+
+async def test_a_tracker_response_naming_its_unit_absolutely_on_the_extension_is_created_too(
+    capture_client: httpx2.AsyncClient,
+    tracker_response: dict[str, Any],
+) -> None:
+    """A tracker event carries its unit on `D2OrganisationUnit`, and that extension is read the same way."""
+    for extension in tracker_response["extension"]:
+        if extension["url"].endswith("/d2-organisation-unit"):
+            extension["valueReference"] = {"reference": _ABSOLUTE_REFERENCE}
+
+    created = await capture_client.post("/QuestionnaireResponse", json=tracker_response)
+
+    assert created.status_code == 201
+    assert [issue for issue in created.json()["issue"] if issue["severity"] == "error"] == []
+
+
+async def test_an_organisation_unit_answer_named_absolutely_is_created_too(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """An `ORGANISATION_UNIT` answer is written in the same spelling as its document's subject."""
+    submission = _temporal_response("DeVisitUnit1", {"valueReference": {"reference": _ABSOLUTE_REFERENCE}})
+
+    created = await capture_client.post("/QuestionnaireResponse", json=submission)
+
+    assert created.status_code == 201
+    assert [issue for issue in created.json()["issue"] if issue["severity"] == "error"] == []
+
+
+async def test_a_subject_under_an_authority_this_guide_does_not_publish_is_refused(
+    capture_client: httpx2.AsyncClient,
+    aggregate_response: dict[str, Any],
+) -> None:
+    """A familiar-looking id under somebody else's registry is a different organisation unit, and is told so."""
+    aggregate_response["subject"] = {"reference": f"https://hapi.fhir.org/baseR4/Location/{_ABSOLUTE_UNIT}"}
+
+    refused = await capture_client.post("/QuestionnaireResponse", json=aggregate_response)
+
+    diagnostics = refused.json()["issue"][0]["diagnostics"]
+    assert refused.status_code == 422
+    assert "names an organisation unit under `https://hapi.fhir.org/baseR4`" in diagnostics
+    assert f"published under `{CANONICAL}`" in diagnostics
