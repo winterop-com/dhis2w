@@ -29,6 +29,11 @@ d2w metadata list organisationUnits \
   --fields "id,name,level" \
   --page-size 5
 
+# Field transformers turn a collection into a scalar server-side: `~size` answers
+# with the count, so this asks how many organisation units each data set is
+# assigned to without transferring a single assignment.
+d2w metadata list dataSets --fields "id,name,organisationUnits~size" --page-size 5
+
 # --all streams every server-side page (paging=true + page=1,2,...).
 # Useful for dumping a full catalog without knowing the total count upfront.
 d2w --json metadata list indicators --all --fields ":identifiable" | jq 'length as $n | "\($n) indicators"'

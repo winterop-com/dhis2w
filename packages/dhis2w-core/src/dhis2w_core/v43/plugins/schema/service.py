@@ -71,8 +71,8 @@ def unknown_fields(version: str, name: str, fields: str) -> list[str]:
 
 
 def _has_field_syntax(token: str) -> bool:
-    """Return True if a `--fields` token uses preset/wildcard/exclusion/nested/dotted syntax."""
-    return any(char in token for char in ":*![].")
+    """Return True if a `--fields` token uses preset/wildcard/exclusion/nested/dotted/transformer syntax."""
+    return any(char in token for char in ":*![].~")
 
 
 def _known_field_names(version: str, name: str) -> set[str] | None:

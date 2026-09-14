@@ -75,11 +75,15 @@ from dhis2w_client.v41._enum_stubs import (
     PreheatIdentifier,
     PreheatMode,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from dhis2w_core.profile import Profile
 from dhis2w_core.v41.client_context import open_client
-from dhis2w_core.v41.plugins.metadata.models import MetadataBundle, MetadataItem
+from dhis2w_core.v41.plugins.metadata.models import (
+    MetadataBundle,
+    MetadataItem,
+    TransformedMetadataRow,
+)
 
 _CAMEL_RE = re.compile(r"(?<!^)(?=[A-Z])")
 _STREAM_PAGE_SIZE = 500
@@ -91,6 +95,10 @@ class UnknownResourceError(LookupError):
 
 class MetadataUsageError(LookupError):
     """Raised when a bulk-verb argument is malformed in a way that could never do what the caller intends."""
+
+
+class MetadataSelectionError(LookupError):
+    """Raised when DHIS2's answer to a `--fields` selection does not fit the model that selection implies."""
 
 
 def _attr_name(resource: str) -> str:
@@ -120,6 +128,165 @@ async def list_resource_types(profile: Profile) -> list[str]:
         return _resource_names(client.resources)
 
 
+#: DHIS2 field transformers — `organisationUnits~size`, `dataSetElements::size`, `~isEmpty`,
+#: `name~rename(label)` — answer with a scalar (or a renamed key) where the resource declares a
+#: collection, so a selection carrying one is read through `TransformedMetadataRow` rather than
+#: through the generated resource model, which declares the untransformed shape.
+_FIELD_TRANSFORM_MARKERS: tuple[str, ...] = ("~", "::")
+
+#: How many per-field diagnostics one selection error spells out before it stops listing them.
+_MAX_SELECTION_DIAGNOSTICS = 3
+
+_RENAME_RE = re.compile(r"~rename\(([^)]+)\)")
+
+
+def response_key(selection: str) -> str:
+    """The key DHIS2 answers one `--fields` expression under (`organisationUnits~size` -> `organisationUnits`)."""
+    renamed = _RENAME_RE.search(selection)
+    if renamed is not None:
+        return renamed.group(1).strip()
+    return re.split(r"~|::|\[", selection, maxsplit=1)[0].strip()
+
+
+def _selection_expressions(fields: str) -> list[str]:
+    """Split a `--fields` selector into its top-level expressions, keeping a nested `a[b,c]` whole."""
+    expressions: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for char in fields:
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth = max(0, depth - 1)
+        elif char == "," and depth == 0:
+            expressions.append("".join(current).strip())
+            current = []
+            continue
+        current.append(char)
+    expressions.append("".join(current).strip())
+    return [expression for expression in expressions if expression]
+
+
+def _uses_field_transform(fields: str | None) -> bool:
+    """True when a `--fields` selector applies a DHIS2 field transformer such as `~size`."""
+    return fields is not None and any(marker in fields for marker in _FIELD_TRANSFORM_MARKERS)
+
+
+def _effective_paging(paging: bool | None, page: int | None, page_size: int | None) -> bool:
+    """The paging flag a page fetch sends: the explicit one, else on only when a page bound is set."""
+    return paging if paging is not None else (page is not None or page_size is not None)
+
+
+def _page_rows(raw: dict[str, Any], resource: str) -> list[Any]:
+    """Read the item list out of a raw `/api/<resource>` page, whichever key it came back under."""
+    items = raw.get(resource)
+    if isinstance(items, list):
+        return items
+    for key, value in raw.items():
+        if key != "pager" and isinstance(value, list):
+            return value
+    return []
+
+
+def _transformed_rows(context: str, resource: str, fields: str | None, raw: dict[str, Any]) -> list[BaseModel]:
+    """Validate a page selected with a field transformer through `TransformedMetadataRow`."""
+    return [_transformed_row(context, fields, item) for item in _page_rows(raw, resource)]
+
+
+def _transformed_row(context: str, fields: str | None, item: Any) -> BaseModel:
+    """Validate one transformed row, naming the selection behind a shape the wrapper cannot take."""
+    try:
+        return TransformedMetadataRow.model_validate(item)
+    except ValidationError as error:
+        raise _selection_error(context, fields, error, subject="this client") from error
+
+
+def _selection_error(
+    context: str,
+    fields: str | None,
+    error: ValidationError,
+    *,
+    subject: str,
+) -> MetadataSelectionError:
+    """Name the `--fields` selection behind a validation failure as an error the caller can act on."""
+    diagnostics: list[str] = []
+    for entry in error.errors()[:_MAX_SELECTION_DIAGNOSTICS]:
+        location = entry.get("loc") or ()
+        field_name = str(location[0]) if location else ""
+        selection = _selection_for(fields, field_name)
+        if selection is not None and _uses_field_transform(selection):
+            diagnostics.append(f"the selection `{selection}` returns a scalar {subject} cannot hold")
+        elif field_name:
+            diagnostics.append(
+                f"`{field_name}` came back as {type(entry.get('input')).__name__}, a shape {subject} cannot hold"
+            )
+        else:
+            diagnostics.append(f"DHIS2 answered with a row {subject} cannot hold")
+    return MetadataSelectionError(
+        f"{context}: {'; '.join(diagnostics)}; ask for a selection it can hold, for example `id,name`"
+    )
+
+
+def _selection_for(fields: str | None, field_name: str) -> str | None:
+    """The `--fields` expression that asked for `field_name`, or None when no expression names it."""
+    if not fields or not field_name:
+        return None
+    for expression in _selection_expressions(fields):
+        if response_key(expression) == field_name:
+            return expression
+    return None
+
+
+async def _fetch_page(
+    accessor: Any,
+    resource: str,
+    *,
+    fields: str | None,
+    filters: list[str] | None,
+    root_junction: str | None,
+    order: list[str] | None,
+    page: int | None,
+    page_size: int | None,
+    paging: bool | None,
+    translate: bool | None,
+    locale: str | None,
+) -> list[BaseModel]:
+    """Fetch one page of a metadata resource as typed rows.
+
+    A selection carrying a DHIS2 field transformer is read through `TransformedMetadataRow`, which
+    holds the transformed wire shape; every other selection validates through the generated model.
+    """
+    context = f"listing {resource}"
+    if _uses_field_transform(fields):
+        raw = await accessor.list_raw(
+            fields=fields,
+            filters=filters,
+            root_junction=root_junction,
+            order=order,
+            page=page,
+            page_size=page_size,
+            paging=_effective_paging(paging, page, page_size),
+            translate=translate,
+            locale=locale,
+        )
+        return _transformed_rows(context, resource, fields, raw)
+    try:
+        models: list[BaseModel] = await accessor.list(
+            fields=fields,
+            filters=filters,
+            root_junction=root_junction,
+            order=order,
+            page=page,
+            page_size=page_size,
+            paging=paging,
+            translate=translate,
+            locale=locale,
+        )
+    except ValidationError as error:
+        raise _selection_error(context, fields, error, subject=f"the {error.title} model") from error
+    return models
+
+
 async def list_metadata(
     profile: Profile,
     resource: str,
@@ -146,6 +313,13 @@ async def list_metadata(
     `root_junction` is `"AND"` (default) or `"OR"`. `paging=False` returns the
     full catalog in one response; for memory-friendly streaming use
     `iter_metadata`.
+
+    A `fields` selection carrying a DHIS2 field transformer
+    (`organisationUnits~size`, `dataSetElements~isEmpty`, `name~rename(label)`)
+    answers with a scalar where the resource declares a collection, so the page
+    comes back as `TransformedMetadataRow` — typed `id` / `name` with every
+    transformed column preserved. A selection DHIS2 answers in a shape neither
+    model can hold raises `MetadataSelectionError` naming that selection.
     """
     # organisationUnitLevels: the convenience accessor synthesises the unnamed levels DHIS2 omits,
     # so an unfiltered list returns the COMPLETE hierarchy (matching the removed typed
@@ -157,7 +331,9 @@ async def list_metadata(
             return ou_levels
     async with open_client(profile) as client:
         accessor = _resolve_accessor(client.resources, resource)
-        models: list[BaseModel] = await accessor.list(
+        return await _fetch_page(
+            accessor,
+            resource,
             fields=fields,
             filters=filters,
             root_junction=root_junction,
@@ -168,7 +344,6 @@ async def list_metadata(
             translate=translate,
             locale=locale,
         )
-        return models
 
 
 async def count_metadata(
@@ -224,7 +399,9 @@ async def iter_metadata(
     async with open_client(profile) as client:
         accessor = _resolve_accessor(client.resources, resource)
         while True:
-            models = await accessor.list(
+            models = await _fetch_page(
+                accessor,
+                resource,
                 fields=fields,
                 filters=filters,
                 root_junction=root_junction,
@@ -935,10 +1112,22 @@ async def get_metadata(
     *,
     fields: str | None = None,
 ) -> BaseModel:
-    """Fetch one metadata object by UID; returns the typed generated model."""
+    """Fetch one metadata object by UID; returns the typed generated model.
+
+    A `fields` selection carrying a DHIS2 field transformer (`organisationUnits~size`) answers with
+    a shape the generated model does not declare, so that object is read through
+    `TransformedMetadataRow` instead.
+    """
+    context = f"fetching {resource}/{uid}"
     async with open_client(profile) as client:
         accessor = _resolve_accessor(client.resources, resource)
-        model: BaseModel = await accessor.get(uid, fields=fields)
+        if _uses_field_transform(fields):
+            raw = await client.get_raw(f"/api/{resource}/{uid}", params={"fields": fields})
+            return _transformed_row(context, fields, raw)
+        try:
+            model: BaseModel = await accessor.get(uid, fields=fields)
+        except ValidationError as error:
+            raise _selection_error(context, fields, error, subject=f"the {error.title} model") from error
         return model
 
 
