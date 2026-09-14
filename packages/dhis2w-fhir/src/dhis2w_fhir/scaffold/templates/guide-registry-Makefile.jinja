@@ -22,21 +22,24 @@
 REGISTRY := {{ registry_root }}
 GUIDE    := {{ guide_root }}
 
-# The publisher's JVM heap ceiling, passed to both builds. One knob covers the two because a
+# JAVA_HEAP is the publisher's JVM heap ceiling, and one knob covers the two builds because a
 # ceiling is not a reservation: the registry renders one resource per organisation unit and grows
-# into it, the guide renders its forms and does not. Each project derives its own default from the
-# docker VM when this is unset, so it is forwarded only when you set it - an empty value passed
-# down would beat the child's own default and leave the publisher with no -Xmx at all:
+# into it, the guide renders its forms and does not. Name it on the command line or in the
+# environment and make carries it to both projects itself - there is nothing to forward here:
 #   make build JAVA_HEAP=8g
-JAVA_HEAP ?=
-FORWARD_HEAP = $(if $(JAVA_HEAP),JAVA_HEAP=$(JAVA_HEAP))
+# Left alone, each project sizes its own ceiling from the memory docker reports, and an empty value
+# reaching a project derives exactly as an unset one does.
 
 # The toolchain both projects run. Each resolves `d2w` from its own uv.lock by default, which is a
 # PyPI release rather than a checkout. Point this at a checkout to run unreleased code:
 #   make all D2W="uv run --project /path/to/dhis2w d2w"
 D2W ?= uv run d2w
 
-MAKE_PROJECT = $(MAKE) -C $(1) D2W="$(D2W)"
+# The flags every sub-make carries. `$(MAKE)` itself stays in each recipe line below, spelled out
+# rather than wrapped in a variable make would have to expand first: make reads the literal token
+# to recognise the line as recursion, which is what makes `make -n` reach the child and what hands
+# the child the jobserver.
+PROJECT_FLAGS = D2W="$(D2W)"
 
 .PHONY: help
 help:  ## Show available targets
@@ -52,63 +55,63 @@ toolchain:  ## Print the d2w each project resolves - the first thing to check wh
 
 .PHONY: setup
 setup:  ## Build the SUSHI + IG publisher docker image (once per machine, shared by both projects)
-	@$(call MAKE_PROJECT,$(REGISTRY)) setup
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) setup
 
 .PHONY: generate
 generate: generate-registry generate-guide  ## Generate both projects from the DHIS2 instance
 
 .PHONY: generate-registry
 generate-registry:  ## Generate the registry package alone
-	@$(call MAKE_PROJECT,$(REGISTRY)) generate
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) generate
 
 .PHONY: generate-guide
 generate-guide:  ## Generate the guide alone - resolves the unit identities, writes no unit
-	@$(call MAKE_PROJECT,$(GUIDE)) generate
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) generate
 
 .PHONY: build
 build: build-registry build-guide  ## Build both, in the only order that resolves
 
 .PHONY: build-registry
 build-registry:  ## Build the registry package -> $(REGISTRY)/ig/output/package.tgz
-	@$(call MAKE_PROJECT,$(REGISTRY)) build $(FORWARD_HEAP)
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) build
 
 .PHONY: build-guide
 build-guide:  ## Install the registry package into the publisher's cache, then build the guide
-	@$(call MAKE_PROJECT,$(GUIDE)) build $(FORWARD_HEAP)
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) build
 
 .PHONY: install-registry
 install-registry:  ## Install the built package into the shared package cache, without building the guide
-	@$(call MAKE_PROJECT,$(GUIDE)) registry-install
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) registry-install
 
 .PHONY: check
 check:  ## Scan both offline for what aborts the publisher, including unit references the package lacks
-	@$(call MAKE_PROJECT,$(REGISTRY)) check
-	@$(call MAKE_PROJECT,$(GUIDE)) check
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) check
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) check
 
 .PHONY: serve
 serve:  ## Serve the guide with the capture UI - the forms, and the units out of the registry
-	@$(call MAKE_PROJECT,$(GUIDE)) serve
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) serve
 
 .PHONY: serve-registry
 serve-registry:  ## Serve the registry alone - a readable FHIR endpoint over the hierarchy, no forms
-	@$(call MAKE_PROJECT,$(REGISTRY)) serve
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) serve
 
 .PHONY: forward
 forward:  ## Dry-run the guide's capture spool against DHIS2 - nothing is written
-	@$(call MAKE_PROJECT,$(GUIDE)) forward
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) forward
 
 .PHONY: all
 all: generate build  ## Generate and build both, end to end
 
 .PHONY: clean
 clean:  ## Remove build output from both, keeping the caches that cost hours to refill
-	@$(call MAKE_PROJECT,$(REGISTRY)) clean
-	@$(call MAKE_PROJECT,$(GUIDE)) clean
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) clean
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) clean
 
 .PHONY: clean-all
 clean-all:  ## Also remove both terminology caches and the shared package volume - the next build is cold
 # Both projects, not just the registry: each keeps its own ig/input-cache, and only that project's
 # own `clean-all` removes it. The docker package-cache volume is shared, so the first call takes it
 # and the second reports it already gone rather than failing.
-	@$(call MAKE_PROJECT,$(REGISTRY)) clean-all
-	@$(call MAKE_PROJECT,$(GUIDE)) clean-all
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) clean-all
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) clean-all

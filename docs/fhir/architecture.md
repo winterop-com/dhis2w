@@ -854,8 +854,10 @@ Two caches are worth knowing about. The `fhir-ig-cache` named volume holds the
 publisher's package downloads, which dominate a cold machine; `make clean-all`
 removes it and `make clean` does not. `ig/input-cache/` holds the terminology
 server cache and is left alone by both. `JAVA_HEAP` is the publisher JVM's
-ceiling, derived from the docker VM less 2 GB - above that the kernel OOM-kills
-the build, which the build reports as exit 137 with the numbers behind it.
+ceiling, derived once per build from the memory docker reports less 2 GB and
+capped at 31 GB - above what the machine holds, the kernel's out-of-memory
+killer takes the publisher, which the build reports as exit 137 with the
+numbers behind it.
 
 The upstream behaviours behind these are catalogued in [the roadmap's quirks
 section](design/roadmap.md#4-upstream-dhis2-and-tooling-quirks-that-shape-the-code);

@@ -239,23 +239,41 @@ boundary attachment states its media type, that field binds to the IETF BCP
 Those errors are the whole difference, and they go away online.
 
 **`JAVA_HEAP`** is the publisher's JVM heap ceiling, and the Makefile sizes it
-to the machine rather than writing a number down: the docker VM's memory less
-2 GB, floored at `4g`, falling back to `8g` when docker cannot be asked. A
-literal would be wrong somewhere either way - too small for a national registry
-on a workstation, too large to survive on a laptop - and the VM knows. Every
-build states what it derived:
+to the machine rather than writing a number down: the memory docker reports,
+less 2 GB, floored at `4g`, capped at `31g`, and falling back to `8g` when
+docker cannot be asked. A literal would be wrong somewhere either way - too
+small for a national registry on a workstation, too large to survive on a
+laptop - and docker knows what it has. Every build states what it derived:
 
 ```text
-publisher heap 22g, docker VM 24.0 GB
+publisher heap 22g, docker memory 24.0 GB
 ```
 
+The daemon is asked once per build, on first use, so `help`, `clean` and
+`generate` never wake it and the banner, the `-Xmx` and the kill report all
+quote one answer.
+
+Two things about that figure are worth knowing. `docker info --format
+'{{.MemTotal}}'` is the VM Docker Desktop runs on macOS and Windows, and the
+whole machine's RAM on Linux - where the derivation sees everything the host
+has, whatever else is running on it. That is why CI pins `JAVA_HEAP: 4g` rather
+than deriving: a shared build host would hand the publisher a ceiling sized to
+a machine it does not have to itself. And `31g` is the top wherever the number
+comes from, because the JVM drops compressed object pointers above roughly
+32 GB and the same live set suddenly costs materially more heap; the largest
+guide measured here peaked at 16.
+
 It is a ceiling, not a reservation: a guide that needs less simply uses less.
-Set it yourself on the command line or in the environment whenever you want to
-say, and the value outlives a refresh:
+Set it yourself on the command line or in the environment whenever you want a
+particular ceiling, and the value outlives a refresh:
 
 ```bash
 make build JAVA_HEAP=8g
 ```
+
+An empty `JAVA_HEAP` - a CI wrapper with an unset variable, `JAVA_HEAP= make
+build` - derives exactly as an unset one does, rather than handing the
+publisher a bare `-Xmx`.
 
 ### The two ways memory fails
 
@@ -269,14 +287,18 @@ Generating Summary Outputs (en)
 make: *** [build] Error 137
 ```
 
-137 is `128 + 9`, SIGKILL from the kernel's OOM killer. The give-away is that
-`ig/output` is empty afterwards: the publisher writes the site in one pass at
-the very end, so a build killed in the peak-memory phases leaves nothing
-behind. The build recognises this one and says so, naming the ceiling, the VM,
-the peak the container actually reached, and any other containers that were
-holding the VM at the time. The publisher and Jekyll share one container and
-Jekyll renders while the JVM is still resident, which is why kills land in the
-last phase and why stopping everything else is the first thing to try.
+137 is `128 + 9`, SIGKILL. `ig/output` holds whatever the last completed build
+wrote, or is partial: the publisher writes the site in one pass at the very end,
+so nothing from a killed run is trustworthy. The container reads its own
+cgroup's `oom_kill` count as it exits, and a non-zero one is what makes the
+build say this was the kernel's out-of-memory killer rather than a `docker
+stop`, a `docker kill`, or a timeout around the build - all of which exit 137
+too, and get a shorter message saying so. The out-of-memory report names the
+ceiling, the memory docker reports, the peak the container actually reached,
+and the containers running when it was sampled. The publisher and Jekyll share
+one container and Jekyll renders while the JVM is still resident, which is why
+kills land in the last phase and why stopping everything else is the first
+thing to try.
 
 **Out of memory** - the ceiling is too small for the guide:
 
@@ -292,22 +314,32 @@ Confirm a suspected kill by dropping `--rm` from the run and then
 
 ### What that costs in practice
 
-The two failures squeeze against each other through the heap-plus-2-gigabyte
-rule the derivation uses. Measured on one 16 GB docker VM against one
+The two failures squeeze against each other, and the 2 GB the derivation keeps
+back is a deliberately generous setting of that squeeze. A publisher build is a
+monthly act: give it the machine, stop the other containers, and let the kill
+report be the safety net on the rare run where that was not enough. An 8 GB heap
+needs roughly 10 GB of room once metaspace, JVM native memory and the OS are
+counted, and the 2 GB is what covers the difference on a machine doing nothing
+else.
+
+On a machine that is too small for its guide, the squeeze is tight enough that
+the first run can be killed. Measured on one 16 GB docker VM against one
 national guide: `4g` dies in validation, `10g` clears validation and is then
 OOM-killed at Jekyll, and `8g` completes the whole build - about 21 minutes,
-site, package, and QA report. That is what a machine too small for its guide
-looks like, and it is the reason a publisher build wants the machine to itself.
+site, package, and QA report. The derivation would hand that VM `14g`, which is
+inside that kill range: the first build reports the kill, names the peak the
+container reached, and `make build JAVA_HEAP=8g` is the answer it points at.
 
 Measured on a national instance publishing all five levels - 12,581
 organisation units, 25,162 instances - the registry package peaked at 14-16 GB
-and the guide depending on it at 9.3-9.7 GB. A build at that scale needs a VM
-sized accordingly, and the derivation will hand it whatever the VM has.
+and the guide depending on it at 9.3-9.7 GB. A build at that scale needs docker
+sized accordingly, and the derivation will hand it whatever docker reports, up
+to the `31g` cap.
 
 To run the publisher by hand with a heap of your own choosing:
 
 ```bash
-# bytes available to the docker VM
+# bytes of memory available to docker
 docker info --format '{{.MemTotal}}'
 
 docker run --rm -v $(pwd)/ig:/home/publisher/ig -v fhir-ig-cache:/home/publisher/.fhir \

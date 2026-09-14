@@ -167,9 +167,10 @@ generate-guide` in two shells when that matters.
 The two builds never share a container. Each project has its own Makefile and
 its own publisher run, so the registry's depth is a dial on the registry project
 rather than on the guide - which is what lets the registry reach a level the
-forms never had room for beside them. Each sizes its heap from the same docker
-VM, and the root Makefile's `JAVA_HEAP` overrides both at once when you want to
-say.
+forms never had room for beside them. Each sizes its heap from the memory the
+same docker reports, and `JAVA_HEAP` on the root Makefile reaches both at once
+whenever you want a particular ceiling - make carries a command-line or
+environment variable into both sub-makes itself.
 
 Measured on the same national instance, the same selection built three ways:
 

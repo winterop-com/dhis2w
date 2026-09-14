@@ -26,6 +26,7 @@ from dhis2w_fhir.scaffold import (
 )
 from dhis2w_fhir.scaffold.refresh import refresh_project
 from dhis2w_fhir.scaffold.schemas import InitOptions
+from makefile_harness import run_make, stub_docker
 from typer.testing import CliRunner
 
 _runner = CliRunner()
@@ -158,10 +159,46 @@ def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
 
     assert "build: build-registry build-guide" in root
     assert root.index("build-registry:") < root.index("build-guide:")
-    assert "$(FORWARD_HEAP)" in root
-    # Empty unless you set it: an empty override passed down would beat each project's own
-    # derived default and leave the publisher with no -Xmx at all.
-    assert "FORWARD_HEAP = $(if $(JAVA_HEAP),JAVA_HEAP=$(JAVA_HEAP))" in root
+
+
+def test_the_root_makefile_spells_out_make_in_every_recipe_that_recurses() -> None:
+    """Make reads the literal `$(MAKE)` token to recognise recursion, so nothing may hide it.
+
+    Wrapped in a `$(call ...)`, the token reaches the recipe only after expansion: `make -n` then
+    prints the line instead of reaching the child, and the child inherits no jobserver.
+    """
+    root = _by_path()["Makefile"]
+
+    assert "$(call " not in root
+    assert "\t@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) build\n" in root
+    assert "\t@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) build\n" in root
+    assert 'PROJECT_FLAGS = D2W="$(D2W)"' in root
+
+
+def test_the_root_makefile_leaves_the_heap_to_makes_own_propagation() -> None:
+    """A command-line or environment JAVA_HEAP reaches both children on its own, so nothing forwards it.
+
+    Forwarding it by hand puts `JAVA_HEAP=` on each sub-make's command line whenever the value is
+    empty - which is what a CI wrapper with an unset variable passes - and an empty value there beats
+    the child's own derivation and leaves the publisher with a bare `-Xmx`.
+    """
+    root = _by_path()["Makefile"]
+
+    assert "FORWARD_HEAP" not in root
+    assert "JAVA_HEAP=$(JAVA_HEAP)" not in root
+    assert "make carries it to both projects itself" in root
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_building_the_registry_reaches_the_registry_project(tmp_path: Path) -> None:
+    """`make -n build-registry` recurses into the registry and prints the recipe the child would run."""
+    _write(tmp_path)
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+
+    completed = run_make(tmp_path, stub, "-n", "build-registry")
+
+    assert completed.returncode == 0, completed.stderr
+    assert "-Xmx14g -jar /home/publisher/.ig-publisher/publisher.jar" in completed.stdout
 
 
 def test_clean_all_reaches_both_terminology_caches() -> None:
@@ -172,10 +209,10 @@ def test_clean_all_reaches_both_terminology_caches() -> None:
     """
     clean_all = _by_path()["Makefile"].split("clean-all:", 1)[1]
 
-    assert "$(REGISTRY)) clean-all" in clean_all
-    assert "$(GUIDE)) clean-all" in clean_all
+    assert "-C $(REGISTRY) $(PROJECT_FLAGS) clean-all" in clean_all
+    assert "-C $(GUIDE) $(PROJECT_FLAGS) clean-all" in clean_all
     # `clean` would leave that project's ig/input-cache behind, which is the bug this pins.
-    assert "$(GUIDE)) clean\n" not in clean_all
+    assert "-C $(GUIDE) $(PROJECT_FLAGS) clean\n" not in clean_all
 
 
 def test_a_plain_init_is_untouched_by_any_of_this() -> None:
