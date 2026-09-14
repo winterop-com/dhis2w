@@ -558,6 +558,15 @@ chain in one command.
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
   `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
+  **`--with-registry`** scaffolds the guide *and* the registry package it depends
+  on, as `registry/` and `guide/` under one directory plus a Makefile driving
+  both in the order that resolves - the registry's id is the guide's with
+  `.registry` appended, its canonical the guide's with `/registry`, and
+  `max_level` reaches both because the two selections have to mean the same
+  units; `--publishes`, `--template` and every `--registry-*` are refused beside
+  it, each naming what to drop. `d2w fhir init --refresh` on that directory
+  refreshes both projects and re-renders the Makefile, which no project's
+  `fhir.toml` describes;
   **`--publishes organisation-units`** scaffolds a package rather than a guide
   (`kind = "package"` plus `publishes = "organisation-units"` under `[ig]`, the
   organisation-unit registry alone, a Home / Registry / Artifacts menu,

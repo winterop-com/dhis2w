@@ -42,8 +42,23 @@ them.
 
 ## The two projects
 
-The registry becomes a project of its own, scaffolded with
-`--publishes organisation-units`.
+Scaffold both at once, which is the shortest correct route:
+
+```bash
+d2w fhir init example --with-registry \
+    --id dhis2.fhir.example \
+    --canonical http://example.org/fhir \
+    --profile myserver
+```
+
+That writes `example/registry/` and `example/guide/`, wired to each other, plus
+a Makefile that drives them in the order that resolves. Both identities derive
+from the one `--id` and `--canonical`, so the four values the two projects share
+cannot disagree - which is the failure the rest of this section describes how to
+avoid by hand.
+
+The two halves, spelled out. The registry becomes a project of its own,
+scaffolded with `--publishes organisation-units`.
 It carries `kind = "package"` and `publishes = "organisation-units"` under `[ig]`,
 and holds the organisation-unit registry and nothing else: the
 `D2Organization` and `D2Location` profiles, the level extension and its

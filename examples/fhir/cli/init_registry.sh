@@ -2,9 +2,25 @@
 # d2w fhir init --publishes / --registry-* — split the organisation-unit registry into a package.
 set -euo pipefail
 
-# Opt-in, and two projects. The registry package publishes the organisation-unit registry and
-# nothing else: `d2w fhir generate` in it runs the foundation slice its instances name, the
-# organisation units, and the pages, and refuses the form-side targets by name.
+# The short way: one command scaffolds both projects, wired. The registry's id is the guide's with
+# `.registry` appended and its canonical the guide's with `/registry`, so the four values the two
+# share are derived rather than restated - which is the mistake this flag exists to prevent.
+d2w fhir init demo-both --with-registry \
+    --id dhis2.fhir.bothdemo \
+    --canonical http://example.org/fhir/both-demo \
+    --publisher "Demo Org" \
+    --max-level 4
+
+# Two projects under one directory, plus a Makefile that builds the registry before the guide.
+ls demo-both
+grep -nE 'kind = "package"|publishes = ' demo-both/registry/fhir.toml
+grep -A4 'organisation_units.registry' demo-both/guide/fhir.toml
+
+# The rest of this example is the same thing done by hand, which is what the flag expands to.
+#
+# The registry package publishes the organisation-unit registry and nothing else: `d2w fhir
+# generate` in it runs the foundation slice its instances name, the organisation units, and the
+# pages, and refuses the form-side targets by name.
 d2w fhir init demo-registry --publishes organisation-units \
     --id dhis2.fhir.registrydemo.registry \
     --canonical http://example.org/fhir/registry-demo/registry \
@@ -50,4 +66,4 @@ d2w fhir check-artifacts demo-guide --no-fail
 #   d2w fhir check-artifacts demo-guide --registry-package ../dist/package.tgz
 # The same two sources, in the same order, are what `d2w fhir serve` reads the units from.
 
-rm -rf demo-registry demo-guide demo-inline
+rm -rf demo-both demo-registry demo-guide demo-inline
