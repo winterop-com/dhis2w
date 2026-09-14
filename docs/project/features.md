@@ -861,8 +861,13 @@ NamingSystems declaring them, plus these extensions:
 - **`D2OrganisationUnitAssignment`** - contexted on Questionnaire, valued
   `Reference(List)`: the organisation units a form may be captured against.
 - **`D2AttributeOptionCombos`** (Questionnaire, `canonical(ValueSet)`) paired
-  with **`D2AttributeOptionCombo`** (QuestionnaireResponse, `Coding`) - the
-  third key of a DHIS2 data value set, `(orgUnit, period, attributeOptionCombo)`.
+  with **`D2AttributeOptionCombo`** (QuestionnaireResponse, `Coding`) - the key
+  a submission is filed under: the third key of a DHIS2 data value set,
+  `(orgUnit, period, attributeOptionCombo)`, and the `attributeOptionCombo` of
+  the event or enrollment a program response creates. A data set declares its
+  own category combo's option combos; every form of a program declares the
+  program's, because DHIS2 answers `E1055` to an event of a program whose
+  category combo is not the default one and which was filed under the default.
 - **`D2OrganisationUnitLevel`** - contexted on Location, valued `Coding` and
   bound extensibly to the organisation-unit level ValueSet: the hierarchy level
   a published place sits at, stated on the Location because that is the
@@ -967,10 +972,12 @@ NamingSystems declaring them, plus these extensions:
   extensions, `questionnaire`, `subject`, and - per kind - the mandatory
   `D2Period` or `authored` a captured response has to carry, with
   `D2FormType.valueCode` fixed to the kind's own code.
-- **The aggregate profile** additionally slices `D2AttributeOptionCombo` 0..1
-  and states in prose that a response answering a form which declares a
-  `D2AttributeOptionCombos` vocabulary has to carry it - requiredness is a fact
-  about the form, not the kind, so it cannot be a cardinality.
+- **The aggregate profile and the three program profiles** additionally slice
+  `D2AttributeOptionCombo` 0..1 and state in prose that a response answering a
+  form which declares a `D2AttributeOptionCombos` vocabulary has to carry it -
+  requiredness is a fact about the form, not the kind, so it cannot be a
+  cardinality. The person-only profile slices none: a tracked entity type
+  belongs to no program and is filed under no combo.
 - **The registration profile** additionally slices `D2SubjectExists` 0..1: the
   boolean stating that the person the response is subject to is already held by
   the instance, so the response enrols them rather than creating them.
@@ -2282,8 +2289,9 @@ deliberately not SDC's `$populate`, which means fill-from-real-context.
 - **Wrapped in the context its form kind's response profile requires**: a
   `D2Period` and a `Location` subject for aggregate, plus one
   `D2AttributeOptionCombo` drawn out of the vocabulary the form declares where
-  it declares one (which is what holds the 201 invariant for a data set on a
-  non-default category combo, `--strict-codes` included); an `authored` instant
+  it declares one - whatever the form kind, which is what holds the 201
+  invariant for a data set or a program on a non-default category combo,
+  `--strict-codes` included; an `authored` instant
   for event; and for tracker-event an `authored` instant plus the
   tracked-entity and enrollment pair a registration receipt in this project's
   spool minted.
@@ -2341,8 +2349,9 @@ in phases that stop at the first level to find an error.
   options matching one code is an ambiguity refused under either setting.
 - **The same dial grades the attribute option combo.** A form declaring
   `D2AttributeOptionCombos` whose response names no `D2AttributeOptionCombo` -
-  or names a concept the served vocabulary does not hold - warns with `E8023`
-  in the diagnostics and refuses under `--strict-codes`. The mirror case of a
+  or names a concept the served vocabulary does not hold - warns and refuses
+  under `--strict-codes`, naming the DHIS2 error the write would earn: `E8023`
+  on a data set, `E1055` or `E1115` on a program. The mirror case of a
   combo named against a form declaring none grades the same way, because it
   would be stored and silently not written. A coding from another system or
   with no code is refused under either setting.
@@ -2772,8 +2781,9 @@ control per R4 item type.
   `subject` for an aggregate or event form and the `D2OrganisationUnit`
   extension for a tracker one. The same one read of `GET /Location` feeds every
   `ORGANISATION_UNIT` question in the form below it.
-- **An attribute option combo control** for a data set on a non-default
-  category combo: the combo the whole submission is filed under, expanded from
+- **An attribute option combo control** for a data set or program on a
+  non-default category combo: the combo the whole submission is filed under,
+  expanded from
   the `D2AttributeOptionCombos` ValueSet the form declares and rendered
   UNANSWERED however the draft was drawn. `$generate` files its skeleton under
   a combo so the skeleton is postable, and adopting that pick would make every
@@ -3429,10 +3439,12 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   `dhis2-id` / ConceptMap tiers a coded answer resolves through and under the
   same lenient/strict dial. A form that declares one and a response that names
   none is refused as `missing-attribute-option-combo` rather than posted,
-  because DHIS2 refuses that write with `E8023`; a combo the vocabulary does
+  because DHIS2 refuses that write itself; a combo the vocabulary does
   not hold is `unresolvable-attribute-option-combo`; a combo named against a
-  form that declares none is noted and left off, since its data set rides the
-  default category combo.
+  form that declares none is noted and left off, since its data set or program
+  rides the default category combo. Each refusal names the DHIS2 error the write
+  would have earned - `E8023` on a data value set, `E1055` or `E1115` on a
+  program capture.
 - **A tracker registration** becomes the `/api/tracker` `trackedEntities` entry
   it creates, carrying the client-minted tracked entity UID, the tracked entity
   type the form's `$DHIS2-TET` identifier names (absent, it is refused as
@@ -3440,15 +3452,20 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   anybody), one `TrackerAttribute` per answered tracked entity attribute
   through the same value-type serialisation and the same coded-answer dial a
   data element's answer goes through, and the single `ACTIVE` enrollment it
-  mints - `enrolledAt` required (`missing-enrollment-date`) and `occurredAt`
+  mints - `enrolledAt` required (`missing-enrollment-date`), `occurredAt`
   written only where the response states an incident date, both read back to
-  the zone-less wall clock DHIS2 stores.
+  the zone-less wall clock DHIS2 stores, and `attributeOptionCombo` written from
+  the combo the response names where the program declares a vocabulary, because
+  DHIS2 checks an enrollment's combo against the program's own category combo.
 - **An event of either kind** carries the DHIS2 UID derived from the receipt's
   own logical id (SHA-256 over `<response id>:event:0`, shaped by the drawer
   the synthesis path mints tracked entity and enrollment UIDs with), so one
   receipt always names one event: a dry run and the import behind it report the
   same object, and a receipt forwarded twice is refused as an object the
-  instance already holds rather than filed as a second copy of one visit.
+  instance already holds rather than filed as a second copy of one visit. It
+  also carries the `attributeOptionCombo` the response names where its program
+  declares a vocabulary, because DHIS2 answers `E1055` to an event of a program
+  whose category combo is not the default one and which names no combo.
 
 #### Posting
 

@@ -1337,6 +1337,126 @@ def test_the_form_spec_carries_the_vocabulary_its_questionnaire_declares() -> No
     assert default.attribute_option_combo_system is None
 
 
+#: The event program on that same category combo. DHIS2 keys every event it files by one of the
+#: combo's attribute option combos and refuses one filed under the default with `E1055`, so the form
+#: declares the very vocabulary the data set beside it declares.
+_PARTNER_PROGRAM = QuestionnaireSourceIn(
+    uid="bMcwwoVnbSR",
+    name="Malaria testing and surveillance",
+    kind="event",
+    attribute_combo=_PROJECT_COMBO,
+    flat_items=[QuestionnaireItemIn(uid="De8aaaaaaaa", name="Tests done", value_type="INTEGER")],
+)
+
+#: The stage of a tracker program on that combo, and the registration form of the same program.
+_PARTNER_STAGE = QuestionnaireSourceIn(
+    uid="PsPartner01",
+    name="Voucher redemption",
+    kind="tracker-event",
+    program=ProgramContextIn(uid="kla3mAPgvCH", name="Contraceptives Voucher Program"),
+    attribute_combo=_PROJECT_COMBO,
+    flat_items=[QuestionnaireItemIn(uid="De8aaaaaaaa", name="Tests done", value_type="INTEGER")],
+)
+
+_PARTNER_PROGRAMME = QuestionnaireSourceIn(
+    uid="kla3mAPgvCH",
+    name="Contraceptives Voucher Program",
+    kind="tracker",
+    tracked_entity_type_uid="nEenWmSyUEp",
+    attribute_combo=_PROJECT_COMBO,
+    flat_items=[QuestionnaireItemIn(uid="w75KJ2mc4zz", name="First name", value_type="TEXT")],
+)
+
+
+def _partner_event_document(attribute_option_combo_uid: str | None = "Aoc1aaaaaaa") -> QuestionnaireResponse:
+    """One captured event of the program on a non-default category combo."""
+    captured = ExampleResponseIn(
+        instance_id="bMcwwoVnbSR-example-1",
+        target_uid=_PARTNER_PROGRAM.uid,
+        kind="event",
+        organisation_unit_uid=_ROOT_ORG_UNIT,
+        status_code="completed",
+        authored="2026-01-05T09:30:00",
+        attribute_option_combo_uid=attribute_option_combo_uid,
+        answers=[ExampleAnswerIn(data_element_uid="De8aaaaaaaa", value="7")],
+    )
+    return _document(captured, [_PARTNER_PROGRAM])
+
+
+def test_a_non_default_program_writes_the_attribute_option_combo_onto_its_event() -> None:
+    """DHIS2 refuses an event of such a program filed under the default combo with `E1055`, so one is named."""
+    result = translate_response(_partner_event_document(), _context([_PARTNER_PROGRAM]))
+
+    assert result.refusals == ()
+    assert result.event is not None
+    assert result.event.attributeOptionCombo == "Aoc1aaaaaaa"
+
+
+def test_a_default_combo_program_writes_no_attribute_option_combo_at_all() -> None:
+    """Absence means the default combo, which DHIS2 fills in itself - so the field stays unset."""
+    result = _translate_typed()
+
+    assert result.event is not None
+    assert result.event.attributeOptionCombo is None
+
+
+def test_an_event_response_naming_no_combo_against_a_form_that_declares_one_refuses_naming_e1055() -> None:
+    """A payload DHIS2 would refuse is worse than a named refusal, and the refusal names the code it would carry."""
+    document = _with_attribute_option_combo(_partner_event_document(), None)
+
+    result = translate_response(document, _context([_PARTNER_PROGRAM]))
+
+    assert result.event is None
+    assert _refusal_categories(result) == {ConversionRefusalCategory.MISSING_ATTRIBUTE_OPTION_COMBO}
+    assert "E1055" in result.refusals[0].reason
+
+
+def test_a_stage_event_is_filed_under_the_combo_its_program_declares() -> None:
+    """A stage states no combo of its own, so its event carries the program's - the same key its enrollment has."""
+    captured = ExampleResponseIn(
+        instance_id="PsPartner01-example-1",
+        target_uid=_PARTNER_STAGE.uid,
+        kind="tracker-event",
+        organisation_unit_uid=_ROOT_ORG_UNIT,
+        status_code="completed",
+        authored="2026-01-05T09:30:00",
+        tracked_entity_uid=_TRACKED_ENTITY,
+        enrollment_uid=_ENROLLMENT,
+        attribute_option_combo_uid="Aoc1aaaaaaa",
+        answers=[ExampleAnswerIn(data_element_uid="De8aaaaaaaa", value="7")],
+    )
+
+    result = translate_response(_document(captured, [_PARTNER_STAGE]), _context([_PARTNER_STAGE]))
+
+    assert result.refusals == ()
+    assert result.event is not None
+    assert result.event.attributeOptionCombo == "Aoc1aaaaaaa"
+
+
+def test_a_registration_files_its_enrollment_under_the_combo_the_program_declares() -> None:
+    """DHIS2 checks an enrollment's attribute option combo against the program's own category combo."""
+    captured = ExampleResponseIn(
+        instance_id="En2aaaaaaaa",
+        target_uid=_PARTNER_PROGRAMME.uid,
+        kind="tracker",
+        organisation_unit_uid=_ROOT_ORG_UNIT,
+        status_code="completed",
+        authored=_ENROLLED_AT,
+        tracked_entity_uid=_TRACKED_ENTITY,
+        enrollment_uid=_ENROLLMENT,
+        enrolled_at=_ENROLLED_AT,
+        attribute_option_combo_uid="Aoc1aaaaaaa",
+        answers=[ExampleAnswerIn(data_element_uid="w75KJ2mc4zz", value="Aretha")],
+    )
+
+    result = translate_response(_document(captured, [_PARTNER_PROGRAMME]), _context([_PARTNER_PROGRAMME]))
+
+    assert result.refusals == ()
+    assert result.tracked_entity is not None
+    assert result.tracked_entity.enrollments is not None
+    assert result.tracked_entity.enrollments[0].attributeOptionCombo == "Aoc1aaaaaaa"
+
+
 #: The tracker program whose registration form the round trip below goes through, and the type it
 #: enrols a person as. The stage `_BIRTH_STAGE` belongs to this very program, so the two forms are
 #: one capture surface: a registration mints the pair, a stage response answers against it.

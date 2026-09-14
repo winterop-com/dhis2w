@@ -465,8 +465,9 @@ class ResponseProfileDeclaration(BaseModel):
     response carries the tracker enrollment it belongs to, the organisation unit the event was
     captured at, and a tracked-entity subject identified by DHIS2 UID.
     `attribute_option_combo_allowed` marks the contract whose response may name the DHIS2
-    attribute option combo its values are keyed under - the aggregate one, since only a data
-    value set carries that third key. `registration_context_required` marks the tracker
+    attribute option combo it is filed under - the aggregate one, whose data value set is keyed by
+    that third key, and the three program ones, whose event or enrollment carries an attribute
+    option combo of the program's own category combo. `registration_context_required` marks the tracker
     registration contract, whose response mints the tracked entity and the enrollment it is
     creating rather than naming ones that already exist, and states when the enrollment began.
     `entity_context_required` marks the person-only contract, which mints the tracked entity and

@@ -1,21 +1,22 @@
-"""Pre-built FHIR JSON for the DHIS2 attribute option combos an aggregate form is keyed by.
+"""Pre-built FHIR JSON for the DHIS2 attribute option combos a form is keyed by.
 
-A DHIS2 data value set is keyed by `(orgUnit, period, attributeOptionCombo)`, and the third
-key comes from the data set's own category combo. A data set on the default combo has exactly
-one attribute option combo and nothing to choose between; a data set on a non-default combo
-has several, and a capture that does not name one is refused with `E8023`. This module
-publishes that choice as terminology: one CodeSystem/ValueSet pair per distinct non-default
-attribute combo, riding the grammar the categories family already rides - the same shared
-concept-code assignment, the same identity-stem resolution, the same pre-built JSON in the
-predefined-resource tree, and a ConceptMap taking every concept back to the DHIS2 identifiers
-it stands for.
+A DHIS2 data value set is keyed by `(orgUnit, period, attributeOptionCombo)`, and the third key
+comes from the data set's own category combo. A program keys what it captures the same way: the
+event a program form files and the enrollment a registration form creates each carry an attribute
+option combo of the program's own category combo. A form on the default combo has exactly one
+attribute option combo and nothing to choose between; a form on a non-default combo has several,
+and a capture that does not name one is refused - `E8023` on a data value set, `E1055` on an event
+of a program whose category combo is not the default one. This module publishes that choice as
+terminology: one CodeSystem/ValueSet pair per distinct non-default attribute combo, riding the
+grammar the categories family already rides - the same shared concept-code assignment, the same
+identity-stem resolution, the same pre-built JSON in the predefined-resource tree, and a ConceptMap
+taking every concept back to the DHIS2 identifiers it stands for.
 
-The economy is the assignment target's: **a pair is published only when the data set's category
-combo is not the default one.** A default-combo data set publishes nothing, its Questionnaire
-carries no `D2AttributeOptionCombos` extension, and its responses carry no
-`D2AttributeOptionCombo` - absence means the default combo, which is what a consumer already
-assumed. One pair serves every data set on the same combo, because the pair is the combo's and
-not the form's.
+The economy is the assignment target's: **a pair is published only when the form's category combo
+is not the default one.** A default-combo form publishes nothing, its Questionnaire carries no
+`D2AttributeOptionCombos` extension, and its responses carry no `D2AttributeOptionCombo` - absence
+means the default combo, which is what a consumer already assumed. One pair serves every form on
+the same combo, data sets and programs alike, because the pair is the combo's and not the form's.
 
 The pair takes its own naming token (`AOC`) rather than the data dictionary's `COC`. Both
 vocabularies are category option combos, but they answer different questions in different
@@ -186,9 +187,10 @@ class _AttributeComboNarrative(BaseModel):
 def attribute_combo_sources(sources: list[QuestionnaireSourceIn]) -> list[AttributeComboIn]:
     """Every distinct non-default attribute category combo the given forms ride, by name then UID.
 
-    Only an aggregate form has one: a data value set is the only DHIS2 wire shape with an
-    attribute option combo on it, so an event program and a tracker stage contribute nothing.
-    Two data sets on one combo yield one entry, which is what makes them share a published pair.
+    A data set carries its own combo and a program carries the program's, so both kinds of form
+    contribute: a data value set, an event, and an enrollment each carry an attribute option combo
+    of the combo their form rides. A form on the default combo contributes nothing, and a data set
+    and a program on one combo yield one entry, which is what makes them share a published pair.
 
     The option combos arrive already ordered by name and UID (`CategoryCombo.categoryOptionCombos`
     is a Java `Set` DHIS2 reshuffles per request, BUGS.md #64), and that order is carried across
@@ -197,7 +199,7 @@ def attribute_combo_sources(sources: list[QuestionnaireSourceIn]) -> list[Attrib
     combos: dict[str, AttributeComboIn] = {}
     for source in sources:
         combo = source.attribute_combo
-        if source.kind != "aggregate" or combo is None or combo.is_default:
+        if combo is None or combo.is_default:
             continue
         combos.setdefault(
             combo.uid,

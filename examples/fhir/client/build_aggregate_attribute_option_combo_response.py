@@ -15,6 +15,15 @@ submissions are keyed by - a `D2AttributeOptionCombos` extension on the `Questio
 ValueSet - and a response answering that form has to carry a `D2AttributeOptionCombo` picked out of
 it. A data set on the default combination publishes neither, because absence means the default.
 
+A **program** on a non-default category combination is keyed the same way. DHIS2 files every event
+of such a program, and every enrollment of it, under one of the combination's option combos, and
+refuses one filed under the default with
+`E1055 Default AttributeOptionCombo is not allowed as Program has non-default CategoryCombo`. So the
+event program's own form, a tracker program's registration form, and each of its stage forms all
+declare the program's vocabulary, and a response to any of them carries the same
+`D2AttributeOptionCombo` this one carries, read off the form the same way. The form here is a data
+set because every program the fixture publishes is on the default combination.
+
 The answer is a **Coding**: FHIR's "a code, and the vocabulary it is a code from". The vocabulary is
 this guide's own CodeSystem for that category combination, and under the default `id` naming the
 codes are the DHIS2 category option combo UIDs.

@@ -13,6 +13,9 @@ Description: {{ profile.description_literal }}
     {{ names.enrolled_at_extension }} named {{ names.enrolled_at_extension }} 1..1 and
     {{ names.incident_at_extension }} named {{ names.incident_at_extension }} 0..1 and
     {{ names.subject_exists_extension }} named {{ names.subject_exists_extension }} 0..1 and
+{% if profile.attribute_option_combo_allowed %}
+    {{ names.attribute_option_combo_extension }} named {{ names.attribute_option_combo_extension }} 0..1 and
+{% endif %}
     {{ names.form_type_extension }} named {{ names.form_type_extension }} 1..1
 * extension[{{ names.organisation_unit_extension }}] ^short = "The DHIS2 organisation unit the person is enrolled at, which becomes the organisation unit of both the tracked entity and the enrollment. A response naming a person the instance already holds does not move that person: the organisation unit is the enrollment's alone."
 * extension[{{ names.tracker_enrollment_extension }}] ^short = "The DHIS2 enrollment this registration creates. The client mints the value as a DHIS2 UID - eleven characters, the first a letter - so the response names the enrollment its own stage responses will be captured against before any of them is sent."
@@ -28,6 +31,9 @@ Description: {{ profile.description_literal }}
 * extension contains
     {{ names.organisation_unit_extension }} named {{ names.organisation_unit_extension }} 1..1 and
     {{ names.tracker_enrollment_extension }} named {{ names.tracker_enrollment_extension }} 1..1 and
+{% if profile.attribute_option_combo_allowed %}
+    {{ names.attribute_option_combo_extension }} named {{ names.attribute_option_combo_extension }} 0..1 and
+{% endif %}
     {{ names.form_type_extension }} named {{ names.form_type_extension }} 1..1
 * extension[{{ names.organisation_unit_extension }}] ^short = "The DHIS2 organisation unit the event was captured at."
 * extension[{{ names.tracker_enrollment_extension }}] ^short = "The DHIS2 tracker enrollment the event belongs to."
@@ -39,11 +45,15 @@ Description: {{ profile.description_literal }}
 {% endif %}
     {{ names.form_type_extension }} named {{ names.form_type_extension }} 1..1
 * extension[{{ names.period_extension }}] ^short = "The DHIS2 reporting period the values were captured for."
-{% if profile.attribute_option_combo_allowed %}
-* extension[{{ names.attribute_option_combo_extension }}] ^short = "The DHIS2 attribute option combo the values were captured under. A response answering a form that declares a {{ names.attribute_option_combos_extension }} vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
-{% endif %}
 {% else %}
-* extension contains {{ names.form_type_extension }} named {{ names.form_type_extension }} 1..1
+* extension contains
+{% if profile.attribute_option_combo_allowed %}
+    {{ names.attribute_option_combo_extension }} named {{ names.attribute_option_combo_extension }} 0..1 and
+{% endif %}
+    {{ names.form_type_extension }} named {{ names.form_type_extension }} 1..1
+{% endif %}
+{% if profile.attribute_option_combo_allowed %}
+* extension[{{ names.attribute_option_combo_extension }}] ^short = "The DHIS2 attribute option combo this submission is filed under. A response answering a form that declares a {{ names.attribute_option_combos_extension }} vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
 {% endif %}
 * extension[{{ names.form_type_extension }}] ^short = "The DHIS2 form kind this response answers."
 * extension[{{ names.form_type_extension }}].valueCode = #{{ profile.form_type_code }} (exactly)

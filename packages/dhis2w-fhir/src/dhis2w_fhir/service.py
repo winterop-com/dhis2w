@@ -336,10 +336,12 @@ _QUESTIONNAIRE_TRACKED_ENTITY_ATTRIBUTE_FIELDS = (
 #: `_effective_category_combo` is the one place the two meet.
 _DATA_SET_ELEMENT_FIELDS = f"{_QUESTIONNAIRE_DATA_ELEMENT_FIELDS},{_DISAGGREGATION_COMBO_FIELDS}"
 
-#: The data set's own category combo - the attribute combo whose option combos are the third key
-#: of every value it holds. It rides the very projection the disaggregation combos ride, so the
-#: attribute-option-combo vocabulary is read on the metadata sweep the forms already cost rather
-#: than on a request of its own.
+#: The form's own category combo - the attribute combo whose option combos key what it captures.
+#: A data set holds it as the third key of every value it reports; a program holds it as the
+#: attribute option combo of every event and enrollment it files, which DHIS2 refuses to default
+#: when the program's combo is not the default one (E1055). It rides the very projection the
+#: disaggregation combos ride, so the attribute-option-combo vocabulary is read on the metadata
+#: sweep the forms already cost rather than on a request of its own.
 _ATTRIBUTE_COMBO_FIELDS = f"categoryCombo[id,code,name,isDefault,{_CATEGORY_COMBO_DECOMPOSITION_FIELDS}]"
 
 #: `greyedFields` is what a data set says its form never captures: an operand naming a data element
@@ -404,7 +406,8 @@ _PROGRAM_RULE_VARIABLE_FIELDS = (
 
 _PROGRAM_FIELDS = (
     f"id,name,code,description,programType,{_TRANSLATION_FIELDS},"
-    f"{_ATTRIBUTE_VALUE_FIELDS},{_PROGRAM_ATTRIBUTE_FIELDS},{_PROGRAM_RULE_VARIABLE_FIELDS},"
+    f"{_ATTRIBUTE_VALUE_FIELDS},{_ATTRIBUTE_COMBO_FIELDS},"
+    f"{_PROGRAM_ATTRIBUTE_FIELDS},{_PROGRAM_RULE_VARIABLE_FIELDS},"
     f"programStages[{_PROGRAM_STAGE_FIELDS}]"
 )
 
@@ -4144,11 +4147,12 @@ def _effective_category_combo(
     return _category_combo_input(override.model_dump()) or data_element_combo
 
 
-def _attribute_combo_wire(model: DataSet) -> object:
-    """One data set's own category combo as the wire dict the combo projection reads.
+def _attribute_combo_wire(model: DataSet | Program) -> object:
+    """One data set's or program's own category combo as the wire dict the combo projection reads.
 
-    The generated `DataSet.categoryCombo` is a reference model rather than the inline shape the
+    The generated `categoryCombo` is a reference model rather than the inline shape the
     data-element path already parses, so it is dumped back to the wire dict both paths share.
+    A data set and a program state the field identically, so one reader serves both.
     """
     combo = model.categoryCombo
     return None if combo is None else combo.model_dump()
@@ -4250,6 +4254,7 @@ def _event_program_source(model: Program, notes: list[GenerateNote]) -> Question
         items=items,
         raw_sections=raw_sections,
         attribute_values=_attribute_value_inputs(model.attributeValues),
+        attribute_combo=_category_combo_input(_attribute_combo_wire(model)),
         notes=notes,
         event_date_label=event_date_label,
         date_label_translations=date_label_translations,
@@ -4263,6 +4268,11 @@ def _tracker_program_sources(model: Program, notes: list[GenerateNote]) -> list[
     form is the program's own: it asks the program's tracked entity attributes, and answering it
     is what enrols a person. Each stage is then a visit of that enrollment, carrying the program
     as the context its name, its grouping identifier, and its file path are built from.
+
+    Every one of them rides the program's own category combo, because DHIS2 keys both grains by it:
+    the enrollment a registration creates and the event a stage captures each carry an attribute
+    option combo of the program's combo. A stage states no combo of its own, so the combo on every
+    form here is the program's.
     """
     uid = model.id or ""
     name = model.name or uid
@@ -4279,6 +4289,7 @@ def _tracker_program_sources(model: Program, notes: list[GenerateNote]) -> list[
         translations=_translation_inputs(model.translations),
         tracked_entity_type_uid=_tracked_entity_type_uid(model),
     )
+    attribute_combo = _category_combo_input(_attribute_combo_wire(model))
     sources: list[QuestionnaireSourceIn] = [_registration_source(model, notes)]
     for stage in sorted(_program_stages(model), key=_stage_sort_key):
         stage_uid = _optional_text(stage.get("id")) or ""
@@ -4293,6 +4304,7 @@ def _tracker_program_sources(model: Program, notes: list[GenerateNote]) -> list[
                 items=_stage_items(stage),
                 raw_sections=stage.get("programStageSections"),
                 attribute_values=_attribute_value_inputs(stage.get("attributeValues")),
+                attribute_combo=attribute_combo,
                 notes=notes,
                 program=program,
                 event_date_label=_optional_text(stage.get("executionDateLabel")),
@@ -4322,6 +4334,7 @@ def _registration_source(model: Program, notes: list[GenerateNote]) -> Questionn
         items=_registration_items(model),
         raw_sections=None,
         attribute_values=_attribute_value_inputs(model.attributeValues),
+        attribute_combo=_category_combo_input(_attribute_combo_wire(model)),
         notes=notes,
         displays_incident_date=bool(model.displayIncidentDate),
         enrollment_date_label=_optional_text(model.enrollmentDateLabel),

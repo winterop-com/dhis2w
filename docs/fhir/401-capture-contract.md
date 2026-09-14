@@ -50,9 +50,9 @@ creates a person and enrols them in nothing.
 | Profile | Parent | What it pins |
 | --- | --- | --- |
 | `D2AggregateResponse` | `QuestionnaireResponse` | `D2Period` 1..1, `D2AttributeOptionCombo` 0..1, `D2FormType` 1..1 fixed to `#aggregate`, `questionnaire` 1..1, `subject` 1..1 restricted to `Reference(D2Location)`. |
-| `D2EventResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#event`, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 restricted to `Reference(D2Location)`. |
-| `D2TrackerRegistrationResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#tracker`, `D2OrganisationUnit` 1..1, `D2TrackerEnrollment` 1..1, `D2EnrolledAt` 1..1, `D2IncidentAt` 0..1, `D2SubjectExists` 0..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 with `subject.identifier` 1..1 and its `system` fixed to `{base}/id/tracked-entity`. No `D2Period`. |
-| `D2TrackerEventResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#tracker-event`, `D2TrackerEnrollment` 1..1, `D2OrganisationUnit` 1..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 with `subject.identifier` 1..1 and its `system` fixed to `{base}/id/tracked-entity`. No `D2Period`. |
+| `D2EventResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#event`, `D2AttributeOptionCombo` 0..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 restricted to `Reference(D2Location)`. |
+| `D2TrackerRegistrationResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#tracker`, `D2OrganisationUnit` 1..1, `D2TrackerEnrollment` 1..1, `D2EnrolledAt` 1..1, `D2IncidentAt` 0..1, `D2SubjectExists` 0..1, `D2AttributeOptionCombo` 0..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 with `subject.identifier` 1..1 and its `system` fixed to `{base}/id/tracked-entity`. No `D2Period`. |
+| `D2TrackerEventResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#tracker-event`, `D2TrackerEnrollment` 1..1, `D2OrganisationUnit` 1..1, `D2AttributeOptionCombo` 0..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 with `subject.identifier` 1..1 and its `system` fixed to `{base}/id/tracked-entity`. No `D2Period`. |
 | `D2TrackedEntityResponse` | `QuestionnaireResponse` | `D2FormType` 1..1 fixed to `#tracked-entity`, `D2OrganisationUnit` 1..1, `authored` 1..1, `questionnaire` 1..1, `subject` 1..1 with `subject.identifier` 1..1 and its `system` fixed to `{base}/id/tracked-entity`. No `D2TrackerEnrollment`, no enrollment dates, no `D2Period`. |
 
 The three tracked-entity profiles restrict `subject` to `Reference(Patient)` - plus
@@ -130,16 +130,25 @@ the subject is the entity and the place moves to `D2OrganisationUnit`. A tracker
 response that also carries a `subject.reference` gets an informational warning
 saying the reference is ignored, and is stored.
 
-## The aggregate response's third key is per-form
+## Which combo a submission is filed under is per-form
 
 `D2AttributeOptionCombo` is sliced `0..1` rather than `1..1` because whether
 a response has to carry it is a fact about the form, not about the kind. A
 DHIS2 data set can be reported per *attribute option combo* - a
-project/funder dimension that keys the whole submission - and a data set on
-the default dimension has exactly one, so naming it would be noise. The rule
-the profile documents and a server enforces: a response answering a form
-that carries `D2AttributeOptionCombos` has to carry `D2AttributeOptionCombo`,
-coded from the ValueSet that extension names.
+project/funder dimension that keys the whole submission - and a DHIS2 program
+files every event and every enrollment under one of *its* category combo's
+option combos. A data set or a program on the default dimension has exactly
+one, so naming it would be noise. The rule the profile documents and a server
+enforces: a response answering a form that carries `D2AttributeOptionCombos`
+has to carry `D2AttributeOptionCombo`, coded from the ValueSet that extension
+names.
+
+The instance refuses a submission that names none, which is why the server
+grades it rather than passing it on: a data value set keyed to nothing earns
+`E8023`, and an event of a program whose category combo is not the default one
+earns `E1055 Default AttributeOptionCombo is not allowed as Program has
+non-default CategoryCombo`. A form of such a program that published no
+vocabulary would be a form nothing could be submitted through.
 
 ## `status` is the completeness claim
 
@@ -461,7 +470,7 @@ warning to 422 ([Serve the guide](201-serve.md#coded-answers-lenient-by-default)
 - a response naming an attribute option combo against a form declaring no
   vocabulary;
 - a response carrying no attribute option combo against a form declaring one
-  (`E8023`);
+  (`E8023` on a data set, `E1055` on a program);
 - a coded answer whose code is in none of the served terminology.
 
 Under strict, the fall-back tiers are switched off too: only the concept code

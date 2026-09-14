@@ -1004,7 +1004,7 @@ def _drawn_attribute_option_combo(source: QuestionnaireSourceIn, ordinal: int, s
     response's main stream produces exactly where it was.
     """
     combo = source.attribute_combo
-    if source.kind != "aggregate" or combo is None or combo.is_default or not combo.option_combos:
+    if combo is None or combo.is_default or not combo.option_combos:
         return None
     generator = random.Random(derived_seed(f"{source.uid}:attribute-option-combo", ordinal, salt))  # noqa: S311 - drawn
     return combo.option_combos[generator.randrange(len(combo.option_combos))].uid

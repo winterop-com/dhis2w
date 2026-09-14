@@ -218,11 +218,13 @@ event data value has no `categoryOptionCombo` slot on the wire. So an event or
 stage question stays flat whatever combo its data element declares, because a
 form must not ask a question the capture endpoint cannot accept an answer to.
 
-The second aggregate key is the *attribute* option combo. A data set on a
-non-default attribute category combo publishes a `D2AOC` CodeSystem/ValueSet
-pair naming the combos its responses may be keyed under; the form declares the
-set and the response names one member. A default-combo data set publishes
-nothing, because absence is the default.
+The other key is the *attribute* option combo. A data set on a non-default
+attribute category combo publishes a `D2AOC` CodeSystem/ValueSet pair naming the
+combos its responses may be filed under; so does a program, because DHIS2 files
+every event and every enrollment under one of its program's category combo's
+option combos and answers `E1055` to one filed under the default. The form
+declares the set and the response names one member. A default-combo data set or
+program publishes nothing, because absence is the default.
 
 ### Program rules
 
@@ -307,7 +309,7 @@ carrying one.
 | `D2OrganisationUnitAssignment` | Questionnaire | the List of Locations a form admits |
 | `D2OrganisationUnitLevel` | Location | the hierarchy level |
 | `D2AttributeOptionCombos` | Questionnaire | the ValueSet of attribute option combos admitted |
-| `D2AttributeOptionCombo` | QuestionnaireResponse | the one combo this response is keyed under |
+| `D2AttributeOptionCombo` | QuestionnaireResponse | the one combo this response is filed under |
 | `D2TrackerEnrollment` | QuestionnaireResponse | the enrollment UID |
 | `D2EnrolledAt` / `D2IncidentAt` | QuestionnaireResponse | the two enrollment dates |
 | `D2SubjectExists` | QuestionnaireResponse | the person is already held by the instance |

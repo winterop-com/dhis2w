@@ -959,8 +959,12 @@ enrollment of an existing person from a registration that created one.
 The payload models are the generated OpenAPI ones - `TrackerTrackedEntity`,
 `TrackerEnrollment`, `TrackerAttribute`, `TrackerEvent` - and a response
 filed under an attribute option combo the published vocabulary does not hold
-is refused rather than posted, because DHIS2 refuses that write with `E8023`
-and a payload we know it will not take is worse than a named refusal.
+is refused rather than posted, because DHIS2 refuses that write itself and a
+payload we know it will not take is worse than a named refusal. Where a program
+rides a non-default category combo the combo the response names is written onto
+the event, and onto the enrollment a registration creates: DHIS2 refuses an
+event of such a program filed under the default combo with `E1055`, and checks
+an enrollment's combo against the program's own category combo.
 
 ## Every payload names the DHIS2 object it imports
 

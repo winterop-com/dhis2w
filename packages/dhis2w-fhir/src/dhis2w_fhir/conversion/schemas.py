@@ -51,11 +51,13 @@ OPTION_CODE_TIER = "option-code"
 """The second lenient fall-back: the DHIS2 code of the option, sent against an id-mode CodeSystem."""
 
 __all__ = [
+    "COMBO_REFUSAL_CODES",
     "CONCEPT_CODE_TIER",
     "FORWARD_TARGET_ORDER",
     "OPTION_CODE_TIER",
     "OPTION_UID_TIER",
     "CodedAnswerMode",
+    "ComboRefusalCodes",
     "ConversionContext",
     "ConversionNaming",
     "ConversionNote",
@@ -113,6 +115,33 @@ TARGET_KINDS_BY_FORM_KIND: dict[FormKind, ConversionTargetKind] = {
     "tracker": ConversionTargetKind.TRACKER,
     "tracker-event": ConversionTargetKind.TRACKER_EVENT,
     "tracked-entity": ConversionTargetKind.TRACKED_ENTITY,
+}
+
+
+class ComboRefusalCodes(BaseModel):
+    """The two DHIS2 import errors a bad attribute option combo earns, as one form kind's pair.
+
+    `missing` is what DHIS2 answers a capture naming no combo against a non-default category combo;
+    `unknown` is what it answers one naming a combo the instance does not hold. Naming the code the
+    import summary would carry is what makes a refusal raised here readable against the refusal
+    DHIS2 itself would have written, wherever it is raised - the capture server grading a received
+    response, and the forwarder translating a spooled one.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    missing: str
+    unknown: str
+
+
+#: What each form kind's capture is refused with, read off DHIS2 2.43's own validate-only answers.
+#: A tracked-entity form belongs to no program and declares no vocabulary, so its pair is never read.
+COMBO_REFUSAL_CODES: dict[FormKind, ComboRefusalCodes] = {
+    "aggregate": ComboRefusalCodes(missing="E8023", unknown="E8023"),
+    "event": ComboRefusalCodes(missing="E1055", unknown="E1115"),
+    "tracker": ComboRefusalCodes(missing="E1055", unknown="E1115"),
+    "tracker-event": ComboRefusalCodes(missing="E1055", unknown="E1115"),
+    "tracked-entity": ComboRefusalCodes(missing="E8023", unknown="E8023"),
 }
 
 #: The order a drain posts its payloads in, which is the order one drain's own creations depend on
@@ -547,8 +576,8 @@ class FormSpec(BaseModel):
 
     `attribute_option_combo_value_set` is the vocabulary the form's `D2AttributeOptionCombos`
     extension declares, and its presence is what makes the response-side extension required: a
-    data set on the default category combo declares none, and its values are keyed under the one
-    attribute option combo it has.
+    data set or program on the default category combo declares none, and what it captures is filed
+    under the one attribute option combo it has.
     """
 
     model_config = ConfigDict(frozen=True)
