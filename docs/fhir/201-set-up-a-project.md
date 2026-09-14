@@ -61,24 +61,25 @@ The flags that matter, all optional:
 | --- | --- |
 | `--id` | IG package id (default `dhis2.fhir.example`). |
 | `--canonical` | Canonical base URL, no trailing slash. |
-| `--name`, `--title` | SUSHI name and IG title, derived from `--id` when omitted. |
+| `--name`, `--title` | SUSHI name and IG title, derived from `--id` when omitted. A name is FHIR computer-friendly - an upper-case letter, then up to 254 letters, digits or underscores - and anything else is refused, because SUSHI rewrites it into that shape without saying so. A title or name carrying `<` or `>` is refused too: the IG publisher strict-parses the pages it writes them into. |
 | `--publisher` | Publisher name. |
 | `--publisher-url` | Publisher home page. Omit it unless you have a real site: the IG publisher links it from every generated page, and pointing it at the canonical yields one broken link per page. |
 | `--status` | `draft` (default) or `active`; drives the sushi-config status and the status and experimental flag on every generated definitional resource. |
 | `--profile` | Seeds the `profile` key of `fhir.toml`, so `d2w fhir generate` reads that instance without a flag. |
 | `--sushi-timeout` | Seconds the IG publisher gives its internal SUSHI run (default 1800), written to `ig/fsh.ini`. |
 | `--max-level` | Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` `max_level`. Rejected below 1. |
-| `--data-set`, `--event-program`, `--tracker-program` | UIDs to seed the `[generate.*]` `include_ids` selection tables with (each repeatable). |
+| `--data-set`, `--event-program`, `--tracker-program` | UIDs to seed the `[generate.*]` `include_ids` selection tables with (each repeatable). Naming one family narrows that family alone - an absent table means every member of its kind - so a guide naming data sets still publishes every event program and every tracker program until you name those too. Each UID is checked for shape (eleven characters, a letter then ten letters or digits) and refused when it is not one. |
 | `--with-registry` | Scaffold the guide **and** the organisation-unit registry package it depends on, as two wired projects under this directory - `registry/` and `guide/` - plus a Makefile driving both and a README describing the pair. Both identities derive from `--id` and `--canonical`. Rejects `--publishes`, `--template` and every `--registry-*`. See [Publish the registry as a package](201-registry-package.md). |
 | `--publishes` | Scaffold a package rather than a guide, holding what this names and nothing else - `organisation-units` is the registry package, for guides to depend on. See [Publish the registry as a package](201-registry-package.md). Takes no selection flag and no `--registry-*` flag. Omit it for a guide. |
-| `--registry-id`, `--registry-canonical`, `--registry-version`, `--registry-path` | The registry package this guide's units are published by, seeding `[generate.organisation_units.registry]`, the `dependencies:` entry of `sushi-config.yaml` and the Makefile's `REGISTRY_*` knobs. The id and the canonical go together; the version defaults to `0.1.0`; the path is an optional local checkout. |
+| `--registry-id`, `--registry-canonical`, `--registry-version`, `--registry-path` | The registry package this guide's units are published by, seeding `[generate.organisation_units.registry]`, the `dependencies:` entry of `sushi-config.yaml` and the Makefile's `REGISTRY_*` knobs. The id and the canonical go together; the version defaults to `0.1.0`; the path is an optional local checkout, read from the new project's own root and refused when no directory stands there. |
 | `--template` | Pre-populate the project from a guide already generated against a real DHIS2 instance - see [Start from a template](#start-from-a-template). |
 | `--list-templates` | Name every template this install can scaffold from, one line each, and exit. |
-| `--force` | Overwrite scaffold files that already exist. |
-| `--refresh` | Bring an existing project's scaffold up to date - see below. Rejects `--force`. |
+| `--force` | Overwrite scaffold files that already exist, `fhir.toml` and every hand-written line in them included. Each is reported `overwritten` and named, and the run closes by saying how many files it replaced. |
+| `--refresh` | Bring an existing project's scaffold up to date - see below. Five toolchain files are rewritten whole; every other file's edits survive. Rejects `--force`. |
 
-Every seeding flag is offline: values are written to `fhir.toml` as given and
-never checked against an instance. `init` writes a minimal `fhir.toml` holding
+Every seeding flag is offline: a value is checked for shape and then written to
+`fhir.toml` as given, and no instance is asked whether it holds the UID or
+answers to the profile name. `init` writes a minimal `fhir.toml` holding
 the IG identity and one standing choice - `hostile_names = "substitute"`, since
 almost every instance names an age band with a `<` the IG publisher cannot
 survive ([what it does](301-generation.md#hostile_names)) - plus
@@ -95,7 +96,7 @@ without reaching an instance at all.
 
 ```console
 $ d2w fhir init --list-templates
-                              fhir init --template (9)
+                              fhir init --template (8)
 ┌────────────────────────┬──────────┬────────────────────────────────────────────┐
 │template                │ ships in │ publishes                                  │
 ├────────────────────────┼──────────┼────────────────────────────────────────────┤
@@ -107,27 +108,54 @@ $ d2w fhir init --list-templates
 │patient-summary         │ bundled  │ An International Patient Summary at        │
 │                        │          │ $summary: who a person is, and which       │
 │                        │          │ recorded values are doses.                 │
-│aggregate-disaggregated │ checkout │ Disaggregated aggregate example guide      │
-│facility-mixed          │ checkout │ Mixed facility example guide               │
-│refused-names           │ checkout │ Refused names example guide                │
-│registry-district       │ checkout │ District registry example guide            │
-│terminology-strict      │ checkout │ Strict terminology example guide           │
-│tracker-registration    │ checkout │ Tracker registration example guide         │
+│aggregate-disaggregated │ checkout │ The same selection with every category     │
+│                        │          │ axis published - the category pairs and    │
+│                        │          │ their ConceptMaps.                         │
+│facility-mixed          │ checkout │ One of every capture kind at once - the    │
+│                        │          │ flagship.                                  │
+│registry-district       │ checkout │ One district's organisation units as       │
+│                        │          │ Organization and Location pairs,           │
+│                        │          │ boundaries and all.                        │
+│terminology-strict      │ checkout │ Concept codes taken from DHIS2 codes       │
+│                        │          │ rather than DHIS2 UIDs, and what that      │
+│                        │          │ trades.                                    │
+│tracker-registration    │ checkout │ Registering a person, enrolling them, and  │
+│                        │          │ answering two stage forms.                 │
 └────────────────────────┴──────────┴────────────────────────────────────────────┘
 note: a bundled template rides the installed package; a checkout one is read from
 examples/fhir/igs/ of the dhis2w repository and exists only in a clone of it
 ```
 
-The listing comes off the template manifest, so it names what this install
-actually holds rather than what some page once said it held. A bundled
-template's line is written for it; a checkout one's is its guide's own title.
+The listing comes off the template manifest and the catalog's own declarations,
+so it names what this install actually holds rather than what some page once
+said it held. A bundled template's line is written for it in the manifest; a
+checkout one's is the `summary` of its own `template.toml`.
+
+**An example is a template only when it says so.** Each guide under
+`examples/fhir/igs/` carries a `template.toml` beside its `fhir.toml`, holding
+either `scaffolds = true` with the `summary` the listing prints, or
+`scaffolds = false` with the `refusal` `--template` prints instead. The catalog
+holds exhibits as well as guides -
+[`refused-names`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/igs/refused-names/README.md)
+exists to show a selection `d2w fhir generate` refuses, so it has no generated
+tree to lay down and nothing for `make sushi` to compile - and the declaration
+is what keeps one of those out of the listing:
+
+```console
+$ d2w fhir init demo --template refused-names
+error: `refused-names` is an example, not a template. It demonstrates the names
+`d2w fhir generate` refuses: a selection whose DHIS2 names carry a raw '<', which
+aborts the IG publisher's last pass. The run is refused before a file is written,
+so this example carries no generated tree to lay down and `make sushi` has nothing
+to compile. Read it at examples/fhir/igs/refused-names/README.md.
+```
 
 **Bundled or checkout.** A bundled template rides the installed package and
 works anywhere `d2w` does. A checkout one is read from
 [`examples/fhir/igs/`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/igs/README.md)
 of the dhis2w repository, which no wheel carries, so it scaffolds only
-from a clone. Three of the nine ride the wheel; asking an installed package for
-one of the other six is refused by saying where it lives:
+from a clone. Three of the eight ride the wheel; asking an installed package for
+one of the other five is refused by saying where it lives:
 
 ```console
 $ d2w fhir init demo --template facility-mixed
@@ -303,14 +331,15 @@ the scaffold for an existing project and writes what it safely can:
 ```console
 $ d2w fhir init . --refresh
                               fhir init --refresh
-┌────────────────────┬──────────────────────────┐
-│directory           │ /home/you/demo-ig        │
-│created             │ 0                        │
-│refreshed           │ 0                        │
-│unchanged           │ 12                       │
-│with your additions │ 0                        │
-│diverged (kept)     │ 0                        │
-└────────────────────┴──────────────────────────┘
+┌──────────────────────────┬────────────────────┐
+│directory                 │ /home/you/demo-ig  │
+│created                   │ 0                  │
+│rewritten (scaffold-owned)│ 0                  │
+│refreshed                 │ 0                  │
+│unchanged                 │ 12                 │
+│with your additions       │ 0                  │
+│diverged (kept)           │ 0                  │
+└──────────────────────────┴────────────────────┘
   unchanged fhir.example.toml
   unchanged ig/sushi-config.yaml
   unchanged ig/ig.ini
@@ -338,13 +367,18 @@ refresh; the Dockerfile and `.python-version` pin the image and the
 interpreter; and `ig/ig.ini` and `ig/fsh.ini` carry values the project states
 elsewhere - the guide's id from `fhir.toml`, and the `[FSH] timeout` the
 refresh reads off the file and writes back unchanged. So a scaffold revision
-that replaces a line in one of them lands whole, reported `refreshed`.
+that replaces a line in one of them lands whole, reported
+`rewritten (scaffold-owned)`, and the file's own header says the same thing: an
+edit written into it does not survive a refresh. What you change about a
+Makefile knob belongs on the command line or in the environment, where the
+value lives outside the file.
 
 A directory scaffolded with `--with-registry` refreshes as both projects plus
 the two files the directory itself holds, and those two take the same rule from
 either side of it: the `Makefile` that drives the two projects is the scaffold's
-own and is rewritten whole, and the `README.md` beside it is prose that goes
-through the line rule below, so a deployment note written into it is kept. Two
+own and is rewritten whole, reported the same way, and the `README.md` beside it
+is prose that goes through the line rule below, so a deployment note written
+into it is kept. Two
 of that README's lines are the guide's identity rather than yours - the title on
 its cover, and the registry canonical it names - and the identity rule below
 writes both.
@@ -352,12 +386,13 @@ writes both.
 **Every other file is rewritten only when the current scaffold render
 reproduces every line already on disk, in order.** So a refresh can only add
 what the scaffold gained, and no line you wrote is ever dropped. Every file
-gets one of five outcomes, all of them printed:
+gets one of six outcomes, all of them printed:
 
 | Outcome | Meaning |
 | --- | --- |
 | `created` | A scaffold file the project did not have. Written. |
-| `refreshed` | One of the five files the scaffold owns outright, or a file whose render carries every line on disk plus more. Rewritten. |
+| `rewritten (scaffold-owned)` | One of the five toolchain files the scaffold owns outright. Replaced whole by the current render, so an edit to it is gone. |
+| `refreshed` | A file whose render carries every line on disk plus more, or one whose identity lines `fhir.toml` declares have changed. Rewritten line-preservingly: every line you wrote is still there. |
 | `unchanged` | Already byte-identical to the current scaffold. |
 | `with your additions` | Carries every line the current scaffold renders, plus lines of your own. Nothing to add, so nothing is written. |
 | `diverged (kept)` | Holds lines the current scaffold does not write - your edits, or scaffold lines that have since changed; a line-preserving refresh cannot tell which. Your version stays, reported as `kept <path> (holds lines the current scaffold does not write)`. To take the scaffold's version, delete the file and refresh again. |
@@ -378,7 +413,8 @@ project name in `pyproject.toml`, and - in a directory scaffolded with
 `--with-registry` - on the first line of the pair's `README.md` and the line
 naming the registry canonical. Change a title in `fhir.toml` and one refresh
 puts it on the guide's cover and its front page, reporting each file as
-`refreshed`. Every other line of those files stays exactly as you wrote it -
+`refreshed` - `ig/ig.ini` as `rewritten (scaffold-owned)`, since the toolchain
+owns that one. Every other line of those files stays exactly as you wrote it -
 `releaseLabel`, `version`, the publisher's home page, `copyrightYear`, the
 parameters, the menu, the path-resource globs, your own prose and headings, an
 option you uncommented in the example. Until the refresh runs, `d2w fhir
@@ -400,6 +436,24 @@ generate` says so with a `scaffold-drift` note naming the keys `fhir.toml` and
 pass both: `--force` rewrites every scaffold file including the ones you
 edited, `--refresh` rewrites only what it can rewrite without losing an
 edit. They are opposite answers to the same question.
+
+`--force` over a project that already stands there is a rewrite, and the report
+says so rather than calling it a scaffold: each file that already existed is
+reported `overwritten <path>` and counted apart from `created`, and the run
+closes with what it replaced.
+
+```console
+$ d2w fhir init . --force
+  overwritten fhir.toml
+  overwritten fhir.example.toml
+  ...
+note: --force replaced 13 file(s) that already stood here, listed above - the
+contents they held, fhir.toml and every hand-written line included, are gone
+```
+
+There is no confirmation prompt - `d2w` is not interactive - so the honesty is
+in the report. `fhir.toml` goes with the rest: the file `--refresh` calls yours
+is the first one `--force` replaces.
 
 Three verbs share a word, so keep them apart: `init --refresh` touches the
 scaffold and never the generated output; the scaffolded `make refresh`

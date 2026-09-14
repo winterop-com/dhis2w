@@ -1,0 +1,12 @@
+# Read by `d2w fhir init --template`. An example of this catalog is a template only when it
+# declares itself one here, so an exhibit whose point is a refusal never reaches the listing or a
+# `next: make sushi` it is built to fail.
+scaffolds = false
+
+# What `d2w fhir init --template refused-names` prints instead of scaffolding.
+refusal = """
+It demonstrates the names `d2w fhir generate` refuses: a selection whose DHIS2 names carry a \
+raw '<', which aborts the IG publisher's last pass. The run is refused before a file is written, \
+so this example carries no generated tree to lay down and `make sushi` has nothing to compile. \
+Read it at examples/fhir/igs/refused-names/README.md.\
+"""

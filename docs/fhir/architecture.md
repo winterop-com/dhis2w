@@ -82,7 +82,17 @@ lossy at publish time. That asymmetry is what `d2w fhir init --refresh` exists
 to repair.
 
 `--refresh` re-renders the scaffold for an existing project and writes only
-where nothing on disk is lost. `preserves_every_line` is the whole decision: it
+where nothing on disk is lost. Five toolchain files stand outside that rule and
+are the scaffold's outright - the `Makefile`, the `Dockerfile`,
+`.python-version`, `ig/ig.ini` and `ig/fsh.ini`, named at
+`OWNED_WHOLE_RELATIVE_PATHS` - so the render replaces each of them whole and the
+report calls that `rewritten (scaffold-owned)` rather than `refreshed`. Every
+value in them is either a `?=` default taken from the command line or the
+environment or a value the project states elsewhere, so nothing in them is the
+reader's to keep, and the flag's help, the report's note and the Makefile's own
+header all say that an edit to one does not survive.
+
+For every other file, `preserves_every_line` is the whole decision: it
 walks the render as a forward iterator and asks whether every line currently on
 disk appears in it, in order. A file that is a strict subsequence of the render
 is `refreshed`, because rewriting can only add; one that already carries every
@@ -101,10 +111,12 @@ publisher name and six `special-url` lines; the `[ig]` table of
 `ig.ini`; the `[project] name` of `pyproject.toml`. A registry entry can name a
 region so a key spelled the same way elsewhere in the file is out of reach. The
 file is written and reported `refreshed` whenever that substitution changes
-it. `d2w fhir generate` reads the same lines back on its
+it - `ig/ig.ini` as `rewritten`, being one of the five. `d2w fhir generate` reads the same lines back on its
 foundation target and raises a `scaffold-drift` note when the two files state
 different identities. `--force` and `--refresh` are
-opposite answers to the same question and are rejected together.
+opposite answers to the same question and are rejected together: `--force`
+replaces every scaffold file whatever it holds, and reports each one it replaced
+as `overwritten`, counted apart from the files it created.
 
 The full settings reference is the series'
 [`fhir.toml` pages](301-fhir-toml.md).

@@ -536,7 +536,34 @@ chain in one command.
   without reaching one; `--list-templates` names what the install carries.
   Three templates ride the wheel (`aggregate-minimal`, `event-program`,
   `patient-summary`); the rest of `examples/fhir/igs/` scaffolds from a
-  checkout.
+  checkout. The template's own `[generate]` keys land inside the `[generate]`
+  table the scaffold renders and every table below them is appended, so a
+  template stating `concept_code_source` produces one `[generate]` table rather
+  than a file that is not TOML. An unknown name is refused naming every template
+  the listing names.
+- **An example is a template only when it declares itself one.** Each guide of
+  `examples/fhir/igs/` carries a `template.toml`: `scaffolds = true` with the
+  `summary` the listing prints, or `scaffolds = false` with the `refusal`
+  `--template` prints instead. `refused-names` is the second kind - the exhibit
+  for a selection `d2w fhir generate` refuses, with no generated tree to lay down
+  and nothing for `make sushi` to compile - so it is out of the listing and
+  `--template refused-names` states what it demonstrates rather than scaffolding
+  a project it would then tell you to compile.
+- **`init` refuses what the IG publisher cannot build.** A `--title` or `--name`
+  carrying `<` or `>` is refused naming the flag and the character, because the
+  publisher strict-parses the pages it writes them into and aborts its last pass
+  hours in. A `--name` outside the FHIR computer-friendly shape
+  (`^[A-Z][A-Za-z0-9_]{0,254}$`) is refused with the rule stated, because SUSHI
+  rewrites such a name without saying so; the name derived from `--id` conforms.
+  Each `--data-set` / `--event-program` / `--tracker-program` UID is checked for
+  the DHIS2 shape (eleven characters, a letter then ten letters or digits), and
+  a `--registry-path` is refused when no directory stands at it, resolved from
+  the new project's own root as the scaffolded `fhir.toml` reads it.
+- **`--force` reports a rewrite as a rewrite.** A file that already stood there
+  is reported `overwritten` and counted apart from `created`, and the run closes
+  by saying how many files it replaced and that their contents - `fhir.toml` and
+  every hand-written line included - are gone. There is no confirmation prompt:
+  the CLI stays non-interactive and the honesty is in the report.
 
 - **A `uv` project.** `pyproject.toml` declares `dhis2w-cli` + `dhis2w-fhir` +
   `dhis2w-fhir-serve`, which resolve from PyPI as one release - each package's
@@ -594,20 +621,24 @@ chain in one command.
   date, recovering the IG identity from the project's own `fhir.toml`,
   `ig/fsh.ini`, and `ig/sushi-config.yaml`. The `Makefile`, the `Dockerfile`,
   `.python-version`, `ig/ig.ini` and `ig/fsh.ini` are the scaffold's own files,
-  rewritten from the current render whenever it differs. Nothing in them is the
-  user's to lose: every knob the Makefile has is a `?=` default set on the
-  command line (`make build JAVA_HEAP=8g`) or in the environment, so an override
-  lives outside the file and outlives the refresh. The Makefile is owned by that
-  name at a project root and at the root of a directory scaffolded with
-  `--with-registry`. Every other file is rewritten only when the current render
-  reproduces every line already on disk in order, so a refresh
-  adds what the scaffold gained (a new `path-resource` glob, a new `.gitignore`
-  entry, a new menu entry) and never drops a line the user wrote. Each file is
-  reported as created / refreshed / unchanged / with your additions / diverged
-  (kept) - the last two both keep the file byte-identical, and `diverged` names
-  no author, because a line the user wrote and a scaffold line that has since
-  changed read the same to a line-preserving refresh. `fhir.toml` is never
-  written; `--force` is rejected; any flag the refresh would ignore is refused.
+  rewritten whole from the current render whenever it differs, and reported
+  `rewritten (scaffold-owned)` - their own verdict, because `refreshed` is the
+  rewrite that keeps every line on disk. An edit to one of those five does not
+  survive: the flag's help names them, the scaffolded Makefile's own header says
+  so, and the report's note says where a value of your own belongs instead -
+  every knob the Makefile has is a `?=` default set on the command line
+  (`make build JAVA_HEAP=8g`) or in the environment, which is outside the file.
+  The Makefile is owned by that name at a project root and at the root of a
+  directory scaffolded with `--with-registry`. Every other file is rewritten
+  only when the current render reproduces every line already on disk in order,
+  so a refresh adds what the scaffold gained (a new `path-resource` glob, a new
+  `.gitignore` entry, a new menu entry) and never drops a line the user wrote.
+  Each file is reported as created / rewritten (scaffold-owned) / refreshed /
+  unchanged / with your additions / diverged (kept) - the last two both keep the
+  file byte-identical, and `diverged` names no author, because a line the user
+  wrote and a scaffold line that has since changed read the same to a
+  line-preserving refresh. `fhir.toml` is never written; `--force` is rejected;
+  any flag the refresh would ignore is refused.
   The accepted consequence is that a scaffold line deliberately deleted is
   restored, since a deletion leaves the file a subsequence of the render.
 - **The refresh writes the scaffold lines `fhir.toml` declares.** Five files
@@ -619,7 +650,8 @@ chain in one command.
   `ig/input/pagecontent/index.md`, the `ig = ` line of `ig/ig.ini`, the
   `[project] name` of `pyproject.toml`, and on a pair the heading of the root
   `README.md` plus the line naming the registry canonical. Each is reported
-  refreshed. Every other
+  refreshed, and `ig/ig.ini` rewritten, since the toolchain owns that one.
+  Every other
   line of those files is the project's and survives byte-identical -
   `releaseLabel`, `version`, the publisher home page, `copyrightYear`, the
   parameters, the menu, the path-resource globs, the project's own prose and

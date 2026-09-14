@@ -410,7 +410,7 @@ def test_a_refresh_lands_the_dependencies_block_on_a_guide_that_gained_the_regis
 
     assert report.diverged_files == []
     assert "ig/sushi-config.yaml" in report.refreshed_files
-    assert "Makefile" in report.refreshed_files
+    assert "Makefile" in report.rewritten_files
     sushi_config = yaml.safe_load((tmp_path / "ig" / "sushi-config.yaml").read_text(encoding="utf-8"))
     assert sushi_config["dependencies"]["dhis2.fhir.test.registry"]["version"] == "1.2.0"
     makefile = (tmp_path / "Makefile").read_text(encoding="utf-8")
@@ -488,6 +488,7 @@ def workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_init_names_a_registry_package_through_the_registry_flags(workdir: Path) -> None:
     """`--registry-id` and `--registry-canonical` seed the table, the dependency and the Makefile knobs."""
+    (workdir / "registry").mkdir()
     result = _runner.invoke(
         build_app(),
         [

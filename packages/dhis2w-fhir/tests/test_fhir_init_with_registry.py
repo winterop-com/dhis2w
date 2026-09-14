@@ -233,7 +233,7 @@ def test_a_refresh_of_the_directory_refreshes_both_projects_and_the_makefile(tmp
 
     report = refresh_project(tmp_path)
 
-    assert "Makefile" in report.refreshed_files
+    assert "Makefile" in report.rewritten_files
     assert "build: build-registry build-guide" in (tmp_path / "Makefile").read_text(encoding="utf-8")
     assert report.diverged_files == []
     # Both projects were visited, and their paths are reported under the directory each occupies.
@@ -247,6 +247,7 @@ def test_a_refresh_with_nothing_changed_writes_nothing(tmp_path: Path) -> None:
 
     report = refresh_project(tmp_path)
 
+    assert report.rewritten_files == []
     assert report.refreshed_files == []
     assert report.created_files == []
     assert report.diverged_files == []
@@ -351,7 +352,7 @@ def test_a_refresh_rewrites_the_root_makefile_line_a_reader_edited(tmp_path: Pat
 
     report = refresh_project(tmp_path)
 
-    assert "Makefile" in report.refreshed_files
+    assert "Makefile" in report.rewritten_files
     assert makefile.read_text(encoding="utf-8") == rendered
 
 

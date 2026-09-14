@@ -903,7 +903,8 @@ def test_refresh_adds_the_serve_targets_to_a_makefile_scaffolded_before_them(tmp
 
     report = refresh_project(tmp_path)
 
-    assert report.refreshed_files == ["Makefile"]
+    assert report.rewritten_files == ["Makefile"]
+    assert report.refreshed_files == []
     assert makefile.read_text(encoding="utf-8") == content
 
 
@@ -935,7 +936,8 @@ def test_refresh_rewrites_an_owned_whole_file_from_the_current_render(
 
     report = refresh_project(tmp_path)
 
-    assert report.refreshed_files == [relative_path]
+    assert report.rewritten_files == [relative_path]
+    assert report.refreshed_files == []
     assert report.diverged_files == []
     assert destination.read_text(encoding="utf-8") == rendered
 
@@ -994,6 +996,7 @@ def test_refresh_never_writes_fhir_toml(tmp_path: Path) -> None:
     assert config_path.read_text(encoding="utf-8") == body
     reported = (
         report.created_files
+        + report.rewritten_files
         + report.refreshed_files
         + report.unchanged_files
         + report.extended_files
@@ -1044,7 +1047,7 @@ def test_refresh_recovers_the_selection_tables_from_fhir_toml(tmp_path: Path) ->
     assert state.options.tracker_program_ids == ["IpHINAT79UW"]
     report = refresh_project(tmp_path)
     assert report.diverged_files == []
-    assert "fhir.toml" not in report.refreshed_files + report.unchanged_files
+    assert "fhir.toml" not in report.rewritten_files + report.refreshed_files + report.unchanged_files
 
 
 def test_refresh_keeps_the_copyright_year_the_project_was_scaffolded_in(tmp_path: Path) -> None:
@@ -1226,7 +1229,7 @@ def test_adopt_scaffold_owned_lines_replaces_the_identity_and_nothing_else() -> 
 
 
 def test_refresh_lands_an_edited_identity_in_every_file_that_carries_it(tmp_path: Path) -> None:
-    """Four scaffold files render the identity, so one refresh lands an `[ig]` edit in all four."""
+    """Five scaffold files render the identity, four line-preservingly and `ig/ig.ini` as the toolchain's own."""
     _write_project(tmp_path)
     _edit_fhir_toml(tmp_path, 'title = "DHIS2 FHIR Test IG"', 'title = "Sierra Leone HMIS FHIR Guide"')
     _edit_fhir_toml(tmp_path, 'id = "dhis2.fhir.test"', 'id = "dhis2.fhir.sl"')
@@ -1235,11 +1238,11 @@ def test_refresh_lands_an_edited_identity_in_every_file_that_carries_it(tmp_path
 
     assert sorted(report.refreshed_files) == [
         "fhir.example.toml",
-        "ig/ig.ini",
         "ig/input/pagecontent/index.md",
         "ig/sushi-config.yaml",
         "pyproject.toml",
     ]
+    assert report.rewritten_files == ["ig/ig.ini"]
     assert report.diverged_files == []
     published = yaml.safe_load((tmp_path / "ig" / "sushi-config.yaml").read_text(encoding="utf-8"))
     assert published["id"] == "dhis2.fhir.sl"

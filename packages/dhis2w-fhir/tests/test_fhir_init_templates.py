@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_core.cli_errors import CliUserError
+from dhis2w_fhir.config import load_project
 from dhis2w_fhir.scaffold import build_scaffold_files
 from dhis2w_fhir.scaffold.project_templates import (
     TemplateOrigin,
@@ -63,6 +64,100 @@ def test_scaffold_from_a_template_produces_a_servable_tree(workdir: Path) -> Non
     # What `make sushi` compiles, and what `d2w fhir serve` merges the compile with.
     assert list((project / "ig" / "input" / "fsh").rglob("*.fsh"))
     assert list((project / "ig" / "input" / "resources" / "registry").glob("Location-*.json"))
+
+
+@pytest.mark.parametrize("template_name", [template.name for template in list_templates()])
+def test_every_template_scaffolds_a_fhir_toml_the_project_loads(workdir: Path, template_name: str) -> None:
+    """One `[generate]` table, whatever the template states under it - a project declaring it twice is not TOML."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", template_name])
+
+    assert result.exit_code == 0, result.output
+    body = (workdir / "project" / "fhir.toml").read_text(encoding="utf-8")
+    assert body.count("\n[generate]\n") == 1, body
+    tomllib.loads(body)
+    assert load_project(workdir / "project").config.ig.id
+
+
+def test_a_template_keeps_the_keys_it_states_under_generate(workdir: Path) -> None:
+    """A template stating `concept_code_source` under its own `[generate]` reaches the scaffolded table."""
+    if "terminology-strict" not in {template.name for template in list_templates()}:
+        pytest.skip("no dhis2w checkout around this install")
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", "terminology-strict"])
+
+    assert result.exit_code == 0, result.output
+    project = load_project(workdir / "project")
+    assert project.config.generate.concept_code_source == "code"
+    assert project.config.generate.hostile_names == "substitute"
+    assert project.config.serve.strict_codes is True
+
+
+@pytest.mark.parametrize("template_name", [template.name for template in list_templates()])
+def test_every_listed_template_carries_the_foundation_profiles_it_references(workdir: Path, template_name: str) -> None:
+    """A listed template compiles, which means the payload defines the profiles its resources claim."""
+    template = resolve_template(template_name)
+    if not _carries_a_generated_tree(template.root):
+        pytest.skip(f"this checkout has not generated {template_name}; `make verify-igs` writes its tree")
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", template_name])
+
+    assert result.exit_code == 0, result.output
+    sources = (workdir / "project" / "ig" / "input" / "fsh").rglob("*.fsh")
+    defined = "\n".join(path.read_text(encoding="utf-8") for path in sources)
+    assert "Profile: D2Location" in defined
+
+
+def test_a_demonstration_example_is_no_template_and_is_refused_by_what_it_demonstrates(workdir: Path) -> None:
+    """The refused-names exhibit has no tree to lay down, so it is out of the listing and refused by name."""
+    if _checkout_catalog() is None:
+        pytest.skip("no dhis2w checkout around this install")
+    assert "refused-names" not in {template.name for template in list_templates()}
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", "refused-names"])
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, CliUserError)
+    message = str(result.exception)
+    assert "refused-names" in message
+    assert "`make sushi` has nothing to compile" in message
+    assert not (workdir / "project").exists()
+
+
+def test_an_unknown_template_names_every_template_the_listing_names(workdir: Path) -> None:  # noqa: ARG001
+    """The refusal and `--list-templates` answer the same question, so they name the same templates."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", "no-such-template"])
+
+    assert result.exit_code != 0
+    message = str(result.exception)
+    for template in list_templates():
+        assert template.name in message, template.name
+
+
+def _carries_a_generated_tree(root: Path) -> bool:
+    """Whether a template's payload holds the guide a compile needs, rather than the scaffold alone."""
+    return any(path.name != "aliases.fsh" for path in (root / "ig" / "input" / "fsh").rglob("*.fsh"))
+
+
+def test_a_template_whose_tree_this_checkout_has_not_generated_names_no_compile(workdir: Path) -> None:
+    """A checkout template's payload is generated rather than committed, so a run laying down none says so."""
+    ungenerated = next(
+        (
+            template.name
+            for template in list_templates()
+            if template.origin is TemplateOrigin.CHECKOUT and not _carries_a_generated_tree(template.root)
+        ),
+        None,
+    )
+    if ungenerated is None:
+        pytest.skip("every checkout template in this checkout has been generated")
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--template", ungenerated])
+
+    assert result.exit_code == 0, result.output
+    assert "laid down 0 files" in result.stderr
+    assert "make sushi" not in result.stderr
+    assert "`make verify-igs` writes it" in result.stderr
+    assert "next: set `profile` in fhir.toml, then run `d2w fhir generate`" in result.stderr
 
 
 def test_a_template_seeds_its_own_selection_into_fhir_toml(workdir: Path) -> None:
@@ -182,14 +277,22 @@ def test_a_checkout_only_template_is_refused_by_an_install_that_lacks_it(monkeyp
     assert "aggregate-minimal" in message
 
 
-def test_the_manifest_names_the_whole_example_catalog() -> None:
-    """Bundled plus checkout-only is exactly what the checkout holds, so no refusal denies a real guide."""
+def test_the_manifest_names_every_example_that_declares_itself_a_template() -> None:
+    """Bundled plus checkout-only is exactly what the catalog declares, so no refusal denies a real template."""
     catalog = _checkout_catalog()
     if catalog is None:
         pytest.skip("no dhis2w checkout around this install")
-    on_disk = {path.name for path in catalog.iterdir() if (path / "fhir.toml").is_file()}
+    declared = {path.name for path in catalog.iterdir() if _declares_a_template(path)}
     bundled = {template.name for template in list_templates() if template.origin is TemplateOrigin.BUNDLED}
-    assert bundled | checkout_only_names() == on_disk
+    assert bundled | checkout_only_names() == declared
+
+
+def _declares_a_template(root: Path) -> bool:
+    """Whether one example directory of the catalog says `d2w fhir init --template` may scaffold from it."""
+    declaration = root / "template.toml"
+    if not (root / "fhir.toml").is_file() or not declaration.is_file():
+        return False
+    return bool(tomllib.loads(declaration.read_text(encoding="utf-8"))["scaffolds"])
 
 
 def test_a_template_refuses_a_selection_of_its_own(workdir: Path) -> None:

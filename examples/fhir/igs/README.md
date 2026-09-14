@@ -22,6 +22,40 @@ nothing that `d2w fhir generate` or SUSHI writes.
 | [`patient-summary`](patient-summary/) | An International Patient Summary at `$summary`: who a person is, which recorded values are doses, and what the document says about itself | EPI Stock, Supervision visit, Child Programme; Koinadugu |
 | [`refused-names`](refused-names/) | The exhibit: a selection `d2w fhir generate` refuses, and why refusing in seconds beats failing in hours | Child Health, Supervision visit, ANC follow-up; Kambia |
 
+## Which of these `d2w fhir init --template` scaffolds from
+
+An example is a template only when it declares itself one. Every guide here
+carries a `template.toml` beside its `fhir.toml`, and that file is the whole
+declaration:
+
+```toml
+scaffolds = true
+summary = "The smallest complete guide: the forms, one district, no category axes."
+```
+
+`summary` is the row `d2w fhir init --list-templates` prints for the guide, so
+the listing names what the catalog says rather than what a page once said.
+
+[`refused-names`](refused-names/) declares the other side:
+
+```toml
+scaffolds = false
+refusal = """
+It demonstrates the names `d2w fhir generate` refuses: ..."""
+```
+
+It is the exhibit, not a guide: the run is refused before a file is written, so
+it carries no generated tree to lay down and `make sushi` has nothing to
+compile. `--list-templates` leaves it out, and `d2w fhir init x --template
+refused-names` prints that `refusal` instead of scaffolding a project it would
+then tell you to compile.
+
+Three of the eight templates also ride the installed wheel, as payloads under
+`packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/projects/`; the manifest beside
+them names those three plus the five that scaffold from a checkout alone, and
+`test_fhir_init_templates.py` fails when that manifest and these declarations
+disagree.
+
 ## The identity scheme
 
 Every guide is scaffolded with the same shape, so a reader comparing two of them
@@ -91,9 +125,10 @@ from that, and neither is the scaffold's fault:
 
 ## The refresh doctrine
 
-**These trees are scaffold-managed.** Every file but `fhir.toml` and the two
-hand-authored stubs (`ig/input/fsh/aliases.fsh`, `ig/input/pagecontent/index.md`)
-is what `d2w fhir init` writes today, byte for byte. When the scaffold gains a
+**These trees are scaffold-managed.** Every file but `fhir.toml`, `template.toml`
+and the two hand-authored stubs (`ig/input/fsh/aliases.fsh`,
+`ig/input/pagecontent/index.md`) is what `d2w fhir init` writes today, byte for
+byte. When the scaffold gains a
 line - a new `path-resource` glob, a new `.gitignore` entry, a new menu item -
 one command brings all nine up to date:
 

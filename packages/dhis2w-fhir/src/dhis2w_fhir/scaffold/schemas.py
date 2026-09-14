@@ -115,19 +115,26 @@ class ProjectScaffoldState(BaseModel):
 class ScaffoldReport(BaseModel):
     """Outcome of `d2w fhir init`.
 
-    Scaffolding a project reports through `created_files` (written) and `skipped_files` (left
-    alone because the file exists). A refresh reports through `created_files` (a scaffold file the
-    project lacks), `refreshed_files` (rewritten from the current scaffold), `unchanged_files`
-    (already current), `extended_files` (carrying every line the current scaffold renders plus
-    lines of the user's own, so there is nothing to add), and `diverged_files` (holding lines the
-    current scaffold does not write - the user's edits, or scaffold lines that have since changed;
-    a line-preserving refresh cannot tell the two apart, so it claims neither and the file stays).
+    Scaffolding a project reports through `created_files` (written where nothing stood),
+    `overwritten_files` (a file that already stood there, replaced under `--force`, whatever it
+    held), and `skipped_files` (left alone because the file exists). Created and overwritten are
+    counted apart because they are different acts: one composes a project, the other discards one.
+
+    A refresh reports through `created_files` (a scaffold file the project lacks),
+    `rewritten_files` (one of the five toolchain files the scaffold owns outright, replaced whole
+    from the current render), `refreshed_files` (rewritten line-preservingly, so every line on disk
+    is still there), `unchanged_files` (already current), `extended_files` (carrying every line the
+    current scaffold renders plus lines of the user's own, so there is nothing to add), and
+    `diverged_files` (holding lines the current scaffold does not write - the user's edits, or
+    scaffold lines that have since changed; a line-preserving refresh cannot tell the two apart, so
+    it claims neither and the file stays).
 
     A project scaffolded from a template names it in `template` and reports its payload through
-    `template_files` and `skipped_template_files`, the same two verdicts as the scaffold's own
-    files. The payload is hundreds of files wide where the scaffold is thirteen, so it is counted
-    apart from `created_files` rather than folded into it: a caller reading the report sees which
-    files `d2w fhir init` composed and which tree it laid down beside them.
+    `template_files`, `overwritten_template_files` and `skipped_template_files`, the same verdicts
+    as the scaffold's own files. The payload is hundreds of files wide where the scaffold is
+    thirteen, so it is counted apart from `created_files` rather than folded into it: a caller
+    reading the report sees which files `d2w fhir init` composed and which tree it laid down
+    beside them.
 
     `notes` carries what a run has to say for itself beyond the per-file verdicts: a file the
     project holds that the scaffold does not write, which a refresh names so the person can
@@ -137,9 +144,12 @@ class ScaffoldReport(BaseModel):
     directory: Path
     template: str | None = None
     created_files: list[str] = Field(default_factory=list)
+    overwritten_files: list[str] = Field(default_factory=list)
     skipped_files: list[str] = Field(default_factory=list)
     template_files: list[str] = Field(default_factory=list)
+    overwritten_template_files: list[str] = Field(default_factory=list)
     skipped_template_files: list[str] = Field(default_factory=list)
+    rewritten_files: list[str] = Field(default_factory=list)
     refreshed_files: list[str] = Field(default_factory=list)
     unchanged_files: list[str] = Field(default_factory=list)
     extended_files: list[str] = Field(default_factory=list)

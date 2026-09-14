@@ -1,6 +1,7 @@
-# Maintained by `d2w fhir init --refresh`, which rewrites this file from the current scaffold.
-# Its knobs are the `?=` defaults below: set one on the command line (`make build JAVA_HEAP=4g`)
-# or in the environment, and that value outlives a refresh.
+# Maintained by `d2w fhir init --refresh`, which rewrites this file whole from the current
+# scaffold. An edit written into THIS file does not survive that. Its knobs are the `?=` defaults
+# below: set one on the command line (`make build JAVA_HEAP=4g`) or in the environment, where the
+# value lives outside the file and a refresh cannot reach it.
 DOCKER_IMAGE := fhir-ig
 IG_DIR := ig
 TX_SERVER ?= http://tx.fhir.org

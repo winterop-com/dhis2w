@@ -185,7 +185,7 @@ def test_init_refresh_rewrites_the_makefile_the_scaffold_owns(workdir: Path) -> 
     result = _runner.invoke(build_app(), ["fhir", "init", "project", "--refresh"])
 
     assert result.exit_code == 0, result.output
-    assert "refreshed Makefile" in result.output
+    assert "rewritten Makefile (scaffold-owned; an edit to it does not survive a refresh)" in result.output
     assert makefile.read_text(encoding="utf-8") == rendered
 
 
@@ -312,6 +312,7 @@ def test_init_refresh_json_output(workdir: Path) -> None:
     result = _runner.invoke(build_app(), ["--json", "fhir", "init", "project", "--refresh"])
 
     assert result.exit_code == 0, result.output
+    assert '"rewritten_files"' in result.output
     assert '"refreshed_files"' in result.output
     assert '"unchanged_files"' in result.output
     assert '"extended_files"' in result.output
@@ -380,3 +381,181 @@ def test_init_renders_its_narration_on_stderr(workdir: Path) -> None:  # noqa: A
     assert result.stdout == ""
     assert "fhir init" in result.stderr
     assert "next: set `profile` in fhir.toml, then run `d2w fhir generate`" in result.stderr
+
+
+# --- what init refuses to write into a project -----------------------------------------------------
+
+
+@pytest.mark.parametrize("flag", ["--title", "--name"])
+@pytest.mark.parametrize("character", ["<", ">"])
+def test_init_refuses_an_identity_carrying_a_bracket(workdir: Path, flag: str, character: str) -> None:
+    """The IG publisher strict-parses the pages it writes these into, so the run stops before a file lands."""
+    value = f"Demo {character}Guide{character}" if flag == "--title" else f"Demo{character}Guide"
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", flag, value])
+
+    assert result.exit_code != 0
+    message = " ".join(result.output.replace("│", " ").split())
+    assert flag in message
+    assert f"carries '{character}'" in message
+    assert not (workdir / "project").exists()
+
+
+@pytest.mark.parametrize(
+    "given",
+    ["sierra leone", "Sierra Leone HMIS", "4Guide", "Guide-One", "Sierra Leone Health & Aid Demo Guide"],
+)
+def test_init_refuses_a_name_outside_the_fhir_shape(workdir: Path, given: str) -> None:
+    """SUSHI rewrites a name it cannot use without saying so, so the shape is stated and refused here."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--name", given])
+
+    assert result.exit_code != 0
+    assert "--name" in result.output
+    assert not (workdir / "project").exists()
+
+
+def test_init_derives_a_name_the_fhir_shape_accepts(workdir: Path) -> None:
+    """The name `--id` yields on its own is one FHIR accepts, whatever the id is spelled like."""
+    from dhis2w_fhir.names import FHIR_NAME_MAX_LENGTH, is_fhir_name
+
+    long_id = "dhis2.fhir." + "segment." * 60
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--id", long_id])
+
+    assert result.exit_code == 0, result.output
+    published = (workdir / "project" / "ig" / "sushi-config.yaml").read_text(encoding="utf-8")
+    derived = next(line.removeprefix("name: ") for line in published.splitlines() if line.startswith("name: "))
+    assert is_fhir_name(derived)
+    assert len(derived) <= FHIR_NAME_MAX_LENGTH
+
+
+@pytest.mark.parametrize("flag", ["--data-set", "--event-program", "--tracker-program"])
+def test_init_refuses_a_selection_uid_outside_the_dhis2_shape(workdir: Path, flag: str) -> None:
+    """A UID is checked for shape offline, so a typo is caught here rather than as a guide of no forms."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", flag, "not-a-uid!!"])
+
+    assert result.exit_code != 0
+    message = " ".join(result.output.replace("│", " ").split())
+    assert flag in message
+    assert "eleven characters" in message
+    assert not (workdir / "project").exists()
+
+
+def test_init_refuses_a_registry_path_no_directory_stands_at(workdir: Path) -> None:
+    """The path is read from the project's own root, so the refusal names where it looked."""
+    result = _runner.invoke(
+        build_app(),
+        [
+            "fhir",
+            "init",
+            "project",
+            "--registry-id",
+            "dhis2.fhir.test.registry",
+            "--registry-canonical",
+            "http://example.org/fhir/registry",
+            "--registry-path",
+            "../does-not-exist",
+        ],
+    )
+
+    assert result.exit_code != 0
+    message = " ".join(result.output.replace("│", " ").split())
+    assert "--registry-path ../does-not-exist" in message
+    assert not (workdir / "project").exists()
+
+
+def test_init_accepts_a_registry_path_a_directory_stands_at(workdir: Path) -> None:
+    """A checkout beside the project is what the flag is for, so the run scaffolds."""
+    (workdir / "registry").mkdir()
+
+    result = _runner.invoke(
+        build_app(),
+        [
+            "fhir",
+            "init",
+            "project",
+            "--registry-id",
+            "dhis2.fhir.test.registry",
+            "--registry-canonical",
+            "http://example.org/fhir/registry",
+            "--registry-path",
+            "../registry",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert 'path = "../registry"' in (workdir / "project" / "fhir.toml").read_text(encoding="utf-8")
+
+
+def test_init_force_reports_every_file_it_overwrote(workdir: Path) -> None:
+    """`--force` discards a configured project, so the report says overwritten and names what it replaced."""
+    assert _runner.invoke(build_app(), ["fhir", "init", "project"]).exit_code == 0
+    config = workdir / "project" / "fhir.toml"
+    config.write_text(config.read_text(encoding="utf-8") + "\n[serve]\nport = 8391\n", encoding="utf-8")
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--force"])
+
+    assert result.exit_code == 0, result.output
+    assert "overwritten fhir.toml" in result.stderr
+    assert "created fhir.toml" not in result.stderr
+    assert "--force replaced 13 file(s)" in result.stderr
+    assert "port = 8391" not in config.read_text(encoding="utf-8")
+
+
+def test_init_without_force_reports_nothing_overwritten(workdir: Path) -> None:  # noqa: ARG001
+    """A first scaffold creates; only a run over a file that already stood there overwrites."""
+    result = _runner.invoke(build_app(), ["--json", "fhir", "init", "project"])
+
+    assert result.exit_code == 0, result.output
+    assert '"overwritten_files": []' in result.output
+
+
+def test_init_refresh_says_which_files_it_rewrites_whole(workdir: Path) -> None:
+    """Five toolchain files are the scaffold's own, so the report gives them a verdict of their own."""
+    project = _scaffold(workdir)
+    makefile = project / "Makefile"
+    makefile.write_text(
+        makefile.read_text(encoding="utf-8").replace(
+            "TX_SERVER ?= http://tx.fhir.org", "TX_SERVER ?= http://my-own-tx.example.org", 1
+        ),
+        encoding="utf-8",
+    )
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--refresh"])
+
+    assert result.exit_code == 0, result.output
+    assert "rewritten (scaffold-owned)" in result.stderr
+    assert "rewritten Makefile (scaffold-owned; an edit to it does not survive a refresh)" in result.stderr
+    assert "refreshed Makefile" not in result.stderr
+    assert "TX_SERVER ?= http://tx.fhir.org" in makefile.read_text(encoding="utf-8")
+
+
+def test_the_scaffolded_makefile_says_an_edit_to_it_does_not_survive_a_refresh(workdir: Path) -> None:
+    """The file a refresh rewrites whole is the one place a reader looks before editing it."""
+    project = _scaffold(workdir)
+
+    header = (project / "Makefile").read_text(encoding="utf-8").splitlines()[:4]
+
+    assert "An edit written into THIS file does not survive that." in " ".join(header)
+
+
+def test_init_help_names_the_files_a_refresh_rewrites_whole(workdir: Path) -> None:  # noqa: ARG001
+    """The promise that edits survive holds for every file the help does not name here."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "--help"])
+
+    assert result.exit_code == 0, result.output
+    help_text = " ".join(result.output.replace("│", " ").split())
+    for named in ("Makefile", "Dockerfile", ".python-version", "ig/ig.ini", "ig/fsh.ini"):
+        assert named in help_text, named
+    assert "does not survive" in help_text
+
+
+@pytest.mark.parametrize("flag", ["--data-set", "--event-program", "--tracker-program"])
+def test_init_help_says_naming_one_family_leaves_the_others_at_all(workdir: Path, flag: str) -> None:  # noqa: ARG001
+    """An absent selection table means every member of its kind, which is the surprise the help removes."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "--help"])
+
+    assert result.exit_code == 0, result.output
+    help_text = " ".join(result.output.replace("│", " ").split())
+    assert flag in help_text
+    assert "Naming one family narrows that family alone" in help_text

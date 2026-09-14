@@ -36,6 +36,10 @@ publishes = "{{ publishes }}"
 # `dhis2-code` property. "refuse" publishes names and codes byte-true and refuses
 # the run on a '<' name instead; removing the key makes each run ask.
 hostile_names = "substitute"
+{% if selection and selection.generate_keys %}
+
+{{ selection.generate_keys }}
+{% endif %}
 {% if max_level or registry %}
 
 [generate.organisation_units]
@@ -74,7 +78,7 @@ include_ids = [{% for uid in event_program_ids %}"{{ uid }}"{{ ", " if not loop.
 [generate.tracker_programs]
 include_ids = [{% for uid in tracker_program_ids %}"{{ uid }}"{{ ", " if not loop.last }}{% endfor %}]
 {% endif %}
-{% if selection %}
+{% if selection and selection.tables %}
 
-{{ selection }}
+{{ selection.tables }}
 {% endif %}
