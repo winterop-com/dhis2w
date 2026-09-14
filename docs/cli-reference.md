@@ -3814,7 +3814,7 @@ $ d2w metadata ls [OPTIONS] {resource}
 
 **Options**:
 
-* `--fields <str>`: DHIS2 field selector: plain (&#x27;id,name&#x27;), presets (&#x27;:identifiable&#x27;, &#x27;:nameable&#x27;, &#x27;:owner&#x27;, &#x27;:all&#x27;), nested (&#x27;children&#x27;), or exclusions (&#x27;:all,!lastUpdated&#x27;).  [default: id,name]
+* `--fields <str>`: DHIS2 field selector: plain (&#x27;id,name&#x27;), presets (&#x27;:identifiable&#x27;, &#x27;:nameable&#x27;, &#x27;:owner&#x27;, &#x27;:all&#x27;), nested (&#x27;children&#x27;), exclusions (&#x27;:all,!lastUpdated&#x27;), or transformers (&#x27;organisationUnits~size&#x27; for the count, &#x27;~isEmpty&#x27;, &#x27;name~rename(label)&#x27;).  [default: id,name]
 * `--filter <str>`: Filter as `property:operator:value`. Repeatable — AND&#x27;d by default, use --root-junction OR. Operators: eq (exact), ilike (contains), $ilike (starts-with), ilike$ (ends-with), token (word), gt/ge/lt/le (numbers/dates), in: (any-of), null / !null (presence); drop the `i` for case-sensitive. Nested paths use dots, e.g. dataSetElements.dataSet.id:eq:&lt;uid&gt; or categoryCombo.id:eq:&lt;uid&gt;. E.g. name:$ilike:anc lists names starting with &#x27;anc&#x27;.
 * `--root-junction <str>`: Combine repeated --filter as AND (default) or OR.  [default: AND]
 * `--order <str>`: Sort clause like &#x27;name:asc&#x27; or &#x27;created:desc&#x27;. Repeatable (later clauses tie-break).
@@ -3843,7 +3843,7 @@ $ d2w metadata list [OPTIONS] {resource}
 
 **Options**:
 
-* `--fields <str>`: DHIS2 field selector: plain (&#x27;id,name&#x27;), presets (&#x27;:identifiable&#x27;, &#x27;:nameable&#x27;, &#x27;:owner&#x27;, &#x27;:all&#x27;), nested (&#x27;children&#x27;), or exclusions (&#x27;:all,!lastUpdated&#x27;).  [default: id,name]
+* `--fields <str>`: DHIS2 field selector: plain (&#x27;id,name&#x27;), presets (&#x27;:identifiable&#x27;, &#x27;:nameable&#x27;, &#x27;:owner&#x27;, &#x27;:all&#x27;), nested (&#x27;children&#x27;), exclusions (&#x27;:all,!lastUpdated&#x27;), or transformers (&#x27;organisationUnits~size&#x27; for the count, &#x27;~isEmpty&#x27;, &#x27;name~rename(label)&#x27;).  [default: id,name]
 * `--filter <str>`: Filter as `property:operator:value`. Repeatable — AND&#x27;d by default, use --root-junction OR. Operators: eq (exact), ilike (contains), $ilike (starts-with), ilike$ (ends-with), token (word), gt/ge/lt/le (numbers/dates), in: (any-of), null / !null (presence); drop the `i` for case-sensitive. Nested paths use dots, e.g. dataSetElements.dataSet.id:eq:&lt;uid&gt; or categoryCombo.id:eq:&lt;uid&gt;. E.g. name:$ilike:anc lists names starting with &#x27;anc&#x27;.
 * `--root-junction <str>`: Combine repeated --filter as AND (default) or OR.  [default: AND]
 * `--order <str>`: Sort clause like &#x27;name:asc&#x27; or &#x27;created:desc&#x27;. Repeatable (later clauses tie-break).

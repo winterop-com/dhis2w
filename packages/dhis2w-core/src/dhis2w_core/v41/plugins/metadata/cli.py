@@ -254,7 +254,8 @@ def list_command(
         typer.Option(
             "--fields",
             help="DHIS2 field selector: plain ('id,name'), presets (':identifiable', ':nameable', ':owner', ':all'), "
-            "nested ('children[id,name]'), or exclusions (':all,!lastUpdated').",
+            "nested ('children[id,name]'), exclusions (':all,!lastUpdated'), or transformers "
+            "('organisationUnits~size' for the count, '~isEmpty', 'name~rename(label)').",
         ),
     ] = "id,name",
     filters: Annotated[
@@ -648,6 +649,14 @@ def _summary_cell(value: Any) -> str:
 
 
 def _print_table(resource: str, items: list[dict[str, Any]], columns: list[str]) -> None:
+    """Render the rows as a Rich table, one column per `--fields` expression.
+
+    A column header is the expression as typed, while the cell reads the key DHIS2 answered it
+    under — `organisationUnits~size` is asked for under that name and comes back as
+    `organisationUnits`.
+    """
+    from dhis2w_core.v41.plugins.metadata import service  # noqa: PLC0415
+
     columns = [c.strip() for c in columns if c.strip() and not c.startswith(":")]
     if not columns:
         # Fallback when a preset (`:identifiable`, etc.) was used — infer keys from the first row.
@@ -656,7 +665,7 @@ def _print_table(resource: str, items: list[dict[str, Any]], columns: list[str])
     for column in columns:
         table.add_column(column, overflow="fold")
     for item in items:
-        table.add_row(*[_cell(item.get(column)) for column in columns])
+        table.add_row(*[_cell(item.get(service.response_key(column))) for column in columns])
     _console.print(table)
 
 

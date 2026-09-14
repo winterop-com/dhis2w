@@ -110,6 +110,8 @@ Plain, preset, nested, and transformed:
 | Exclusion | `:all,!lastUpdated` | `:all` minus `lastUpdated` |
 | Nested | `children[id,name,level]` | those fields inside each `children` entry |
 | Rename | `displayName~rename(label)` | DHIS2 returns the field as `label` |
+| Transform | `organisationUnits~size` | the collection's length instead of the collection |
+| Transform | `dataSetElements~isEmpty` | `true` when the collection is empty (`~isNotEmpty` inverts it) |
 
 ```bash
 # Presets save typing for the common shapes
@@ -120,7 +122,20 @@ d2w metadata list organisationUnits --fields "id,name,children[id,name]"
 
 # `:all,!<field>` excludes expensive fields
 d2w metadata list dashboards --fields ":all,!dashboardItems"
+
+# A transformer answers with a scalar: how many organisation units each data set
+# is assigned to, without transferring the assignments themselves
+d2w metadata list dataSets --fields "id,name,organisationUnits~size"
 ```
+
+A transformer replaces a collection with a scalar on the wire, which is not the shape the
+generated resource model declares, so a page selected with one is read through
+`TransformedMetadataRow` (typed `id` / `name`, every transformed column preserved) and rendered as
+DHIS2 sent it — in the JSON output and in the table, where the column header is the expression as
+typed and the cell reads the untransformed key. Every other selection still validates through the
+generated model. A selection DHIS2 answers in a shape neither model can hold raises
+`MetadataSelectionError`, which the CLI prints as its one-line `error:` and the MCP tool returns as
+the tool error, naming the selection responsible.
 
 ## Pagination
 

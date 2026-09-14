@@ -423,6 +423,10 @@ d2w metadata list dataElements \
   --fields id,name,shortName,valueType \
   --order name:asc \
   --page 1 --page-size 25
+
+# A field transformer replaces a collection with a scalar: how many organisation
+# units each data set is assigned to, without pulling the assignments.
+d2w metadata list dataSets --fields 'id,name,organisationUnits~size'
 ```
 
 ---
@@ -4147,7 +4151,8 @@ output shapes, MCP tool returns, error bodies, and configuration are all typed.
 Available across CLI, MCP, and library:
 
 - Multi-filter with OR/AND junction
-- Field selector (equivalent to DHIS2's `fields=` parameter)
+- Field selector (equivalent to DHIS2's `fields=` parameter), including the
+  field transformers `~size`, `~isEmpty`, `~isNotEmpty` and `~rename(...)`
 - Multi-column ordering
 - Paging with page/page-size
 

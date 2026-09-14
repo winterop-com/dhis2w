@@ -45,7 +45,10 @@ def register(mcp: Any) -> None:
 
         - `fields`: DHIS2 selector. Supports plain lists (`id,name`), presets
           (`:identifiable`, `:nameable`, `:owner`, `:all`), exclusions
-          (`:all,!lastUpdated`), and nested selectors (`children[id,name]`).
+          (`:all,!lastUpdated`), nested selectors (`children[id,name]`), and
+          field transformers (`organisationUnits~size` for the collection's
+          count, `~isEmpty`, `name~rename(label)`). A transformed selection
+          comes back as DHIS2 answered it, under the untransformed key.
         - `filters`: list of `property:operator:value` strings. Multiple filters
           default to AND; pass `root_junction="OR"` to OR them.
         - `order`: list of `property:asc|desc` clauses (later ones tie-break).

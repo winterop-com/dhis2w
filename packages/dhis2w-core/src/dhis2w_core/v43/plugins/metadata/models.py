@@ -6,6 +6,9 @@ meta keys (`system`, `date`). The bundle flows through the whole plugin
 (export, import, diff, dangling-ref walker); typing it once here means no
 callsite ever sees `dict[str, Any]` as a bundle type.
 
+`TransformedMetadataRow` is the row shape a `--fields` selection using a DHIS2
+field transformer (`organisationUnits~size`) answers with.
+
 `MetadataItem` is the typed item inside each resource collection.
 `extra="allow"` preserves every DHIS2 field without forcing a generated
 model per resource; `id` + `name` are typed because they're the two fields
@@ -33,6 +36,27 @@ class MetadataItem(BaseModel):
 
     def field(self, key: str) -> Any:
         """Read any non-typed field (from `model_extra`) or `None` when absent."""
+        if key in ("id", "name"):
+            return getattr(self, key)
+        return (self.model_extra or {}).get(key)
+
+
+class TransformedMetadataRow(BaseModel):
+    """One row of a listing whose `--fields` selection applies a DHIS2 field transformer.
+
+    A transformer answers with a shape the generated resource model does not declare:
+    `organisationUnits~size` returns the collection's length as a number, `~isEmpty` returns a
+    boolean, and `name~rename(label)` returns the value under a different key. `id` and `name`
+    stay typed; every other selected column lands in `model_extra` and is read through `value()`.
+    """
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    id: str | None = None
+    name: str | None = None
+
+    def value(self, key: str) -> Any:
+        """Read one selected column by the key DHIS2 answered it under, or `None` when absent."""
         if key in ("id", "name"):
             return getattr(self, key)
         return (self.model_extra or {}).get(key)
