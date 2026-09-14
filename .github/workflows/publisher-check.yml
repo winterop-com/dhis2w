@@ -31,8 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      # The runner has 16 GB. The scaffolded Makefile wants the VM at heap + ~2G, and
-      # the smallest guide fits in 4g.
+      # Pinned rather than derived. The Makefile would size the heap to this runner's VM,
+      # which makes the build depend on what GitHub happens to provision; the smallest
+      # guide fits in 4g, so say so and keep the run reproducible.
       JAVA_HEAP: 4g
       TX_SERVER: http://tx.fhir.org
       GUIDE: ${{ inputs.guide || 'aggregate-minimal' }}

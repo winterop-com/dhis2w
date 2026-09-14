@@ -144,8 +144,10 @@ def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
 
     assert "build: build-registry build-guide" in root
     assert root.index("build-registry:") < root.index("build-guide:")
-    assert "REGISTRY_HEAP" in root
-    assert "GUIDE_HEAP" in root
+    assert "$(FORWARD_HEAP)" in root
+    # Empty unless you set it: an empty override passed down would beat each project's own
+    # derived default and leave the publisher with no -Xmx at all.
+    assert "FORWARD_HEAP = $(if $(JAVA_HEAP),JAVA_HEAP=$(JAVA_HEAP))" in root
 
 
 def test_clean_all_reaches_both_terminology_caches() -> None:

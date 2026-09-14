@@ -180,7 +180,7 @@ def test_init_refresh_rewrites_the_makefile_the_scaffold_owns(workdir: Path) -> 
     project = _scaffold(workdir)
     makefile = project / "Makefile"
     rendered = makefile.read_text(encoding="utf-8")
-    makefile.write_text(rendered.replace("JAVA_HEAP ?= 8g", "JAVA_HEAP ?= 8g\nSTALE := 1", 1), encoding="utf-8")
+    makefile.write_text(rendered.replace("IG_DIR := ig", "IG_DIR := ig\nSTALE := 1", 1), encoding="utf-8")
 
     result = _runner.invoke(build_app(), ["fhir", "init", "project", "--refresh"])
 

@@ -78,7 +78,7 @@ layer are compiled from source.
 
 The scaffold's Makefile wraps every command on this page - `setup`, `sushi`,
 and `build` are the lines above, with the chown folded in as a prerequisite
-and the JVM heap lifted into a `JAVA_HEAP` variable, and `generate` /
+and the JVM heap derived into a `JAVA_HEAP` variable, and `generate` /
 `validate` are `uv run d2w fhir generate` / `... validate`. `build` runs one
 thing the lines above do not: the artifact scan below, which refuses a doomed
 publisher run before it starts. [Set up an IG
@@ -238,48 +238,82 @@ boundary attachment states its media type, that field binds to the IETF BCP
 13 media types, and only a terminology server can answer that value set.
 Those errors are the whole difference, and they go away online.
 
-**`JAVA_HEAP`** is the publisher's JVM heap, `8g` by default - the knob for
-exit 137:
+**`JAVA_HEAP`** is the publisher's JVM heap ceiling, and the Makefile sizes it
+to the machine rather than writing a number down: the docker VM's memory less
+2 GB, floored at `4g`, falling back to `8g` when docker cannot be asked. A
+literal would be wrong somewhere either way - too small for a national registry
+on a workstation, too large to survive on a laptop - and the VM knows. Every
+build states what it derived:
+
+```text
+publisher heap 22g, docker VM 24.0 GB
+```
+
+It is a ceiling, not a reservation: a guide that needs less simply uses less.
+Set it yourself on the command line or in the environment whenever you want to
+say, and the value outlives a refresh:
+
+```bash
+make build JAVA_HEAP=8g
+```
+
+### The two ways memory fails
+
+They look alike and need opposite fixes, so read which one you have before
+turning a knob.
+
+**Killed** - the ceiling is too large for the box:
 
 ```text
 Generating Summary Outputs (en)
 make: *** [build] Error 137
 ```
 
-137 is `128 + 9` - SIGKILL from the kernel's OOM killer. The give-away is
-that `ig/output` is empty afterwards: the publisher writes the site in one
-pass at the very end, so a build killed in the peak-memory phases leaves
-nothing behind. A real build error looks nothing like this - a Java stack
-trace, a different exit code, partial output on disk. The container carries
-no `--memory` limit, so it inherits the docker VM's allocation, and an 8 GB
-heap needs roughly 10 GB of room once metaspace, JVM native memory, and the
-OS are counted:
+137 is `128 + 9`, SIGKILL from the kernel's OOM killer. The give-away is that
+`ig/output` is empty afterwards: the publisher writes the site in one pass at
+the very end, so a build killed in the peak-memory phases leaves nothing
+behind. The build recognises this one and says so, naming the ceiling, the VM,
+the peak the container actually reached, and any other containers that were
+holding the VM at the time. The publisher and Jekyll share one container and
+Jekyll renders while the JVM is still resident, which is why kills land in the
+last phase and why stopping everything else is the first thing to try.
+
+**Out of memory** - the ceiling is too small for the guide:
+
+```text
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+```
+
+A Java stack trace, a different exit code, partial output on disk. This is a
+real build error, not a kill, and the fix is the opposite one: more heap.
+
+Confirm a suspected kill by dropping `--rm` from the run and then
+`docker inspect <container> --format '{{.State.OOMKilled}}'`.
+
+### What that costs in practice
+
+The two failures squeeze against each other through the heap-plus-2-gigabyte
+rule the derivation uses. Measured on one 16 GB docker VM against one
+national guide: `4g` dies in validation, `10g` clears validation and is then
+OOM-killed at Jekyll, and `8g` completes the whole build - about 21 minutes,
+site, package, and QA report. That is what a machine too small for its guide
+looks like, and it is the reason a publisher build wants the machine to itself.
+
+Measured on a national instance publishing all five levels - 12,581
+organisation units, 25,162 instances - the registry package peaked at 14-16 GB
+and the guide depending on it at 9.3-9.7 GB. A build at that scale needs a VM
+sized accordingly, and the derivation will hand it whatever the VM has.
+
+To run the publisher by hand with a heap of your own choosing:
 
 ```bash
 # bytes available to the docker VM
 docker info --format '{{.MemTotal}}'
 
-# a heap smaller than the 8g default, when you cannot raise the VM - -Xmx is the knob
 docker run --rm -v $(pwd)/ig:/home/publisher/ig -v fhir-ig-cache:/home/publisher/.fhir \
     fhir-ig \
     java -Xmx2g -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx http://tx.fhir.org
 ```
-
-Raising the VM's memory is the better fix either way; confirm a suspected OOM
-kill by dropping
-`--rm` from the run and then
-`docker inspect <container> --format '{{.State.OOMKilled}}'`.
-
-The other memory failure is the opposite one - the heap itself too small.
-A national-scale guide (8,000-plus publishable files) is what the `8g`
-default is sized for; a smaller heap dies mid-validation with
-`Exception in thread "main" java.lang.OutOfMemoryError: Java heap space`
-and a Java stack trace, which is a real build error, not a kill. The two
-knobs squeeze against each other through the heap-plus-2-gigabyte rule: on
-one 16 GB docker VM, measured on one national guide, `4g` dies in
-validation, `10g` clears validation and is then OOM-killed at Jekyll, and
-`8g` completes the whole build - about 21 minutes, site, package, and QA
-report.
 
 ## Size the build
 

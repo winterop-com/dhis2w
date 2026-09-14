@@ -587,7 +587,7 @@ chain in one command.
   `.python-version`, `ig/ig.ini` and `ig/fsh.ini` are the scaffold's own files
   and are rewritten from the current render whenever it differs - every knob
   the Makefile has is a `?=` default set on the command line (`make build
-  JAVA_HEAP=4g`) or in the environment, so an override outlives the refresh.
+  JAVA_HEAP=8g`) or in the environment, so an override outlives the refresh.
   Every other file is rewritten only when the current render reproduces every
   line already on disk in order. So a refresh
   adds what the scaffold gained (a new `path-resource` glob, a new `.gitignore`
@@ -648,14 +648,21 @@ chain in one command.
   `ig/input/pagecontent/**/*.md` is out of scope on purpose: markdown carries
   HTML by design. An existing project takes the gate up with one
   `d2w fhir init --refresh`.
-- **`JAVA_HEAP`** sizes the publisher JVM heap, `8g` by default - the knob for
-  an exit-137 OOM kill on a small docker VM.
+- **`JAVA_HEAP`** is the publisher's JVM heap ceiling, derived from the docker
+  VM's memory less 2 GB (floored at `4g`, falling back to `8g` when docker
+  cannot be asked) and stated on every build. It is a ceiling, not a
+  reservation. When the kernel kills a build, `build` and `build-bind` report
+  exit 137 in full - the ceiling, the VM, the peak the container reached, and
+  any other containers holding the VM - and name the opposite failure, an
+  `OutOfMemoryError`, so the two are not confused.
 - **`make registry-install`** in a guide that depends on a registry package
   streams the package's `package.tgz` (`REGISTRY_TGZ`, defaulting to
   `<registry.path>/ig/output/package.tgz`) into the shared package-cache volume
   under `<id>#<version>/package/`; `sushi`, `build` and `build-bind` depend on
-  it. The registry project builds in its own container with its own
-  `JAVA_HEAP`, so neither build carries the other's resources.
+  it. The registry project builds in its own container, so neither build
+  carries the other's resources; one `JAVA_HEAP` on the root Makefile reaches
+  both, and is forwarded only when set so each project keeps its own derived
+  default otherwise.
 - **Registry scale.** `d2w fhir generate org-units` warns at generate time once
   the registry passes 2,000 instances, because the IG publisher validates and
   renders every resource and the registry therefore sets the wall clock of
