@@ -26,6 +26,21 @@ SCOPE_SURFACE_FIELDS: dict[str, str] = {
     "trackedEntityAttributes": "tracked_entity_attributes",
 }
 
+#: The surfaces a project publishing forms grades, named as a reader of the report reads them. A
+#: package publishing the organisation-unit registry alone publishes none of them, and every one of
+#: its findings is therefore instance hygiene rather than something that project's build carries.
+FORM_SIDE_SURFACE_LABELS: dict[str, str] = {
+    "data_sets": "data sets",
+    "programs": "programs",
+    "program_stages": "program stages",
+    "data_elements": "data elements",
+    "tracked_entity_types": "tracked entity types",
+    "tracked_entity_attributes": "tracked entity attributes",
+    "option_sets": "option sets",
+    "categories": "categories",
+    "category_options": "category options",
+}
+
 
 class ValidationScope(BaseModel):
     """The UIDs the configured IG build emits, per surface - what "in scope" means for finding severity.
@@ -37,6 +52,15 @@ class ValidationScope(BaseModel):
     """
 
     model_config = ConfigDict(frozen=True)
+
+    publishes_forms: bool = True
+    """False for a package publishing the organisation-unit registry alone.
+
+    The form-side surfaces are then empty by decision rather than by an empty instance, which is
+    what lets the report say `not applicable` where it would otherwise say `0 findings` - and what
+    keeps a run from grading a whole instance's data sets against a project that publishes none.
+    The same fact `GenerateReport.applies` states per target, on the surface side.
+    """
 
     option_sets: frozenset[str] = frozenset()
     categories: frozenset[str] = frozenset()
@@ -203,6 +227,23 @@ class FhirValidationReport(BaseModel):
     object_count: int = 0
     code_coverage: CodeCoverage | None = None
     findings: list[ValidationFinding] = Field(default_factory=list)
+    publishes_forms: bool = True
+    """False for a package publishing the organisation-unit registry alone - see `not_applicable_surfaces`."""
+
+    @property
+    def not_applicable_surfaces(self) -> list[str]:
+        """The surfaces this project publishes nothing of, so nothing on them is its build's problem."""
+        return [] if self.publishes_forms else list(FORM_SIDE_SURFACE_LABELS.values())
+
+    @property
+    def scope_line(self) -> str:
+        """What the run graded against, in the one wording every renderer prints."""
+        if self.publishes_forms:
+            return "the whole configured selection"
+        return (
+            'organisation units alone - [ig] publishes = "organisation-units", so this project holds no '
+            "data set, program or form for the other checks to grade"
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

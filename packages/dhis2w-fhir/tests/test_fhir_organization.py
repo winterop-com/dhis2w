@@ -8,6 +8,8 @@ from dhis2w_fhir.attributes import AttributeCodeIndex, AttributeValueIn
 from dhis2w_fhir.config import GenerateConfig, NamingConfig
 from dhis2w_fhir.i18n import TranslationIn
 from dhis2w_fhir.resources.organisation_units import (
+    REGISTRY_EXAMPLE_IDENTIFIER,
+    REGISTRY_EXAMPLE_NAME,
     build_organisation_unit_instances,
     build_organisation_unit_level_terminology,
     build_organisation_unit_level_terminology_documents,
@@ -246,34 +248,37 @@ def test_profiles_artifact() -> None:
 
 _REGISTRY_EXAMPLES_GOLDEN = """Instance: D2OrganizationExample
 InstanceOf: D2Organization
-Title: "Example DHIS2 Organization - Sierra Leone (ImspTQPwCqd)"
-Description: "A worked D2Organization: DHIS2 organisation unit Sierra Leone (ImspTQPwCqd) as the legal entity, \
-carrying both DHIS2 identifiers and its hierarchy level."
+Title: "Example DHIS2 Organization"
+Description: "A worked D2Organization: Example organisation unit as the legal entity, carrying both DHIS2 \
+identifier slices the profile requires and its hierarchy level. Its identifier value d2-example belongs to no \
+organisation unit, so this example never answers a search for a published one."
 Usage: #example
 * id = "d2-organization-example"
 * identifier[dhis2id].system = $DHIS2-OU
-* identifier[dhis2id].value = "ImspTQPwCqd"
+* identifier[dhis2id].value = "d2-example"
 * identifier[dhis2code].system = $DHIS2-OU-CODE
-* identifier[dhis2code].value = "SL"
+* identifier[dhis2code].value = "d2-example"
 * active = true
-* name = "Sierra Leone"
+* name = "Example organisation unit"
 * type = D2OU_Level_CS#level-1 "Level 1"
 
 Instance: D2LocationExample
 InstanceOf: D2Location
-Title: "Example DHIS2 Location - Sierra Leone (ImspTQPwCqd)"
-Description: "A worked D2Location: DHIS2 organisation unit Sierra Leone (ImspTQPwCqd) as the physical place, \
-managed by the D2Organization of the same unit."
+Title: "Example DHIS2 Location"
+Description: "A worked D2Location: Example organisation unit as the physical place, managed by the D2Organization \
+of the same example. Its identifier value d2-example belongs to no organisation unit, so this example never \
+answers a search for a published one."
 Usage: #example
 * id = "d2-location-example"
 * identifier[dhis2id].system = $DHIS2-OU
-* identifier[dhis2id].value = "ImspTQPwCqd"
+* identifier[dhis2id].value = "d2-example"
 * identifier[dhis2code].system = $DHIS2-OU-CODE
-* identifier[dhis2code].value = "SL"
+* identifier[dhis2code].value = "d2-example"
 * status = #active
-* name = "Sierra Leone"
-* description = "A worked D2Location: DHIS2 organisation unit Sierra Leone (ImspTQPwCqd) as the physical place, \
-managed by the D2Organization of the same unit."
+* name = "Example organisation unit"
+* description = "A worked D2Location: Example organisation unit as the physical place, managed by the \
+D2Organization of the same example. Its identifier value d2-example belongs to no organisation unit, so this \
+example never answers a search for a published one."
 * extension[level].valueCoding = D2OU_Level_CS#level-1 "Level 1"
 * managingOrganization = Reference(D2OrganizationExample)
 """
@@ -289,16 +294,34 @@ def test_the_registry_profiles_publish_one_worked_example_each() -> None:
     assert artifact.content == _REGISTRY_EXAMPLES_GOLDEN
 
 
-def test_the_registry_examples_are_drawn_from_the_selections_own_root() -> None:
-    """The exemplar is the shallowest unit of the selection, so it validates against data the instance holds."""
+def test_the_registry_examples_take_their_shape_from_the_selections_own_root() -> None:
+    """The level and the position are the shallowest unit's, so the pair validates against shapes the instance holds."""
     artifact = build_registry_examples(
         [_ORPHAN, _DISTRICT], _CONFIG, ig_status="draft", level_names=OrganisationUnitLevelNames()
     )
     assert artifact is not None
-    assert '* identifier[dhis2id].value = "O6uvpzGd5pu"' in artifact.content
     assert '* type = D2OU_Level_CS#level-2 "Level 2"' in artifact.content
     assert "* position.longitude = -11.7383" in artifact.content
     assert "* position.latitude = 7.9647" in artifact.content
+
+
+def test_the_registry_examples_claim_no_organisation_unit_the_registry_publishes() -> None:
+    """The pair carries a synthetic identity, so an identifier search answers with one resource per unit.
+
+    Both profiles require the two identifier slices 1..1, so the pair has to state a UID and a code;
+    stating a selected unit's would publish a second document claiming that unit, which is what a
+    facade then counts as one unit more than the run wrote.
+    """
+    selection = [_ORPHAN, _DISTRICT, _ROOT]
+    artifact = build_registry_examples(selection, _CONFIG, ig_status="draft", level_names=OrganisationUnitLevelNames())
+    assert artifact is not None
+    for unit in selection:
+        assert f'"{unit.uid}"' not in artifact.content
+        assert unit.name not in artifact.content
+        if unit.code:
+            assert f'"{unit.code}"' not in artifact.content
+    assert artifact.content.count(f'.value = "{REGISTRY_EXAMPLE_IDENTIFIER}"') == 4
+    assert f'* name = "{REGISTRY_EXAMPLE_NAME}"' in artifact.content
 
 
 def test_the_registry_examples_follow_the_naming_tokens() -> None:

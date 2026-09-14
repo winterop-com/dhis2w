@@ -287,14 +287,20 @@ def compiled_run_health() -> MetadataHealth:
     return MetadataHealth(available=False, reason=COMPILED_RUN_REASON)
 
 
-async def read_metadata_health(client: Dhis2Client, config: GenerateConfig) -> MetadataHealth:
+async def read_metadata_health(
+    client: Dhis2Client, config: GenerateConfig, *, publishes_forms: bool = True
+) -> MetadataHealth:
     """Grade the instance behind this run: the validate findings over the selection, and its translations.
 
     The selection is resolved once and read by both halves - the validator grades severity against
     it, and the translation read narrows to it - so a national instance is scoped by one set of
     small reads rather than by two.
+
+    `publishes_forms` is False for a package publishing the organisation-unit registry alone, which
+    grades the organisation units and nothing else - the same scoping `d2w fhir validate` reads off
+    the project.
     """
-    scope = await resolve_validation_scope(client, config)
+    scope = await resolve_validation_scope(client, config, publishes_forms=publishes_forms)
     report = await validate_instance_codes(client, config, scope=scope)
     objects = await read_selected_translations(client, scope)
     return MetadataHealth(

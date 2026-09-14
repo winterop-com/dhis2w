@@ -68,4 +68,7 @@ async def read_metadata_health_report(request: Request) -> MetadataHealth:
     client = live_client(request)
     if client is None:
         return compiled_run_health()
-    return await read_metadata_health(client, serve_context(request).project.config.generate)
+    project = serve_context(request).project
+    return await read_metadata_health(
+        client, project.config.generate, publishes_forms=not project.config.publishes_organisation_units
+    )

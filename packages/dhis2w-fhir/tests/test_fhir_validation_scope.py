@@ -395,6 +395,58 @@ async def test_scope_resolution_mirrors_the_generate_selection(
 
 
 @respx.mock
+async def test_a_package_resolves_its_organisation_units_and_asks_for_nothing_else(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+) -> None:
+    """A package publishes the registry alone, so the four form-side reads are never made."""
+    mock_system_info("v42")
+    routes = _mock_scope_endpoints(
+        data_sets=[{"id": "Ds1aaaaaaaa"}],
+        programs=[{"id": "Pr1aaaaaaaa", "programType": "WITHOUT_REGISTRATION"}],
+        option_sets=[{"id": "OsXaaaaaaaa"}],
+        categories=[{"id": "Ca1aaaaaaaa"}],
+        organisation_units=[{"id": "Ou1aaaaaaaa"}],
+    )
+
+    async with open_client(resolve_profile("probe")) as client:
+        scope = await service.resolve_validation_scope(client, GenerateConfig(), publishes_forms=False)
+
+    assert scope.publishes_forms is False
+    assert scope.organisation_units == frozenset({"Ou1aaaaaaaa"})
+    assert scope.data_sets == frozenset()
+    assert scope.programs == frozenset()
+    assert scope.data_elements == frozenset()
+    assert scope.option_sets == frozenset()
+    assert scope.categories == frozenset()
+    assert routes["organisationUnits"].called
+    for resource in ("dataSets", "programs", "optionSets", "categories"):
+        assert not routes[resource].called
+
+
+def test_a_packages_findings_on_a_form_side_object_are_instance_hygiene() -> None:
+    """The instance's data sets are not this project's build path, so their defects are graded as hygiene."""
+    report = build_code_validation(
+        [],
+        [_collection("dataElements", MetadataItemIn(uid="De1aaaaaaaa", name="BCG doses", code=" X "))],
+        _CONFIG,
+        scope=ValidationScope(publishes_forms=False, organisation_units=frozenset({"Ou1aaaaaaaa"})),
+    )
+    assert [(finding.severity, finding.scope) for finding in report.findings] == [("info", "instance")]
+    assert report.publishes_forms is False
+    assert report.not_applicable_surfaces[0] == "data sets"
+    assert report.scope_line.startswith("organisation units alone")
+
+
+def test_a_guide_grades_every_surface_and_reports_nothing_as_not_applicable() -> None:
+    """The scoping is the package's own; a guide's report says it was graded against its whole selection."""
+    report = build_code_validation([], [], _CONFIG, scope=ValidationScope())
+    assert report.publishes_forms is True
+    assert report.not_applicable_surfaces == []
+    assert report.scope_line == "the whole configured selection"
+
+
+@respx.mock
 async def test_a_switched_off_table_leaves_the_scope_and_costs_no_read(
     probe_profile: None,  # noqa: ARG001
     mock_system_info: Callable[..., None],

@@ -24,9 +24,30 @@ character the publisher cannot survive.
   targets write straight to JSON, which the compile step copies through untouched.
 - `ig/input/fsh/**/*.fsh` - the FSH sources, generated and hand-authored alike. A hand-authored file
   passes no other gate in this toolchain.
+- `fhir.toml` and `ig/sushi-config.yaml` - the guide's own identity, which no DHIS2 selection
+  supplies and no compiled resource carries until SUSHI has run. A title carrying a `<` reaches the
+  ImplementationGuide resource and the pages rendered from it, so the publisher dies on it exactly
+  as it dies on a DHIS2 name - and on a project that has only run `generate` there is nothing else
+  on disk to find it in.
 
 `ig/input/pagecontent/**/*.md` is deliberately left out. Markdown carries HTML by design, so a `<`
 there is the page's own markup rather than a DHIS2 name that escaped.
+
+## What a finding is answered by
+
+Every finding carries its `origin` - where the offending value came from - and the remedy follows
+from it rather than from a guess made while printing. A DHIS2 name is renamed in DHIS2 or dropped
+from the selection; the guide's identity is changed in the `[ig]` table of `fhir.toml` and landed
+with `d2w fhir init --refresh`; a hand-authored source is edited, because nothing regenerates one.
+Naming the wrong one costs a reader the afternoon they spend looking for a DHIS2 object that does
+not exist.
+
+## Severity
+
+Most findings are build-aborting and exit the command 1, which is what `make build` runs it for. One
+is a warning: a published form whose organisation-unit assignment names no unit the project
+publishes. That build is valid and will publish - and the form it publishes is one nobody can submit
+a response to, which is worth a look before the publisher is paid for.
 
 ## What is checked, and why exactly this
 
@@ -39,21 +60,27 @@ One position per emit-site gate, so the disk scan refuses what generate refuses 
 | `text` | `_refuse_build_aborting_question_names` | the question rows of a Questionnaire page |
 | `identifier[].value` | `_refuse_build_aborting_objects`, on the code | the identifier table cell, written raw |
 
-A `description` is not checked, for the same reason the emit-site gates do not check one: adding a
-position here that generate does not refuse would make one gate call clean what the other refuses,
-which is the disagreement both exist to prevent.
+A resource's `description` is not checked, for the same reason the emit-site gates do not check one:
+adding a position here that generate does not refuse would make one gate call clean what the other
+refuses, which is the disagreement both exist to prevent. The IG's own `description` in
+`ig/sushi-config.yaml` is a different string with no emit-site gate behind it at all - no DHIS2
+object supplies it, so there is nothing for this to disagree with, and the publisher renders it on
+the guide's front matter like any other identity value.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
 from dhis2w_fhir.registry_package import RegistryMissingError, load_registry_documents
+from dhis2w_fhir.resources.questionnaires.assignments import ASSIGNMENT_DIRECTORY, ASSIGNMENT_LIST_RESOURCE_TYPE
+from dhis2w_fhir.scaffold import SUSHI_CONFIG_RELATIVE_PATH
 from dhis2w_fhir.validation import build_aborting_code, build_aborting_name
 from dhis2w_fhir.writer import is_generated_file
 
@@ -66,6 +93,7 @@ if TYPE_CHECKING:
 __all__ = [
     "ArtifactCheckReport",
     "ArtifactFinding",
+    "FindingOrigin",
     "check_publishable_artifacts",
 ]
 
@@ -134,15 +162,83 @@ _CODE_MESSAGE = (
     "strict-parses, so `make build` aborts in its last pass, once every resource has already been rendered."
 )
 
+
+class FindingOrigin(StrEnum):
+    """Where an offending value came from, which is the fact the line answering it follows from."""
+
+    DHIS2 = "dhis2"
+    """A DHIS2 name or code, carried byte-true into an artifact this toolchain generated."""
+
+    IG_IDENTITY = "ig-identity"
+    """The guide's own identity - the `[ig]` table of fhir.toml, and the sushi-config written from it."""
+
+    AUTHORED = "authored"
+    """A hand-authored source, which nothing regenerates."""
+
+    REGISTRY_SELECTION = "registry-selection"
+    """A reference into the organisation-unit registry package for a unit that package does not publish."""
+
+    REGISTRY_MISSING = "registry-missing"
+    """The registry package a guide depends on, which the scan could not read at all."""
+
+    ASSIGNMENT = "assignment"
+    """A published form whose organisation-unit assignment names no unit this project publishes."""
+
+
+FindingSeverity = Literal["build-aborting", "warning"]
+"""Whether a finding stops the build or only asks to be looked at before one is paid for."""
+
 #: The fix for a file this toolchain wrote: the object is wrong in DHIS2, and the artifacts follow from it.
 _GENERATED_REMEDY = "Rename it in DHIS2 or narrow the selection in fhir.toml, then run `d2w fhir generate` again."
 
 #: The fix for a hand-authored file: nothing regenerates it, so the file itself is where the '<' goes.
 _AUTHORED_REMEDY = "Edit the file and remove the '<' - nothing regenerates a hand-authored source."
 
+#: The fix for the guide's own identity, which fhir.toml states and a refresh lands in every file carrying it.
+_IG_IDENTITY_REMEDY = "Change `[ig] {key}` in fhir.toml, then run `d2w fhir init --refresh`."
+
+#: The fix for an identity value sushi-config states that no `[ig]` key spells directly, such as the
+#: description the scaffold derives from the title.
+_IG_IDENTITY_DERIVED_REMEDY = (
+    "Change the `[ig]` table in fhir.toml, then run `d2w fhir init --refresh` - "
+    "ig/sushi-config.yaml is written from it."
+)
+
+#: What answers a dangling registry reference: the two projects disagree about the selection.
+_REGISTRY_REMEDY = (
+    "regenerate both projects against the same instance - the guide's "
+    "[generate.organisation_units] selection and the registry package's have gone apart"
+)
+
+#: What answers a registry the scan could not read at all.
+_REGISTRY_UNREADABLE_REMEDY = (
+    "run `d2w fhir generate` in the registry checkout `path` names, or pass "
+    "`--registry-package <package.tgz>` so the scan can read what the package publishes"
+)
+
+#: What answers a form nobody can submit: the registry is narrower than the forms DHIS2 assigns.
+_ASSIGNMENT_REMEDY = (
+    "Raise `[generate.organisation_units] max_level` or widen the selection in fhir.toml, "
+    "then run `d2w fhir generate` again."
+)
+
+#: The line each origin is answered by, stated once. `ig-identity` is not here: its line names the
+#: key the value is stated under, so it is rendered from the finding rather than looked up.
+_ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
+    FindingOrigin.DHIS2: _GENERATED_REMEDY,
+    FindingOrigin.AUTHORED: _AUTHORED_REMEDY,
+    FindingOrigin.REGISTRY_SELECTION: _REGISTRY_REMEDY,
+    FindingOrigin.REGISTRY_MISSING: _REGISTRY_UNREADABLE_REMEDY,
+    FindingOrigin.ASSIGNMENT: _ASSIGNMENT_REMEDY,
+}
+
+#: The origins whose finding lets the build run. One: a form nobody can submit publishes perfectly
+#: well, so stopping the build over it would refuse a guide the publisher has no quarrel with.
+_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT})
+
 
 class ArtifactFinding(BaseModel):
-    """One on-disk string the IG publisher would abort on: where it sits, what it says, what to do."""
+    """One on-disk string a build is worth stopping for: where it sits, what it says, what to do."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -158,18 +254,35 @@ class ArtifactFinding(BaseModel):
     value: str
     """The offending string, byte-true, so a reader can search the instance for it."""
 
-    kind: Literal["name", "code", "registry"]
-    """What refused it: a DHIS2 name, a DHIS2 code emitted as an identifier, or a dangling registry reference."""
+    kind: Literal["name", "code", "registry", "assignment"]
+    """What raised it: a DHIS2 name, a DHIS2 code emitted as an identifier, a registry reference, an assignment."""
+
+    origin: FindingOrigin
+    """Where the value came from, which is what the remedy and the severity are read off."""
+
+    ig_key: str | None = None
+    """The `[ig]` key the value is stated under, for an identity value fhir.toml spells directly."""
 
     message: str
-    """Why the IG publisher aborts on this string, in the words the generate-time refusal uses."""
+    """Why the finding is worth a build, in the words the generate-time refusal uses."""
 
-    remedy: str
-    """The one line the finding is answered by - which differs for a generated file and an authored one."""
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def severity(self) -> FindingSeverity:
+        """Whether this finding stops the build or is a note on a build that would publish."""
+        return "warning" if self.origin in _WARNING_ORIGINS else "build-aborting"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def remedy(self) -> str:
+        """The one line the finding is answered by, which follows from where the value came from."""
+        if self.origin is not FindingOrigin.IG_IDENTITY:
+            return _ORIGIN_REMEDIES[self.origin]
+        return _IG_IDENTITY_DERIVED_REMEDY if self.ig_key is None else _IG_IDENTITY_REMEDY.format(key=self.ig_key)
 
 
 class ArtifactCheckReport(BaseModel):
-    """What one scan of a project's publishable inputs read, and everything it refuses the build over."""
+    """What one scan of a project's publishable inputs read, and everything it raises about them."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -183,8 +296,18 @@ class ArtifactCheckReport(BaseModel):
 
     @property
     def finding_count(self) -> int:
-        """How many build-aborting strings the scan found; zero is a build that may start."""
+        """How many findings the scan raised, of either severity."""
         return len(self.findings)
+
+    @property
+    def build_aborting_count(self) -> int:
+        """How many findings stop the build; zero is a build that may start."""
+        return sum(1 for finding in self.findings if finding.severity == "build-aborting")
+
+    @property
+    def warning_count(self) -> int:
+        """How many findings sit on a build that would publish anyway."""
+        return sum(1 for finding in self.findings if finding.severity == "warning")
 
     @property
     def file_count(self) -> int:
@@ -217,6 +340,10 @@ def check_publishable_artifacts(project: FhirProject, *, registry_package: Path 
     Offline and connectionless: the artifacts are the whole input. Findings sort by file, then by
     resource, then by element, so two runs over one unchanged tree read identically.
 
+    The guide's own identity is scanned alongside the artifacts, so a title carrying a `<` is found
+    on a project that has only run `generate` - before SUSHI compiles the ImplementationGuide the
+    publisher would otherwise die on it in.
+
     A guide depending on an organisation-unit registry package is additionally checked against what
     that package publishes, so a reference to a unit it does not carry is caught here rather than by
     the publisher after it has rendered everything else. `registry_package` names the archive when
@@ -235,6 +362,8 @@ def check_publishable_artifacts(project: FhirProject, *, registry_package: Path 
         findings.extend(_findings_in_document(document, path, root))
     for path in fsh_paths:
         findings.extend(_findings_in_fsh(path, root))
+    findings.extend(_ig_identity_findings(project))
+    findings.extend(_empty_assignment_findings(project, root))
     findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
     return ArtifactCheckReport(
@@ -288,8 +417,8 @@ def _findings_in_document(document: Any, path: Path, root: Path) -> list[Artifac
             field=hostile.field,
             value=hostile.value,
             kind=hostile.kind,
+            origin=FindingOrigin.DHIS2,
             message=_message(hostile.kind),
-            remedy=_GENERATED_REMEDY,
         )
         for hostile in _walk(document, prefix="", in_identifier=False)
     ]
@@ -321,7 +450,7 @@ def _findings_in_fsh(path: Path, root: Path) -> list[ArtifactFinding]:
     and a line scan costs nothing on a tree of hundreds of files. A triple-quoted multi-line string
     value, which no generate target emits, is not read.
     """
-    remedy = _GENERATED_REMEDY if is_generated_file(path) else _AUTHORED_REMEDY
+    origin = FindingOrigin.DHIS2 if is_generated_file(path) else FindingOrigin.AUTHORED
     relative = _relative(path, root)
     entity = _UNDECLARED_ENTITY
     findings: list[ArtifactFinding] = []
@@ -340,8 +469,8 @@ def _findings_in_fsh(path: Path, root: Path) -> list[ArtifactFinding]:
                 field=hostile.field,
                 value=hostile.value,
                 kind=hostile.kind,
+                origin=origin,
                 message=_message(hostile.kind),
-                remedy=remedy,
             )
         )
     return findings
@@ -386,22 +515,192 @@ def _message(kind: Literal["name", "code"]) -> str:
     return _NAME_MESSAGE if kind == "name" else _CODE_MESSAGE
 
 
+#: Why the guide's own identity aborts the publisher, and why no other file on disk says so first.
+_IG_IDENTITY_MESSAGE = (
+    "the guide's identity is written into the ImplementationGuide resource and every page rendered "
+    "from it, so a '<' in it aborts `make build` in its last pass - and until SUSHI has run, this is "
+    "the only place on disk carrying it."
+)
+
+#: The `[ig]` keys of fhir.toml whose value the publisher writes into a page, in the file's own order.
+#: `id`, `canonical` and `status` are not among them: each is a constrained token no '<' survives.
+_IG_CONFIG_KEYS = ("name", "title", "publisher")
+
+
+class _SushiIdentityLine(BaseModel):
+    """One identity value sushi-config states to the IG publisher, and where the file states it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    field: str
+    """The YAML element, as a reader of the file would name it."""
+
+    ig_key: str | None
+    """The `[ig]` key of fhir.toml the value is written from, where one spells it directly."""
+
+    pattern: str
+    """The line the value sits on, matched rather than parsed - the scaffold writes each as one scalar."""
+
+
+#: Every identity line of sushi-config the publisher carries into a page. `name` is matched at column
+#: 0 and the publisher's name at two spaces, so neither takes the other's line. The file is read here
+#: rather than only through fhir.toml because the publisher reads this file: a sushi-config edited
+#: away from the `[ig]` table is what the build would actually die on.
+_SUSHI_IDENTITY_LINES: tuple[_SushiIdentityLine, ...] = (
+    _SushiIdentityLine(field="name", ig_key="name", pattern=r"(?m)^name:(?P<value>.*)$"),
+    _SushiIdentityLine(field="title", ig_key="title", pattern=r"(?m)^title:(?P<value>.*)$"),
+    _SushiIdentityLine(field="description", ig_key=None, pattern=r"(?m)^description:(?P<value>.*)$"),
+    _SushiIdentityLine(field="publisher.name", ig_key="publisher", pattern=r"(?m)^  name:(?P<value>.*)$"),
+)
+
+
+def _ig_identity_findings(project: FhirProject) -> list[ArtifactFinding]:
+    """Every build-aborting string in the guide's own identity, named at the file that states it.
+
+    `fhir.toml` is read first because it is the source: `d2w fhir init --refresh` writes every other
+    file's copy from it, so the `[ig]` table is where the value is changed. `ig/sushi-config.yaml` is
+    read after it, for what fhir.toml does not spell - the description the scaffold derives from the
+    title - and for a file edited away from the table it was written from. A value already named at
+    its source is not named twice.
+    """
+    ig = project.config.ig
+    findings = [
+        ArtifactFinding(
+            file=FHIR_CONFIG_FILENAME,
+            resource_id=ig.id,
+            field=f"ig.{key}",
+            value=value,
+            kind="name",
+            origin=FindingOrigin.IG_IDENTITY,
+            ig_key=key,
+            message=_IG_IDENTITY_MESSAGE,
+        )
+        for key, value in ((key, str(getattr(ig, key))) for key in _IG_CONFIG_KEYS)
+        if build_aborting_name(value)
+    ]
+    published = _read_text(project.project_root / SUSHI_CONFIG_RELATIVE_PATH)
+    if published is None:
+        return findings
+    stated = {finding.value for finding in findings}
+    for line in _SUSHI_IDENTITY_LINES:
+        match = re.search(line.pattern, published)
+        if match is None:
+            continue
+        value = match.group("value").strip()
+        if not build_aborting_name(value) or value in stated:
+            continue
+        findings.append(
+            ArtifactFinding(
+                file=SUSHI_CONFIG_RELATIVE_PATH,
+                resource_id=ig.id,
+                field=line.field,
+                value=value,
+                kind="name",
+                origin=FindingOrigin.IG_IDENTITY,
+                ig_key=line.ig_key,
+                message=_IG_IDENTITY_MESSAGE,
+            )
+        )
+    return findings
+
+
+#: Why a form whose assignment names nothing is worth stopping for, and why it stops nothing itself.
+_EMPTY_ASSIGNMENT_MESSAGE = (
+    "the form's organisation-unit assignment List names no unit this project publishes, so no unit "
+    "may report it and the facade refuses to draft a response for it. The guide builds and publishes "
+    "either way, which is why this is a warning: what it costs is a form, not a build."
+)
+
+#: The element an assignment List carries its members on. A List with none is one no unit is on.
+_LIST_ENTRY_ELEMENT = "entry"
+
+#: One FSH `Reference(<target>)`, which is how a generated Questionnaire names its assignment List.
+_FSH_REFERENCE = re.compile(r"Reference\((?P<target>[^)\s]+)\)")
+
+
+def _empty_assignment_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
+    """Every published form referencing an organisation-unit assignment List that names no unit.
+
+    Counted in forms rather than in the data sets and programs DHIS2 hangs the assignment on: a
+    tracker program's stages each publish a Questionnaire of their own and share the one List, and
+    the form is what a capture client is refused at. It is the same unit `d2w fhir generate` reports
+    and the same unit the facade counts when it answers `$generate` with a 422.
+    """
+    empty = _empty_assignment_list_ids(project)
+    if not empty:
+        return []
+    references = {f"{ASSIGNMENT_LIST_RESOURCE_TYPE}/{list_id}" for list_id in sorted(empty)}
+    findings: list[ArtifactFinding] = []
+    for path in _json_paths(project):
+        document = _read_document(path)
+        if not isinstance(document, dict) or not isinstance(document.get(_RESOURCE_TYPE_ELEMENT), str):
+            continue
+        resource_id = document.get("id")
+        named = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
+        findings.extend(
+            _empty_assignment_finding(_relative(path, root), named, field, value)
+            for field, value in _strings(document, prefix="")
+            if value in references
+        )
+    for path in _fsh_paths(project):
+        text = _read_text(path)
+        if text is None:
+            continue
+        findings.extend(
+            _empty_assignment_finding(_relative(path, root), path.stem, f"line {number}", match.group("target"))
+            for number, line in enumerate(text.splitlines(), start=1)
+            for match in _FSH_REFERENCE.finditer(line)
+            if match.group("target") in references
+        )
+    return findings
+
+
+def _empty_assignment_finding(file: str, resource_id: str, field: str, value: str) -> ArtifactFinding:
+    """One form named at the reference by which it names an assignment List no unit is on."""
+    return ArtifactFinding(
+        file=file,
+        resource_id=resource_id,
+        field=field,
+        value=value,
+        kind="assignment",
+        origin=FindingOrigin.ASSIGNMENT,
+        message=_EMPTY_ASSIGNMENT_MESSAGE,
+    )
+
+
+def _empty_assignment_list_ids(project: FhirProject) -> set[str]:
+    """The ids of the assignment Lists on disk that carry no entry at all.
+
+    The Lists are pre-built JSON the compile step passes through untouched, so they read the same
+    before and after SUSHI has run - which is what lets this answer on a project that has only
+    generated.
+    """
+    directory = project.resources_directory / ASSIGNMENT_DIRECTORY
+    if not directory.is_dir():
+        return set()
+    ids: set[str] = set()
+    for path in sorted(directory.glob("*.json")):
+        document = _read_document(path)
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != ASSIGNMENT_LIST_RESOURCE_TYPE:
+            continue
+        list_id = document.get("id")
+        if isinstance(list_id, str) and not document.get(_LIST_ENTRY_ELEMENT):
+            ids.add(list_id)
+    return ids
+
+
+def _read_text(path: Path) -> str | None:
+    """Read one file as text, treating an absent or undecodable file as nothing to scan."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 #: Why a reference into the registry package the guide does not publish stops a build.
 _REGISTRY_MESSAGE = (
     "the guide references an organisation unit the registry package it depends on does not publish, "
     "and the IG publisher cannot resolve it"
-)
-
-#: What answers a dangling registry reference: the two projects disagree about the selection.
-_REGISTRY_REMEDY = (
-    "regenerate both projects against the same instance - the guide's "
-    "[generate.organisation_units] selection and the registry package's have gone apart"
-)
-
-#: What answers a registry the scan could not read at all.
-_REGISTRY_UNREADABLE_REMEDY = (
-    "run `d2w fhir generate` in the registry checkout `path` names, or pass "
-    "`--registry-package <package.tgz>` so the scan can read what the package publishes"
 )
 
 
@@ -432,8 +731,8 @@ def _registry_findings(project: FhirProject, root: Path, package: Path | None) -
                 field="generate.organisation_units.registry",
                 value=registry.canonical,
                 kind="registry",
+                origin=FindingOrigin.REGISTRY_MISSING,
                 message=str(error),
-                remedy=_REGISTRY_UNREADABLE_REMEDY,
             )
         ]
     prefix = f"{registry.canonical}/Location/"
@@ -444,8 +743,8 @@ def _registry_findings(project: FhirProject, root: Path, package: Path | None) -
             field=reference.field,
             value=reference.value,
             kind="registry",
+            origin=FindingOrigin.REGISTRY_SELECTION,
             message=_REGISTRY_MESSAGE,
-            remedy=_REGISTRY_REMEDY,
         )
         for reference in _registry_references(project, root, prefix)
         if reference.value.removeprefix(prefix).split("/", 1)[0] not in published
