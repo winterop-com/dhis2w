@@ -4,9 +4,17 @@
 DOCKER_IMAGE := fhir-ig
 IG_DIR := ig
 TX_SERVER ?= http://tx.fhir.org
-# The publisher JVM heap. Keep the docker VM at JAVA_HEAP + ~2G - 10 GB at this default - or the
-# kernel OOM-kills the build (exit 137). Drop to 4g or 2g on a smaller VM.
-JAVA_HEAP ?= 8g
+# The publisher JVM heap ceiling, sized to this machine: the docker VM less 2G. A build wants the
+# machine to itself - the publisher and Jekyll share one container, and Jekyll renders the site at
+# the very end with the JVM still resident - so stop your other containers for the run. If the
+# kernel kills it anyway the build says so and names every way out. This is a ceiling, not a
+# reservation: a guide that needs less simply uses less. Override it freely on the command line or
+# in the environment (`make build JAVA_HEAP=8g`); the value lives outside this file, so a refresh
+# leaves it alone.
+{% raw %}JAVA_HEAP ?= $(shell docker info --format '{{.MemTotal}}' 2>/dev/null \
+	| awk '{ gigabytes = int(($$1 / 1073741824) - 2); if (gigabytes < 4) gigabytes = 4; print gigabytes "g" }' \
+	| grep . || echo 8g){% endraw %}
+
 # The toolchain uv.lock pins. Override to run a checkout: D2W="uv run --project /path/to/dhis2w d2w"
 D2W ?= uv run d2w
 # Named volume for the FHIR package cache - the bulk of a cold build's wall clock.
@@ -19,6 +27,44 @@ BUILD_WORKDIR := /home/publisher/work
 # and package caches the next build reuses. `temp/` and `template/` stay behind: nothing reads them,
 # and they are the bulk of what a build writes.
 BUILD_CARRIED_BACK := output fsh-generated input-cache
+
+# What `build` and `build-bind` print when the kernel kills the publisher. Exit 137 on its own says
+# nothing, and the two memory failures need opposite fixes - too large a ceiling for the box is a
+# SIGKILL, too small a one for the guide is an OutOfMemoryError - so the message names both. The
+# list of other containers is omitted when there are none, rather than advising a fix that does not
+# apply.
+define REPORT_OOM_KILL
+	printf '%s\n' \
+		'' \
+		'================================================================' \
+		'  BUILD KILLED - out of memory (exit 137)' \
+		'================================================================' \
+		'  The kernel SIGKILLed the publisher. This is not a build error:' \
+		'  ig/output is empty or partial because the site is written last.' \
+		''; \
+	printf '    %-14s %s\n' \
+		'heap ceiling' '-Xmx$(JAVA_HEAP)' \
+		'docker VM' "$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null \
+			| awk '{ printf "%.1f GB", $$1 / 1073741824 }')"; \
+	others=$$(docker ps --format '{% raw %}{{.Names}}  {{.Image}}{% endraw %}' 2>/dev/null); \
+	if [ -n "$$others" ]; then \
+		printf '%s\n' '' '  Other containers were holding this VM during the build:'; \
+		printf '%s\n' "$$others" | sed 's/^/      /'; \
+	fi; \
+	printf '%s\n' \
+		'' \
+		'  Ways out, best first:' \
+		'' \
+		'    1. Stop any other containers and run it again - a publisher' \
+		'       build wants the machine to itself.' \
+		'    2. Raise the VM:  Docker Desktop > Settings > Resources > Memory' \
+		'    3. Lower the ceiling:  make build JAVA_HEAP=<smaller>' \
+		'' \
+		'  The opposite failure looks different: OutOfMemoryError with a Java' \
+		'  stack trace means the ceiling is too SMALL. Raise it instead.' \
+		'================================================================' \
+		''
+endef
 {% if registry %}
 # The organisation-unit registry package this guide depends on, from fhir.toml's
 # [generate.organisation_units.registry]. SUSHI and the publisher resolve a dependency from the
@@ -110,6 +156,14 @@ build: cache-init  ## Run the full IG publisher
 # in, built there, and the results streamed back - two bulk copies instead of one file at a time.
 # Linux mounts a host directory directly and pays none of that; the recipe is the same either way
 # because a project that builds one way on one machine should build the same way on the other.
+# The heap is stated up front because it is derived from this machine rather than written in this
+# file, and a number nobody can see is a number nobody can question. The peak the container actually
+# reached is read back out of its own cgroup before it exits - `--rm` takes the container away, so
+# it cannot be asked afterwards - and printed either way. On a kill it is the evidence; on a success
+# it is the only thing that ever answers "is the ceiling big enough" with a measurement.
+	@printf 'publisher heap %s, docker VM %s\n' '$(JAVA_HEAP)' \
+		"$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null | awk '{ printf "%.1f GB", $$1 / 1073741824 }')"
+	@status=0; \
 	docker run --rm -v $$(pwd)/$(IG_DIR):/mnt/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
 		$(DOCKER_IMAGE) bash -c 'set -e; \
 			rm -rf $(BUILD_WORKDIR); mkdir -p $(BUILD_WORKDIR); \
@@ -119,13 +173,17 @@ build: cache-init  ## Run the full IG publisher
 			status=0; \
 			java -Xmx$(JAVA_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
 				|| status=$$?; \
+			awk "{ printf \"peak container memory %.1f GB\n\", \$$1 / 1073741824 }" \
+				/sys/fs/cgroup/memory.peak 2>/dev/null || true; \
 			for carried in $(BUILD_CARRIED_BACK); do \
 				if [ -d "$(BUILD_WORKDIR)/$$carried" ]; then \
 					rm -rf "/mnt/ig/$$carried"; \
 					tar -C $(BUILD_WORKDIR) -cf - "$$carried" | tar -C /mnt/ig -xf -; \
 				fi; \
 			done; \
-			exit $$status'
+			exit $$status' || status=$$?; \
+	if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi; \
+	exit $$status
 
 .PHONY: build-bind
 
@@ -137,9 +195,17 @@ build-bind: cache-init  ## Run the publisher straight over the mounted project, 
 # The same build without the two copies. Worth reaching for when you want to watch output/ fill up
 # as it is written, or when a copy is what you suspect. On macOS it is the slower of the two.
 	$(MAKE) check
+# The publisher is the container's own command here, with no shell of ours around it, so there is
+# nowhere inside to read the cgroup from - this build reports the kill but not the peak.
+	@printf 'publisher heap %s, docker VM %s\n' '$(JAVA_HEAP)' \
+		"$$(docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null | awk '{ printf "%.1f GB", $$1 / 1073741824 }')"
+	@status=0; \
 	docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
 		$(DOCKER_IMAGE) \
-		java -Xmx$(JAVA_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER)
+		java -Xmx$(JAVA_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
+		|| status=$$?; \
+	if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi; \
+	exit $$status
 
 .PHONY: serve serve-live
 

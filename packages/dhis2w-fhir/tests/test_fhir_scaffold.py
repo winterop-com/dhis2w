@@ -44,6 +44,18 @@ def _by_path() -> dict[str, str]:
     return {file.relative_path: file.content for file in build_scaffold_files(_OPTIONS)}
 
 
+def _makefile_recipe(makefile: str, target: str) -> str:
+    """One target's recipe, from its header line to the next target or `.PHONY`."""
+    lines = makefile.splitlines()
+    start = next(index for index, line in enumerate(lines) if line.startswith(f"{target}:"))
+    recipe: list[str] = []
+    for line in lines[start + 1 :]:
+        if line.startswith(".PHONY") or (line and not line[0].isspace() and not line.startswith("#")):
+            break
+        recipe.append(line)
+    return "\n".join(recipe)
+
+
 def _write_project(directory: Path, options: InitOptions = _OPTIONS, *, copyright_year: int | None = None) -> None:
     """Write a full scaffold into `directory`, standing in for a project `d2w fhir init` created."""
     for file in build_scaffold_files(options, copyright_year=copyright_year):
@@ -516,7 +528,7 @@ def test_makefile_refresh_chains_the_full_rebuild_and_keeps_the_caches() -> None
     what they hold. `make clean-all` stays the deliberate act for wiping them.
     """
     makefile = _by_path()["Makefile"]
-    refresh_recipe = makefile.split("refresh:")[1]
+    refresh_recipe = makefile.split("\nrefresh:")[1]
     steps = [line.strip() for line in refresh_recipe.splitlines() if line.startswith("\t")]
     assert steps == [
         "$(MAKE) clean",
@@ -550,12 +562,57 @@ def test_makefile_uses_real_tabs() -> None:
     assert "\t$(D2W) fhir validate" in makefile
 
 
-def test_makefile_publisher_heap_is_overridable() -> None:
-    """`JAVA_HEAP` is a `?=` default the build target reads, so a small docker VM can shrink the heap."""
+def test_makefile_publisher_heap_is_derived_from_the_docker_vm() -> None:
+    """The ceiling is sized to the machine, because the constraint is the box and not the guide.
+
+    A literal would be wrong on some machine either way: too small for a national registry on a
+    workstation, too large to survive on a laptop. The VM knows, and is asked.
+    """
     makefile = _by_path()["Makefile"]
-    assert "JAVA_HEAP ?= 8g" in makefile
+    assert "JAVA_HEAP ?= $(shell docker info --format '{{.MemTotal}}'" in makefile
     assert "java -Xmx$(JAVA_HEAP) -jar" in makefile
     assert "-Xmx8g" not in makefile
+
+
+def test_makefile_publisher_heap_falls_back_when_docker_cannot_be_asked() -> None:
+    """A docker that will not answer must leave a usable number, not an empty `-Xmx`."""
+    makefile = _by_path()["Makefile"]
+    assert "|| echo 8g)" in makefile
+    assert "2>/dev/null" in makefile.split("JAVA_HEAP ?=", 1)[1].split("\n\n", 1)[0]
+
+
+def test_makefile_names_the_kill_and_both_ways_memory_fails() -> None:
+    """Exit 137 says nothing on its own, and the two memory failures need opposite fixes.
+
+    Too large a ceiling for the box is a SIGKILL; too small a one for the guide is an
+    OutOfMemoryError. A message naming only one of them sends half its readers the wrong way.
+    """
+    makefile = _by_path()["Makefile"]
+    assert "define REPORT_OOM_KILL" in makefile
+    assert "BUILD KILLED - out of memory (exit 137)" in makefile
+    assert "OutOfMemoryError" in makefile
+    assert "Raise the VM" in makefile
+    assert "Lower the ceiling" in makefile
+    assert "Stop any other containers" in makefile
+
+
+@pytest.mark.parametrize("target", ["build", "build-bind"])
+def test_both_publisher_builds_report_a_kill(target: str) -> None:
+    """`build-bind` runs the publisher as the container's own command, so it is easy to leave out."""
+    recipe = _makefile_recipe(_by_path()["Makefile"], target)
+    assert "if [ $$status -eq 137 ]; then $(REPORT_OOM_KILL); fi" in recipe
+    assert "exit $$status" in recipe
+
+
+def test_the_copying_build_reports_the_peak_it_reached() -> None:
+    """Read from inside the container: `--rm` takes it away, so it cannot be asked afterwards.
+
+    On a kill this is the evidence. On a success it is the only thing that answers "is the ceiling
+    big enough" with a measurement rather than a guess.
+    """
+    recipe = _makefile_recipe(_by_path()["Makefile"], "build")
+    assert "/sys/fs/cgroup/memory.peak" in recipe
+    assert "peak container memory" in recipe
 
 
 def test_makefile_drives_d2w_through_the_projects_own_environment() -> None:

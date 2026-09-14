@@ -332,7 +332,7 @@ Two rules decide what a refresh writes.
 `ig/fsh.ini` are the scaffold's own files, and a refresh rewrites each of them
 from the current render whenever it differs.** There is nothing in them to
 protect: every knob the Makefile has is a `?=` default - `D2W`, `TX_SERVER`,
-`JAVA_HEAP` - that you set on the command line (`make build JAVA_HEAP=4g`) or
+`JAVA_HEAP` - that you set on the command line (`make build JAVA_HEAP=8g`) or
 in the environment, so your override lives outside the file and outlives the
 refresh; the Dockerfile and `.python-version` pin the image and the
 interpreter; and `ig/ig.ini` and `ig/fsh.ini` carry values the project states

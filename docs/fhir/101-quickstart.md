@@ -411,8 +411,8 @@ $ open ig/output/index.html
 
 The scaffold's Makefile wraps every command on this page, and that is the only
 mention it gets here: `make validate` and `make generate` are the `uv run d2w`
-lines above verbatim, while `make build` adds the cache chown and a `JAVA_HEAP`
-knob to the publisher invocation. [Set up an IG
+lines above verbatim, while `make build` adds the cache chown and sizes the
+publisher's heap to this machine's docker VM. [Set up an IG
 project](201-set-up-a-project.md) documents the targets.
 
 ## 7. Serve it as a FHIR endpoint

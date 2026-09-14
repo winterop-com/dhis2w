@@ -1,19 +1,22 @@
 # Maintained by `d2w fhir init --refresh`, which rewrites this file from the current scaffold.
 #
 # The two projects of a split guide, driven as one. Each keeps its own Makefile - the one
-# `d2w fhir init` wrote, with its own JAVA_HEAP and its own docker run. This file does nothing
-# they cannot do; it puts them in the right order and saves you two `cd`s.
+# `d2w fhir init` wrote, with its own docker run. This file does nothing they cannot do; it puts
+# them in the right order and saves you two `cd`s.
 #
 # THE ORDER IS THE POINT. The registry builds first and writes a package; the guide installs that
 # package and builds against it. A guide built first has a dependency the publisher cannot resolve.
 REGISTRY := {{ registry_root }}
 GUIDE    := {{ guide_root }}
 
-# The publisher's JVM heap, per project, because the two are not alike. The registry renders one
-# resource per organisation unit and needs room for all of them; the guide renders its forms and
-# loads the registry package beside them. Keep the docker VM above JAVA_HEAP + ~2G.
-REGISTRY_HEAP ?= 8g
-GUIDE_HEAP    ?= 8g
+# The publisher's JVM heap ceiling, passed to both builds. One knob covers the two because a
+# ceiling is not a reservation: the registry renders one resource per organisation unit and grows
+# into it, the guide renders its forms and does not. Each project derives its own default from the
+# docker VM when this is unset, so it is forwarded only when you set it - an empty value passed
+# down would beat the child's own default and leave the publisher with no -Xmx at all:
+#   make build JAVA_HEAP=8g
+JAVA_HEAP ?=
+FORWARD_HEAP = $(if $(JAVA_HEAP),JAVA_HEAP=$(JAVA_HEAP))
 
 # The toolchain both projects run. Each resolves `d2w` from its own uv.lock by default, which is a
 # PyPI release rather than a checkout. Point this at a checkout to run unreleased code:
@@ -54,11 +57,11 @@ build: build-registry build-guide  ## Build both, in the only order that resolve
 
 .PHONY: build-registry
 build-registry:  ## Build the registry package -> $(REGISTRY)/ig/output/package.tgz
-	@$(call MAKE_PROJECT,$(REGISTRY)) build JAVA_HEAP=$(REGISTRY_HEAP)
+	@$(call MAKE_PROJECT,$(REGISTRY)) build $(FORWARD_HEAP)
 
 .PHONY: build-guide
 build-guide:  ## Install the registry package into the publisher's cache, then build the guide
-	@$(call MAKE_PROJECT,$(GUIDE)) build JAVA_HEAP=$(GUIDE_HEAP)
+	@$(call MAKE_PROJECT,$(GUIDE)) build $(FORWARD_HEAP)
 
 .PHONY: install-registry
 install-registry:  ## Install the built package into the shared package cache, without building the guide

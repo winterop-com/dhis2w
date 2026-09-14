@@ -153,9 +153,11 @@ make build REGISTRY_TGZ=/downloads/dhis2.fhir.example.registry-0.1.0.tgz
 ```
 
 The two builds never share a container. Each project has its own Makefile and
-its own `JAVA_HEAP`, so the registry's depth is a dial on the registry project
+its own publisher run, so the registry's depth is a dial on the registry project
 rather than on the guide - which is what lets the registry reach a level the
-forms never had room for beside them.
+forms never had room for beside them. Each sizes its heap from the same docker
+VM, and the root Makefile's `JAVA_HEAP` overrides both at once when you want to
+say.
 
 Measured on the same national instance, the same selection built three ways:
 

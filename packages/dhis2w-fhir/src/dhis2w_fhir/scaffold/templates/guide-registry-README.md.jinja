@@ -54,9 +54,10 @@ Keep the guide's own `[generate.organisation_units]` saying the same thing: it
 decides which units the forms may refer to, and `make check` reports every
 reference the package does not publish.
 
-`REGISTRY_HEAP` and `GUIDE_HEAP` in the Makefile size each publisher run
-separately, which is the point of the split - the registry's depth is a dial on
-the registry project, not on the guide.
+The two builds never share a container, which is the point of the split: the
+registry's depth is a dial on the registry project, not on the guide. Each sizes
+the publisher's heap from this machine's docker VM, so neither needs telling;
+`make build JAVA_HEAP=8g` overrides both at once when you want to say.
 
 ## Reading further
 
