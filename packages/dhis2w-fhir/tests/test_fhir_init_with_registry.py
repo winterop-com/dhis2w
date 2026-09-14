@@ -8,6 +8,9 @@ identity and cannot drift apart.
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -42,6 +45,17 @@ _OPTIONS = InitOptions(
 def _by_path(options: InitOptions = _OPTIONS) -> dict[str, str]:
     """Both projects plus the two root files, indexed by path under the directory that holds them."""
     return {f.relative_path: f.content for f in build_guide_and_registry_files(options, copyright_year=2026)}
+
+
+def _restate(directory: Path, *, title: str | None = None, canonical: str | None = None) -> None:
+    """Rename the guide in its own `fhir.toml`, which is where a refresh reads the pair's identity."""
+    config = directory / GUIDE_RELATIVE_ROOT / "fhir.toml"
+    text = config.read_text(encoding="utf-8")
+    if title is not None:
+        text = text.replace(f'title = "{_OPTIONS.title}"', f'title = "{title}"', 1)
+    if canonical is not None:
+        text = text.replace(f'canonical = "{_OPTIONS.canonical}"', f'canonical = "{canonical}"', 1)
+    config.write_text(text, encoding="utf-8")
 
 
 def _write(directory: Path, options: InitOptions = _OPTIONS) -> Path:
@@ -199,6 +213,157 @@ def test_a_refresh_with_nothing_changed_writes_nothing(tmp_path: Path) -> None:
     assert report.refreshed_files == []
     assert report.created_files == []
     assert report.diverged_files == []
+
+
+def test_a_refresh_keeps_a_paragraph_the_reader_added_to_the_readme(tmp_path: Path) -> None:
+    """The README is prose, so a deployment note written into it is what a refresh is there to keep."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    extended = readme.read_text(encoding="utf-8") + "\nDeployment instructions added by the user.\n"
+    readme.write_text(extended, encoding="utf-8")
+
+    report = refresh_project(tmp_path)
+
+    assert report.extended_files == ["README.md"]
+    assert report.refreshed_files == []
+    assert readme.read_text(encoding="utf-8") == extended
+
+
+def test_a_refresh_keeps_a_readme_whose_scaffold_line_was_rewritten(tmp_path: Path) -> None:
+    """A line the current scaffold does not write names no author, so the reader's version stays."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    rendered = readme.read_text(encoding="utf-8")
+    edited = rendered.replace("## Sizing the registry", "## How deep we publish", 1)
+    assert edited != rendered
+    readme.write_text(edited, encoding="utf-8")
+
+    report = refresh_project(tmp_path)
+
+    assert report.diverged_files == ["README.md"]
+    assert readme.read_text(encoding="utf-8") == edited
+
+
+def test_a_refresh_writes_a_readme_the_current_scaffold_carries_whole(tmp_path: Path) -> None:
+    """A README holding nothing of its own is rewritten, so the scaffold's own additions land."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    rendered = readme.read_text(encoding="utf-8")
+    stale = rendered.split("## Sizing the registry", 1)[0]
+    readme.write_text(stale, encoding="utf-8")
+
+    report = refresh_project(tmp_path)
+
+    assert report.refreshed_files == ["README.md"]
+    assert readme.read_text(encoding="utf-8") == rendered
+
+
+def test_a_refresh_writes_the_renamed_title_onto_a_pristine_readme(tmp_path: Path) -> None:
+    """The pair's cover carries the guide's title, which `fhir.toml` declares and the reader does not."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    assert readme.read_text(encoding="utf-8").startswith(f"# {_OPTIONS.title}\n")
+    _restate(tmp_path, title="National HMIS Implementation Guide")
+
+    report = refresh_project(tmp_path)
+
+    assert "README.md" in report.refreshed_files
+    assert report.diverged_files == []
+    assert readme.read_text(encoding="utf-8").startswith("# National HMIS Implementation Guide\n")
+
+
+def test_a_refresh_writes_the_renamed_title_onto_a_readme_the_reader_added_to(tmp_path: Path) -> None:
+    """One rename lands on the cover of a README that also carries the reader's own prose."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + "\nDeployment instructions added by the user.\n")
+    _restate(tmp_path, title="National HMIS Implementation Guide")
+
+    report = refresh_project(tmp_path)
+
+    assert "README.md" in report.refreshed_files
+    assert report.diverged_files == []
+    refreshed = readme.read_text(encoding="utf-8")
+    assert refreshed.startswith("# National HMIS Implementation Guide\n")
+    assert refreshed.endswith("Deployment instructions added by the user.\n")
+
+
+def test_a_refresh_writes_the_renamed_registry_canonical_onto_the_readme(tmp_path: Path) -> None:
+    """The README documents the canonical every unit reference sits under, so a rename has to reach it."""
+    _write(tmp_path)
+    readme = tmp_path / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + "\nDeployment instructions added by the user.\n")
+    _restate(tmp_path, canonical="http://national.example.org/fhir")
+
+    report = refresh_project(tmp_path)
+
+    assert "README.md" in report.refreshed_files
+    assert report.diverged_files == []
+    refreshed = readme.read_text(encoding="utf-8")
+    assert "The package's canonical is `http://national.example.org/fhir/registry`." in refreshed
+    assert _OPTIONS.canonical not in refreshed
+    assert refreshed.endswith("Deployment instructions added by the user.\n")
+
+
+def test_a_refresh_rewrites_the_root_makefile_line_a_reader_edited(tmp_path: Path) -> None:
+    """Every knob the root Makefile has is a `?=` default set outside the file, so it lands whole."""
+    _write(tmp_path)
+    makefile = tmp_path / "Makefile"
+    rendered = makefile.read_text(encoding="utf-8")
+    makefile.write_text(rendered.replace("D2W ?= uv run d2w", "D2W ?= uv run --project /elsewhere d2w", 1))
+
+    report = refresh_project(tmp_path)
+
+    assert "Makefile" in report.refreshed_files
+    assert makefile.read_text(encoding="utf-8") == rendered
+
+
+# --- the order the root Makefile keeps under -j ---------------------------------------------------
+
+#: A registry build that takes long enough for a guide started beside it to be running while it does.
+_REGISTRY_STUB = """generate:
+\t@true
+
+build:
+\t@sleep 1
+\t@touch ../registry-ready
+"""
+
+#: A guide build that fails unless the registry finished first, which is the ordering under test.
+_GUIDE_STUB = """generate:
+\t@true
+
+build:
+\t@test -f ../registry-ready || { echo "the guide started before the registry finished"; exit 1; }
+"""
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="the ordering is a property of make itself")
+@pytest.mark.parametrize("target", ["build", "all"])
+def test_the_root_makefile_builds_the_registry_first_under_parallel_make(tmp_path: Path, target: str) -> None:
+    """A guide built beside the registry has a dependency the publisher cannot resolve, so -j must not.
+
+    The two child projects stand in for the real builds: the registry sleeps and leaves a marker, and
+    the guide fails unless the marker is there. Any run that starts them together fails the guide.
+    """
+    (tmp_path / "Makefile").write_text(_by_path()["Makefile"], encoding="utf-8")
+    (tmp_path / REGISTRY_RELATIVE_ROOT).mkdir()
+    (tmp_path / REGISTRY_RELATIVE_ROOT / "Makefile").write_text(_REGISTRY_STUB, encoding="utf-8")
+    (tmp_path / GUIDE_RELATIVE_ROOT).mkdir()
+    (tmp_path / GUIDE_RELATIVE_ROOT / "Makefile").write_text(_GUIDE_STUB, encoding="utf-8")
+    environment = {key: value for key, value in os.environ.items() if key != "MAKEFLAGS"}
+
+    result = subprocess.run(
+        ["make", "-j2", target],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        env=environment,
+        timeout=120,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 # --- the command and its refusals --------------------------------------------------------------------

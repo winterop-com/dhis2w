@@ -16,6 +16,7 @@ __all__ = [
     "CONFIG_EXAMPLE_RELATIVE_PATH",
     "DOCKERFILE_RELATIVE_PATH",
     "FSH_INI_RELATIVE_PATH",
+    "GUIDE_REGISTRY_README_RELATIVE_PATH",
     "IG_INI_RELATIVE_PATH",
     "INDEX_PAGE_RELATIVE_PATH",
     "MAKEFILE_RELATIVE_PATH",
@@ -63,6 +64,12 @@ PYTHON_VERSION_RELATIVE_PATH = ".python-version"
 #: `[FSH] timeout` that `read_project_scaffold_state` recovers off the file and re-renders unchanged.
 #: A scaffold revision that replaces a line in one of them lands whole rather than reading as a
 #: divergence nobody authored.
+#:
+#: One name covers a file wherever the scaffold writes it: `Makefile` is the project's own toolchain
+#: file and, at the root of a directory scaffolded with `--with-registry`, the file that drives the
+#: two projects in order - both state every knob as a `?=` default, so both land whole. The
+#: `README.md` that sits beside that second Makefile is prose and is absent from this tuple, so a
+#: refresh takes it through the line ladder and keeps whatever the reader added to it.
 OWNED_WHOLE_RELATIVE_PATHS: tuple[str, ...] = (
     MAKEFILE_RELATIVE_PATH,
     DOCKERFILE_RELATIVE_PATH,
@@ -70,6 +77,12 @@ OWNED_WHOLE_RELATIVE_PATHS: tuple[str, ...] = (
     IG_INI_RELATIVE_PATH,
     FSH_INI_RELATIVE_PATH,
 )
+
+#: The README of a directory scaffolded with `--with-registry`, whose heading is the guide's title.
+#:
+#: It is the one scaffold file a single project does not have, so the name collides with nothing:
+#: `d2w fhir init` on its own writes no README at all.
+GUIDE_REGISTRY_README_RELATIVE_PATH = "README.md"
 
 #: Where each project sits when `d2w fhir init --with-registry` scaffolds both under one directory.
 #:
@@ -174,7 +187,7 @@ def build_guide_and_registry_files(options: InitOptions, *, copyright_year: int 
     return [
         *files,
         _render(MAKEFILE_RELATIVE_PATH, "guide-registry-Makefile.jinja", options, **root),
-        _render("README.md", "guide-registry-README.md.jinja", options, **root),
+        _render(GUIDE_REGISTRY_README_RELATIVE_PATH, "guide-registry-README.md.jinja", options, **root),
     ]
 
 

@@ -4,7 +4,9 @@ The guide's identity is stated once, in the `[ig]` table of `fhir.toml`, and fiv
 files carry it: `ig/sushi-config.yaml` states it to the IG publisher, `fhir.example.toml` shows it
 back as the catalog's own `[ig]` table, `ig/input/pagecontent/index.md` puts the title on the front
 page, `ig/ig.ini` names the ImplementationGuide file by the guide's id, and `pyproject.toml` carries
-that id as the uv project's PEP 508 name. Those lines are the
+that id as the uv project's PEP 508 name. A directory scaffolded with `--with-registry` adds a
+sixth: its `README.md` puts the guide's title on the pair's cover and names the registry canonical
+the guide references every organisation unit under. Those lines are the
 scaffold's to write, so `d2w fhir init --refresh` substitutes the rendered line into each file and
 keeps every other line exactly as the project wrote it - a release label, a home page, a copyright
 year, a menu entry, a paragraph of prose or a second heading are all the project's. `d2w fhir
@@ -21,6 +23,7 @@ from pydantic import BaseModel, ConfigDict
 from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.scaffold import (
     CONFIG_EXAMPLE_RELATIVE_PATH,
+    GUIDE_REGISTRY_README_RELATIVE_PATH,
     IG_INI_RELATIVE_PATH,
     INDEX_PAGE_RELATIVE_PATH,
     PYPROJECT_RELATIVE_PATH,
@@ -126,6 +129,12 @@ _OWNED_LINES_BY_FILE: dict[str, _ScaffoldOwnedLines] = {
     ),
     PYPROJECT_RELATIVE_PATH: _ScaffoldOwnedLines(
         patterns=(r"(?m)^name = .*$",), region_pattern=_PYPROJECT_TABLE_PATTERN
+    ),
+    # The pair's cover: its first line is the guide's title, and the registry canonical it names is
+    # the guide's own with the registry directory under it. The canonical sits alone on a sentence
+    # the scaffold opens, so the line is found by that opening rather than by the URL it ends with.
+    GUIDE_REGISTRY_README_RELATIVE_PATH: _ScaffoldOwnedLines(
+        patterns=(r"(?m)\A# .*$", r"(?m)^The package's canonical is `.+`\.$")
     ),
 }
 

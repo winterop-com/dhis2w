@@ -560,13 +560,22 @@ chain in one command.
   `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
   **`--with-registry`** scaffolds the guide *and* the registry package it depends
   on, as `registry/` and `guide/` under one directory plus a Makefile driving
-  both in the order that resolves - the registry's id is the guide's with
-  `.registry` appended, its canonical the guide's with `/registry`, and
-  `max_level` reaches both because the two selections have to mean the same
-  units; `--publishes`, `--template` and every `--registry-*` are refused beside
-  it, each naming what to drop. `d2w fhir init --refresh` on that directory
-  refreshes both projects and re-renders the Makefile, which no project's
-  `fhir.toml` describes;
+  both in the order that resolves and a README describing the pair - the
+  registry's id is the guide's with `.registry` appended, its canonical the
+  guide's with `/registry`, and `max_level` reaches both because the two
+  selections have to mean the same units; `--publishes`, `--template` and every
+  `--registry-*` are refused beside it, each naming what to drop. That Makefile
+  runs its own targets one at a time, so `make -j2 build` and an inherited `-j`
+  build the registry to completion before the guide starts, while each project's
+  own make still parallelises; the cost is that a `-j` no longer shortens `make
+  generate`, whose two reads of the instance are independent, so
+  `generate-registry` and `generate-guide` are each a target to run in its own
+  shell. `d2w fhir init --refresh` on that directory refreshes both projects and
+  the two files no project's `fhir.toml` describes: the Makefile is the
+  scaffold's own and is rewritten whole, and the README takes the line rule every
+  other file takes, so a deployment note written into it is reported and kept
+  while the guide's title on its cover and the registry canonical it names are
+  identity lines the refresh writes;
   **`--publishes organisation-units`** scaffolds a package rather than a guide
   (`kind = "package"` plus `publishes = "organisation-units"` under `[ig]`, the
   organisation-unit registry alone, a Home / Registry / Artifacts menu,
@@ -584,12 +593,14 @@ chain in one command.
 - **`--refresh`** brings an existing project's scaffold-managed files up to
   date, recovering the IG identity from the project's own `fhir.toml`,
   `ig/fsh.ini`, and `ig/sushi-config.yaml`. The `Makefile`, the `Dockerfile`,
-  `.python-version`, `ig/ig.ini` and `ig/fsh.ini` are the scaffold's own files
-  and are rewritten from the current render whenever it differs - every knob
-  the Makefile has is a `?=` default set on the command line (`make build
-  JAVA_HEAP=8g`) or in the environment, so an override outlives the refresh.
-  Every other file is rewritten only when the current render reproduces every
-  line already on disk in order. So a refresh
+  `.python-version`, `ig/ig.ini` and `ig/fsh.ini` are the scaffold's own files,
+  rewritten from the current render whenever it differs. Nothing in them is the
+  user's to lose: every knob the Makefile has is a `?=` default set on the
+  command line (`make build JAVA_HEAP=8g`) or in the environment, so an override
+  lives outside the file and outlives the refresh. The Makefile is owned by that
+  name at a project root and at the root of a directory scaffolded with
+  `--with-registry`. Every other file is rewritten only when the current render
+  reproduces every line already on disk in order, so a refresh
   adds what the scaffold gained (a new `path-resource` glob, a new `.gitignore`
   entry, a new menu entry) and never drops a line the user wrote. Each file is
   reported as created / refreshed / unchanged / with your additions / diverged
@@ -600,13 +611,15 @@ chain in one command.
   The accepted consequence is that a scaffold line deliberately deleted is
   restored, since a deletion leaves the file a subsequence of the render.
 - **The refresh writes the scaffold lines `fhir.toml` declares.** Five files
-  carry the guide's identity, and one refresh lands an `[ig]` edit in all of
-  them: `ig/sushi-config.yaml` (`id`, `canonical`, `name`, `title`, the
+  carry the guide's identity in every project - six where `--with-registry`
+  scaffolded a pair - and one refresh lands an `[ig]` edit in all of them: `ig/sushi-config.yaml` (`id`, `canonical`, `name`, `title`, the
   description built from the title, `status`, the publisher name, and the six
   `special-url` lines the `[generate] identifier_system_base` stem addresses),
   the `[ig]` table of `fhir.example.toml`, the first-line heading of
-  `ig/input/pagecontent/index.md`, the `ig = ` line of `ig/ig.ini`, and the
-  `[project] name` of `pyproject.toml`. Each is reported refreshed. Every other
+  `ig/input/pagecontent/index.md`, the `ig = ` line of `ig/ig.ini`, the
+  `[project] name` of `pyproject.toml`, and on a pair the heading of the root
+  `README.md` plus the line naming the registry canonical. Each is reported
+  refreshed. Every other
   line of those files is the project's and survives byte-identical -
   `releaseLabel`, `version`, the publisher home page, `copyrightYear`, the
   parameters, the menu, the path-resource globs, the project's own prose and

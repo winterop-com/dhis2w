@@ -52,10 +52,13 @@ d2w fhir init example --with-registry \
 ```
 
 That writes `example/registry/` and `example/guide/`, wired to each other, plus
-a Makefile that drives them in the order that resolves. Both identities derive
-from the one `--id` and `--canonical`, so the four values the two projects share
-cannot disagree - which is the failure the rest of this section describes how to
-avoid by hand.
+a Makefile that drives them in the order that resolves and a README describing
+the pair. Both identities derive from the one `--id` and `--canonical`, so the
+four values the two projects share cannot disagree - which is the failure the
+rest of this section describes how to avoid by hand. `d2w fhir init --refresh`
+on that directory refreshes both projects, rewrites the Makefile from the
+current scaffold, and writes the README only when the current render reproduces
+every line already in it, so what you add to it stays.
 
 The two halves, spelled out. The registry becomes a project of its own,
 scaffolded with `--publishes organisation-units`.
@@ -151,6 +154,15 @@ when `path` is set and can be named on the command line:
 ```bash
 make build REGISTRY_TGZ=/downloads/dhis2.fhir.example.registry-0.1.0.tgz
 ```
+
+The root Makefile runs its own targets one at a time, so `make -j2 build` and a
+`-j` reaching it through `MAKEFLAGS` build the registry to completion before the
+guide starts - a guide started beside the registry finds no `package.tgz`, or
+installs the one the last build left. Each `make -C` it runs is a make of its
+own and parallelises its own recipes as usual. The cost is `make generate`: its
+two reads of the instance are independent, but a `-j` on the root Makefile buys
+nothing, so the two take their two turns. Run `make generate-registry` and `make
+generate-guide` in two shells when that matters.
 
 The two builds never share a container. Each project has its own Makefile and
 its own publisher run, so the registry's depth is a dial on the registry project

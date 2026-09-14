@@ -69,7 +69,7 @@ The flags that matter, all optional:
 | `--sushi-timeout` | Seconds the IG publisher gives its internal SUSHI run (default 1800), written to `ig/fsh.ini`. |
 | `--max-level` | Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` `max_level`. Rejected below 1. |
 | `--data-set`, `--event-program`, `--tracker-program` | UIDs to seed the `[generate.*]` `include_ids` selection tables with (each repeatable). |
-| `--with-registry` | Scaffold the guide **and** the organisation-unit registry package it depends on, as two wired projects under this directory - `registry/` and `guide/` - plus a Makefile driving both. Both identities derive from `--id` and `--canonical`. Rejects `--publishes`, `--template` and every `--registry-*`. See [Publish the registry as a package](201-registry-package.md). |
+| `--with-registry` | Scaffold the guide **and** the organisation-unit registry package it depends on, as two wired projects under this directory - `registry/` and `guide/` - plus a Makefile driving both and a README describing the pair. Both identities derive from `--id` and `--canonical`. Rejects `--publishes`, `--template` and every `--registry-*`. See [Publish the registry as a package](201-registry-package.md). |
 | `--publishes` | Scaffold a package rather than a guide, holding what this names and nothing else - `organisation-units` is the registry package, for guides to depend on. See [Publish the registry as a package](201-registry-package.md). Takes no selection flag and no `--registry-*` flag. Omit it for a guide. |
 | `--registry-id`, `--registry-canonical`, `--registry-version`, `--registry-path` | The registry package this guide's units are published by, seeding `[generate.organisation_units.registry]`, the `dependencies:` entry of `sushi-config.yaml` and the Makefile's `REGISTRY_*` knobs. The id and the canonical go together; the version defaults to `0.1.0`; the path is an optional local checkout. |
 | `--template` | Pre-populate the project from a guide already generated against a real DHIS2 instance - see [Start from a template](#start-from-a-template). |
@@ -340,6 +340,15 @@ elsewhere - the guide's id from `fhir.toml`, and the `[FSH] timeout` the
 refresh reads off the file and writes back unchanged. So a scaffold revision
 that replaces a line in one of them lands whole, reported `refreshed`.
 
+A directory scaffolded with `--with-registry` refreshes as both projects plus
+the two files the directory itself holds, and those two take the same rule from
+either side of it: the `Makefile` that drives the two projects is the scaffold's
+own and is rewritten whole, and the `README.md` beside it is prose that goes
+through the line rule below, so a deployment note written into it is kept. Two
+of that README's lines are the guide's identity rather than yours - the title on
+its cover, and the registry canonical it names - and the identity rule below
+writes both.
+
 **Every other file is rewritten only when the current scaffold render
 reproduces every line already on disk, in order.** So a refresh can only add
 what the scaffold gained, and no line you wrote is ever dropped. Every file
@@ -364,8 +373,10 @@ declares them, so the refresh writes them wherever they appear: in
 one-line description built from the title, `status`, the publisher's name, and
 the six `special-url` lines that follow `[generate] identifier_system_base`), in
 the `[ig]` table of `fhir.example.toml`, on the first line of the front page at
-`ig/input/pagecontent/index.md`, in the `ig = ` line of `ig/ig.ini`, and as the
-project name in `pyproject.toml`. Change a title in `fhir.toml` and one refresh
+`ig/input/pagecontent/index.md`, in the `ig = ` line of `ig/ig.ini`, as the
+project name in `pyproject.toml`, and - in a directory scaffolded with
+`--with-registry` - on the first line of the pair's `README.md` and the line
+naming the registry canonical. Change a title in `fhir.toml` and one refresh
 puts it on the guide's cover and its front page, reporting each file as
 `refreshed`. Every other line of those files stays exactly as you wrote it -
 `releaseLabel`, `version`, the publisher's home page, `copyrightYear`, the
