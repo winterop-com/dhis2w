@@ -11,7 +11,8 @@ Description: "One DHIS2 program rule this form does not express: the expression 
     {{ name_sub_extension }} 1..1 and
     {{ description_sub_extension }} 0..1 and
     {{ condition_sub_extension }} 1..1 and
-    {{ action_sub_extension }} 1..1
+    {{ action_sub_extension }} 1..1 and
+    {{ assigns_sub_extension }} 0..*
 * extension[{{ rule_sub_extension }}] ^short = "The UID of the DHIS2 program rule."
 * extension[{{ rule_sub_extension }}].value[x] only id
 * extension[{{ rule_sub_extension }}].valueId 1..1
@@ -27,6 +28,9 @@ Description: "One DHIS2 program rule this form does not express: the expression 
 * extension[{{ action_sub_extension }}].value[x] only code
 * extension[{{ action_sub_extension }}].valueCode 1..1
 * extension[{{ action_sub_extension }}].valueCode from {{ names.program_rule_action_value_set }} (required)
+* extension[{{ assigns_sub_extension }}] ^short = "The UID of a question this rule computes the answer to. Send that question empty: DHIS2 computes the value on import and refuses any other answer with E1307."
+* extension[{{ assigns_sub_extension }}].value[x] only id
+* extension[{{ assigns_sub_extension }}].valueId 1..1
 
 CodeSystem: {{ names.program_rule_action_code_system }}
 Id: {{ names.program_rule_action_code_system_id }}

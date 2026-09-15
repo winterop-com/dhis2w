@@ -100,6 +100,7 @@ from dhis2w_fhir.foundation.schemas import (
     PROGRAM_RULE_ACTION_DEFINITIONS,
     PROGRAM_RULE_ACTION_SUB_EXTENSION,
     PROGRAM_RULE_ACTION_TERMINOLOGY,
+    PROGRAM_RULE_ASSIGNS_SUB_EXTENSION,
     PROGRAM_RULE_CONDITION_SUB_EXTENSION,
     PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION,
     PROGRAM_RULE_NAME_SUB_EXTENSION,
@@ -363,6 +364,7 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
         description_sub_extension=PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION,
         condition_sub_extension=PROGRAM_RULE_CONDITION_SUB_EXTENSION,
         action_sub_extension=PROGRAM_RULE_ACTION_SUB_EXTENSION,
+        assigns_sub_extension=PROGRAM_RULE_ASSIGNS_SUB_EXTENSION,
         ig_status=ig_status,
         experimental=experimental,
     )

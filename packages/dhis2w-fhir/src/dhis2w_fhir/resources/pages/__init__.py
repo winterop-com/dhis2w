@@ -22,6 +22,7 @@ never disagree.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import TYPE_CHECKING
 
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
@@ -34,13 +35,26 @@ from dhis2w_fhir.period.parser import parse_period
 from dhis2w_fhir.period.recent import recent_periods
 from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
 from dhis2w_fhir.r4 import DEFAULT_SUBJECT_RESOURCE_TYPE
-from dhis2w_fhir.resources.examples import MULTI_VALUE_TYPE, STATUS_BY_EVENT_STATUS, answer_element
+from dhis2w_fhir.resources.attribute_combos import attribute_combo_identities, attribute_combo_sources
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    AttributeOptionRestrictions,
+    CategoryOptionValidity,
+)
+from dhis2w_fhir.resources.attribute_combos.schemas import AttributeComboIdentity
+from dhis2w_fhir.resources.examples import (
+    MULTI_VALUE_TYPE,
+    STATUS_BY_EVENT_STATUS,
+    answer_element,
+    example_attribute_combo_assignments,
+)
 from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
 from dhis2w_fhir.resources.option_sets import option_set_code_fallback, option_set_identities
+from dhis2w_fhir.resources.option_sets.schemas import ConceptAssignmentPlan
 from dhis2w_fhir.resources.organisation_units import organisation_unit_stem_subjects, plan_organisation_unit_stems
 from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming, location_profile_reference
 from dhis2w_fhir.resources.pages.schemas import (
     PERIOD_EXAMPLE_REFERENCE_DATE,
+    CaptureAttributeOptionComboExample,
     CaptureFormExample,
     CaptureLinkRow,
     CapturePeriodExample,
@@ -66,6 +80,7 @@ from dhis2w_fhir.resources.pages.schemas import (
 from dhis2w_fhir.resources.questionnaires import ITEM_TYPES_BY_VALUE_TYPE
 from dhis2w_fhir.resources.questionnaires.schemas import (
     FORM_KIND_PROFILES,
+    CategoryOptionComboIn,
     FormKind,
     QuestionnaireItemIn,
     QuestionnaireNaming,
@@ -178,6 +193,7 @@ def build_page_artifacts(
     stem_plan: QuestionnaireStemPlan | None = None,
     organisation_unit_stems: StemResolution | None = None,
     example_placements: dict[str, SyntheticPlacement] | None = None,
+    attribute_option_restrictions: AttributeOptionRestrictions | None = None,
 ) -> FshBuild:
     """Build the six site pages plus every per-artifact intro the fetched metadata earns.
 
@@ -189,6 +205,11 @@ def build_page_artifacts(
     `example_placements` is where the run's own examples file each form from, so the capture page
     works its steps against an organisation unit the form is assigned to rather than against the
     first unit in the registry: the page teaches the capture the examples beside it make.
+
+    `attribute_option_restrictions` is what DHIS2 scopes each attribute category option to, which
+    is how the capture page quotes an attribute option combination the worked organisation unit
+    may file under for the worked period. Handed none, the page quotes the first combination the
+    form's own vocabulary holds for that unit and grades no calendar window.
     """
     build = FshBuild()
     plan = stem_plan if stem_plan is not None else plan_questionnaire_stems(pages.forms, config.naming.source)
@@ -208,7 +229,17 @@ def build_page_artifacts(
     build.artifacts.append(_terminology_page(pages, config))
     build.artifacts.append(_identifiers_page(config))
     build.artifacts.append(_periods_page(config))
-    build.artifacts.append(_capture_page(pages, config, canonical, plan, unit_stems, example_placements or {}))
+    build.artifacts.append(
+        _capture_page(
+            pages,
+            config,
+            canonical,
+            plan,
+            unit_stems,
+            example_placements or {},
+            attribute_option_restrictions or AttributeOptionRestrictions(),
+        )
+    )
     build.artifacts.extend(_questionnaire_intros(forms))
     build.artifacts.extend(_code_system_intros(pages, config))
     build.artifacts.extend(_organization_intros(pages.organisation_units, unit_stems))
@@ -480,11 +511,13 @@ def _capture_page(
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
     example_placements: dict[str, SyntheticPlacement],
+    attribute_option_restrictions: AttributeOptionRestrictions,
 ) -> FshArtifact:
     """Build `capture.md`: what a capture client sends, worked once per form kind, and how answers are typed."""
     foundation = FoundationNaming.from_naming(config.naming)
     units = _CaptureUnitResolver.of(pages, organisation_unit_stems, example_placements)
-    tracker_event = _capture_form_example(pages.forms, "tracker-event", canonical, stem_plan, config, units)
+    combos = _CaptureComboResolver.of(pages, config, canonical, example_placements, attribute_option_restrictions)
+    tracker_event = _capture_form_example(pages.forms, "tracker-event", canonical, stem_plan, config, units, combos)
     view = CaptureView(
         canonical=canonical,
         period_extension=foundation.period_extension,
@@ -501,6 +534,9 @@ def _capture_page(
         enrollment_extension_id=foundation.tracker_enrollment_extension_id,
         organisation_unit_extension=foundation.organisation_unit_extension,
         organisation_unit_extension_id=foundation.organisation_unit_extension_id,
+        attribute_option_combo_extension=foundation.attribute_option_combo_extension,
+        attribute_option_combo_extension_id=foundation.attribute_option_combo_extension_id,
+        attribute_option_combos_extension=foundation.attribute_option_combos_extension,
         tracked_entity_system=f"{config.identifier_system_base}/id/tracked-entity",
         enrollment_system=f"{config.identifier_system_base}/id/tracker-enrollment",
         capture_server=foundation.capture_server,
@@ -509,8 +545,8 @@ def _capture_page(
         tracker_subject_type=(
             tracker_event.subject_type if tracker_event is not None else DEFAULT_SUBJECT_RESOURCE_TYPE
         ),
-        aggregate=_capture_form_example(pages.forms, "aggregate", canonical, stem_plan, config, units),
-        event=_capture_form_example(pages.forms, "event", canonical, stem_plan, config, units),
+        aggregate=_capture_form_example(pages.forms, "aggregate", canonical, stem_plan, config, units, combos),
+        event=_capture_form_example(pages.forms, "event", canonical, stem_plan, config, units, combos),
         tracker_event=tracker_event,
         event_statuses=[
             EventStatusRow(event_status=event_status, response_status=STATUS_BY_EVENT_STATUS[event_status])
@@ -585,6 +621,103 @@ class _CaptureUnitResolver(BaseModel):
         )
 
 
+class _CaptureComboResolver(BaseModel):
+    """Which attribute option combination each worked form files its capture under, and how the page cites it.
+
+    DHIS2 keys a data value set by `(organisation unit, period, attribute option combination)` and
+    refuses a write naming none of the third where the form's category combo is not the default one
+    (`E8023`). It also scopes a category option to organisation units (`E8025`) and to a calendar
+    window (`E8032`), so the combination the page quotes has to be one the worked organisation unit
+    may file under for the worked period - which is what the run's own example placements and the
+    instance's restrictions answer between them.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    canonical: str = ""
+    placements: dict[str, SyntheticPlacement] = Field(default_factory=dict)
+    identities: dict[str, AttributeComboIdentity] = Field(default_factory=dict)
+    concept_codes: dict[str, ConceptAssignmentPlan] = Field(default_factory=dict)
+    restrictions: AttributeOptionRestrictions = Field(default_factory=AttributeOptionRestrictions)
+
+    @classmethod
+    def of(
+        cls,
+        pages: PagesIn,
+        config: GenerateConfig,
+        canonical: str,
+        example_placements: dict[str, SyntheticPlacement],
+        attribute_option_restrictions: AttributeOptionRestrictions,
+    ) -> _CaptureComboResolver:
+        """Index the published combination vocabularies and the concept codes their examples name them by."""
+        sources = attribute_combo_sources(pages.forms)
+        plan = attribute_combo_identities(sources, config)
+        return cls(
+            canonical=canonical,
+            placements=example_placements,
+            identities={identity.uid: identity for identity in plan.identities},
+            concept_codes=example_attribute_combo_assignments(pages.forms, config),
+            restrictions=attribute_option_restrictions,
+        )
+
+    def worked(
+        self, source: QuestionnaireSourceIn, organisation_unit_uid: str, period: CapturePeriodExample | None
+    ) -> CaptureAttributeOptionComboExample | None:
+        """The combination this form's walk-through files under, or None where it rides the default combo."""
+        combo = source.attribute_combo
+        if combo is None or combo.is_default or not combo.option_combos:
+            return None
+        identity = self.identities.get(combo.uid)
+        assignment = self.concept_codes.get(combo.uid)
+        if identity is None or assignment is None:
+            return None
+        option_combo = self._usable_option_combo(source, organisation_unit_uid, period)
+        concept_code = assignment.code_for(option_combo.uid) if option_combo is not None else None
+        if option_combo is None or concept_code is None:
+            return None
+        return CaptureAttributeOptionComboExample(
+            uid=option_combo.uid,
+            display=markdown_text(option_combo.name),
+            concept_code=concept_code,
+            code_system_url=f"{self.canonical}/CodeSystem/{identity.code_system_id}",
+            value_set_id=identity.value_set_id,
+        )
+
+    def _usable_option_combo(
+        self, source: QuestionnaireSourceIn, organisation_unit_uid: str, period: CapturePeriodExample | None
+    ) -> CategoryOptionComboIn | None:
+        """The first combination of this form's vocabulary the worked unit may file under for the worked period.
+
+        The unit axis comes off the run's own placement where it has one, so the page cites what the
+        examples beside it cite. The calendar axis is graded here: a combination whose window does not
+        cover the whole period the walk-through reports for is one DHIS2 answers `E8032` to, so it is
+        passed over for one that does. A form whose every combination is closed for that period falls
+        back to the first the unit admits, which is the page saying what the vocabulary holds where the
+        instance leaves it nothing better.
+        """
+        combo = source.attribute_combo
+        if combo is None:
+            return None
+        placement = self.placements.get(source.uid)
+        usable = placement.usable_attribute_option_combo_uids.get(organisation_unit_uid, ()) if placement else ()
+        admitted = [entry for entry in combo.option_combos if not usable or entry.uid in usable]
+        if not admitted:
+            return None
+        open_for_period = [entry for entry in admitted if self._covers(entry, period)]
+        return (open_for_period or admitted)[0]
+
+    def _covers(self, option_combo: CategoryOptionComboIn, period: CapturePeriodExample | None) -> bool:
+        """Whether DHIS2 leaves this combination open for the whole period the walk-through reports for."""
+        if period is None:
+            return True
+        window = CategoryOptionValidity()
+        for option_uid in option_combo.category_option_uids:
+            stated = self.restrictions.validity.get(option_uid)
+            if stated is not None:
+                window = window.narrowed_by(stated)
+        return window.covers(date.fromisoformat(period.start_date), date.fromisoformat(period.end_date))
+
+
 def _capture_form_example(
     forms: list[QuestionnaireSourceIn],
     kind: FormKind,
@@ -592,6 +725,7 @@ def _capture_form_example(
     stem_plan: QuestionnaireStemPlan,
     config: GenerateConfig,
     units: _CaptureUnitResolver,
+    combos: _CaptureComboResolver,
 ) -> CaptureFormExample | None:
     """Work one selected form of `kind` through the contract: its Questionnaire, its period, and its linkIds.
 
@@ -605,17 +739,19 @@ def _capture_form_example(
     placed = [source for source in candidates if units.places(source.uid)]
     source = min(placed or candidates, key=lambda item: (item.name, item.uid))
     worked = units.worked(source.uid)
+    period = _capture_period(source)
     return CaptureFormExample(
         uid=source.uid,
         name=markdown_text(source_display_name(source)),
         questionnaire_url=f"{canonical}/Questionnaire/{stem_plan.targets.stem_for(source.uid)}",
         form_type_code=source.kind,
         subject_type=form_subject_type(source, config.tracked_entity_types),
-        period=_capture_period(source),
+        period=period,
         links=_capture_links(source),
         organisation_unit_uid=worked.uid,
         organisation_unit_reference=worked.reference,
         organisation_unit_name=worked.name,
+        attribute_option_combo=combos.worked(source, worked.uid, period),
     )
 
 

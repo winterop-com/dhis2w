@@ -255,10 +255,29 @@ A stage event naming an enrollment **no registration of the run mints** is a
 different thing - nothing in the drain would ever create it - and stays a
 rejection in both modes.
 
-Exit codes follow that split. A DHIS2 rejection exits 1. A dry run whose
-only failures are unverifiable exits 0: it proved everything a dry run can
-prove, and the unverifiable section says what is left for `--import` to
-answer.
+## The exit code
+
+**0 exactly when the queue drained clean.** Nothing refused by the translator,
+nothing rejected by DHIS2, and the drain reached the end of the spool. Every
+other outcome exits 1 with the counts on screen.
+
+| The run | Exit |
+| --- | --- |
+| everything translated and DHIS2 took it | 0 |
+| a dry run whose only failures are unverifiable | 0 |
+| one or more responses refused by the translator | 1 |
+| one or more responses rejected by DHIS2 | 1 |
+| the drain stopped early - the instance answered something that is not an import report | 1 |
+
+The refusal half is the one worth stating plainly: `1 spooled, 0 translated,
+1 refused, 0 posted` is a run that reached the instance with nothing. Whether
+the refusal came from this project's own translator or from DHIS2 is a fact
+about *where* the drain failed, not about whether it did its job, and a shell
+script reading the exit code cannot tell the two apart anyway.
+
+Unverifiable is the one failure that is not one. A dry run whose only
+failures are unverifiable exits 0: it proved everything a dry run can prove,
+and the unverifiable section says what is left for `--import` to answer.
 
 ## Data set completeness
 
@@ -1171,6 +1190,11 @@ for something that fits on the line in front of them.
 puts the whole `ForwardReport` on stdout and nothing else, import summaries
 included, so a caller pipes it into `jq` without filtering the narration
 out.
+
+**`reports/fhir-forward-report.md` is written on every run**, `--details` or
+not, and a `--details` run says so under its rows. The file a run leaves
+behind is that run's verdict and nothing else: a report from an earlier drain,
+sitting under this drain's name, is the one thing a reader has no way to spot.
 
 The written report opens with the same table and then lists each response
 with its own notes. Here is the head of the `--import` run above, and one

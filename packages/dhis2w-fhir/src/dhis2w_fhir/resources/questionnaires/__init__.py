@@ -52,6 +52,7 @@ from dhis2w_fhir.foundation.schemas import (
     DATE_LABEL_EVENT_SUB_EXTENSION,
     DATE_LABEL_INCIDENT_SUB_EXTENSION,
     PROGRAM_RULE_ACTION_SUB_EXTENSION,
+    PROGRAM_RULE_ASSIGNS_SUB_EXTENSION,
     PROGRAM_RULE_CONDITION_SUB_EXTENSION,
     PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION,
     PROGRAM_RULE_NAME_SUB_EXTENSION,
@@ -283,6 +284,7 @@ class _ProgramRuleView(BaseModel):
     description_literal: str | None = None
     condition_literal: str
     action_code: str
+    assigns: list[str] = Field(default_factory=list)
     name_translations: list[TranslationIn] = Field(default_factory=list)
     description_translations: list[TranslationIn] = Field(default_factory=list)
 
@@ -728,6 +730,7 @@ def build_questionnaire_artifacts(
                     program_rule_description_sub_extension=PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION,
                     program_rule_condition_sub_extension=PROGRAM_RULE_CONDITION_SUB_EXTENSION,
                     program_rule_action_sub_extension=PROGRAM_RULE_ACTION_SUB_EXTENSION,
+                    program_rule_assigns_sub_extension=PROGRAM_RULE_ASSIGNS_SUB_EXTENSION,
                 ),
             )
         )
@@ -929,6 +932,7 @@ def _program_rule_views(published: list[PublishedProgramRule], locales: list[str
             description_literal=quote(rule.description) if rule.description else None,
             condition_literal=quote_verbatim(rule.condition),
             action_code=rule.action,
+            assigns=rule.assigns,
             name_translations=name_translations(rule.translations, locales),
             description_translations=description_translations(rule.translations, locales) if rule.description else [],
         )

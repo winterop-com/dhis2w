@@ -270,10 +270,17 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         line on disk is lost, and refuses any flag it would ignore)
   generate              All seven targets in one run, off a single pass over the
                         instance (8 requests where the solo targets total 25),
-                        reported as one summary row per target; the notes go to
-                        reports/fhir-generate-notes.md with one counted hint on
-                        the terminal, counting the kinds that only restate a
-                        validate finding apart (--details prints them inline)
+                        reported as one summary row per target; a guide naming
+                        [generate.organisation_units.registry] is refused before
+                        the instance is dialled when neither a checkout nor a
+                        package supplies that registry, in the words serve
+                        --live, forward and check-artifacts refuse it in, and a
+                        guide whose [generate.naming] source differs from its
+                        registry checkout's gets a note naming both; the notes
+                        go to reports/fhir-generate-notes.md with one counted
+                        hint on the terminal, counting the kinds that only
+                        restate a validate finding apart (--details prints them
+                        inline)
   generate foundation   DHIS2 identifier aliases + the D2Period / D2FormType /
                         D2AttributeValue / D2OrganisationUnit /
                         D2TrackerEnrollment extensions
@@ -360,11 +367,14 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         no enrollment to check the event against - and gets its
                         own count and section, while a stage event naming an
                         enrollment no registration of the run creates stays a
-                        rejection; a DHIS2 rejection exits 1 and a dry run whose
-                        only failures are unverifiable exits 0; outcomes go to
-                        reports/fhir-forward-report.md with one counted hint
-                        (--details prints them inline, with a Why column
-                        carrying each response's first reason)
+                        rejection; the exit code is 0 exactly when the queue
+                        drained clean - nothing refused by the translator,
+                        nothing rejected by DHIS2, and the drain reached the end
+                        of the spool - and 1 on every other outcome, a dry run
+                        whose only failures are unverifiable excepted; outcomes
+                        go to reports/fhir-forward-report.md on every run with
+                        one counted hint (--details prints them inline as well,
+                        with a Why column carrying each response's first reason)
   spool                 What waits in the capture spool and what became of the
                         rest, per state, counting the queued receipts the last
                         committing drain refused to translate (--details lists
@@ -963,9 +973,11 @@ NamingSystems declaring them, plus these extensions:
 - **`D2ProgramRule`** - a repeating complex extension carrying, per rule the
   form does not itself express, the DHIS2 rule UID (`valueId`), its name and
   free text with their translations, the expression the server evaluates
-  character for character, and what the rule does, coded from the
+  character for character, what the rule does, coded from the
   `D2ProgramRuleAction` CodeSystem/ValueSet pair over every
-  `programRuleActionType` v41, v42, and v43 declare.
+  `programRuleActionType` v41, v42, and v43 declare, and - on an `ASSIGN` rule -
+  one `assigns` sub-extension per question the rule computes the answer to,
+  valued with that question's `linkId`.
 - **`D2OrganisationUnitAssignment`** - contexted on Questionnaire, valued
   `Reference(List)`: the organisation units a form may be captured against.
 - **`D2AttributeOptionCombos`** (Questionnaire, `canonical(ValueSet)`) paired
@@ -1006,6 +1018,16 @@ NamingSystems declaring them, plus these extensions:
   `programRuleVariables` to a question the same form asks.
 - **Every rule it cannot read whole is published whole instead** on
   `D2ProgramRule`, never half-translated.
+- **A question an `ASSIGN` rule computes is published as computed and left
+  empty.** The rule's `assigns` sub-extensions name each question DHIS2
+  calculates the answer to, so a client can join the rule to the item on its own
+  form; the examples target and `d2w fhir generate load-set` answer none of
+  them, and `d2w fhir generate` raises a note per form naming the rules and the
+  questions. DHIS2 refuses a payload whose answer is neither empty nor
+  byte-equal to the value it calculated (`E1307`), and a calculated value can be
+  one no answer expresses at all, so no answer is the only answer that always
+  lands. `d2w fhir check-artifacts` files a warning-level finding for a
+  published example that answers one.
 
 #### Organisation-unit assignment
 

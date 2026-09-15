@@ -35,7 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dhis2w_fhir.foundation.schemas import PROGRAM_RULE_ACTION_DEFINITIONS
 from dhis2w_fhir.i18n import TranslationIn
-from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory, generate_note
+from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory, generate_note, pluralize, verb_for_count
 from dhis2w_fhir.resources.option_sets.schemas import OptionConceptCodeIndex
 from dhis2w_fhir.resources.questionnaires.schemas import (
     BOUND_ELEMENTS_BY_ITEM_TYPE,
@@ -59,6 +59,9 @@ PROGRAM_RULE_ACTION_TYPES = frozenset(action.code for action in PROGRAM_RULE_ACT
 
 #: What a rule whose action type is newer than this guide's code list is published as.
 UNKNOWN_PROGRAM_RULE_ACTION = "UNKNOWN"
+
+#: The DHIS2 action type that computes a question's answer on import rather than reading the one sent.
+ASSIGN_PROGRAM_RULE_ACTION = "ASSIGN"
 
 #: The DHIS2 rule-variable source types that read one question of the form being filled. Every other
 #: source type - a previous event, a program-stage-scoped read, a calculated value - answers from
@@ -213,6 +216,15 @@ class PublishedProgramRule(BaseModel):
     description: str | None = None
     condition: str
     action: str
+    assigns: list[str] = Field(default_factory=list)
+    """The UIDs of the questions an `ASSIGN` rule computes the answers to, in the order DHIS2 holds them.
+
+    Empty for every other action. DHIS2 computes an assigned value itself on import and refuses a
+    payload answering that question anything but the calculated value, with `E1307`; a calculated
+    value is often one no answer expresses (`-Infinity`), so the only answer it always takes is no
+    answer. The UIDs are the questions' `linkId`s, which is what joins the rule to the form.
+    """
+
     translations: list[TranslationIn] = Field(default_factory=list)
 
 
@@ -229,6 +241,11 @@ class FormProgramRules(BaseModel):
     bounds: dict[str, list[ProgramRuleBound]] = Field(default_factory=dict)
     enable_when: dict[str, ItemEnableWhen] = Field(default_factory=dict)
     published: list[PublishedProgramRule] = Field(default_factory=list)
+
+    @property
+    def assigned_question_uids(self) -> frozenset[str]:
+        """Every question an `ASSIGN` rule of this program computes the answer to - the ones to leave empty."""
+        return frozenset(uid for rule in self.published for uid in rule.assigns)
 
     def bounds_for(self, question_uid: str) -> list[ProgramRuleBound]:
         """The rule-derived bounds one question carries, empty when no rule bounds it."""
@@ -330,6 +347,9 @@ def plan_program_rules(
             forms[source.uid] = FormProgramRules(
                 bounds=bounds[source.uid], enable_when=enable_when[source.uid], published=published
             )
+            computed = _computed_answer_text(source, published, questions[source.uid])
+            if computed is not None:
+                notes.append(generate_note(GenerateNoteCategory.SKIPPED_QUESTION, computed))
     return ProgramRulePlan(forms=forms, notes=notes)
 
 
@@ -645,6 +665,32 @@ def _answer_condition(
     return None
 
 
+def _computed_answer_text(
+    source: QuestionnaireSourceIn, published: list[PublishedProgramRule], questions: dict[str, QuestionnaireItemIn]
+) -> str | None:
+    """What one form says about the questions DHIS2 computes the answers to, or None when it has none.
+
+    Only the assigned questions this form asks are named: a program's rules reach every form of the
+    program, and a rule computing a question another stage asks says nothing about this one.
+    """
+    pairs = [
+        (rule, questions[question_uid])
+        for rule in published
+        for question_uid in rule.assigns
+        if question_uid in questions
+    ]
+    if not pairs:
+        return None
+    named = ", ".join(f"{question.name} ({question.uid}) by {rule.name!r} ({rule.uid})" for rule, question in pairs)
+    count = len({question.uid for _, question in pairs})
+    return (
+        f"{source.name} ({source.uid}) asks {pluralize(count, 'question')} DHIS2 computes the answer to "
+        f"on import, so every example this run emits leaves {verb_for_count(count, 'it', 'them')} "
+        f"unanswered - DHIS2 refuses a capture answering one anything but the value it calculated, with "
+        f"E1307: {named}"
+    )
+
+
 def _unresolved_literal_text(rule: ProgramRuleIn, unresolved: _UnresolvedOptionLiteral) -> str:
     """What one hide reports when the option set it reads publishes no concept for the literal it compares to."""
     return (
@@ -655,7 +701,7 @@ def _unresolved_literal_text(rule: ProgramRuleIn, unresolved: _UnresolvedOptionL
 
 
 def _published_rule(rule: ProgramRuleIn) -> PublishedProgramRule:
-    """One rule as its `D2ProgramRule` entry, naming what it does through the guide's action code."""
+    """One rule as its `D2ProgramRule` entry, naming what it does and every question it computes."""
     action = rule.actions[0].action_type if rule.actions else UNKNOWN_PROGRAM_RULE_ACTION
     return PublishedProgramRule(
         uid=rule.uid,
@@ -663,8 +709,21 @@ def _published_rule(rule: ProgramRuleIn) -> PublishedProgramRule:
         description=rule.description or None,
         condition=rule.condition,
         action=action if action in PROGRAM_RULE_ACTION_TYPES else UNKNOWN_PROGRAM_RULE_ACTION,
+        assigns=_assigned_question_uids(rule),
         translations=rule.translations,
     )
+
+
+def _assigned_question_uids(rule: ProgramRuleIn) -> list[str]:
+    """The questions one rule's `ASSIGN` actions compute, deduplicated in the order the instance holds them."""
+    assigned: list[str] = []
+    for action in rule.actions:
+        if action.action_type != ASSIGN_PROGRAM_RULE_ACTION:
+            continue
+        question_uid = action.question_uid
+        if question_uid is not None and question_uid not in assigned:
+            assigned.append(question_uid)
+    return assigned
 
 
 def _sources_by_program(sources: list[QuestionnaireSourceIn]) -> dict[str, list[QuestionnaireSourceIn]]:

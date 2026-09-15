@@ -61,7 +61,35 @@ Written out, that is Madina Wesleyan Mission
 (`ALnjmvcRSxU`), an organisation unit
 **EPI Stock** is assigned to - DHIS2 refuses a capture filed from anywhere else.
 
-**5. Answer one item per `linkId`.** The response mirrors the Questionnaire's item tree, and
+**5. Name the attribute option combination.** A DHIS2 data value set is keyed by three things -
+the organisation unit, the period, and the attribute option combination - and
+**EPI Stock** rides a category combination that is not the default one, so the
+third key is a choice the response has to state. The
+`D2AttributeOptionCombo` extension carries it as one coding out of the
+form's own vocabulary, [d2-aoc-idcDPkDtepR-vs](ValueSet-d2-aoc-idcDPkDtepR-vs.html),
+which the Questionnaire names on its `D2AttributeOptionCombos` extension:
+
+```
+"extension": [{
+  "url": "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-attribute-option-combo",
+  "valueCoding": {
+    "system": "http://example.org/fhir/examples/aggregate-minimal/CodeSystem/d2-aoc-idcDPkDtepR-cs",
+    "code": "pO5CEqK6c1s"
+  }
+}]
+```
+
+That coding is Improve access to clean water
+(`pO5CEqK6c1s`) - an attribute option combination this DHIS2
+instance accepts at Madina Wesleyan Mission,
+for 202512.
+A capture naming no attribute option combination is refused with `E8023`. One keyed to a
+combination whose category options this DHIS2 instance scopes away from the reporting organisation
+unit is refused with `E8025`, and one whose reporting period the combination's calendar window does
+not cover entirely with `E8032`. [Terminology](terminology.html) lists every published combination
+and the DHIS2 identifiers each concept carries.
+
+**6. Answer one item per `linkId`.** The response mirrors the Questionnaire's item tree, and
 every question is addressed by the `linkId` the Questionnaire gave it. There are exactly two
 grammars:
 
@@ -78,13 +106,13 @@ grammars:
 | `cZnQDuF3IDz.TxaWpw1pN5G` | `<dataElementId>.<categoryOptionComboId>` | Stock PHU discarded BCG / VVM Change | `valueDecimal` | no |
 | `FvKdfA2SuWI.fsFN9T4ck3E` | `<dataElementId>.<categoryOptionComboId>` | Stock PHU discarded Measles / Expired | `valueDecimal` | no |
 
-**6. Fill in every required question.** An item carrying `required = true` has to be answered.
+**7. Fill in every required question.** An item carrying `required = true` has to be answered.
 For a data set that is what a DHIS2 compulsory data element operand means: an operand naming a
 data element alone makes the whole question mandatory, every disaggregated cell of it included,
 while an operand naming a category option combo too makes only that one cell mandatory. Read
 the flag off the Questionnaire rather than inferring it.
 
-**7. Type each answer.** The `value[x]` element an answer lands on is fixed by the data
+**8. Type each answer.** The `value[x]` element an answer lands on is fixed by the data
 element's DHIS2 value type - see [the answer typing table](#answer-typing) below.
 
 ## An event response, step by step

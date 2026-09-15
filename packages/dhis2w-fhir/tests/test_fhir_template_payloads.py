@@ -16,6 +16,7 @@ and the level extension that closes it. `projects/README.md` says how to regener
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,7 @@ from dhis2w_fhir.resources.organisation_units.schemas import (
     OrganisationUnitLevelNames,
 )
 from dhis2w_fhir.scaffold.project_templates import TemplateOrigin, list_templates
+from pydantic import BaseModel, ConfigDict
 
 #: The templates that ride the wheel, by name, each with the canonical its payload states throughout.
 #: The checkout-only ones commit no generated tree at all, so there is nothing of theirs to grade.
@@ -175,3 +177,107 @@ def test_every_selection_names_uids_in_the_shape_dhis2_gives_them() -> None:
         assert named != [], name
         for uid in named:
             assert len(uid) == 11 and uid[0].isalpha() and uid.isalnum(), f"{name}: {uid}"
+
+
+#: Where a template keeps the attribute-option-combo vocabularies its selection produced.
+ATTRIBUTE_COMBO_RELATIVE_PATH = Path("ig/input/resources/attribute-option-combos")
+
+#: Where a template keeps the narrative pages its selection produced.
+PAGECONTENT_RELATIVE_PATH = Path("ig/input/pagecontent")
+
+#: The concept properties a combination concept states its restrictions and its calendar window on.
+_RESTRICTION_PROPERTY = "dhis2-organisation-units"
+_VALID_FROM_PROPERTY = "dhis2-valid-from"
+_VALID_TO_PROPERTY = "dhis2-valid-to"
+
+#: What the capture page's aggregate walk-through states, read back off the markdown it wrote.
+_WORKED_UNIT = re.compile(r'"subject": \{ "reference": "(?:.*/)?Location/(?P<uid>[^"/]+)" \}')
+_WORKED_PERIOD = re.compile(r'"valuePeriod": \{ "start": "(?P<start>[^"]+)", "end": "(?P<end>[^"]+)" \}')
+_WORKED_COMBO = re.compile(
+    r'"system": "(?P<system>[^"]+)",\s*\n\s*"code": "(?P<code>[^"]+)"',
+)
+
+
+class _WorkedCapture(BaseModel):
+    """What one template's `capture.md` teaches a client to send, read back off the page it wrote."""
+
+    model_config = ConfigDict(frozen=True)
+
+    organisation_unit_uid: str
+    start_date: str
+    end_date: str
+    combo_system: str
+    combo_code: str
+
+
+def _worked_capture(name: str) -> _WorkedCapture | None:
+    """The aggregate walk-through of one bundled template, or None where its form states no combination."""
+    page = (BUNDLED[name].root / PAGECONTENT_RELATIVE_PATH / "capture.md").read_text(encoding="utf-8")
+    combo = _WORKED_COMBO.search(page)
+    unit = _WORKED_UNIT.search(page)
+    period = _WORKED_PERIOD.search(page)
+    if combo is None or unit is None or period is None:
+        return None
+    return _WorkedCapture(
+        organisation_unit_uid=unit.group("uid"),
+        start_date=period.group("start"),
+        end_date=period.group("end"),
+        combo_system=combo.group("system"),
+        combo_code=combo.group("code"),
+    )
+
+
+def _combo_concept(name: str, system: str, code: str) -> dict[str, Any] | None:
+    """One concept of one published attribute-option-combo CodeSystem, by the canonical the page names."""
+    for path in sorted((BUNDLED[name].root / ATTRIBUTE_COMBO_RELATIVE_PATH).glob("CodeSystem-*.json")):
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if document.get("url") != system:
+            continue
+        return next((concept for concept in document.get("concept", []) if concept.get("code") == code), None)
+    return None
+
+
+def _concept_property(concept: dict[str, Any], code: str) -> str | None:
+    """One concept property's value, whichever `value[x]` element the property declares it on."""
+    for entry in concept.get("property", []):
+        if entry.get("code") == code:
+            value = entry.get("valueString") or entry.get("valueDateTime") or entry.get("valueCode")
+            return str(value) if value is not None else None
+    return None
+
+
+def _list_members(name: str, reference: str) -> set[str]:
+    """The organisation units one restriction List names, by the id its entries reference them as."""
+    list_id = reference.rsplit("/", 1)[-1]
+    path = BUNDLED[name].root / ATTRIBUTE_COMBO_RELATIVE_PATH / f"List-{list_id}.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        str(entry["item"]["reference"]).rsplit("/", 1)[-1]
+        for entry in document.get("entry", [])
+        if isinstance(entry.get("item"), dict)
+    }
+
+
+def test_the_capture_walkthrough_quotes_a_combination_usable_where_and_when_it_reports(template_name: str) -> None:
+    """A walk-through teaching a capture DHIS2 refuses is worse than one that teaches nothing.
+
+    DHIS2 grades an attribute option combination on two axes beyond the vocabulary itself: it scopes
+    a category option to organisation units and refuses a capture filed elsewhere with `E8025`, and
+    it opens the option for a calendar window and refuses a capture whose whole reporting period the
+    window does not cover with `E8032`. The page states an organisation unit, a period and a
+    combination in one worked snippet, so all three have to agree in the payload as committed.
+    """
+    worked = _worked_capture(template_name)
+    if worked is None:
+        pytest.skip(f"{template_name} works an aggregate form that rides the default category combination")
+    concept = _combo_concept(template_name, worked.combo_system, worked.combo_code)
+    assert concept is not None, f"{template_name}: capture.md quotes a concept no published CodeSystem holds"
+
+    valid_from = _concept_property(concept, _VALID_FROM_PROPERTY)
+    valid_to = _concept_property(concept, _VALID_TO_PROPERTY)
+    assert valid_from is None or valid_from <= worked.start_date
+    assert valid_to is None or valid_to >= worked.end_date
+
+    restriction = _concept_property(concept, _RESTRICTION_PROPERTY)
+    if restriction is not None:
+        assert worked.organisation_unit_uid in _list_members(template_name, restriction)

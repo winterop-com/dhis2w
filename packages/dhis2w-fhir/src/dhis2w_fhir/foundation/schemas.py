@@ -210,6 +210,15 @@ PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION = "description"
 PROGRAM_RULE_CONDITION_SUB_EXTENSION = "condition"
 PROGRAM_RULE_ACTION_SUB_EXTENSION = "action"
 
+#: The slice naming each question an `ASSIGN` rule computes the answer to, repeated once per question.
+#:
+#: DHIS2 computes the value itself on import and refuses a payload whose answer is neither empty nor
+#: byte-equal to what the rule computed, with `E1307 The provided value must be empty or match the
+#: calculated value`. A calculated value can be one no answer expresses at all - `-Infinity` out of
+#: `d2:log(0)` - so the only answer DHIS2 always takes is no answer. Publishing the UID here is what
+#: lets a client join the rule to the question on its own form and leave that question empty.
+PROGRAM_RULE_ASSIGNS_SUB_EXTENSION = "assigns"
+
 #: The sub-extension urls D2Period slices its three facts under, as `d2-period.fsh.jinja` names them.
 #: They live with the extension's own declaration, because everything that reads a reporting period -
 #: the example builder writing one, the translator reading one back, the published map naming where a

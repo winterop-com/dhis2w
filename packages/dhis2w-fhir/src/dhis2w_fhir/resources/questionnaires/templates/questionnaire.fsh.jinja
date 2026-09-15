@@ -42,6 +42,9 @@ Usage: #definition
 {% endfor %}
 * extension[{{ questionnaire.program_rule_extension }}][=].extension[{{ program_rule_condition_sub_extension }}].valueString = {{ rule.condition_literal }}
 * extension[{{ questionnaire.program_rule_extension }}][=].extension[{{ program_rule_action_sub_extension }}].valueCode = #{{ rule.action_code }}
+{% for assigned in rule.assigns %}
+* extension[{{ questionnaire.program_rule_extension }}][=].extension[{{ program_rule_assigns_sub_extension }}][+].valueId = "{{ assigned }}"
+{% endfor %}
 {% if rule.description_literal is not none %}
 * extension[{{ questionnaire.program_rule_extension }}][=].extension[{{ program_rule_description_sub_extension }}].valueString = {{ rule.description_literal }}
 {% for translation in rule.description_translations %}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import re
 from pathlib import Path
@@ -21,6 +22,10 @@ from dhis2w_fhir.attributes import AttributeCodeIndex
 from dhis2w_fhir.foundation.schemas import IDENTIFIER_SYSTEM_SUBJECTS
 from dhis2w_fhir.names import markdown_text
 from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    AttributeOptionRestrictions,
+    CategoryOptionValidity,
+)
 from dhis2w_fhir.resources.examples import STATUS_BY_EVENT_STATUS
 from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
 from dhis2w_fhir.resources.option_sets import option_set_identities
@@ -690,3 +695,96 @@ def test_markdown_text_escapes_in_the_documented_order() -> None:
     assert markdown_text("one\r\ntwo") == "one\ntwo"
     assert markdown_text("one\r\ntwo", table_cell=True) == "one two"
     assert markdown_text("") == ""
+
+
+#: A data set's own category combination - the third key of every value it holds, beside the
+#: organisation unit and the period. Two combinations: one open for the worked period, one DHIS2
+#: closed in 2016, which the page has to pass over rather than teach a capture answered `E8032`.
+_PROJECT_COMBO = CategoryComboIn(
+    uid="idcDPkDtepR",
+    name="Project",
+    is_default=False,
+    option_combos=[
+        CategoryOptionComboIn(uid="Cop1aaaaaaa", name="Expired project", category_option_uids=["Cao1aaaaaaa"]),
+        CategoryOptionComboIn(uid="Cop2aaaaaaa", name="Clean water", category_option_uids=["Cao2aaaaaaa"]),
+    ],
+)
+
+_COMBO_DATA_SET = QuestionnaireSourceIn(
+    uid="TuL8IOPzpHh",
+    name="EPI Stock",
+    kind="aggregate",
+    period_type="Monthly",
+    attribute_combo=_PROJECT_COMBO,
+    flat_items=[QuestionnaireItemIn(uid="De4aaaaaaaa", name="Doses received", value_type="INTEGER")],
+)
+
+
+def _combo_pages(
+    *,
+    restrictions: AttributeOptionRestrictions | None = None,
+    placements: dict[str, SyntheticPlacement] | None = None,
+) -> str:
+    """capture.md for a guide whose one data set rides a category combination that is not the default one."""
+    build = build_page_artifacts(
+        PagesIn(forms=[_COMBO_DATA_SET], organisation_units=[_ROOT_UNIT, _CHILD_UNIT]),
+        GenerateConfig(),
+        _CANONICAL,
+        example_placements=placements,
+        attribute_option_restrictions=restrictions,
+    )
+    return next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+
+def test_the_aggregate_walkthrough_states_the_attribute_option_combination_it_files_under() -> None:
+    """A reader following a walk-through that never mentions the third key builds a capture DHIS2 refuses.
+
+    `E8023`: a data set on a category combination that is not the default one takes no write naming
+    no attribute option combination. The page's own example carries one, and until now the page did
+    not say so.
+    """
+    capture = _combo_pages()
+
+    assert "**5. Name the attribute option combination.**" in capture
+    assert "d2-attribute-option-combo" in capture
+    assert "E8023" in capture
+    assert "**6. Answer one item per `linkId`.**" in capture
+    assert "**8. Type each answer.**" in capture
+
+
+def test_a_default_combination_form_keeps_the_seven_step_walkthrough() -> None:
+    """A data set riding the default category combination states no combination, so it has no step for one."""
+    capture = _pages()["capture.md"]
+
+    assert "Name the attribute option combination" not in capture
+    assert "**5. Answer one item per `linkId`.**" in capture
+    assert "**7. Type each answer.**" in capture
+
+
+def test_the_walkthrough_quotes_a_combination_open_for_the_period_it_reports_for() -> None:
+    """DHIS2 refuses a capture whose period the combination's calendar window does not cover, with E8032."""
+    restrictions = AttributeOptionRestrictions(
+        validity={"Cao1aaaaaaa": CategoryOptionValidity(valid_to=datetime.date(2016, 10, 1))}
+    )
+
+    capture = _combo_pages(restrictions=restrictions)
+
+    assert "Clean water" in capture
+    assert "`Cop2aaaaaaa`" in capture
+    assert "Expired project" not in capture
+
+
+def test_the_walkthrough_quotes_a_combination_the_organisation_unit_it_names_may_file_under() -> None:
+    """DHIS2 scopes a category option to organisation units and refuses a capture elsewhere with E8025."""
+    placements = {
+        _COMBO_DATA_SET.uid: SyntheticPlacement(
+            organisation_unit_uids=(_ROOT_UNIT.uid,),
+            usable_attribute_option_combo_uids={_ROOT_UNIT.uid: ("Cop2aaaaaaa",)},
+        )
+    }
+
+    capture = _combo_pages(placements=placements)
+
+    assert "`Cop2aaaaaaa`" in capture
+    assert "Expired project" not in capture
+    assert "E8025" in capture

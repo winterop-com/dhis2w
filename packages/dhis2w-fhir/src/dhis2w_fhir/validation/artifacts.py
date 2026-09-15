@@ -45,13 +45,14 @@ not exist.
 ## Severity
 
 Most findings are build-aborting and exit the command 1, which is what `make build` runs it for.
-Three are warnings: a published form whose organisation-unit assignment names no organisation unit
+Four are warnings: a published form whose organisation-unit assignment names no organisation unit
 the project publishes, a published form whose whole attribute-combo vocabulary DHIS2 restricts away
-from every organisation unit the project publishes, and a `[generate.*] include_ids` entry the
-published tree carries no trace of. All three builds are valid and will publish - the first two
-publish a form nobody can submit a response to, on the two axes DHIS2 grades a capture by, the third
-a guide missing the very form the entry asked for - and all three are worth a look before the
-publisher is paid for.
+from every organisation unit the project publishes, a `[generate.*] include_ids` entry the published
+tree carries no trace of, and a published example answering a question the form's own program rules
+say DHIS2 computes. All four builds are valid and will publish - the first two publish a form nobody
+can submit a response to, on the two axes DHIS2 grades a capture by, the third a guide missing the
+very form the entry asked for, the fourth an example DHIS2 refuses to import with `E1307` - and all
+four are worth a look before the publisher is paid for.
 
 ## What is checked, and why exactly this
 
@@ -83,6 +84,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
+from dhis2w_fhir.foundation.schemas import PROGRAM_RULE_ASSIGNS_SUB_EXTENSION, FoundationNaming
 from dhis2w_fhir.period import PERIOD_TYPE_NAMES
 from dhis2w_fhir.period.parser import parse_period
 from dhis2w_fhir.period.recent import recent_periods
@@ -216,6 +218,9 @@ class FindingOrigin(StrEnum):
     SELECTION = "selection"
     """A `[generate.*] include_ids` entry naming a DHIS2 object this project publishes nothing for."""
 
+    COMPUTED_ANSWER = "computed-answer"
+    """A published example answering a question the form's own program rules say DHIS2 computes."""
+
 
 FindingSeverity = Literal["build-aborting", "warning"]
 """Whether a finding stops the build or only asks to be looked at before one is paid for."""
@@ -252,6 +257,12 @@ _REGISTRY_UNREADABLE_REMEDY = (
 #: one sentence `d2w fhir generate` closes such a run with, so both commands prescribe one thing.
 _ASSIGNMENT_REMEDY = EMPTY_ASSIGNMENT_REMEDY
 
+#: What answers an example answering a question DHIS2 computes: the answer comes out, nothing else.
+_COMPUTED_ANSWER_REMEDY = (
+    "Leave the question unanswered - DHIS2 computes the value on import - and run `d2w fhir generate` "
+    "again, or delete the answer from the hand-authored example that carries it."
+)
+
 #: What answers a selection entry the guide publishes nothing for: the UID and the instance disagree.
 _SELECTION_REMEDY = (
     "Check the UID in the DHIS2 Maintenance app, then correct it in the include_ids table this row "
@@ -269,18 +280,20 @@ _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
     FindingOrigin.ATTRIBUTE_OPTION_COMBO: UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
     FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO: UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
     FindingOrigin.SELECTION: _SELECTION_REMEDY,
+    FindingOrigin.COMPUTED_ANSWER: _COMPUTED_ANSWER_REMEDY,
 }
 
-#: The origins whose finding lets the build run. Four, and for the same reason: a form nobody can
-#: submit - on any of the three axes DHIS2 grades a capture by - and a selection entry that named
-#: nothing all publish perfectly well, so stopping the build over one would refuse a guide the
-#: publisher has no quarrel with.
+#: The origins whose finding lets the build run. Five, and for the same reason: a form nobody can
+#: submit - on any of the three axes DHIS2 grades a capture by - a selection entry that named
+#: nothing, and an example DHIS2 refuses to import all publish perfectly well, so stopping the build
+#: over one would refuse a guide the publisher has no quarrel with.
 _WARNING_ORIGINS = frozenset(
     {
         FindingOrigin.ASSIGNMENT,
         FindingOrigin.ATTRIBUTE_OPTION_COMBO,
         FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO,
         FindingOrigin.SELECTION,
+        FindingOrigin.COMPUTED_ANSWER,
     }
 )
 
@@ -302,9 +315,9 @@ class ArtifactFinding(BaseModel):
     value: str
     """The offending string, byte-true, so a reader can search the instance for it."""
 
-    kind: Literal["name", "code", "registry", "assignment", "attribute-option-combo", "selection"]
+    kind: Literal["name", "code", "registry", "assignment", "attribute-option-combo", "selection", "computed-answer"]
     """What raised it: a DHIS2 name, a DHIS2 code emitted as an identifier, a registry reference, an
-    assignment, an attribute option combo vocabulary, or a selection entry."""
+    assignment, an attribute option combo vocabulary, a selection entry, or an answer DHIS2 computes."""
 
     origin: FindingOrigin
     """Where the value came from, which is what the remedy and the severity are read off."""
@@ -418,6 +431,7 @@ def check_publishable_artifacts(
     findings.extend(_unusable_attribute_option_combo_findings(project, root))
     findings.extend(_untimely_attribute_option_combo_findings(project, root, today or datetime.now(tz=UTC).date()))
     findings.extend(_selection_findings(project))
+    findings.extend(_computed_answer_findings(project, root))
     findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
     return ArtifactCheckReport(
@@ -1170,6 +1184,113 @@ def _published_uids(project: FhirProject, wanted: set[str]) -> set[str]:
         if found == wanted:
             break
     return found
+
+
+#: Why an example answering a computed question is worth a look, and why it stops no build.
+_COMPUTED_ANSWER_MESSAGE = (
+    "the form's own D2ProgramRule extension says a DHIS2 program rule computes the answer to this "
+    "question, and this example answers it anyway. DHIS2 calculates the value on import and refuses "
+    "a payload whose answer is neither empty nor the calculated value, with E1307 - and a calculated "
+    "value can be one no answer expresses at all. The guide builds and publishes either way, which is "
+    "why this is a warning: what it costs is an example nobody can import, not a build."
+)
+
+#: The Questionnaire element carrying the canonical a response answers, and the resource types read.
+_QUESTIONNAIRE_ELEMENT = "questionnaire"
+_QUESTIONNAIRE_RESOURCE_TYPE = "Questionnaire"
+_QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE = "QuestionnaireResponse"
+
+#: The elements a Questionnaire and a response carry their items and answers on. The extensions ride
+#: `_EXTENSION_ELEMENT`, which the date-axis scan above already names.
+_ITEM_ELEMENT = "item"
+_ANSWER_ELEMENT = "answer"
+_LINK_ID_ELEMENT = "linkId"
+_URL_ELEMENT = "url"
+_VALUE_ID_ELEMENT = "valueId"
+
+
+def _computed_answer_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
+    """Every published example answering a question its form says a DHIS2 program rule computes.
+
+    Offline like the rest of the scan: a Questionnaire publishes the questions its `ASSIGN` rules
+    compute on its own `D2ProgramRule` extensions, and a response names the Questionnaire it answers
+    by canonical, so the join is entirely on disk. A hand-authored example is read exactly as a
+    generated one is - nothing regenerates the first, which is the reader this finding is for.
+    """
+    naming = FoundationNaming.from_naming(project.config.generate.naming)
+    rule_extension_suffix = f"/StructureDefinition/{naming.program_rule_extension_id}"
+    documents = [(path, _read_document(path)) for path in _json_paths(project)]
+    computed: dict[str, set[str]] = {}
+    for _, document in documents:
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != _QUESTIONNAIRE_RESOURCE_TYPE:
+            continue
+        url = document.get(_URL_ELEMENT)
+        assigned = _computed_question_uids(document.get(_EXTENSION_ELEMENT), rule_extension_suffix)
+        if isinstance(url, str) and assigned:
+            computed.setdefault(url, set()).update(assigned)
+    if not computed:
+        return []
+    findings: list[ArtifactFinding] = []
+    for path, document in documents:
+        if (
+            not isinstance(document, dict)
+            or document.get(_RESOURCE_TYPE_ELEMENT) != _QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE
+        ):
+            continue
+        answered = computed.get(str(document.get(_QUESTIONNAIRE_ELEMENT)), set())
+        if not answered:
+            continue
+        resource_id = document.get("id")
+        named = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
+        findings.extend(
+            ArtifactFinding(
+                file=_relative(path, root),
+                resource_id=named,
+                field=field,
+                value=link_id,
+                kind="computed-answer",
+                origin=FindingOrigin.COMPUTED_ANSWER,
+                message=_COMPUTED_ANSWER_MESSAGE,
+            )
+            for field, link_id in _answered_link_ids(document.get(_ITEM_ELEMENT), prefix=_ITEM_ELEMENT)
+            if link_id in answered
+        )
+    return findings
+
+
+def _computed_question_uids(extensions: Any, rule_extension_suffix: str) -> set[str]:  # noqa: ANN401 - JSON is Any
+    """The question UIDs one Questionnaire's D2ProgramRule extensions say DHIS2 computes the answers to."""
+    if not isinstance(extensions, list):
+        return set()
+    computed: set[str] = set()
+    for extension in extensions:
+        if not isinstance(extension, dict) or not str(extension.get(_URL_ELEMENT, "")).endswith(rule_extension_suffix):
+            continue
+        slices = extension.get(_EXTENSION_ELEMENT)
+        if not isinstance(slices, list):
+            continue
+        computed |= {
+            value
+            for entry in slices
+            if isinstance(entry, dict) and entry.get(_URL_ELEMENT) == PROGRAM_RULE_ASSIGNS_SUB_EXTENSION
+            for value in [entry.get(_VALUE_ID_ELEMENT)]
+            if isinstance(value, str)
+        }
+    return computed
+
+
+def _answered_link_ids(items: Any, *, prefix: str) -> Iterator[tuple[str, str]]:  # noqa: ANN401 - JSON is Any
+    """Every `linkId` a response carries an answer for, with the element path that answer sits at."""
+    if not isinstance(items, list):
+        return
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        path = f"{prefix}[{index}]"
+        link_id = item.get(_LINK_ID_ELEMENT)
+        if isinstance(link_id, str) and item.get(_ANSWER_ELEMENT):
+            yield f"{path}.{_LINK_ID_ELEMENT}", link_id
+        yield from _answered_link_ids(item.get(_ITEM_ELEMENT), prefix=f"{path}.{_ITEM_ELEMENT}")
 
 
 #: Why a reference into the registry package the guide does not publish stops a build.

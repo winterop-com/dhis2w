@@ -13,7 +13,8 @@ Description: "One DHIS2 program rule this form does not express: the expression 
     name 1..1 and
     description 0..1 and
     condition 1..1 and
-    action 1..1
+    action 1..1 and
+    assigns 0..*
 * extension[rule] ^short = "The UID of the DHIS2 program rule."
 * extension[rule].value[x] only id
 * extension[rule].valueId 1..1
@@ -29,6 +30,9 @@ Description: "One DHIS2 program rule this form does not express: the expression 
 * extension[action].value[x] only code
 * extension[action].valueCode 1..1
 * extension[action].valueCode from D2ProgramRuleAction_VS (required)
+* extension[assigns] ^short = "The UID of a question this rule computes the answer to. Send that question empty: DHIS2 computes the value on import and refuses any other answer with E1307."
+* extension[assigns].value[x] only id
+* extension[assigns].valueId 1..1
 
 CodeSystem: D2ProgramRuleAction_CS
 Id: d2-program-rule-action-cs

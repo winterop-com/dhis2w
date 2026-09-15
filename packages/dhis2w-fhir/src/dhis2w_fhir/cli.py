@@ -1854,7 +1854,17 @@ def validate_command(
                 ]
             )
         summary_rows.append(DetailRow("scope", _literal_cell(report.scope_line)))
-        summary_rows.append(DetailRow("code source", service.resolve_code_source(context.config, requested_source)))
+        # Labelled by the key it is, not by what it is about: the row sits under a `code coverage`
+        # row and beside `code-stem-refusal` findings, and those are `[generate.naming] source`.
+        summary_rows.append(
+            DetailRow(
+                _literal_cell("[generate] concept_code_source"),
+                service.resolve_code_source(context.config, requested_source),
+            )
+        )
+        # Its sibling, beside it rather than inferred: the two decide different things and this table
+        # is where a reader works out which of them a code finding is about.
+        summary_rows.append(DetailRow(_literal_cell("[generate.naming] source"), str(context.config.naming.source)))
         summary_rows.append(DetailRow("hostile names", report.hostile_names_line))
         render_detail("fhir validate", summary_rows, console=STDERR_CONSOLE)
         if report.not_applicable_surfaces:
@@ -3018,6 +3028,7 @@ def _render_forward_report(report: ForwardReport, generation: GenerationProfile,
         )
     for issue in report.filing_issues:
         _hint("note", f"{issue.response_id}: {issue.reason}")
+    destination = _write_forward_report(report, generation)
     if not report.spooled:
         _hint("note", "the spool is empty - `d2w fhir serve` is what fills it")
         return
@@ -3027,8 +3038,8 @@ def _render_forward_report(report: ForwardReport, generation: GenerationProfile,
         _render_overwritten_values(report)
         _render_completeness(report)
         _render_forward_outcomes(report)
+        _hint("note", f"this run's outcomes are also written to {destination}")
     else:
-        destination = _write_forward_report(report, generation)
         noted = sum(len(outcome.notes) for outcome in report.outcomes)
         _hint(
             "note",
@@ -3051,9 +3062,10 @@ def _render_forward_report(report: ForwardReport, generation: GenerationProfile,
         )
     if report.translator_refused:
         _hint(
-            "note",
-            f"{len(report.translator_refused)} response(s) refused by the translator - they stay in the spool, "
-            "so fixing the guide or the data and forwarding again is the retry",
+            "error",
+            f"{len(report.translator_refused)} response(s) refused by the translator; exiting 1 - they stay in "
+            "the spool, so fixing the guide or the data and forwarding again is the retry",
+            style="red",
         )
     if report.unverifiable:
         _hint(
@@ -3137,7 +3149,10 @@ def forward_command(
     ] = None,
     details: Annotated[
         bool,
-        typer.Option("--details", help="Print every response's outcome instead of writing them to the report."),
+        typer.Option(
+            "--details",
+            help="Print every response's outcome here as well. The report is written either way.",
+        ),
     ] = False,
     progress: ProgressOption = True,
 ) -> None:
@@ -3180,11 +3195,16 @@ def forward_command(
     is still time to act on it. `--overwrites refuse` leaves any response holding one in the queue,
     with each covered value written down beside it, instead of posting it.
 
-    A DHIS2 rejection exits 1. A dry run counts a stage event whose enrollment a registration of the
-    same run creates as unverifiable rather than rejected - a dry run writes nothing, so there is no
-    enrollment to check it against - and a run whose only failures are those exits 0.
+    THE EXIT CODE. 0 exactly when nothing was refused by the translator, nothing was rejected by
+    DHIS2, and the drain reached the end of the queue. Every other outcome exits 1 with the counts on
+    screen: a partial drain is not a success, and neither is a drain that posted nothing because the
+    translator refused everything it read. A dry run counts a stage event whose enrollment a
+    registration of the same run creates as unverifiable rather than rejected - a dry run writes
+    nothing, so there is no enrollment to check it against - and a run whose only failures are those
+    exits 0.
 
-    Outcomes land in reports/fhir-forward-report.md; `--details` prints them here instead.
+    Outcomes land in reports/fhir-forward-report.md on every run, `--details` or not; `--details`
+    prints them here as well.
     """
     from dhis2w_fhir import FORWARD_STEPS, service
     from dhis2w_fhir.conversion import CodedAnswerMode
@@ -3213,7 +3233,7 @@ def forward_command(
         typer.echo(report.model_dump_json(indent=2))
     else:
         _render_forward_report(report, generation, details=details)
-    if report.rejected or report.stopped is not None:
+    if report.rejected or report.translator_refused or report.stopped is not None:
         raise typer.Exit(code=1)
 
 

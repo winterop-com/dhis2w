@@ -733,3 +733,113 @@ def test_both_emitters_state_the_same_enable_when() -> None:
         ("Apg1aaaaaaa", "exists", None, False),
     ]
     assert comment.enableBehavior == "any"
+
+
+def test_an_assign_rule_names_the_question_dhis2_computes_the_answer_to() -> None:
+    """A published ASSIGN rule carries the question it computes, or nothing can join the rule to the form.
+
+    DHIS2 calculates an assigned value on import and refuses a payload whose answer is neither empty
+    nor byte-equal to that value, with `E1307`. Without the UID a client holds a rule and a question
+    with nothing between them, and answers the question.
+    """
+    reading = _reading(
+        [_rule("true", "ASSIGN", "Log1aaaaaaa")],
+        [_variable("reading", "Log1aaaaaaa")],
+        [_question("Log1aaaaaaa")],
+    )
+
+    (published,) = reading.published
+    assert published.action == "ASSIGN"
+    assert published.assigns == ["Log1aaaaaaa"]
+    assert reading.assigned_question_uids == frozenset({"Log1aaaaaaa"})
+
+
+def test_a_rule_that_computes_nothing_names_no_assigned_question() -> None:
+    """Only ASSIGN computes an answer; every other published action leaves the question the capture's own."""
+    reading = _reading(
+        [_rule("!#{smoking} ", "HIDEFIELD", "Smk1aaaaaaa")],
+        [],
+        [_question("Smk1aaaaaaa")],
+    )
+
+    (published,) = reading.published
+    assert published.assigns == []
+    assert reading.assigned_question_uids == frozenset()
+
+
+def test_an_assign_rule_over_a_tracked_entity_attribute_names_that_attribute() -> None:
+    """A tracker rule computes an attribute rather than a data element, and the slice is the question either way."""
+    rule = ProgramRuleIn(
+        uid="Rule1aaaaaa",
+        name="derive the age",
+        condition="true",
+        actions=[ProgramRuleActionIn(action_type="ASSIGN", tracked_entity_attribute_uid="Att1aaaaaaa")],
+    )
+
+    reading = _reading([rule], [], [_question("Att1aaaaaaa")])
+
+    assert reading.published[0].assigns == ["Att1aaaaaaa"]
+
+
+def test_the_form_says_out_loud_which_questions_dhis2_computes() -> None:
+    """A run that quietly stopped answering a question would be a run nobody could explain."""
+    plan = _plan(
+        [_rule("true", "ASSIGN", "Log1aaaaaaa")],
+        [_variable("reading", "Log1aaaaaaa")],
+        [_question("Log1aaaaaaa")],
+    )
+
+    (note,) = [entry for entry in plan.notes if "E1307" in entry.message]
+    assert "Programme (Prog1aaaaaa)" in note.message
+    assert "Log1aaaaaaa" in note.message
+    assert "rule Rule1aaaaaa" in note.message
+    assert "unanswered" in note.message
+
+
+def test_a_computed_question_rides_the_assigns_slice_of_both_emitters() -> None:
+    """The FSH SUSHI compiles and the JSON the facade serves carry one shape, sub-extension url and all."""
+    source = _source(
+        [_rule("true", "ASSIGN", "Log1aaaaaaa")],
+        [_variable("reading", "Log1aaaaaaa")],
+        [_question("Log1aaaaaaa")],
+    )
+    build = build_questionnaire_artifacts(
+        [source],
+        GenerateConfig(),
+        _CANONICAL,
+        ig_status="draft",
+        option_set_plan=option_set_identities([], GenerateConfig()),
+        attribute_codes=AttributeCodeIndex(),
+    )
+    documents = build_questionnaire_documents(
+        [source],
+        GenerateConfig(),
+        _CANONICAL,
+        ig_status="draft",
+        option_set_plan=option_set_identities([], GenerateConfig()),
+        attribute_codes=AttributeCodeIndex(),
+    )
+
+    assert '* extension[D2ProgramRule][=].extension[assigns][+].valueId = "Log1aaaaaaa"' in build.artifacts[0].content
+    carried = [
+        (sub.url, sub.valueId)
+        for extension in documents.questionnaires[0].extension or []
+        if extension.url == _PROGRAM_RULE_URL
+        for sub in extension.extension or []
+        if sub.url == "assigns"
+    ]
+    assert carried == [("assigns", "Log1aaaaaaa")]
+
+
+def test_the_program_rule_extension_declares_the_assigns_slice() -> None:
+    """A slice nothing declares is a slice SUSHI refuses, so the foundation states it beside the other four."""
+    from dhis2w_fhir.foundation import build_foundation_artifacts
+
+    artifacts = build_foundation_artifacts(GenerateConfig(), _CANONICAL, ig_status="draft")
+
+    declaration = next(
+        artifact.content for artifact in artifacts if artifact.relative_path.endswith("d2-program-rule.fsh")
+    )
+    assert "    assigns 0..*" in declaration
+    assert "* extension[assigns].value[x] only id" in declaration
+    assert "E1307" in declaration

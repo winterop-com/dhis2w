@@ -254,6 +254,23 @@ class CapturePeriodExample(BaseModel):
     end_date: str
 
 
+class CaptureAttributeOptionComboExample(BaseModel):
+    """The attribute option combination the capture page's worked example files its whole response under.
+
+    Present only for a form whose DHIS2 category combo is not the default one. Such a form publishes
+    an attribute-option-combo vocabulary, its responses carry exactly one coding out of it, and DHIS2
+    refuses a data value set naming none with `E8023` - so the walk-through has a step for it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    uid: str
+    display: str
+    concept_code: str
+    code_system_url: str
+    value_set_id: str
+
+
 class CaptureFormExample(BaseModel):
     """One selected form worked end to end on the capture page: its Questionnaire and some of its linkIds.
 
@@ -276,6 +293,8 @@ class CaptureFormExample(BaseModel):
     organisation_unit_uid: str = ""
     organisation_unit_reference: str = ""
     organisation_unit_name: str = ""
+    attribute_option_combo: CaptureAttributeOptionComboExample | None = None
+    """The combination this form's capture is filed under, absent on a form riding the default category combo."""
 
 
 class EventStatusRow(BaseModel):
@@ -322,6 +341,9 @@ class CaptureView(BaseModel):
     enrollment_extension_id: str
     organisation_unit_extension: str
     organisation_unit_extension_id: str
+    attribute_option_combo_extension: str
+    attribute_option_combo_extension_id: str
+    attribute_option_combos_extension: str
     tracked_entity_system: str
     enrollment_system: str
     capture_server: str

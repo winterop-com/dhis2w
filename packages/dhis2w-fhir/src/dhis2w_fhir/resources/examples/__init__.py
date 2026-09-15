@@ -448,6 +448,7 @@ class ExampleTally(BaseModel):
     unauthored_responses: list[str] = Field(default_factory=list)
     incomplete_tracker_responses: list[str] = Field(default_factory=list)
     unasked_questions: list[str] = Field(default_factory=list)
+    computed_questions: list[str] = Field(default_factory=list)
 
     def to_notes(self) -> list[GenerateNote]:
         """Roll the tally up into one aggregate note per noteworthy example outcome."""
@@ -533,6 +534,17 @@ class ExampleTally(BaseModel):
                     f"{verb_for_count(len(self.unasked_questions), 'answers', 'answer')} a question the "
                     "form's own enableWhen leaves disabled given the rest of the response; left unanswered",
                     self.unasked_questions,
+                )
+            )
+        if self.computed_questions:
+            notes.append(
+                aggregate_generate_note(
+                    GenerateNoteCategory.SKIPPED_QUESTION,
+                    f"{pluralize(len(self.computed_questions), 'captured value')} "
+                    f"{verb_for_count(len(self.computed_questions), 'answers', 'answer')} a question a "
+                    "program rule computes the answer to; left unanswered, because DHIS2 calculates the "
+                    "value on import and refuses any other answer with E1307",
+                    self.computed_questions,
                 )
             )
         if self.incomplete_tracker_responses:
@@ -893,7 +905,9 @@ def _synthetic_response(
     declares, and a question whose bounds admit no value at all is left unanswered and tallied -
     and what decides which questions the form turns out to be asking at all. Every question is
     drawn and the disabled ones are dropped afterwards, because a condition names another question
-    and the answer settling it is one this same draw produces.
+    and the answer settling it is one this same draw produces. A question an `ASSIGN` rule computes
+    is never drawn at all: DHIS2 calculates that answer on import and refuses any other one with
+    `E1307`, and a calculated value can be one - `-Infinity` - no answer expresses.
 
     `capture` is where the response reports from and what it is filed under, drawn together by the
     caller because DHIS2 grades the two together.
@@ -926,7 +940,12 @@ def _synthetic_response(
             incident_at = f"{window.pick_date(generator).isoformat()}T{_pick_hour(generator)}:00:00Z"
     answers: list[ExampleAnswerIn] = []
     unique_token = tracked_entity_uid or instance_id
+    computed_question_uids = rules.assigned_question_uids
     for key in _answerable_keys(source):
+        if key.item.uid in computed_question_uids:
+            # DHIS2 computes this answer on import and refuses any other one with E1307, and a
+            # calculated value can be one no answer expresses, so no answer is the only answer it takes.
+            continue
         option_set = option_sets_by_uid.get(key.item.option_set_uid or "")
         bounds = example_numeric_bounds(key.item, rules)
         if bounds.admits_nothing:
@@ -1628,16 +1647,23 @@ def example_answers(
     `program_rules` is what the form's own program rules put on its items, which is where the
     `enableWhen` an answer must satisfy comes from: a value answering a question the rest of the
     response leaves disabled is dropped and tallied, because R4 reads a disabled item as one no
-    response answers. A caller handing none states a form nothing gates, and every value is
-    emitted.
+    response answers. A value answering a question an `ASSIGN` rule computes is dropped the same
+    way: DHIS2 calculates that answer on import and refuses any other one with `E1307`, and a
+    calculated value can be one no answer expresses at all. A caller handing none states a form
+    nothing gates and nothing computes, and every value is emitted.
     """
     items_by_uid = {item.uid: item for item in source_items(source)}
-    asked = _asked_question_uids(response, source, program_rules or FormProgramRules(), option_concept_codes)
+    rules_of_form = program_rules or FormProgramRules()
+    computed = rules_of_form.assigned_question_uids
+    asked = _asked_question_uids(response, source, rules_of_form, option_concept_codes)
     answers: dict[str, list[ExampleAnswer]] = {}
     for captured in response.answers:
         item = items_by_uid.get(captured.data_element_uid)
         if item is None:
             tally.unknown_data_elements.append(f"{captured.data_element_uid} in {response.instance_id}")
+            continue
+        if captured.data_element_uid in computed:
+            tally.computed_questions.append(f"{item.name} ({item.uid}) in {response.instance_id}")
             continue
         if captured.data_element_uid not in asked:
             tally.unasked_questions.append(f"{item.name} ({item.uid}) in {response.instance_id}")
