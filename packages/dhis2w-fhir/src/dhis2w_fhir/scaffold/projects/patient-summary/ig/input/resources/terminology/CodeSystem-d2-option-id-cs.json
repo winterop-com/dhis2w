@@ -9,7 +9,7 @@
   "experimental": true,
   "caseSensitive": true,
   "content": "complete",
-  "count": 45,
+  "count": 42,
   "concept": [
     {
       "code": "AAgDQGRuOHB",
@@ -18,6 +18,10 @@
     {
       "code": "ARN7cNTxlRA",
       "display": "Other 1st line"
+    },
+    {
+      "code": "AZK4rjJCss5",
+      "display": "Female"
     },
     {
       "code": "BszlRcyvU2p",
@@ -68,26 +72,6 @@
       "display": "TDF/3TC/NVP - 1"
     },
     {
-      "code": "OptVacBCG01",
-      "display": "BCG"
-    },
-    {
-      "code": "OptVacDPT01",
-      "display": "DPT"
-    },
-    {
-      "code": "OptVacHpB01",
-      "display": "Hepatitis B"
-    },
-    {
-      "code": "OptVacMes01",
-      "display": "Measles"
-    },
-    {
-      "code": "OptVacPlo01",
-      "display": "Polio"
-    },
-    {
       "code": "QAr1LjJB7hV",
       "display": "AZT/3TC/EFV - 1"
     },
@@ -98,6 +82,10 @@
     {
       "code": "T6ZEg0zYzbL",
       "display": "Unknown"
+    },
+    {
+      "code": "UrUdMteQzlT",
+      "display": "Male"
     },
     {
       "code": "VBGXfSXgJzv",

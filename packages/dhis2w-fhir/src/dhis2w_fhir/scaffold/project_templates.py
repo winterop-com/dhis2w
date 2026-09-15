@@ -24,7 +24,7 @@ compile to offer - and a declaration is what keeps one of those out of the listi
 
 The one thing a payload cannot ship neutrally is its canonical. `Questionnaire.url`,
 `CodeSystem.url`, and every `valueSet` reference under `ig/input/resources/` state it in full -
-409 of them in the smallest template - so a payload laid down unchanged would publish one guide's
+545 of them in the smallest template - so a payload laid down unchanged would publish one guide's
 addresses under another guide's name. The manifest records the address the payload was generated
 under, and scaffolding rewrites it to the project's own, which is what makes `--canonical` reach
 the whole tree rather than the identity files alone.

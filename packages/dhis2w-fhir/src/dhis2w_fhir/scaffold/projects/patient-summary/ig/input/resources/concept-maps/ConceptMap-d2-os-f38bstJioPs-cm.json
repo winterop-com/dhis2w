@@ -48,7 +48,7 @@
           "display": "NVP only",
           "target": [
             {
-              "code": "NVP only",
+              "code": "NVP-only",
               "equivalence": "equal"
             }
           ]

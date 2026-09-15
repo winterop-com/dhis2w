@@ -11,6 +11,12 @@ shell mount goes after, and both halves are held here.
 The bundle is a build artifact, gitignored and produced by `make ui`, so these tests
 write a minimal stand-in rather than requiring node to be installed to run pytest. The one test
 that reads the real bundle skips when it has not been built.
+
+The build stamp is the other half. A checkout serves whatever `make ui` last wrote, which is how a
+merged and tested frontend change reaches nobody: the TypeScript is current, vitest is green, and
+the JavaScript in the browser is last week's. So the stamp names the source a build read and a
+checkout grades its bundle against the source beside it - and the tests for that build both shapes
+in a temporary directory, a checkout (a `frontend/src` beside the bundle) and a wheel (none).
 """
 
 from __future__ import annotations
@@ -26,7 +32,17 @@ from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir_serve import ui as ui_module
 from dhis2w_fhir_serve.app import create_app
 from dhis2w_fhir_serve.settings import ServeSettings
-from dhis2w_fhir_serve.ui import UiBundleMissingError, mount_ui_assets, ui_bundle_present
+from dhis2w_fhir_serve.ui import (
+    CaptureUiBuildStamp,
+    UiBundleMissingError,
+    UiBundleStaleError,
+    fingerprint_frontend_source,
+    frontend_source_directory,
+    mount_ui_assets,
+    read_ui_build_stamp,
+    ui_bundle_present,
+    write_build_stamp,
+)
 from fastapi import FastAPI
 
 #: The service base the in-process client uses, matching the one every other serve test uses.
@@ -206,3 +222,115 @@ async def test_the_facade_mounts_nothing_by_default(client: httpx2.AsyncClient) 
     """Without `--ui` the root is not served at all, so a plain endpoint stays a plain endpoint."""
     response = await client.get("/")
     assert response.status_code == 404
+
+
+@pytest.fixture
+def bundle_in_a_checkout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """A built bundle with a frontend checkout beside it, laid out the way the package is on disk.
+
+    The bundle sits at `<package>/src/dhis2w_fhir_serve/static` and the sources it was built from at
+    `<package>/frontend`, which is the relationship `frontend_source_directory` walks. The stamp is
+    deliberately not written here: each test says for itself whether this bundle was ever stamped.
+    """
+    package_directory = tmp_path / "dhis2w-fhir-serve"
+    static_directory = package_directory / "src" / "dhis2w_fhir_serve" / "static"
+    (static_directory / "assets").mkdir(parents=True)
+    (static_directory / "index.html").write_text(INDEX_MARKUP, encoding="utf-8")
+    (static_directory / "assets" / "index-abc123.js").write_text(ASSET_SOURCE, encoding="utf-8")
+    frontend_directory = package_directory / "frontend"
+    (frontend_directory / "src" / "lib").mkdir(parents=True)
+    (frontend_directory / "src" / "main.tsx").write_text("export const shell = 1\n", encoding="utf-8")
+    (frontend_directory / "src" / "lib" / "orgunits.ts").write_text("export const units = []\n", encoding="utf-8")
+    (frontend_directory / "package.json").write_text('{"name": "capture-ui"}\n', encoding="utf-8")
+    monkeypatch.setattr(ui_module, "STATIC_DIRECTORY", static_directory)
+    yield package_directory
+
+
+def test_a_wheel_has_no_frontend_source_to_grade_against(built_bundle: Path) -> None:
+    """An installed bundle stands alone, so nothing compares it with sources that are not there."""
+    _ = built_bundle
+    assert frontend_source_directory() is None
+
+
+def test_a_checkout_finds_the_frontend_beside_the_bundle(bundle_in_a_checkout: Path) -> None:
+    """The sources a build reads are found from the bundle alone - no configuration says where they are."""
+    assert frontend_source_directory() == bundle_in_a_checkout / "frontend"
+
+
+def test_a_stamp_names_the_source_the_build_read(bundle_in_a_checkout: Path) -> None:
+    """`make ui` closes by writing what it read, and the bundle answers with it."""
+    written = write_build_stamp()
+    read_back = read_ui_build_stamp()
+
+    assert read_back == written
+    assert written.fingerprint == fingerprint_frontend_source(bundle_in_a_checkout / "frontend")
+
+
+def test_one_source_edit_moves_the_fingerprint(bundle_in_a_checkout: Path) -> None:
+    """The fingerprint covers file content, so a one-line change to any source is a different build."""
+    frontend_directory = bundle_in_a_checkout / "frontend"
+    before = fingerprint_frontend_source(frontend_directory)
+    (frontend_directory / "src" / "lib" / "orgunits.ts").write_text("export const units = [1]\n", encoding="utf-8")
+
+    assert fingerprint_frontend_source(frontend_directory) != before
+
+
+def test_the_fingerprint_is_the_same_twice_over_one_checkout(bundle_in_a_checkout: Path) -> None:
+    """Two readings of one unchanged checkout agree, or every run would refuse its own bundle."""
+    frontend_directory = bundle_in_a_checkout / "frontend"
+
+    assert fingerprint_frontend_source(frontend_directory) == fingerprint_frontend_source(frontend_directory)
+
+
+def test_a_current_bundle_serves(bundle_in_a_checkout: Path, compiled_project: FhirProject) -> None:
+    """A bundle stamped with the source in front of it is what `--ui` is for, and it mounts."""
+    _ = bundle_in_a_checkout
+    write_build_stamp()
+
+    assert create_app(ServeSettings(project_dir=compiled_project.project_root, ui=True)) is not None
+
+
+def test_a_bundle_older_than_the_source_is_refused(bundle_in_a_checkout: Path, compiled_project: FhirProject) -> None:
+    """The failure this guard exists for: current TypeScript, last week's JavaScript, and no sign of it."""
+    stamp = write_build_stamp()
+    (bundle_in_a_checkout / "frontend" / "src" / "lib" / "orgunits.ts").write_text(
+        "export const units = [1]\n", encoding="utf-8"
+    )
+
+    with pytest.raises(UiBundleStaleError) as raised:
+        create_app(ServeSettings(project_dir=compiled_project.project_root, ui=True))
+
+    message = str(raised.value)
+    assert "make ui" in message
+    assert stamp.fingerprint[:12] in message
+    assert "\n" not in message
+
+
+def test_an_unstamped_bundle_in_a_checkout_is_refused(
+    bundle_in_a_checkout: Path, compiled_project: FhirProject
+) -> None:
+    """A bundle built before it was stamped is a bundle nothing can date, which is the same refusal."""
+    _ = bundle_in_a_checkout
+
+    with pytest.raises(UiBundleStaleError) as raised:
+        create_app(ServeSettings(project_dir=compiled_project.project_root, ui=True))
+
+    assert "carries no build stamp" in str(raised.value)
+
+
+def test_a_wheel_is_never_refused_for_staleness(built_bundle: Path, compiled_project: FhirProject) -> None:
+    """An installed wheel carries the bundle CI built and no source to grade it against, so it serves."""
+    _ = built_bundle
+
+    assert create_app(ServeSettings(project_dir=compiled_project.project_root, ui=True)) is not None
+
+
+def test_the_stamp_describes_itself_in_one_line() -> None:
+    """The serve banner prints this, so it names the build date and the source in one readable line."""
+    stamp = CaptureUiBuildStamp.model_validate(
+        {"fingerprint": "0123456789abcdef" * 4, "built_at": "2026-09-15T01:15:00Z"}
+    )
+
+    described = stamp.describe()
+
+    assert described == "capture UI bundle built 2026-09-15 01:15 UTC from frontend source 0123456789ab"

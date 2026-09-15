@@ -23,11 +23,11 @@ the very link ids they define.
 
 | Form | DHIS2 id | DHIS2 code | Sections | Questions |
 | --- | --- | --- | ---: | ---: |
-| [Supervision visit](Questionnaire-EVTsupVis01.html) | `EVTsupVis01` | `EVTsupVis01` | 0 | 2 |
+| [Malaria case registration](Questionnaire-VBqh0ynB2wv.html) | `VBqh0ynB2wv` | `VBqh0ynB2wv` | 0 | 3 |
 
-### Supervision visit
+### Malaria case registration
 
-- Outside any section (2 questions)
+- Outside any section (3 questions)
 
 ## Tracker programs
 
@@ -35,27 +35,32 @@ A tracker program publishes one form per capture point: the registration form en
 asking the program's tracked entity attributes, and each stage is its own form answered once per
 event of the enrollment that registration created.
 
-### ANC follow-up (PrAncCare01)
+### Child Programme (IpHINAT79UW)
 
 #### Registration
 
 | Form | DHIS2 id | DHIS2 code | Sections | Questions |
 | --- | --- | --- | ---: | ---: |
-| [ANC follow-up](Questionnaire-PrAncCare01.html) | `PrAncCare01` | `PrAncCare01` | 0 | 2 |
+| [Child Programme](Questionnaire-IpHINAT79UW.html) | `IpHINAT79UW` | `IpHINAT79UW` | 0 | 4 |
 
-### ANC follow-up
+### Child Programme
 
-- Outside any section (2 questions)
+- Outside any section (4 questions)
 
 #### Stages
 
 | Form | DHIS2 id | DHIS2 code | Sections | Questions |
 | --- | --- | --- | ---: | ---: |
-| [ANC visit](Questionnaire-PsAncVisit1.html) | `PsAncVisit1` | `PsAncVisit1` | 0 | 3 |
+| [Baby Postnatal](Questionnaire-ZzYYXq4fJie.html) | `ZzYYXq4fJie` | `ZzYYXq4fJie` | 0 | 14 |
+| [Birth](Questionnaire-A03MvHHogjR.html) | `A03MvHHogjR` | `A03MvHHogjR` | 0 | 8 |
 
-### ANC visit
+### Baby Postnatal
 
-- Outside any section (3 questions)
+- Outside any section (14 questions)
+
+### Birth
+
+- Outside any section (8 questions)
 
 ## Tracked entity types
 
@@ -65,9 +70,9 @@ registration on its own, and the person it creates can be enrolled later.
 
 | Form | DHIS2 id | DHIS2 code | Sections | Questions |
 | --- | --- | --- | ---: | ---: |
-| [Person (Play)](Questionnaire-nEenWmSyUEp.html) | `nEenWmSyUEp` | `nEenWmSyUEp` | 0 | 3 |
+| [Person](Questionnaire-nEenWmSyUEp.html) | `nEenWmSyUEp` | `nEenWmSyUEp` | 0 | 3 |
 
-### Person (Play)
+### Person
 
 - Outside any section (3 questions)
 

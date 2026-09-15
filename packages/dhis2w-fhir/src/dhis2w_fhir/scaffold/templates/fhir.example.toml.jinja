@@ -72,37 +72,46 @@ program_stage = "PS"                # -> 301-generation#program_stage
 tracked_entity_type = "TET"         # the person-only registration form -> 301-generation#tracked_entity_type
 
 [generate.option_sets]
-# Option sets to publish code lists for, by UID (absent = all). -> 301-what-goes-in#option-sets
+# Option sets to publish code lists for, by UID. This table ADDS: the option sets the selected forms
+# bind their questions to are published whatever it says, and a UID here is one more beside them -
+# unlike [generate.categories] below, which narrows. Absent, or an empty list, publishes every option
+# set the instance holds. -> 301-what-goes-in#option-sets
 # include_ids = ["Qdm5fPK5Ra9"]
 
 [generate.categories]
-# Categories to publish code lists for, by UID (absent = all). -> 301-what-goes-in#categories
+# Categories to publish code lists for, by UID. This table NARROWS: a non-empty list is the whole set
+# published, and nothing is added to it. Absent, or an empty list, publishes every category the
+# instance holds. -> 301-what-goes-in#categories
 # include_ids = ["O5P6e8yu1T6"]
 # DHIS2's built-in "default" category is skipped unless opted back in. -> 301-what-goes-in#include_default
 # include_default = false
 
 [generate.data_sets]
-# Data sets to publish as forms, by UID (absent = all data sets). -> 301-what-goes-in#data-sets
+# Data sets to publish as forms, by UID. Absent, or an empty list, publishes every data set the
+# instance holds - `enabled` below is the only way to publish none. -> 301-what-goes-in#data-sets
 # A UID that matches nothing on the instance is named in the run's notes. -> 301-what-goes-in#reading-the-notes
 # include_ids = ["BfMAe6Itzgt"]
 # false publishes no data set form at all, whatever include_ids says. -> 301-what-goes-in#enabled
 # enabled = true
 
 [generate.event_programs]
-# Event programs (no registration) to publish as forms, by UID (absent = all). -> 301-what-goes-in#event-programs
+# Event programs (no registration) to publish as forms, by UID. Absent, or an empty list, publishes
+# every one - `enabled` below is the only way to publish none. -> 301-what-goes-in#event-programs
 # include_ids = ["VBqh0ynB2wv"]
 # false publishes no event program form at all. -> 301-what-goes-in#enabled
 # enabled = true
 
 [generate.tracker_programs]
-# Tracker programs (with registration), one form per stage, by UID (absent = all). -> 301-what-goes-in#tracker-programs
+# Tracker programs (with registration), one form per stage, by UID. Absent, or an empty list,
+# publishes every one - `enabled` below is the only way to publish none. -> 301-what-goes-in#tracker-programs
 # include_ids = ["IpHINAT79UW"]
 # false publishes no tracker program form at all. -> 301-what-goes-in#enabled
 # enabled = true
 
 [generate.tracked_entity_forms]
-# Tracked entity types publishing a person-only registration form, by UID
-# (absent = the types the selected tracker programs register). -> 301-what-goes-in#tracked-entity-forms
+# Tracked entity types publishing a person-only registration form, by UID. Absent, or an empty list,
+# publishes one form per type the selected tracker programs register - `enabled` below is the only
+# way to publish none. -> 301-what-goes-in#tracked-entity-forms
 # include_ids = ["nEenWmSyUEp"]
 # false publishes no person-only registration form at all. -> 301-what-goes-in#enabled
 # enabled = true

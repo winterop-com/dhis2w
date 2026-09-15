@@ -87,7 +87,7 @@ element's DHIS2 value type - see [the answer typing table](#answer-typing) below
 
 ## An event response, step by step
 
-The steps are worked against **Supervision visit** (`EVTsupVis01`).
+The steps are worked against **Malaria case registration** (`VBqh0ynB2wv`).
 
 An event response follows the same shape, with three differences:
 
@@ -100,15 +100,14 @@ An event response follows the same shape, with three differences:
   event *program*.
 
 ```
-"questionnaire": "http://example.org/fhir/examples/patient-summary/Questionnaire/EVTsupVis01"
+"questionnaire": "http://example.org/fhir/examples/patient-summary/Questionnaire/VBqh0ynB2wv"
 ```
 
 | `linkId` | Grammar | Answers | Answer element | Required |
 | --- | --- | --- | --- | --- |
-| `s46m5MS0hxu.Prlt0C1RF0s` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Fixed, &lt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.psbwp3CQEhs` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Fixed, &gt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.V6L425pT3A0` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Outreach, &lt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.hEFKSsPV5et` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Outreach, &gt;1y | `valueInteger` | no |
+| `qrur9Dvnyt5` | `<dataElementId>` | Age in years | `valueInteger` | yes |
+| `oZg33kd9taw` | `<dataElementId>` | Gender | `valueCoding` | yes |
+| `F3ogKBuviRA` | `<dataElementId>` | Household location | `valueString` | no |
 
 `status` says how far the capture got. A DHIS2 event status maps onto a
 `QuestionnaireResponse.status` one for one:

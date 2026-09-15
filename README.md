@@ -267,7 +267,7 @@ Full per-command reference: `d2w --help` (or `uvx --from dhis2w-cli d2w --help` 
 git clone git@github.com:winterop-com/dhis2w.git
 cd dhis2w
 
-make install      # sync workspace deps (uv sync --all-packages --all-extras)
+make install      # sync workspace deps, and build the capture UI where pnpm is installed
 make lint         # ruff + mypy + pyright
 make test         # pytest across all members
 make docs-serve   # local mkdocs-material

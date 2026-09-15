@@ -68,7 +68,7 @@
           "display": "IPT 1",
           "target": [
             {
-              "code": "IPT 1",
+              "code": "IPT-1",
               "equivalence": "equal"
             }
           ]
@@ -78,7 +78,7 @@
           "display": "IPT 2",
           "target": [
             {
-              "code": "IPT 2",
+              "code": "IPT-2",
               "equivalence": "equal"
             }
           ]
@@ -88,7 +88,7 @@
           "display": "IPT 3",
           "target": [
             {
-              "code": "IPT 3",
+              "code": "IPT-3",
               "equivalence": "equal"
             }
           ]
@@ -98,7 +98,7 @@
           "display": "On CTX",
           "target": [
             {
-              "code": "On CTX",
+              "code": "On-CTX",
               "equivalence": "equal"
             }
           ]

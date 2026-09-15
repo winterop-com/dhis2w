@@ -176,6 +176,20 @@ when `path` is set and can be named on the command line:
 make build REGISTRY_TGZ=/downloads/dhis2.fhir.example.registry-0.1.0.tgz
 ```
 
+An archive that is not there is caught before any of that. `make registry-present`
+is two `test` calls, it runs ahead of the volume the cache lives in, and it
+refuses naming the registry's own `make build`:
+
+```console
+$ make sushi
+../registry/ig/output/package.tgz: no such file - run 'make build' in the registry project first.
+  Only a compile needs it. 'd2w fhir serve --live' and 'd2w fhir forward' read the two projects as they stand, so neither needs a build of either one.
+```
+
+Which is the way out worth knowing here: serving live and forwarding read the
+projects as they stand, so neither pair-half has to be compiled at all to fill a
+form in and send it to DHIS2.
+
 The root Makefile runs its own targets one at a time, so `make -j2 build` and a
 `-j` reaching it through `MAKEFLAGS` build the registry to completion before the
 guide starts - a guide started beside the registry finds no `package.tgz`, or

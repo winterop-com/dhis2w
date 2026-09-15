@@ -182,21 +182,28 @@ cache-init:  ## Ensure the shared package-cache volume is writable by the publis
 	docker run --rm -u root -v $(CACHE_VOLUME):/home/publisher/.fhir --entrypoint sh $(DOCKER_IMAGE) -c "mkdir -p /home/publisher/.fhir/packages && chown -R 1001:1001 /home/publisher/.fhir"
 
 {% if registry %}
-.PHONY: registry-install
+.PHONY: registry-present registry-install
 
-registry-install: cache-init  ## Install the registry package this guide depends on into the package cache
-# The cache holds one directory per package and version, `<id>#<version>/package/`, which is the
-# layout a package.tgz unpacks to. The archive is streamed in over stdin so no host path is mounted.
+registry-present:  ## Check the registry archive is on disk, before anything reaches docker
+# Two `test` calls and no docker at all, and it runs ahead of cache-init in every target that needs
+# the registry: a run that cannot finish must not leave the $(CACHE_VOLUME) volume behind it.
 	@test -n "$(REGISTRY_TGZ)" || { \
 		echo "REGISTRY_TGZ is empty: name the registry build's archive (make registry-install REGISTRY_TGZ=../registry/ig/output/package.tgz), or set registry.path in fhir.toml and run 'd2w fhir init --refresh'"; \
 		exit 1; }
-	@test -f "$(REGISTRY_TGZ)" || { echo "$(REGISTRY_TGZ): no such file - run 'make build' in the registry project first"; exit 1; }
+	@test -f "$(REGISTRY_TGZ)" || { \
+		echo "$(REGISTRY_TGZ): no such file - run 'make build' in the registry project first."; \
+		echo "  Only a compile needs it. 'd2w fhir serve --live' and 'd2w fhir forward' read the two projects as they stand, so neither needs a build of either one."; \
+		exit 1; }
+
+registry-install: registry-present cache-init  ## Install the registry package this guide depends on into the package cache
+# The cache holds one directory per package and version, `<id>#<version>/package/`, which is the
+# layout a package.tgz unpacks to. The archive is streamed in over stdin so no host path is mounted.
 	docker run --rm -i -u root -v $(CACHE_VOLUME):/home/publisher/.fhir --entrypoint sh $(DOCKER_IMAGE) -c \
 		'set -e; target="/home/publisher/.fhir/packages/$(REGISTRY_ID)#$(REGISTRY_VERSION)"; \
 		rm -rf "$$target"; mkdir -p "$$target"; tar -C "$$target" -xzf -; chown -R 1001:1001 "$$target"' \
 		< "$(REGISTRY_TGZ)"
 
-sushi: cache-init registry-install  ## Compile FSH to FHIR resources
+sushi: registry-present cache-init registry-install  ## Compile FSH to FHIR resources
 {% else %}
 sushi: cache-init  ## Compile FSH to FHIR resources
 {% endif %}
@@ -204,7 +211,7 @@ sushi: cache-init  ## Compile FSH to FHIR resources
 		$(DOCKER_IMAGE) sushi .
 
 {% if registry %}
-build: cache-init registry-install  ## Run the full IG publisher
+build: registry-present cache-init registry-install  ## Run the full IG publisher
 {% else %}
 build: cache-init  ## Run the full IG publisher
 {% endif %}
@@ -255,7 +262,7 @@ build: cache-init  ## Run the full IG publisher
 .PHONY: build-bind
 
 {% if registry %}
-build-bind: cache-init registry-install  ## Run the publisher straight over the mounted project, no copy in or out
+build-bind: registry-present cache-init registry-install  ## Run the publisher straight over the mounted project, no copy in or out
 {% else %}
 build-bind: cache-init  ## Run the publisher straight over the mounted project, no copy in or out
 {% endif %}

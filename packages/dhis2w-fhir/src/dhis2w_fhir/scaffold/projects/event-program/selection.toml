@@ -1,25 +1,31 @@
 # The template's selection: which DHIS2 metadata this guide publishes. The tree under
-# ig/input/ was generated from exactly these UIDs, so it already matches them. Point the
-# project at an instance of your own and this is the first block to change - then run
-# `d2w fhir generate` to rewrite ig/input/ from what that instance holds.
+# ig/input/ was generated from exactly these UIDs on the DHIS2 demo instance the project
+# templates are cut from, so it already matches them. Point the project at an instance of
+# your own and this is the first block to change - then run `d2w fhir generate` to rewrite
+# ig/input/ from what that instance holds.
 
 [generate.data_sets]
+# EPI Stock: twelve data elements on the default category combination.
 include_ids = ["TuL8IOPzpHh"]
 
 [generate.event_programs]
 # The story of this guide: a program without registration publishes one Questionnaire
-# and one occurrence date, and enrolls nobody.
+# and one occurrence date, and enrolls nobody. Antenatal care visit is that program.
 include_ids = ["lxAQ7Zs9VYR"]
 
 [generate.tracker_programs]
-include_ids = ["PrAncCare01"]
+# Child Programme: the registration form and its two stage forms.
+include_ids = ["IpHINAT79UW"]
 
 [generate.option_sets]
-# Naming the vocabularies is what keeps an option set no form uses out of the guide.
-# An absent table means every option set the instance holds.
-include_ids = ["OsVaccType1"]
+# This table adds to the option sets the forms above bind their questions to, which are
+# published whatever it says. An absent table, or an empty list, publishes every option
+# set the instance holds.
+include_ids = ["hiQ3QFheQ3O"]
 
 [generate.categories]
+# Two category axes, so the aggregate form's grids have something to disaggregate by.
+# This table narrows - a non-empty list is the whole set published.
 include_ids = ["yY2bQYqNt0o", "Qzh0MSUx4RM"]
 
 [generate.organisation_units]

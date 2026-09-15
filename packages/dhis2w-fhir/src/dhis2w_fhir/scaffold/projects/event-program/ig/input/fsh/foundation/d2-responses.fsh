@@ -12,7 +12,7 @@ Description: "One submission of a DHIS2 data set form: the values captured for o
     D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2Period] ^short = "The DHIS2 reporting period the values were captured for."
-* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo the values were captured under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #aggregate (exactly)
 * questionnaire 1..1
@@ -26,7 +26,10 @@ Title: "DHIS2 event response"
 Description: "One submission of a DHIS2 event program form: the values captured for one event at one organisation unit, answered on the linkIds of the event program's Questionnaire."
 * ^status = #draft
 * ^experimental = true
-* extension contains D2FormType named D2FormType 1..1
+* extension contains
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
+    D2FormType named D2FormType 1..1
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #event (exactly)
 * questionnaire 1..1
@@ -47,12 +50,14 @@ Description: "One submission of a DHIS2 tracker program's registration form: the
     D2EnrolledAt named D2EnrolledAt 1..1 and
     D2IncidentAt named D2IncidentAt 0..1 and
     D2SubjectExists named D2SubjectExists 0..1 and
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the person is enrolled at, which becomes the organisation unit of both the tracked entity and the enrollment. A response naming a person the instance already holds does not move that person: the organisation unit is the enrollment's alone."
 * extension[D2TrackerEnrollment] ^short = "The DHIS2 enrollment this registration creates. The client mints the value as a DHIS2 UID - eleven characters, the first a letter - so the response names the enrollment its own stage responses will be captured against before any of them is sent."
 * extension[D2EnrolledAt] ^short = "When the enrollment begins."
 * extension[D2IncidentAt] ^short = "When the incident the enrollment follows occurred. Carried by a response to a form whose program collects one, and absent otherwise."
 * extension[D2SubjectExists] ^short = "Whether the person this response is subject to is already held by the DHIS2 instance. True means the subject identifier names an existing tracked entity and the response enrols that person, so it is imported as an enrollment on its own. Absent or false means the client minted the subject identifier and the response creates the person along with the enrollment. A response stating true answers only the questions the program asks: an answer belonging to the person's own record cannot ride an enrollment, and rewriting the record of a person this contract does not own is not something an enrollment does."
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #tracker (exactly)
 * questionnaire 1..1
@@ -75,9 +80,11 @@ Description: "One submission of a DHIS2 tracker program stage form: the values c
 * extension contains
     D2OrganisationUnit named D2OrganisationUnit 1..1 and
     D2TrackerEnrollment named D2TrackerEnrollment 1..1 and
+    D2AttributeOptionCombo named D2AttributeOptionCombo 0..1 and
     D2FormType named D2FormType 1..1
 * extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the event was captured at."
 * extension[D2TrackerEnrollment] ^short = "The DHIS2 tracker enrollment the event belongs to."
+* extension[D2AttributeOptionCombo] ^short = "The DHIS2 attribute option combo this submission is filed under. A response answering a form that declares a D2AttributeOptionCombos vocabulary has to carry it, coded from that ValueSet; absent means the default attribute option combo, which is the only combo a form without that extension has."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #tracker-event (exactly)
 * questionnaire 1..1
@@ -99,7 +106,7 @@ Description: "One submission of a DHIS2 tracked entity type's registration form:
 * extension contains
     D2OrganisationUnit named D2OrganisationUnit 1..1 and
     D2FormType named D2FormType 1..1
-* extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the person is registered at, which becomes the organisation unit of the tracked entity."
+* extension[D2OrganisationUnit] ^short = "The DHIS2 organisation unit the subject is registered at, which becomes the organisation unit of the tracked entity."
 * extension[D2FormType] ^short = "The DHIS2 form kind this response answers."
 * extension[D2FormType].valueCode = #tracked-entity (exactly)
 * questionnaire 1..1

@@ -82,7 +82,7 @@ make install                          # uv sync --all-packages
 uv run d2w --version
 ```
 
-`make install` runs `uv sync --all-packages --all-extras` at the workspace root, so all ten workspace members (including `dhis2w-cli`) install in editable mode.
+`make install` runs `uv sync --all-packages --all-extras` at the workspace root, so all ten workspace members (including `dhis2w-cli`) install in editable mode. It then builds the capture UI where `pnpm` is on PATH, and says it is skipping that where it is not - node is a build dependency of one package's frontend, never a requirement of an API-only install.
 
 ## First steps
 

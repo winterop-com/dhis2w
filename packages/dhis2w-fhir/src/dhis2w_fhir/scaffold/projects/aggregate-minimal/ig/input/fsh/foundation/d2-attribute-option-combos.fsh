@@ -3,7 +3,7 @@
 Extension: D2AttributeOptionCombos
 Id: d2-attribute-option-combos
 Title: "DHIS2 attribute option combos"
-Description: "The attribute option combos a form's responses may be keyed under, as the canonical of the ValueSet publishing them. Absent means the form's data set rides the default category combo, and its responses carry no D2AttributeOptionCombo extension."
+Description: "The attribute option combos a form's responses may be filed under, as the canonical of the ValueSet publishing them. Absent means the form's data set or program rides the default category combo, and its responses carry no D2AttributeOptionCombo extension."
 * ^status = #draft
 * ^experimental = true
 * ^context[+].type = #element

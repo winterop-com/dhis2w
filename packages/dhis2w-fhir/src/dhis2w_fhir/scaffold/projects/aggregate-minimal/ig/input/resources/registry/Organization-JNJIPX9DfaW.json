@@ -17,6 +17,23 @@
     }
   ],
   "name": "S.L.R.C.S Clinic",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "S.L.R.C.S Clinic"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "alias": [
     "S.L.R.C.S Clini"
   ],

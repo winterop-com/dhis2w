@@ -87,7 +87,7 @@ element's DHIS2 value type - see [the answer typing table](#answer-typing) below
 
 ## An event response, step by step
 
-The steps are worked against **Supervision visit** (`EVTsupVis01`).
+The steps are worked against **Malaria case registration** (`VBqh0ynB2wv`).
 
 An event response follows the same shape, with three differences:
 
@@ -100,15 +100,14 @@ An event response follows the same shape, with three differences:
   event *program*.
 
 ```
-"questionnaire": "http://example.org/fhir/examples/aggregate-minimal/Questionnaire/EVTsupVis01"
+"questionnaire": "http://example.org/fhir/examples/aggregate-minimal/Questionnaire/VBqh0ynB2wv"
 ```
 
 | `linkId` | Grammar | Answers | Answer element | Required |
 | --- | --- | --- | --- | --- |
-| `s46m5MS0hxu.Prlt0C1RF0s` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Fixed, &lt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.psbwp3CQEhs` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Fixed, &gt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.V6L425pT3A0` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Outreach, &lt;1y | `valueInteger` | no |
-| `s46m5MS0hxu.hEFKSsPV5et` | `<dataElementId>.<categoryOptionComboId>` | BCG doses given / Outreach, &gt;1y | `valueInteger` | no |
+| `qrur9Dvnyt5` | `<dataElementId>` | Age in years | `valueInteger` | yes |
+| `oZg33kd9taw` | `<dataElementId>` | Gender | `valueCoding` | yes |
+| `F3ogKBuviRA` | `<dataElementId>` | Household location | `valueString` | no |
 
 `status` says how far the capture got. A DHIS2 event status maps onto a
 `QuestionnaireResponse.status` one for one:
@@ -127,7 +126,7 @@ reported period is a finished one.
 
 ## A tracker event response, step by step
 
-The steps are worked against **ANC follow-up - ANC visit** (`PsAncVisit1`).
+The steps are worked against **Child Programme - Baby Postnatal** (`ZzYYXq4fJie`).
 
 A tracker event response answers one stage of a tracker program, for one event of one
 enrollment. It follows the event response, with the context an enrolled tracked entity adds:
@@ -139,7 +138,7 @@ enrollment. It follows the event response, with the context an enrolled tracked 
   program *stage*, not of the tracker program.
 
 ```
-"questionnaire": "http://example.org/fhir/examples/aggregate-minimal/Questionnaire/PsAncVisit1"
+"questionnaire": "http://example.org/fhir/examples/aggregate-minimal/Questionnaire/ZzYYXq4fJie"
 ```
 
 **1. Name the tracked entity.** `subject` is a logical reference: this guide publishes no
@@ -183,9 +182,10 @@ aggregate form does, and are typed by the same table.
 
 | `linkId` | Grammar | Answers | Answer element | Required |
 | --- | --- | --- | --- | --- |
-| `DeAncVisNo1` | `<dataElementId>` | ANC visit number | `valueInteger` | yes |
-| `DeAncBpSys1` | `<dataElementId>` | ANC systolic blood pressure | `valueInteger` | no |
-| `DeAncDanger` | `<dataElementId>` | ANC danger signs present | `valueBoolean` | no |
+| `GQY2lXrypjO` | `<dataElementId>` | MCH Infant Weight (g) | `valueDecimal` | no |
+| `X8zyunlgUfM` | `<dataElementId>` | MCH Infant Feeding | `valueCoding` | no |
+| `FqlgKAG8HOu` | `<dataElementId>` | MCH Measles dose | `valueBoolean` | no |
+| `vTUhAUZFoys` | `<dataElementId>` | MCH Penta dose | `valueCoding` | no |
 
 `status` maps from the DHIS2 event status exactly as it does for an event program.
 

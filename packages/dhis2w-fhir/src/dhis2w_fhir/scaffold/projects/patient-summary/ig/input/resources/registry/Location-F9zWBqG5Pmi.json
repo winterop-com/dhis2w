@@ -17,6 +17,23 @@
     }
   ],
   "name": "kamaron CHP",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Kamaron MCHP"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "description": "A physical location this DHIS2 instance holds as an organisation unit.",
   "status": "active",
   "extension": [

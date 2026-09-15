@@ -150,7 +150,7 @@ def test_the_guide_scaffold_carries_the_dependency_into_sushi_and_the_makefile()
     }
     guide_makefile = files[f"{GUIDE_RELATIVE_ROOT}/Makefile"]
     assert "REGISTRY_TGZ ?= ../registry/ig/output/package.tgz" in guide_makefile
-    assert "build: cache-init registry-install" in guide_makefile
+    assert "build: registry-present cache-init registry-install" in guide_makefile
 
 
 def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
@@ -187,6 +187,36 @@ def test_the_root_makefile_leaves_the_heap_to_makes_own_propagation() -> None:
     assert "FORWARD_HEAP" not in root
     assert "JAVA_HEAP=$(JAVA_HEAP)" not in root
     assert "make carries it to both projects itself" in root
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_a_compile_without_the_registry_archive_refuses_before_it_touches_docker(tmp_path: Path) -> None:
+    """The archive check is two `test` calls and it runs first, so a doomed compile creates no volume.
+
+    `cache-init` makes the shared package-cache volume, and a guide whose registry has never been
+    built cannot finish whatever order the prerequisites are in. Running the cheap file check second
+    left the volume behind on every such attempt.
+    """
+    _write(tmp_path)
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+
+    completed = run_make(tmp_path / GUIDE_RELATIVE_ROOT, stub, "sushi")
+
+    assert completed.returncode != 0
+    assert "../registry/ig/output/package.tgz: no such file" in completed.stdout
+    assert stub.subcommands() == []
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_the_missing_archive_names_what_needs_no_build_at_all(tmp_path: Path) -> None:
+    """A reader here wants out, and serving live or forwarding is out: neither project need be built."""
+    _write(tmp_path)
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+
+    completed = run_make(tmp_path / GUIDE_RELATIVE_ROOT, stub, "sushi")
+
+    assert "d2w fhir serve --live" in completed.stdout
+    assert "d2w fhir forward" in completed.stdout
 
 
 @pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")

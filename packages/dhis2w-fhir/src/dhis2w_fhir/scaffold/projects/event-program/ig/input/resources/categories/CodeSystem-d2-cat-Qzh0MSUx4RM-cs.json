@@ -38,6 +38,12 @@
           "code": "dhis2-code",
           "valueString": "EXPIRED"
         }
+      ],
+      "designation": [
+        {
+          "language": "en-GB",
+          "value": "Expired"
+        }
       ]
     },
     {
@@ -48,6 +54,12 @@
           "code": "dhis2-code",
           "valueString": "DAMAGES"
         }
+      ],
+      "designation": [
+        {
+          "language": "en-GB",
+          "value": "Damages"
+        }
       ]
     },
     {
@@ -57,6 +69,12 @@
         {
           "code": "dhis2-code",
           "valueString": "VVM_CHANGE"
+        }
+      ],
+      "designation": [
+        {
+          "language": "en-GB",
+          "value": "VVM Change"
         }
       ]
     }

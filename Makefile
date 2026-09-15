@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui ui-if-available lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -19,7 +19,7 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Development:"
-	@echo "  install          Sync workspace deps (all members, dev group included)"
+	@echo "  install          Sync workspace deps (all members, dev group included); builds the capture UI where pnpm is installed"
 	@echo "  lint             Run ruff format + ruff check + mypy + pyright"
 	@echo "  test             Run tests (excludes slow)"
 	@echo "  test-slow        Run slow tests only"
@@ -38,7 +38,8 @@ help:
 	@echo ""
 	@echo "Capture UI (needs node + pnpm; not part of lint/test):"
 	@echo "  frontend-dev     Vite dev server, proxying FHIR calls to \$$(SERVE_TARGET) (default :8080)"
-	@echo "  ui               Build the React app into dhis2w-fhir-serve's static/ (run before 'make build')"
+	@echo "  ui               Build the React app into dhis2w-fhir-serve's static/, stamped with the source it read"
+	@echo "                   (run before 'make build'; 'make install' runs it where pnpm is on PATH)"
 	@echo "  lint-frontend    oxlint + tsc --noEmit over the frontend"
 	@echo "  test-frontend    vitest run over the frontend"
 	@echo "  e2e-frontend     Playwright specs against a real 'd2w fhir serve --ui' on :8377"
@@ -76,6 +77,7 @@ help:
 install:
 	@echo ">>> Syncing workspace"
 	@$(UV) sync --all-packages --all-extras
+	@$(MAKE) ui-if-available
 
 lint:
 	@echo ">>> Running linter"
@@ -156,6 +158,21 @@ frontend-dev:
 ui:
 	@echo ">>> Building the capture UI into packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/static"
 	@cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile && pnpm build
+# The stamp is what `d2w fhir serve --ui` grades a checkout's bundle against: it names the frontend
+# source this build read, so a bundle older than the source in front of you refuses rather than
+# serving JavaScript nobody is looking at.
+	@$(UV) run python -c "from dhis2w_fhir_serve.ui import write_build_stamp; print('>>> ' + write_build_stamp().describe())"
+
+# `make install` builds the UI where node is installed and says so where it is not. The workspace is
+# Python; node is a build dependency of one package's frontend and never a requirement of an
+# API-only install, so a machine without pnpm syncs, lints and tests exactly as before.
+ui-if-available:
+	@if command -v pnpm >/dev/null 2>&1; then \
+		$(MAKE) ui; \
+	else \
+		echo ">>> Skipping the capture UI: no pnpm on PATH"; \
+		echo "    An API-only install needs none. To serve the UI, install pnpm and run 'make ui'."; \
+	fi
 
 lint-frontend:
 	@echo ">>> Linting the capture UI (oxlint)"

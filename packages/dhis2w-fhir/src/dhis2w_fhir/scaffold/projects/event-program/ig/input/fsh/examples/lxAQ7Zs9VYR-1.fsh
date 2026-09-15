@@ -10,10 +10,10 @@ Usage: #example
 * questionnaire = "http://example.org/fhir/examples/event-program/Questionnaire/lxAQ7Zs9VYR"
 * status = #completed
 * subject = Reference(Location/bL4ooGhyHRQ)
-* authored = "2026-07-25T12:00:00Z"
+* authored = "2026-08-19T12:00:00Z"
 * item[+].linkId = "sWoqcoByYmD"
 * item[=].answer[+].valueBoolean = false
 * item[+].linkId = "Ok9OQpitjQr"
 * item[=].answer[+].valueBoolean = true
 * item[+].linkId = "vANAXwtLwcT"
-* item[=].answer[+].valueDecimal = 68.8
+* item[=].answer[+].valueDecimal = 68.1

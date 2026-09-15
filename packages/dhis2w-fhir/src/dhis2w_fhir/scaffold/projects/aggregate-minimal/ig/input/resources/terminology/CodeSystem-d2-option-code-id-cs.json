@@ -9,27 +9,285 @@
   "experimental": true,
   "caseSensitive": true,
   "content": "complete",
-  "count": 5,
+  "count": 39,
+  "property": [
+    {
+      "code": "dhis2-code",
+      "uri": "http://dhis2.org/fhir/property/dhis2-code",
+      "description": "The DHIS2 code byte-true, where this guide published a rewritten one.",
+      "type": "string"
+    }
+  ],
   "concept": [
     {
-      "code": "BCG",
-      "display": "BCG"
+      "code": "0",
+      "display": "Dose 0"
     },
     {
-      "code": "DPT",
-      "display": "DPT"
+      "code": "1",
+      "display": "Dose 1"
     },
     {
-      "code": "HEPB",
-      "display": "Hepatitis B"
+      "code": "2",
+      "display": "Dose 2"
     },
     {
-      "code": "MEASLES",
-      "display": "Measles"
+      "code": "3",
+      "display": "Dose 3"
     },
     {
-      "code": "POLIO",
-      "display": "Polio"
+      "code": "ABC/ddl/LPV/r--2",
+      "display": "ABC/ddl/LPV/r -2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "ABC/ddl/LPV/r -2"
+        }
+      ]
+    },
+    {
+      "code": "AZT/3TC/ATV/r---2",
+      "display": "AZT/3TC/ATV/r - 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "AZT/3TC/ATV/r - 2"
+        }
+      ]
+    },
+    {
+      "code": "AZT/3TC/EFV---1",
+      "display": "AZT/3TC/EFV - 1",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "AZT/3TC/EFV - 1"
+        }
+      ]
+    },
+    {
+      "code": "AZT/3TC/LPV/r---2",
+      "display": "AZT/3TC/LPV/r - 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "AZT/3TC/LPV/r - 2"
+        }
+      ]
+    },
+    {
+      "code": "AZT/3TC/NVP---1",
+      "display": "AZT/3TC/NVP - 1",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "AZT/3TC/NVP - 1"
+        }
+      ]
+    },
+    {
+      "code": "AZT/ddl/LPV/r---2",
+      "display": "AZT/ddl/LPV/r - 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "AZT/ddl/LPV/r - 2"
+        }
+      ]
+    },
+    {
+      "code": "Exclusive",
+      "display": "Exclusive"
+    },
+    {
+      "code": "FEMALE",
+      "display": "Female"
+    },
+    {
+      "code": "Female",
+      "display": "Female"
+    },
+    {
+      "code": "IPT-1",
+      "display": "IPT 1",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "IPT 1"
+        }
+      ]
+    },
+    {
+      "code": "IPT-2",
+      "display": "IPT 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "IPT 2"
+        }
+      ]
+    },
+    {
+      "code": "IPT-3",
+      "display": "IPT 3",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "IPT 3"
+        }
+      ]
+    },
+    {
+      "code": "MALE",
+      "display": "Male"
+    },
+    {
+      "code": "Male",
+      "display": "Male"
+    },
+    {
+      "code": "Mixed",
+      "display": "Mixed"
+    },
+    {
+      "code": "NVP-Only",
+      "display": "NVP Only",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "NVP Only"
+        }
+      ]
+    },
+    {
+      "code": "NVP-only",
+      "display": "NVP only",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "NVP only"
+        }
+      ]
+    },
+    {
+      "code": "Negative",
+      "display": "Negative"
+    },
+    {
+      "code": "Negative-Conf",
+      "display": "Negative (Confirmed)"
+    },
+    {
+      "code": "No",
+      "display": "No"
+    },
+    {
+      "code": "On-CTX",
+      "display": "On CTX",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "On CTX"
+        }
+      ]
+    },
+    {
+      "code": "Other-1st-line",
+      "display": "Other 1st line",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "Other 1st line"
+        }
+      ]
+    },
+    {
+      "code": "Other-2nd-line",
+      "display": "Other 2nd line",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "Other 2nd line"
+        }
+      ]
+    },
+    {
+      "code": "Others",
+      "display": "Others"
+    },
+    {
+      "code": "PCR",
+      "display": "PCR"
+    },
+    {
+      "code": "Positive",
+      "display": "Positive"
+    },
+    {
+      "code": "Postive-√",
+      "display": "Positive (Confirmed)",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "Postive √"
+        }
+      ]
+    },
+    {
+      "code": "Rapid",
+      "display": "Rapid"
+    },
+    {
+      "code": "Replacement",
+      "display": "Replacement"
+    },
+    {
+      "code": "TDF/3TC/ATV/r---2",
+      "display": "TDF/3TC/ATV/r - 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "TDF/3TC/ATV/r - 2"
+        }
+      ]
+    },
+    {
+      "code": "TDF/3TC/EFV---1",
+      "display": "TDF/3TC/EFV - 1",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "TDF/3TC/EFV - 1"
+        }
+      ]
+    },
+    {
+      "code": "TDF/3TC/LPV/r---2",
+      "display": "TDF/3TC/LPV/r - 2",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "TDF/3TC/LPV/r - 2"
+        }
+      ]
+    },
+    {
+      "code": "TDF/3TC/NVP---1",
+      "display": "TDF/3TC/NVP - 1",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "TDF/3TC/NVP - 1"
+        }
+      ]
+    },
+    {
+      "code": "Unknown",
+      "display": "Unknown"
+    },
+    {
+      "code": "Yes",
+      "display": "Yes"
     }
   ]
 }

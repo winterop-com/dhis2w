@@ -433,16 +433,20 @@ def test_a_package_gets_no_forward_targets() -> None:
 
 
 def test_the_makefile_installs_the_registry_package_before_sushi_and_the_publisher() -> None:
-    """The three knobs follow fhir.toml, the install target fills the package cache, and both builds depend on it."""
+    """The three knobs follow fhir.toml, the install target fills the package cache, and both builds depend on it.
+
+    `registry-present` leads every one of them: it is two `test` calls over the archive and it runs
+    before `cache-init` makes the volume, so a compile that cannot finish leaves nothing behind.
+    """
     makefile = _scaffold(_DEPENDING_OPTIONS)["Makefile"]
     assert "REGISTRY_ID ?= dhis2.fhir.test.registry" in makefile
     assert "REGISTRY_VERSION ?= 1.2.0" in makefile
     assert "REGISTRY_TGZ ?= ../test-registry/ig/output/package.tgz" in makefile
-    assert "registry-install: cache-init" in makefile
+    assert "registry-install: registry-present cache-init" in makefile
     assert "/home/publisher/.fhir/packages/$(REGISTRY_ID)#$(REGISTRY_VERSION)" in makefile
-    assert "sushi: cache-init registry-install" in makefile
-    assert "build: cache-init registry-install" in makefile
-    assert "build-bind: cache-init registry-install" in makefile
+    assert "sushi: registry-present cache-init registry-install" in makefile
+    assert "build: registry-present cache-init registry-install" in makefile
+    assert "build-bind: registry-present cache-init registry-install" in makefile
 
     without_path = _scaffold(_GUIDE_OPTIONS.model_copy(update={"registry": _REGISTRY}))["Makefile"]
     assert "REGISTRY_TGZ ?= \n" in without_path

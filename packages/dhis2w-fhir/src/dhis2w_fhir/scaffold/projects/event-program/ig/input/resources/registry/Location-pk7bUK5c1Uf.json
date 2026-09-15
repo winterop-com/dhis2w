@@ -17,6 +17,23 @@
     }
   ],
   "name": "Ya Kpukumu Krim",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Ya Kpukumu Krim"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "description": "A physical location this DHIS2 instance holds as an organisation unit.",
   "status": "active",
   "position": {
@@ -38,7 +55,7 @@
       "valueCoding": {
         "system": "http://example.org/fhir/examples/event-program/CodeSystem/d2-ou-level-cs",
         "code": "level-3",
-        "display": "District"
+        "display": "Chiefdom"
       }
     }
   ],
