@@ -2168,7 +2168,12 @@ async def test_the_questionnaire_target_plans_option_set_names_over_the_whole_se
     mock_organisation_unit_levels: Callable[..., None],
     tmp_path: Path,
 ) -> None:
-    """A slug is assigned against its peers, so the target reads every selected set, not just the bound ones."""
+    """A slug is assigned against its peers, so the target reads every selected set, not just the bound ones.
+
+    The projection carries the code beside the UID and the name: the naming source reads the stem
+    off it, and the terminology target this plan has to agree with emits from a projection that
+    carries one.
+    """
     mock_system_info("v42")
     mock_attributes()
     mock_organisation_unit_levels()
@@ -2184,7 +2189,7 @@ async def test_the_questionnaire_target_plans_option_set_names_over_the_whole_se
     report = await service.generate_questionnaires(resolve_profile("probe"), load_project(tmp_path))
 
     assert option_sets.called
-    assert option_sets.calls.last.request.url.params["fields"] == "id,name"
+    assert option_sets.calls.last.request.url.params["fields"] == "id,code,name"
     assert [note.message for note in report.notes] == []
     content = (tmp_path / "ig" / "input" / "fsh" / "data-sets" / "BfMAe6Itzgt.fsh").read_text(encoding="utf-8")
     assert "* item[=].item[=].answerValueSet = Canonical(D2OS_Os1aaaaaaaa_VS)" in content

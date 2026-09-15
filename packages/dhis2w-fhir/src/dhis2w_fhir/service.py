@@ -295,8 +295,11 @@ _OPTION_SET_FIELDS = (
     f"options[id,code,name,sortOrder,{_TRANSLATION_FIELDS}]"
 )
 
-#: The option-set projection the identity plan is assigned from - a slug needs the UID and the name alone.
-_OPTION_SET_IDENTITY_FIELDS = "id,name"
+#: The option-set projection the identity plan is assigned from. The code rides along with the UID
+#: and the name because `[generate.naming] source` reads the stem off it: a plan assigned from a
+#: code-less projection would tell every set it has no code, and then disagree with the terminology
+#: target, which emits from the wider projection that carries one.
+_OPTION_SET_IDENTITY_FIELDS = "id,code,name"
 
 #: The category projection the terminology target emits from. `categoryOptions` is a DHIS2 list
 #: rather than a set, so the order the instance answers with is the category's own sort order.
@@ -1599,24 +1602,30 @@ def _emit_option_sets(
         ]
     )
     _refuse_build_aborting_member_names(option_sets)
+    # One identity plan for the three artifacts of every set, so the CodeSystem, the ValueSet and
+    # the ConceptMap of one option set publish under the one stem the naming source resolved.
+    plan = option_set_identities(option_sets, project.config.generate)
     build = build_option_set_artifacts(
         option_sets,
         project.config.generate,
         project.config.ig.canonical,
         ig_status=project.config.ig.status,
         attribute_codes=attribute_codes,
+        plan=plan,
     )
     concept_maps = build_option_set_concept_map_artifacts(
         option_sets,
         project.config.generate,
         project.config.ig.canonical,
         ig_status=project.config.ig.status,
+        plan=plan,
     )
     identifier_systems = build_option_set_identifier_artifacts(
         option_sets,
         project.config.generate,
         project.config.ig.canonical,
         ig_status=project.config.ig.status,
+        plan=plan,
     )
     sync = sync_json_artifacts(
         project.resources_directory, TERMINOLOGY_DIRECTORY, [*build.artifacts, *identifier_systems]
@@ -4160,10 +4169,17 @@ async def fetch_live_artifacts(
     )
     json_builds: tuple[JsonBuild, ...] = (
         build_option_set_artifacts(
-            inputs.option_sets, config, canonical, ig_status=ig_status, attribute_codes=inputs.attribute_codes
+            inputs.option_sets,
+            config,
+            canonical,
+            ig_status=ig_status,
+            attribute_codes=inputs.attribute_codes,
+            plan=inputs.option_set_plan,
         ),
         JsonBuild(
-            artifacts=build_option_set_concept_map_artifacts(inputs.option_sets, config, canonical, ig_status=ig_status)
+            artifacts=build_option_set_concept_map_artifacts(
+                inputs.option_sets, config, canonical, ig_status=ig_status, plan=inputs.option_set_plan
+            )
         ),
         build_category_artifacts(
             inputs.categories, config, canonical, ig_status=ig_status, attribute_codes=inputs.attribute_codes
@@ -4238,8 +4254,9 @@ async def _fetch_option_set_identity_plan(
     A slug is assigned against its peers - truncation and collision suffixes both depend on the
     whole list - so every target that names an option set has to plan over the identical
     selection. The projection is narrower than the terminology target's because a slug is
-    decided by the UID and the name alone. The selection notes belong to the terminology
-    target's report, so they are not raised a second time here.
+    decided by the UID, the code and the name; the options, descriptions and translations the
+    wider one carries decide concepts, not identity. The selection notes belong to the
+    terminology target's report, so they are not raised a second time here.
 
     The names are screened before a slug is read off them, so a form binding an `answerValueSet`
     names the ValueSet the terminology target really writes. The rewrite notes belong to that
@@ -4250,7 +4267,7 @@ async def _fetch_option_set_identity_plan(
         order=["name:asc"],
         paging=False,
     )
-    inputs = [OptionSetIn(uid=model.id or "", name=model.name or model.id or "") for model in models]
+    inputs = [OptionSetIn(uid=model.id or "", code=model.code, name=model.name or model.id or "") for model in models]
     return option_set_identities(gate.screen(_selected_option_sets(inputs, sources, config, []), []), config)
 
 
@@ -4260,11 +4277,11 @@ def _option_set_identity_plan(
     """Assign the option-set identities off an unfiltered list already read in the terminology projection.
 
     The plan `_fetch_option_set_identity_plan` reads a second, narrower request for, without the
-    request: a slug is decided by the UID and the name alone, so the wider projection is narrowed
-    here and planned over the identical selection. The selection notes belong to the terminology
-    target's report and are not raised a second time.
+    request: a slug is decided by the UID, the code and the name, so the wider projection is
+    narrowed to those three here and planned over the identical selection. The selection notes
+    belong to the terminology target's report and are not raised a second time.
     """
-    inputs = [OptionSetIn(uid=option_set.uid, name=option_set.name) for option_set in option_sets]
+    inputs = [OptionSetIn(uid=option_set.uid, code=option_set.code, name=option_set.name) for option_set in option_sets]
     return option_set_identities(_selected_option_sets(inputs, sources, config, []), config)
 
 

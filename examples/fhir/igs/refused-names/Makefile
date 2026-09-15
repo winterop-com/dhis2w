@@ -172,8 +172,20 @@ cache-init:  ## Ensure the shared package-cache volume is writable by the publis
 	docker run --rm -u root -v $(CACHE_VOLUME):/home/publisher/.fhir --entrypoint sh $(DOCKER_IMAGE) -c "mkdir -p /home/publisher/.fhir/packages && chown -R 1001:1001 /home/publisher/.fhir"
 
 sushi: cache-init  ## Compile FSH to FHIR resources
+# SUSHI writes $(IG_DIR)/fsh-generated as it goes and keeps whatever it had written when it stopped
+# on an error, so a failed compile leaves a directory shaped like a finished guide - and the FHIR
+# endpoint further down reads that directory, so it would publish those Questionnaires as though the
+# compile had succeeded. The partial write is removed here, which makes the presence of
+# fsh-generated mean what it says: a compile that finished. SUSHI's own exit status is what make
+# sees, and the removal is reported above it.
+	@status=0; \
 	docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
-		$(DOCKER_IMAGE) sushi .
+		$(DOCKER_IMAGE) sushi . || status=$$?; \
+	if [ $$status -ne 0 ]; then \
+		rm -rf $(IG_DIR)/fsh-generated; \
+		echo "SUSHI stopped on an error. Removed $(IG_DIR)/fsh-generated, which held a partial compile: the FHIR endpoint has nothing to read until a compile finishes."; \
+	fi; \
+	exit $$status
 
 build: cache-init  ## Run the full IG publisher
 # The scan first, and a finding stops the build here. A DHIS2 name or code carrying '<' survives every

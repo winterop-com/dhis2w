@@ -189,6 +189,22 @@ rewrote, and check-artifacts, serve, forward and `make build` all read that
 tree. Run `make sushi` in the project to compile the sources this run wrote.
 ```
 
+**A compile that stops on an error removes it too.** SUSHI writes
+`ig/fsh-generated/` as it goes and keeps whatever it had written when it
+stopped, and that half reads as a finished guide to everything downstream - the
+FHIR endpoint would publish those Questionnaires as though the compile had
+succeeded. So `make sushi` removes the directory when SUSHI exits non-zero, and
+says which tree went:
+
+```console
+SUSHI stopped on an error. Removed ig/fsh-generated, which held a partial
+compile: the FHIR endpoint has nothing to read until a compile finishes.
+```
+
+SUSHI's own exit status is what make reports, so a failing compile still fails
+the recipe. The presence of `ig/fsh-generated/` therefore means one thing: a
+compile that finished.
+
 `make sushi` writes it again from the sources on disk, and `make build` runs the
 publisher's own SUSHI before it publishes, so a build needs nothing extra.
 Serving and forwarding read the compiled tree too, and each already refuses a

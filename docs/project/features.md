@@ -884,6 +884,15 @@ finding apart; `--details` prints them inline.
   alone, an unchanged regenerate leaves it alone, and `ig/temp/` (the
   publisher's scratch) and `ig/output/` (a published site) are never touched.
 
+- **A compile that stops on an error leaves nothing to serve.** SUSHI keeps
+  whatever it had written when it stopped, and that half reads as a finished
+  guide to everything downstream, so `make sushi` removes
+  `ig/fsh-generated/` when SUSHI exits non-zero, says so, and hands SUSHI's own
+  status back to make. The presence of that directory therefore means one thing:
+  a compile that finished. `d2w fhir serve` then meets a project with no
+  compiled guide and refuses by naming `d2w fhir generate` and `make sushi`,
+  rather than publishing a partial one.
+
 #### Targets and selection
 
 - **Four target tables** select what is published:
@@ -1808,7 +1817,15 @@ DHIS2 translations are carried through across the whole surface, filtered by
 - **Stems are assigned once over the whole selection and read by every target**,
   so a question's `answerValueSet` and an example's coding name the artifacts
   that run writes whichever source is set - while the DHIS2 id and code always
-  remain as identifier slices.
+  remain as identifier slices. The option-set plan is the one object the
+  terminology target emits from, the questionnaires bind to, the examples code
+  from and the pages link to, and it is read from a projection carrying the
+  DHIS2 code, so a set is published and referenced under one stem.
+- **A `"code"` refusal states how many of the selection cannot serve, the rule
+  they are held to** - a stem becomes a FHIR resource id, so ASCII letters,
+  digits, hyphen and dot, 1 to 64 characters, unique across the selection -
+  **and what `"code-or-id"` does with those very objects**: the code wherever
+  one can serve, the DHIS2 id on the rest, so that run completes.
 
 #### Publication status
 

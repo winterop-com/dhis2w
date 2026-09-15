@@ -442,6 +442,33 @@ _ORGANISATION_UNITS_PAYLOAD = {
     ]
 }
 
+#: Two option sets a coded instance carries, one bound by the data set below. Both codes can serve
+#: as identity stems, so a `source = "code"` run refuses on the surfaces that genuinely cannot.
+_OPTION_SETS_PAYLOAD = {
+    "optionSets": [
+        {
+            "id": "Os1aaaaaaaa",
+            "code": "birth-type",
+            "name": "Birth type",
+            "options": [{"id": "Op1aaaaaaaa", "code": "SINGLE", "name": "Single", "sortOrder": 1}],
+        },
+        {
+            "id": "Os2aaaaaaaa",
+            "code": "referral-channel",
+            "name": "Referral channel",
+            "options": [{"id": "Op2aaaaaaaa", "code": "PHONE", "name": "Phone", "sortOrder": 1}],
+        },
+    ]
+}
+
+#: The same two sets with no code at all - what most of a real instance looks like.
+_UNCODED_OPTION_SETS_PAYLOAD = {
+    "optionSets": [
+        {key: value for key, value in option_set.items() if key != "code"}
+        for option_set in _OPTION_SETS_PAYLOAD["optionSets"]
+    ]
+}
+
 _DATA_SETS_PAYLOAD = {
     "dataSets": [
         {
@@ -456,7 +483,16 @@ _DATA_SETS_PAYLOAD = {
                         "valueType": "INTEGER",
                         "categoryCombo": {"id": "bjDvmb4bfuf", "name": "default", "isDefault": True},
                     }
-                }
+                },
+                {
+                    "dataElement": {
+                        "id": "De2aaaaaaaa",
+                        "name": "Birth type",
+                        "valueType": "TEXT",
+                        "optionSet": {"id": "Os1aaaaaaaa"},
+                        "categoryCombo": {"id": "bjDvmb4bfuf", "name": "default", "isDefault": True},
+                    }
+                },
             ],
         }
     ]
@@ -510,7 +546,7 @@ def _mock_instance(
     mock_system_info("v42")
     mock_attributes()
     mock_organisation_unit_levels()
-    respx.get(f"{_HOST}/api/optionSets").mock(return_value=httpx.Response(200, json={"optionSets": []}))
+    respx.get(f"{_HOST}/api/optionSets").mock(return_value=httpx.Response(200, json=_OPTION_SETS_PAYLOAD))
     respx.get(f"{_HOST}/api/categories").mock(return_value=httpx.Response(200, json={"categories": []}))
     respx.get(f"{_HOST}/api/dataSets").mock(return_value=httpx.Response(200, json=_DATA_SETS_PAYLOAD))
     respx.get(f"{_HOST}/api/programs").mock(return_value=httpx.Response(200, json=_PROGRAMS_PAYLOAD))
@@ -626,3 +662,115 @@ def _tree(root: Path) -> dict[str, bytes]:
     return {
         str(path.relative_to(root)): path.read_bytes() for path in sorted((root / "ig").rglob("*")) if path.is_file()
     }
+
+
+@respx.mock
+async def test_the_questionnaire_binding_and_the_terminology_name_one_option_set_stem(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Under code-or-id, every `answerValueSet` a form binds is a ValueSet the terminology target wrote.
+
+    The two surfaces resolve one identity plan, so a question binds the very stem the pair is
+    published under. Two plans - one read from a projection carrying the DHIS2 code, one from a
+    projection without it - name the same set two ways, and SUSHI stops on the canonical that
+    resolves to nothing.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    await _scaffold_project(tmp_path, "code-or-id")
+
+    await service.generate_full(resolve_profile("probe"), load_project(tmp_path))
+
+    assert "D2OS_BirthType_VS" in _published_value_set_names(tmp_path)
+    assert _bound_value_set_names(tmp_path) == {"D2OS_BirthType_VS"}
+
+
+@respx.mock
+async def test_an_uncoded_option_set_binds_the_id_stem_the_terminology_published(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """The fall-back runs on one plan too: a set with no code is bound and published under its DHIS2 id."""
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    respx.get(f"{_HOST}/api/optionSets").mock(return_value=httpx.Response(200, json=_UNCODED_OPTION_SETS_PAYLOAD))
+    await _scaffold_project(tmp_path, "code-or-id")
+
+    await service.generate_full(resolve_profile("probe"), load_project(tmp_path))
+
+    assert _bound_value_set_names(tmp_path) == {"D2OS_Os1aaaaaaaa_VS"}
+    assert _bound_value_set_names(tmp_path) <= _published_value_set_names(tmp_path)
+
+
+@respx.mock
+async def test_code_mode_reads_the_option_set_codes_the_instance_carries(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """A coded option set is a usable stem, so `source = "code"` refuses on the surfaces that are not.
+
+    The identity plan the questionnaire target resolves reads the same DHIS2 code the terminology
+    target does, so a refusal names the data set whose code an R4 id forbids and says nothing about
+    option sets that carry perfectly good codes.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    await _scaffold_project(tmp_path, "code")
+
+    with pytest.raises(CodeStemError) as caught:
+        await service.generate_questionnaires(resolve_profile("probe"), load_project(tmp_path))
+
+    message = str(caught.value)
+    assert "questionnaire target" in message
+    assert "option set" not in message
+    assert _UNDERSCORE_CODE in message
+
+
+@respx.mock
+async def test_the_code_refusal_names_the_rule_the_count_and_what_code_or_id_does(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Every organisation unit code on the demo instance is `OU_<digits>`, which an R4 id forbids.
+
+    A reader of that refusal needs three things: how many of the selection cannot serve, the rule
+    they are held to, and what the other source does with these very units.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    await _scaffold_project(tmp_path, "code")
+
+    with pytest.raises(CodeStemError) as caught:
+        await service.generate_organisation_units(resolve_profile("probe"), load_project(tmp_path))
+
+    message = str(caught.value)
+    assert "1 of the 2 selected cannot serve as identity stems" in message
+    assert "ASCII letters, digits, hyphen and dot, 1 to 64 characters" in message
+    assert "Bo (O6uvpzGd5pu) code 'OU_525' is not a valid FHIR id" in message
+    assert 'set source = "code-or-id", which takes the code wherever one can serve' in message
+    assert "the DHIS2 id on the 1 that cannot, so the run completes" in message
+
+
+def _published_value_set_names(root: Path) -> set[str]:
+    """Every option-set ValueSet the terminology target wrote, by the FSH name SUSHI fishes it by."""
+    terminology = root / "ig" / "input" / "resources" / "terminology"
+    return {json.loads(path.read_text(encoding="utf-8"))["name"] for path in terminology.glob("ValueSet-*.json")}
+
+
+def _bound_value_set_names(root: Path) -> set[str]:
+    """Every option-set ValueSet an emitted questionnaire binds `answerValueSet` to."""
+    names: set[str] = set()
+    for path in (root / "ig" / "input" / "fsh").rglob("*.fsh"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "answerValueSet = Canonical(" in line:
+                names.add(line.split("Canonical(", 1)[1].split(")", 1)[0])
+    return names

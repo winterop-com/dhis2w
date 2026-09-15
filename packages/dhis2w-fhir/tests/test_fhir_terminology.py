@@ -375,12 +375,16 @@ def test_code_source_refuses_the_run_and_names_every_offender() -> None:
         _build(offenders, _CODE_STEMS)
     message = str(caught.value)
     assert message.startswith('[generate.naming] source = "code" needs a usable, unique code')
-    assert "4 cannot serve as identity stems" in message
+    assert "4 of the 4 selected cannot serve as identity stems" in message
     assert "Uncoded (Aa1aaaaaaaa) has no code" in message
     assert "Spaced (Bb2bbbbbbbb) code 'bad code' is not a valid FHIR id" in message
     assert "Twin one (Cc3cccccccc) code 'twin' is shared by 2 selected option sets" in message
     assert "Twin two (Dd4dddddddd) code 'twin' is shared by 2 selected option sets" in message
-    assert 'use source = "code-or-id" while migrating' in message
+    # The rule a stem is held to, stated once for the whole refusal: an offender that simply
+    # carries no code names no rule of its own, and that is the whole of play43's option sets.
+    assert "ASCII letters, digits, hyphen and dot, 1 to 64 characters" in message
+    assert 'set source = "code-or-id", which takes the code wherever one can serve' in message
+    assert "the DHIS2 id on the 4 that cannot, so the run completes" in message
     assert "`d2w fhir validate` names every offender" in message
 
 

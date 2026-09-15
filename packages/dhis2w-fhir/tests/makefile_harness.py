@@ -22,11 +22,15 @@ class StubbedDocker(BaseModel):
         return self.call_log.read_text(encoding="utf-8").split()
 
 
-def stub_docker(directory: Path, docker_info: str) -> StubbedDocker:
+def stub_docker(directory: Path, docker_info: str, *, sushi_exit_status: int = 0) -> StubbedDocker:
     """Install a `docker` in `directory` that answers `docker info` from `docker_info` and counts calls.
 
     A scaffolded Makefile asks the daemon how much memory it has, and a test of that question needs
     a daemon that answers on demand and records how often it was asked - which no real docker does.
+
+    `sushi_exit_status` is what the stub exits with for the run whose arguments name `sushi`, and
+    that run alone: a compile that stops on an error is what the `sushi` recipe's own clean-up is
+    about, and the package-cache run ahead of it has to keep succeeding for the recipe to be reached.
     """
     binaries = directory / "stub-bin"
     binaries.mkdir(parents=True, exist_ok=True)
@@ -35,7 +39,11 @@ def stub_docker(directory: Path, docker_info: str) -> StubbedDocker:
     call_log = binaries / "docker.log"
     script = binaries / "docker"
     script.write_text(
-        f'#!/bin/sh\necho "$1" >> "{call_log}"\nif [ "$1" = "info" ]; then cat "{answer}"; fi\n',
+        f'#!/bin/sh\necho "$1" >> "{call_log}"\n'
+        f'if [ "$1" = "info" ]; then cat "{answer}"; fi\n'
+        f'for argument in "$@"; do\n'
+        f'  if [ "$argument" = "sushi" ]; then exit {sushi_exit_status}; fi\n'
+        f"done\n",
         encoding="utf-8",
     )
     script.chmod(0o755)
