@@ -847,14 +847,34 @@ identifier *of* one:
 ```
 
 So `dhis2-code`, `value-type`, `unique`, `searchable`, `generated`, `pattern`,
-and `display-in-list` are `{base}/property/dhis2-code` and so on, and each
-category a combo decomposes over is `{base}/property/category-<stem>`.
+`display-in-list` and `dhis2-organisation-units` are
+`{base}/property/dhis2-code` and so on, and each category a combo decomposes
+over is `{base}/property/category-<stem>`.
 
 ```console
 $ curl -s localhost:8389/CodeSystem/d2-aoc-idcDPkDtepR-cs | jq -c '.property[]'
 {"code":"dhis2-code","uri":"http://dhis2.org/fhir/property/dhis2-code","description":"DHIS2 category option combo code.","type":"string"}
 {"code":"category-yY2bQYqNt0o","uri":"http://dhis2.org/fhir/property/category-yY2bQYqNt0o","description":"DHIS2 category Project.","type":"Coding"}
 ```
+
+An attribute option combo carries one more, and it repeats:
+`dhis2-organisation-units` names a `List/<id>` of the organisation units one of
+the combo's category options may be captured at. DHIS2 scopes a category option
+to organisation units, so a combo is usable at a unit only where every option
+composing it is - a concept naming two Lists is usable at the units on both.
+A concept naming none is usable wherever the form itself is.
+
+```console
+$ curl -s localhost:8389/CodeSystem/d2-aoc-O4VaNks6tta-cs | jq -c '.concept[0].property[-1]'
+{"code":"dhis2-organisation-units","valueString":"List/d2-aoc-yMj2MnmNI8L-org-units"}
+```
+
+The List is the assignment artifact's shape and holds the units of *this*
+project's registry the option admits - DHIS2's rule is descendant-or-self, and
+the generator settles it once so a reader tests plain membership. An option
+every published unit already sits under narrows nothing and publishes nothing;
+an option none of them sits under publishes an empty List, which says the combo
+is usable nowhere in this guide.
 
 The full property set of each vocabulary is in
 [Terminology and ConceptMaps](401-terminology-and-conceptmaps.md).

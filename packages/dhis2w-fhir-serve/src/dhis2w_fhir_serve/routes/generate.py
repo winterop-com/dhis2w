@@ -40,7 +40,7 @@ from dhis2w_fhir_serve.routes.capture import capture_state
 from dhis2w_fhir_serve.routes.context import serve_context
 from dhis2w_fhir_serve.synthesize import (
     MAXIMUM_SEED,
-    UnreportableAssignmentError,
+    UngeneratableCaptureError,
     draw_seed,
     generate_response,
 )
@@ -142,7 +142,7 @@ def _generated(request: Request, resource_id: str, seed: int | None) -> Response
             today=datetime.date.today(),
             spool=context.spool,
         )
-    except (UnreadableQuestionnaireError, UnreportableAssignmentError, ValidationError) as error:
+    except (UnreadableQuestionnaireError, UngeneratableCaptureError, ValidationError) as error:
         raise UngeneratableFormError(resource_id, _diagnostics(error)) from error
     return Response(
         content=response.model_dump_json(exclude_none=True, by_alias=True),
@@ -150,8 +150,8 @@ def _generated(request: Request, resource_id: str, seed: int | None) -> Response
     )
 
 
-def _diagnostics(error: UnreadableQuestionnaireError | UnreportableAssignmentError | ValidationError) -> str:
+def _diagnostics(error: UnreadableQuestionnaireError | UngeneratableCaptureError | ValidationError) -> str:
     """Say why a served Questionnaire could not be generated against, in the terms it failed on."""
-    if isinstance(error, UnreadableQuestionnaireError | UnreportableAssignmentError):
+    if isinstance(error, UnreadableQuestionnaireError | UngeneratableCaptureError):
         return error.diagnostics
     return str(error)

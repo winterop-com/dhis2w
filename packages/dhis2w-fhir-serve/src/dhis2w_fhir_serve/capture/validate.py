@@ -94,6 +94,7 @@ from dhis2w_fhir_serve.capture.index import (
     CaptureAssignment,
     CaptureAttributeOptionCombos,
     CaptureBound,
+    CaptureComboRestriction,
     CaptureIndex,
     CaptureIndexCache,
     CaptureQuestion,
@@ -258,7 +259,9 @@ def validate_response(
     _settle(_subject_type_issues(response, index, form_kind, strict=strict_codes), warnings)
     _settle(_incident_date_issues(response, index, naming, form_kind), warnings)
     _settle(_assignment_issues(response, index, naming, form_kind, store, strict=strict_codes), warnings)
-    _settle(_attribute_option_combo_issues(response, index, naming, resolvers, strict=strict_codes), warnings)
+    _settle(
+        _attribute_option_combo_issues(response, index, naming, resolvers, form_kind, strict=strict_codes), warnings
+    )
     if form_kind == "aggregate":
         _settle(_period_issues(response, naming), warnings)
     items = _ItemValidator(index=index, naming=naming, resolvers=resolvers, store=store, strict=strict_codes)
@@ -898,11 +901,29 @@ def _assignment_issue(assignment: CaptureAssignment, reference: str, expression:
     )
 
 
+def _restriction_issue(
+    restriction: CaptureComboRestriction, coding_code: str, reference: str, *, strict: bool
+) -> CaptureIssue:
+    """What a client is told when it files a capture under a combo DHIS2 does not allow at its unit."""
+    named = ", ".join(f"`{ASSIGNMENT_REFERENCE_PREFIX}{list_id}`" for list_id in restriction.list_ids)
+    return CaptureIssue(
+        severity="error" if strict else "warning",
+        code="business-rule",
+        expression=_COMBO_EXPRESSION,
+        diagnostics=(
+            f"`{reference}` is not in the organisation-unit restriction of attribute option combo "
+            f"`{coding_code}` ({named}); DHIS2 scopes a category option to organisation units and refuses a "
+            f"capture keyed to a combo outside them, with E8025 on a data value set"
+        ),
+    )
+
+
 def _attribute_option_combo_issues(
     response: QuestionnaireResponse,
     index: CaptureIndex,
     naming: CaptureNaming,
     resolvers: CodingResolverSet,
+    form_kind: FormKind,
     *,
     strict: bool,
 ) -> tuple[CaptureIssue, ...]:
@@ -920,6 +941,11 @@ def _attribute_option_combo_issues(
     The mirror grades too. A response naming a combo against a form that declares none would be
     stored and then silently not written, because the payload has no field for it - so the client
     is told rather than left to discover it at forward time.
+
+    Where the combo resolves, the organisation unit it is filed at grades too: DHIS2 scopes a
+    category option to organisation units, so a combo the vocabulary publishes a restriction for is
+    usable only at the units that restriction admits. It is the assignment rule one axis over, and
+    it grades on the same dial and in the same shape.
     """
     declared = index.attribute_option_combos
     carried = _extensions(response, naming.attribute_option_combo_url)
@@ -928,7 +954,14 @@ def _attribute_option_combo_issues(
         return () if not carried else (_undeclared_combo_issue(index, naming, strict=strict),)
     if len(carried) != 1:
         return (_missing_combo_issue(declared, naming, len(carried), codes, strict=strict),)
-    return _combo_coding_issues(carried[0], declared, resolvers, codes, strict=strict)
+    return _combo_coding_issues(
+        carried[0],
+        declared,
+        resolvers,
+        codes,
+        _reported_unit(response, naming, form_kind),
+        strict=strict,
+    )
 
 
 def _combo_coding_issues(
@@ -936,10 +969,11 @@ def _combo_coding_issues(
     declared: CaptureAttributeOptionCombos,
     resolvers: CodingResolverSet,
     codes: ComboRefusalCodes,
+    reported: _ReportedUnit,
     *,
     strict: bool,
 ) -> tuple[CaptureIssue, ...]:
-    """Check the one coding a declared response carries: its system, then the concept it names."""
+    """Check the one coding a declared response carries: its system, the concept, then where it may be filed."""
     coding = extension.valueCoding
     if coding is None or not coding.code:
         return (
@@ -1002,7 +1036,10 @@ def _combo_coding_issues(
                 f"{resolved.matched_by}; the contract expects concept code '{resolved.concept_code}'",
             ),
         )
-    return ()
+    restriction = declared.restriction_for(resolved.concept_code)
+    if restriction is None or reported.reference is None or restriction.admits(reported.reference):
+        return ()
+    return (_restriction_issue(restriction, coding.code, reported.reference, strict=strict),)
 
 
 def _missing_combo_issue(

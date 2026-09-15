@@ -623,10 +623,10 @@ async def test_a_depending_guide_writes_no_unit_and_references_the_registry_pack
     categories = [note.category for note in report.organisation_units.notes]
     assert categories == [GenerateNoteCategory.REGISTRY_DEPENDENCY]
     assert "dhis2.fhir.test.registry 1.2.0" in report.organisation_units.notes[0].message
-    # One light read of the selection: id, code and name, never the paged hierarchy walk.
+    # One light read of the selection: id, code, name and path, never the paged hierarchy walk.
     reads = respx.routes["organisationUnits"].calls
     assert all("pageSize" not in call.request.url.params for call in reads)
-    assert any(call.request.url.params.get("fields") == "id,code,name" for call in reads)
+    assert any(call.request.url.params.get("fields") == "id,code,name,path" for call in reads)
     fsh = tmp_path / "ig" / "input" / "fsh"
     assert not (fsh / "foundation" / "d2-organisation-unit-level.fsh").exists()
     examples = "".join(path.read_text(encoding="utf-8") for path in (fsh / "examples").glob("*.fsh"))

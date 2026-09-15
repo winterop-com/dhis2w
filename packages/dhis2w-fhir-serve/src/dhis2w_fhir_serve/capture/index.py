@@ -57,6 +57,10 @@ ASSIGNMENT_REFERENCE_PREFIX = f"{ASSIGNMENT_RESOURCE_TYPE}/"
 #: The resource type an organisation unit is published as, which is what a reported unit references.
 LOCATION_RESOURCE_TYPE = "Location"
 
+#: The concept property naming one organisation-unit restriction List, repeated once per restricted
+#: category option the attribute option combo is met from.
+ATTRIBUTE_OPTION_RESTRICTION_PROPERTY = "dhis2-organisation-units"
+
 #: The separator a disaggregated cell's link id joins its data element and category option combo with.
 CELL_LINK_ID_SEPARATOR = "."
 
@@ -273,6 +277,27 @@ class CaptureAssignment(BaseModel):
         return location_id is not None and location_id in self.location_ids
 
 
+class CaptureComboRestriction(BaseModel):
+    """Where one attribute option combo may be captured: the Lists it names, and the units on all of them.
+
+    DHIS2 scopes a category option to organisation units, and a category option combo is usable at a
+    unit only where every option composing it is - so the admitted set is the intersection of the
+    Lists the concept names, and a capture outside it is refused with `E8025`. A List the facade
+    does not serve states nothing and is left out of that intersection, for the reason an
+    unresolvable assignment does not narrow a form.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    list_ids: tuple[str, ...] = ()
+    location_ids: frozenset[str] = frozenset()
+
+    def admits(self, reference: str) -> bool:
+        """Whether one Location reference, in either spelling, names a unit this combo may be captured at."""
+        location_id = location_id_of(reference)
+        return location_id is not None and location_id in self.location_ids
+
+
 class CaptureAttributeOptionCombos(BaseModel):
     """The attribute-option-combo vocabulary one form declares, and the CodeSystem a coding into it names.
 
@@ -285,6 +310,16 @@ class CaptureAttributeOptionCombos(BaseModel):
 
     value_set: str
     system: str | None = None
+    restrictions: dict[str, CaptureComboRestriction] = Field(default_factory=dict)
+    """Where each concept of the vocabulary may be captured, by concept code - the restricted ones alone.
+
+    A concept absent from the map carries no restriction: every organisation unit the form admits
+    may file a capture under it, which is what DHIS2 answers for a combo of unrestricted options.
+    """
+
+    def restriction_for(self, concept_code: str) -> CaptureComboRestriction | None:
+        """Where one concept of the vocabulary may be captured, or None when it is restricted nowhere."""
+        return self.restrictions.get(concept_code)
 
 
 class CaptureIndex(BaseModel):
@@ -559,10 +594,65 @@ def _attribute_option_combos(
     for extension in questionnaire.extension or []:
         if extension.url != naming.attribute_option_combos_url or not extension.valueCanonical:
             continue
+        system = _value_set_system(extension.valueCanonical, store)
         return CaptureAttributeOptionCombos(
-            value_set=extension.valueCanonical, system=_value_set_system(extension.valueCanonical, store)
+            value_set=extension.valueCanonical,
+            system=system,
+            restrictions=_combo_restrictions(system, naming, store),
         )
     return None
+
+
+def _combo_restrictions(
+    system: str | None, naming: CaptureNaming, store: ResourceStore
+) -> dict[str, CaptureComboRestriction]:
+    """Where each concept of one served attribute-option-combo CodeSystem may be captured, by concept code.
+
+    The concept names one restriction List per restricted category option it is met from, and the
+    units admitted are the ones every one of those Lists holds. A concept naming none is left out:
+    absence is the vocabulary saying the combo is usable wherever the form itself is, and so is a
+    concept whose every List the facade fails to serve - an artifact this project did not publish
+    narrows nothing, for the reason an unresolvable assignment does not. A List that *is* served and
+    holds no unit narrows everything: the combo is usable at no organisation unit of this guide.
+    """
+    code_system = _code_system(system, store)
+    if code_system is None:
+        return {}
+    members: dict[str, frozenset[str] | None] = {}
+    restrictions: dict[str, CaptureComboRestriction] = {}
+    for concept in code_system.concept or []:
+        list_ids = tuple(
+            concept_property.valueString.removeprefix(ASSIGNMENT_REFERENCE_PREFIX)
+            for concept_property in concept.property or []
+            if concept_property.code == ATTRIBUTE_OPTION_RESTRICTION_PROPERTY
+            and concept_property.valueString
+            and concept_property.valueString.startswith(ASSIGNMENT_REFERENCE_PREFIX)
+        )
+        if not concept.code or not list_ids:
+            continue
+        for list_id in list_ids:
+            if list_id not in members:
+                members[list_id] = _list_location_ids(list_id, naming, store)
+        admitted = [held for list_id in list_ids if (held := members[list_id]) is not None]
+        if not admitted:
+            continue
+        restrictions[concept.code] = CaptureComboRestriction(
+            list_ids=list_ids, location_ids=frozenset.intersection(*admitted)
+        )
+    return restrictions
+
+
+def _code_system(canonical: str | None, store: ResourceStore) -> CodeSystem | None:
+    """One served CodeSystem by canonical, or None when the facade serves nothing readable for it."""
+    if not canonical:
+        return None
+    entry = store.by_canonical(canonical)
+    if entry is None:
+        return None
+    try:
+        return CodeSystem.model_validate(entry.body)
+    except ValidationError:
+        return None
 
 
 def _form_kind(questionnaire: Questionnaire, naming: CaptureNaming, canonical: str) -> FormKind:
@@ -625,23 +715,32 @@ def _assignment(questionnaire: Questionnaire, naming: CaptureNaming, store: Reso
         if not reference or not reference.startswith(ASSIGNMENT_REFERENCE_PREFIX):
             continue
         list_id = reference.removeprefix(ASSIGNMENT_REFERENCE_PREFIX)
-        entry = store.by_type_and_id(ASSIGNMENT_RESOURCE_TYPE, list_id)
-        if entry is None:
+        location_ids = _list_location_ids(list_id, naming, store)
+        if location_ids is None:
             return None
-        try:
-            published = ResourceList.model_validate(entry.body)
-        except ValidationError:
-            return None
-        return CaptureAssignment(
-            list_id=list_id,
-            location_ids=frozenset(
-                location_id
-                for item in published.entry or []
-                if item.item.reference is not None
-                and (location_id := naming.location_id_named(item.item.reference)) is not None
-            ),
-        )
+        return CaptureAssignment(list_id=list_id, location_ids=location_ids)
     return None
+
+
+def _list_location_ids(list_id: str, naming: CaptureNaming, store: ResourceStore) -> frozenset[str] | None:
+    """The organisation units one served List names, or None when the facade serves no readable List for it.
+
+    An entry naming a Location under an authority this project publishes nothing under contributes
+    no unit, because it names nobody this registry holds - which is what `location_id_named` decides.
+    """
+    entry = store.by_type_and_id(ASSIGNMENT_RESOURCE_TYPE, list_id)
+    if entry is None:
+        return None
+    try:
+        published = ResourceList.model_validate(entry.body)
+    except ValidationError:
+        return None
+    return frozenset(
+        location_id
+        for item in published.entry or []
+        if item.item.reference is not None
+        and (location_id := naming.location_id_named(item.item.reference)) is not None
+    )
 
 
 def _program_uid(questionnaire: Questionnaire, naming: CaptureNaming) -> str | None:

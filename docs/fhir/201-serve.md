@@ -579,6 +579,15 @@ content-type: application/fhir+json
 draws the same answers, so a submission that misbehaved can be asked for
 again.
 
+The organisation unit and the attribute option combo are one draw, because
+DHIS2 grades them together: a category option is scoped to organisation units,
+and a value keyed to a combo not usable at the unit it was filed from earns
+`E8025`. So `$generate` draws the combo from the concepts usable at the unit it
+drew, and where a unit admits none it moves on to the next unit the form
+admits. A form whose every declared combo is restricted away from every unit it
+admits is not drafted at all - the operation answers 422 saying so, the way it
+does for a form assigned to no published organisation unit.
+
 A refused capture answers with the same resource type, a different severity,
 and a FHIRPath `expression` naming where each problem is. Validation runs in
 phases so a rejection is readable rather than a wall of consequences - the
@@ -610,6 +619,7 @@ things the same way:
 | a coded answer outside the concept-code spelling | resolved via the DHIS2 UID or code, with a warning | 422 |
 | the `D2AttributeOptionCombo` a form declares | missing or drifted is a warning | 422 (DHIS2 would refuse the write with `E8023`) |
 | the organisation unit, against the form's published assignment | outside the assignment is a warning | 422 (DHIS2 would refuse with `E1029`) |
+| the organisation unit, against the combo's organisation-unit restriction | outside the restriction is a warning | 422 (DHIS2 would refuse with `E8025`) |
 | the subject type, against the form's `subjectType` | mismatch is a warning | 422 |
 
 Two things are refused whatever the dial, because they are malformed rather

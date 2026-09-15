@@ -1,4 +1,4 @@
-"""Attribute-combo schemas: the emitter projection, the artifact identities, and the per-form plan."""
+"""Attribute-combo schemas: the family's directory, the emitter projection, the identities, and the plan."""
 
 from __future__ import annotations
 
@@ -8,6 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from dhis2w_fhir.notes import GenerateNote
 from dhis2w_fhir.resources.option_sets.schemas import ConceptSourceIn
+
+#: The `ig/input/resources/` subdirectory the attribute-combo family owns outright - one JSON file per resource.
+ATTRIBUTE_COMBO_DIRECTORY = "attribute-option-combos"
 
 
 class AttributeComboIn(ConceptSourceIn):
