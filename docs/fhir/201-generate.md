@@ -39,45 +39,29 @@ running 8 step(s)
 [8/8] pages: 6 pages, 20 files written, 0 files unchanged, 1 note
 full pipeline: 2,806 file(s) written across 7 target(s)
 info: local_basic (fhir.toml) -> /home/you/demo-ig
-                                                 fhir generate (7)
-┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━┓
-┃Target         ┃ Subject            ┃ Directory          ┃ Files written ┃ Files unchanged ┃ Files deleted ┃ Notes┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━┩
-│foundation     │ -                  │ ig/input/fsh/found │ 23            │ 0               │ 0             │ 0    │
-│               │                    │ ation              │               │                 │               │      │
-│option-sets    │ 13 option sets     │ ig/input/resources │ 39            │ 0               │ 0             │ 0    │
-│               │                    │ /terminology,      │               │                 │               │      │
-│               │                    │ resources/concept- │               │                 │               │      │
-│               │                    │ maps               │               │                 │               │      │
-│categories     │ 5 categories       │ ig/input/resources │ 15            │ 0               │ 0             │ 0    │
-│               │                    │ /categories,       │               │                 │               │      │
-│               │                    │ resources/concept- │               │                 │               │      │
-│               │                    │ maps               │               │                 │               │      │
-│questionnaires │ 14 questionnaires  │ ig/input/fsh/data- │ 28            │ 0               │ 0             │ 1    │
-│               │                    │ sets,              │               │                 │               │      │
-│               │                    │ fsh/event-programs │               │                 │               │      │
-│               │                    │ ,                  │               │                 │               │      │
-│               │                    │ fsh/tracker-progra │               │                 │               │      │
-│               │                    │ ms,                │               │                 │               │      │
-│               │                    │ fsh/tracked-entity │               │                 │               │      │
-│               │                    │ -types,            │               │                 │               │      │
-│               │                    │ fsh/data-dictionar │               │                 │               │      │
-│               │                    │ y,                 │               │                 │               │      │
-│               │                    │ resources/assignme │               │                 │               │      │
-│               │                    │ nts,               │               │                 │               │      │
-│               │                    │ resources/attribut │               │                 │               │      │
-│               │                    │ e-option-combos,   │               │                 │               │      │
-│               │                    │ resources/concept- │               │                 │               │      │
-│               │                    │ maps               │               │                 │               │      │
-│examples       │ 14 examples        │ ig/input/fsh/examp │ 14            │ 0               │ 0             │ 1    │
-│               │                    │ les                │               │                 │               │      │
-│org-units      │ 1,332 organisation │ ig/input/fsh/organ │ 2,667         │ 0               │ 0             │ 0    │
-│               │ units              │ ization,           │               │                 │               │      │
-│               │                    │ resources/registry │               │                 │               │      │
-│pages          │ 6 pages            │ ig/input/pageconte │ 20            │ 0               │ 0             │ 0    │
-│               │                    │ nt                 │               │                 │               │      │
-└───────────────┴────────────────────┴────────────────────┴───────────────┴─────────────────┴───────────────┴──────┘
-note: 2 note(s) across 2 target(s); full list in
+                                                   fhir generate (7)
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
+┃Target         ┃ Subject                  ┃ Directory                 ┃ Files written ┃ Files deleted ┃ Distinct notes┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
+│foundation     │ -                        │ ig/input/fsh/foundation   │ 23            │ 0             │ 0             │
+│option-sets    │ 13 option sets           │ ig/input/resources/termi… │ 39            │ 0             │ 0             │
+│               │                          │ resources/concept-maps    │               │               │               │
+│categories     │ 5 categories             │ ig/input/resources/categ… │ 15            │ 0             │ 0             │
+│               │                          │ resources/concept-maps    │               │               │               │
+│questionnaires │ 14 questionnaires        │ ig/input/fsh/data-sets,   │ 28            │ 0             │ 1             │
+│               │                          │ fsh/event-programs,       │               │               │               │
+│               │                          │ fsh/tracker-programs,     │               │               │               │
+│               │                          │ fsh/tracked-entity-types, │               │               │               │
+│               │                          │ fsh/data-dictionary,      │               │               │               │
+│               │                          │ resources/assignments,    │               │               │               │
+│               │                          │ resources/attribute-opti… │               │               │               │
+│               │                          │ resources/concept-maps    │               │               │               │
+│examples       │ 14 examples              │ ig/input/fsh/examples     │ 14            │ 0             │ 1             │
+│org-units      │ 1,332 organisation units │ ig/input/fsh/organizatio… │ 2,667         │ 0             │ 0             │
+│               │                          │ resources/registry        │               │               │               │
+│pages          │ 6 pages                  │ ig/input/pagecontent      │ 20            │ 0             │ 0             │
+└───────────────┴──────────────────────────┴───────────────────────────┴───────────────┴───────────────┴───────────────┘
+note: 2 distinct note(s) across 2 target(s); full list in
 /home/you/demo-ig/reports/fhir-generate-notes.md (--details to print)
 ```
 
@@ -450,7 +434,7 @@ all to `reports/fhir-generate-notes.md`, each note once, under the first
 target that raised it:
 
 ```text
-note: 3 note(s) across 2 target(s) (+8 validate echoes); full list in
+note: 3 distinct note(s) across 2 target(s) (+8 validate echoes); full list in
 reports/fhir-generate-notes.md (--details to print)
 ```
 
@@ -490,26 +474,45 @@ response that did would not be a response to this form. The note names each
 one as `<data element>.<category option combo>` and counts the rest, and the
 same note is raised by every target that reads the form.
 
-### One outcome the notes do not carry
+### Two outcomes the notes do not carry
 
 A national instance raises several hundred terminology notes per run, and a form
 nobody can submit would be lost among them. So when an organisation-unit
-assignment names no unit the run publishes, the run closes with a line of its
-own:
+assignment names no organisation unit the run publishes, the run closes with a
+line of its own:
 
 ```text
 warning: 29 published form(s) carry an empty organisation-unit assignment under
-[generate.organisation_units] max_level 2: no unit may report them, and the
-facade refuses to draft a response for one. Raise max_level, or narrow the form
-selection in fhir.toml to what the registry covers.
+[generate.organisation_units] max_level 2: no organisation unit may report them,
+and the facade refuses to draft a response for one. Widen the organisation-unit
+selection - raise `[generate.organisation_units] max_level`, or set its `root`
+higher up the hierarchy - or narrow the form selection in fhir.toml to the forms
+those organisation units report, then run `d2w fhir generate` again.
 ```
 
 The count is of published Questionnaires, which is what a capture client is
 refused at - a tracker program's stages each publish a form and share their
 program's one `List` - so this line, the facade's 422 and
-`d2w fhir check-artifacts` all state one number.
+`d2w fhir check-artifacts` all state one number, and all three prescribe the
+same two selections.
 [Choosing a max-level](201-set-up-a-project.md#choosing-a-max-level) carries the
 trade-off that usually produces it.
+
+The second is a selection entry that matched nothing. A UID no longer on the
+instance - an object renamed, deleted, or never there - costs the guide a whole
+form, its examples and its page, so the run closes with that line of its own
+too, naming every UID the instance answered nothing for:
+
+```text
+warning: 1 of 2 [generate.data_sets] include_ids entries matched no data set: BfMAe6Itzgu
+```
+
+A table none of whose entries matched says so outright - `no
+[generate.event_programs] include_ids entry matched an event program on this
+instance, so this run publishes no event program at all` - because a guide with
+nothing of a kind in it is rarely what the file meant to ask for.
+`d2w fhir check-artifacts` reports the same entry as a warning-level finding
+against `fhir.toml`, so a tree on disk answers for itself with no connection.
 
 Every command with an instance behind it narrates its steps on stderr - a
 spinner on a terminal, one plain `[k/N] label: summary` line per step when

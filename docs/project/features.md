@@ -966,12 +966,23 @@ NamingSystems declaring them, plus these extensions:
 - **A run that published forms nobody may report says so on its own line.** When
   an assignment intersects the published registry at nothing, `d2w fhir generate`
   closes with a warning naming how many published forms carry an empty
-  assignment and the `[generate.organisation_units] max_level` in force, and
-  suggests raising it or narrowing the form selection. Forms are the unit
-  counted - a tracker program's stages each publish a Questionnaire and share
-  one `List` - so the run, the facade's 422, and `d2w fhir check-artifacts` all
-  state one number. A national instance raises several hundred terminology notes
-  per run, which is why this is a line of its own rather than one of them.
+  assignment and the `[generate.organisation_units] max_level` in force, then
+  names both selections in one sentence: widen the organisation-unit selection,
+  or narrow the form selection. `d2w fhir check-artifacts` answers its own
+  finding with that identical sentence. Forms are the unit counted - a tracker
+  program's stages each publish a Questionnaire and share one `List` - so the
+  run, the facade's 422, and `d2w fhir check-artifacts` all state one number. A
+  national instance raises several hundred terminology notes per run, which is
+  why this is a line of its own rather than one of them.
+- **A selection entry that matched nothing says so on its own line too.** A
+  `[generate.*] include_ids` UID the instance answers nothing for costs the
+  guide a whole form, its examples and its page, so `d2w fhir generate` closes
+  with a warning per family naming every unmatched UID, and a family none of
+  whose entries matched says outright that the run publishes nothing of that
+  kind. `d2w fhir check-artifacts` reports the same entry as a warning-level
+  finding against `fhir.toml`, read off the published tree with no connection.
+  An `include_ids` that is absent or an empty list selects everything, which is
+  why `enabled = false` is the switch that publishes none.
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
   dial coded answers take, and `$generate` draws its Location from it.
@@ -1427,12 +1438,17 @@ registration form become `Questionnaire` instances.
   by `[generate.examples]` `per_target` / `source`.
 - **`source = "synthetic"`** (the default) generates values locally from a
   SHA-256 seed - stable across machines and runs, every option combo filled.
-- **An example is captured at the organisation-unit selection's own root** -
-  `[generate.organisation_units] root` when the project names one, the
-  instance's level-1 unit when it does not - so the Location an example is
-  subject to is one the registry target published a file for. A unit outside
-  the published selection is an aggregate note rather than a reference the
-  publisher cannot resolve.
+- **An example is captured at an organisation unit its own form is assigned
+  to.** DHIS2 scopes a data set and a program to the organisation units it is
+  assigned to and refuses a capture outside that scope (`E1029` on an event,
+  `E1041` on an enrollment), so a published example - the shape a consumer
+  copies - is placed the way a capture has to be: the organisation-unit
+  selection's own root where the assignment names it, and otherwise the first
+  assigned organisation unit the guide publishes a Location for, by UID, so a
+  rerun places it identically. A form DHIS2 hangs no assignment on, and a form
+  whose assignment names nothing published, fall back to that root; a form left
+  with no published organisation unit at all is an aggregate note rather than a
+  reference the publisher cannot resolve.
 - **An example answers the form it answers.** Only the questions the form's own
   `enableWhen` leaves enabled given the rest of the response are answered - the
   sweep runs to a fixed point, because dropping an answer can close the question
@@ -1661,7 +1677,10 @@ DHIS2 translations are carried through across the whole surface, filtered by
   its text and an `echoes_validate` verdict derived from it.
 - **A bare run counts the three kinds that merely restate a `fhir validate`
   finding apart** from what generation itself found
-  (`note: 3 note(s) across 2 target(s) (+8 validate echoes); full list in ...`),
+  (`note: 3 distinct note(s) across 2 target(s) (+8 validate echoes); full list
+  in ...`), counting each note once across the targets that raised it - which is
+  what the summary table's `Distinct notes` column counts, while a target's own
+  `[k/N]` step line counts its own share,
   while the notes file still carries every one, echoes under a trailing
   per-target `Restatements of validate findings` heading. A note several
   targets share is counted and filed once, on the first target that raised
@@ -1795,8 +1814,11 @@ semantics `generate` uses.
   character seen to abort a build; and an unselected object cannot abort this
   project's build, so only errors gate exit 1.
 - **Reports** are written as Markdown, CSV, and PDF (clickable contents,
-  bookmarked sections, Lao-script font support) into `--output-dir`, with exit
-  1 on errors and `--fail` / `--no-fail` gating the exit code.
+  bookmarked sections, Lao-script and symbol font support, so the very code a
+  finding is about renders in the page reporting it) into `--output-dir`, with
+  exit 1 on errors and `--fail` / `--no-fail` gating the exit code. The PDF
+  library narrates its own render at debug level, so nothing but the command's
+  own `info:` / `note:` / `warning:` lines reaches the terminal.
 - **The terminal is a status view**: the summary table with the selection split
   and the code-coverage fraction, a rollup row per (severity, scope, category)
   with the instance rows dimmed, every error individually because an error

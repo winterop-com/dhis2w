@@ -112,9 +112,12 @@ have:
 - `d2w fhir check-artifacts` reports the same forms as warning-level findings,
   offline, one per form.
 
-If the number is not zero, either raise `max_level` until the registry reaches
-the assigned units, or narrow the form selection to forms the registry covers. A
-guide of forms nobody may report is a valid build and a useless one.
+If the number is not zero, either widen the organisation-unit selection - raise
+`max_level`, or set its `root` higher up the hierarchy - until the registry
+reaches the assigned organisation units, or narrow the form selection to the
+forms those organisation units report. Both commands prescribe that same pair in
+those words. A guide of forms nobody may report is a valid build and a useless
+one.
 
 ## Start from a template
 

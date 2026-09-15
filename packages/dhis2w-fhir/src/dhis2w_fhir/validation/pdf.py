@@ -1,12 +1,17 @@
 """PDF rendering of the FHIR-safety validation report: cover page, clickable contents, one section per type.
 
-Typography is Noto Sans with Noto Sans Lao as a fallback, both shipped beside this module under
-`fonts/` with their OFL licence, so DHIS2 names in Lao script render instead of dropping to
-boxes. The fonts are the only reason this module carries binary assets.
+Typography is Noto Sans, with Noto Sans Lao and DejaVu Sans as fallbacks, all shipped beside this
+module under `fonts/` with their licences - the two Noto faces under the OFL, DejaVu under the
+Bitstream Vera licence. A DHIS2 name in Lao script and a DHIS2 code carrying a symbol such as the
+square root sign both render as themselves rather than dropping to boxes, which matters most for
+the very codes a finding is about. The fonts are the only reason this module carries binary assets.
 """
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -26,7 +31,11 @@ __all__ = ["render_validation_pdf"]
 
 _FONT_DIRECTORY = Path(__file__).parent / "fonts"
 _FONT_FAMILY = "NotoSans"
-_FALLBACK_FAMILY = "NotoSansLao"
+_LAO_FALLBACK_FAMILY = "NotoSansLao"
+_SYMBOL_FALLBACK_FAMILY = "DejaVuSans"
+
+#: The logger fpdf2 narrates its own render on, which is not this toolchain's voice.
+_LIBRARY_LOGGER = "fpdf"
 
 _INK = (17, 17, 17)
 _MUTED = (110, 110, 110)
@@ -77,7 +86,51 @@ def render_validation_pdf(report: FhirValidationReport, target: str, generated_a
             document.render_section(section, start_new_page=index > 0)
     else:
         document.render_no_findings()
-    return bytes(document.output())
+    with _library_narration_at_debug():
+        return bytes(document.output())
+
+
+@contextmanager
+def _library_narration_at_debug() -> Generator[None]:
+    """Carry fpdf2's own warnings at debug level, so the library never writes into the command's output.
+
+    fpdf2 warns on its own loggers while it writes the file - a glyph none of the registered faces
+    holds is the one this document can raise. The terminal is the command's, told in its own
+    `info:` / `note:` / `warning:` register, so the record is lowered to debug rather than dropped:
+    a run with debug logging on still reads it, and nothing is printed to a reader who has not
+    asked for the library's voice.
+
+    Every logger of the library's own tree takes the filter, because a logging filter applies to the
+    logger that raises the record and not to its ancestors - the warning is raised on `fpdf.output`,
+    and a filter on `fpdf` alone would never see it.
+    """
+    narration = _NarrationAtDebug()
+    loggers = [logging.getLogger(name) for name in _library_logger_names()]
+    for logger in loggers:
+        logger.addFilter(narration)
+    try:
+        yield
+    finally:
+        for logger in loggers:
+            logger.removeFilter(narration)
+
+
+def _library_logger_names() -> list[str]:
+    """Every logger name in fpdf2's own tree that exists right now, the root of the tree included."""
+    prefix = f"{_LIBRARY_LOGGER}."
+    known = [name for name in logging.root.manager.loggerDict if name.startswith(prefix)]
+    return [_LIBRARY_LOGGER, *sorted(known)]
+
+
+class _NarrationAtDebug(logging.Filter):
+    """Lower a library's own warnings to debug records, keeping the text and dropping the severity."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Re-level one record to debug and keep it, which is what carries it without printing it."""
+        if record.levelno > logging.DEBUG:
+            record.levelno = logging.DEBUG
+            record.levelname = logging.getLevelName(logging.DEBUG)
+        return True
 
 
 def _contents_pages(sections: list[_TypeSection]) -> int:
@@ -105,15 +158,16 @@ class _ValidationPdf(FPDF):
     """The validation-report document: Noto Sans typography, a running footer, and per-type sections."""
 
     def __init__(self, target: str, sections: list[_TypeSection]) -> None:
-        """Set up an A4 document with the Noto Sans family and its Lao fallback registered."""
+        """Set up an A4 document with the Noto Sans family and its Lao and symbol fallbacks registered."""
         super().__init__(orientation="P", unit="mm", format="A4")
         self.target = target
         self.sections = sections
         self.set_margins(12, 14, 12)
         self.add_font(_FONT_FAMILY, "", _FONT_DIRECTORY / "NotoSans-Regular.ttf")
         self.add_font(_FONT_FAMILY, "B", _FONT_DIRECTORY / "NotoSans-Bold.ttf")
-        self.add_font(_FALLBACK_FAMILY, "", _FONT_DIRECTORY / "NotoSansLao-Regular.ttf")
-        self.set_fallback_fonts([_FALLBACK_FAMILY])
+        self.add_font(_LAO_FALLBACK_FAMILY, "", _FONT_DIRECTORY / "NotoSansLao-Regular.ttf")
+        self.add_font(_SYMBOL_FALLBACK_FAMILY, "", _FONT_DIRECTORY / "DejaVuSans.ttf")
+        self.set_fallback_fonts([_LAO_FALLBACK_FAMILY, _SYMBOL_FALLBACK_FAMILY])
         self.set_font(_FONT_FAMILY, "", 9)
         self.set_text_color(*_INK)
 

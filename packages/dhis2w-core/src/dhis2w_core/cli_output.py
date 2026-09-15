@@ -30,7 +30,7 @@ from typing import Any, Protocol
 
 import typer
 from pydantic import BaseModel, ConfigDict
-from rich.console import Console
+from rich.console import Console, OverflowMethod
 from rich.table import Table
 
 
@@ -326,6 +326,13 @@ class ColumnSpec(BaseModel):
     transforms the raw cell value into the displayed string (defaults to
     `format_ref`). `style` sets a rich style (e.g. `'cyan'` for an ID
     column, `'dim'` for timestamps).
+
+    `min_width` is the narrowest the column may be squeezed to, and `overflow`
+    is what a cell too wide for the column does: `fold` wraps it onto further
+    lines, `ellipsis` ends it in a single character that says it was cut, and
+    `crop` cuts it silently. A column carrying prose a reader identifies a row
+    by wants `ellipsis` and a floor, so a narrow terminal shortens it rather
+    than rendering two blank characters.
     """
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
@@ -335,6 +342,8 @@ class ColumnSpec(BaseModel):
     formatter: Callable[[Any], str] | None = None
     style: str | None = None
     no_wrap: bool = False
+    min_width: int | None = None
+    overflow: OverflowMethod = "fold"
 
     def __init__(
         self,
@@ -344,9 +353,19 @@ class ColumnSpec(BaseModel):
         formatter: Callable[[Any], str] | None = None,
         style: str | None = None,
         no_wrap: bool = False,
+        min_width: int | None = None,
+        overflow: OverflowMethod = "fold",
     ) -> None:
         """Accept positional `(label, key)` for terse call sites in plugin CLIs."""
-        super().__init__(label=label, key=key, formatter=formatter, style=style, no_wrap=no_wrap)
+        super().__init__(
+            label=label,
+            key=key,
+            formatter=formatter,
+            style=style,
+            no_wrap=no_wrap,
+            min_width=min_width,
+            overflow=overflow,
+        )
 
 
 def render_list(
@@ -365,7 +384,13 @@ def render_list(
     cols = list(columns)
     table = Table(title=f"{title} ({len(rows_list)})", title_style="bold", pad_edge=False, expand=False)
     for spec in cols:
-        table.add_column(spec.label, style=spec.style, no_wrap=spec.no_wrap, overflow="fold")
+        table.add_column(
+            spec.label,
+            style=spec.style,
+            no_wrap=spec.no_wrap,
+            min_width=spec.min_width,
+            overflow=spec.overflow,
+        )
     for row in rows_list:
         cells = []
         for spec in cols:

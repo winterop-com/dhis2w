@@ -1041,6 +1041,65 @@ def _mock_metadata_apart_from_the_organisation_units() -> None:
     respx.get(f"{_HOST}/api/categories").mock(return_value=httpx.Response(200, json={"categories": []}))
 
 
+#: The two organisation units a placement test publishes: the root, and one facility under it.
+_ASSIGNED_ORG_UNIT = "Ou7aaaaaaaa"
+_TWO_UNIT_PAYLOAD = {"organisationUnits": [{"id": _ROOT_ORG_UNIT}, {"id": _ASSIGNED_ORG_UNIT}]}
+
+
+def _mock_metadata_with_assignment(organisation_unit_uids: list[str]) -> None:
+    """Mock a run whose data set is assigned to exactly these organisation units, both of them published."""
+    assigned = {
+        **_DATA_SETS_PAYLOAD,
+        "dataSets": [
+            {**_DATA_SETS_PAYLOAD["dataSets"][0], "organisationUnits": [{"id": uid} for uid in organisation_unit_uids]}
+        ],
+    }
+    respx.get(f"{_HOST}/api/dataSets").mock(return_value=httpx.Response(200, json=assigned))
+    respx.get(f"{_HOST}/api/programs").mock(return_value=httpx.Response(200, json=_PROGRAMS_PAYLOAD))
+    respx.get(f"{_HOST}/api/programRules").mock(return_value=httpx.Response(200, json={"programRules": []}))
+    respx.get(f"{_HOST}/api/trackedEntityTypes").mock(return_value=httpx.Response(200, json={"trackedEntityTypes": []}))
+    respx.get(f"{_HOST}/api/optionSets").mock(return_value=httpx.Response(200, json=_OPTION_SETS_PAYLOAD))
+    respx.get(f"{_HOST}/api/categories").mock(return_value=httpx.Response(200, json={"categories": []}))
+    respx.get(f"{_HOST}/api/organisationUnits").mock(return_value=httpx.Response(200, json=_TWO_UNIT_PAYLOAD))
+
+
+@respx.mock
+async def test_an_example_reports_from_an_organisation_unit_its_form_is_assigned_to(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """DHIS2 refuses a capture outside the assignment, so the published example is captured inside it."""
+    mock_system_info("v42")
+    await _scaffold_project(tmp_path)
+    _mock_metadata_with_assignment([_ASSIGNED_ORG_UNIT])
+
+    report = await service.generate_examples(resolve_profile("probe"), load_project(tmp_path))
+
+    assert report.example_count == 2
+    content = (tmp_path / "ig" / "input" / "fsh" / EXAMPLES_DIRECTORY / "BfMAe6Itzgt-1.fsh").read_text(encoding="utf-8")
+    assert f"* subject = Reference(Location/{_ASSIGNED_ORG_UNIT})" in content
+    assert _ROOT_ORG_UNIT not in content
+
+
+@respx.mock
+async def test_an_example_reports_from_the_root_when_the_assignment_names_it(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """A form assigned everywhere is illustrated from the registry's own root, which every consumer resolves."""
+    mock_system_info("v42")
+    await _scaffold_project(tmp_path)
+    _mock_metadata_with_assignment([_ASSIGNED_ORG_UNIT, _ROOT_ORG_UNIT])
+
+    report = await service.generate_examples(resolve_profile("probe"), load_project(tmp_path))
+
+    assert report.example_count == 2
+    content = (tmp_path / "ig" / "input" / "fsh" / EXAMPLES_DIRECTORY / "BfMAe6Itzgt-1.fsh").read_text(encoding="utf-8")
+    assert f"* subject = Reference(Location/{_ROOT_ORG_UNIT})" in content
+
+
 @respx.mock
 async def test_instance_mode_walks_back_to_the_newest_period_holding_data(
     probe_profile: None,  # noqa: ARG001

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from datetime import UTC, datetime
 
+import pytest
 from dhis2w_fhir.validation.pdf import _code_cell, render_validation_pdf
 from dhis2w_fhir.validation.report import (
     CSV_HEADER,
@@ -19,6 +21,14 @@ _GENERATED_AT = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
 
 #: A Lao organisation-unit name - the script the bundled fallback font exists for.
 _LAO_NAME = "ບ້ານ ນາໄຮ່"
+
+
+#: A DHIS2 option code carrying a symbol, which stock play data holds - the finding is about the code
+#: itself, so the character has to reach the page reporting it.
+_SYMBOL_CODE = "Postive√"
+
+#: A code in a script none of the bundled faces covers, which is what makes the library narrate.
+_UNRENDERABLE_CODE = "実施"
 
 
 def _finding(severity: str, resource_type: str, name: str, code: str | None = "X") -> ValidationFinding:
@@ -98,6 +108,42 @@ def test_pdf_renders_lao_script_names() -> None:
     payload = render_validation_pdf(lao_only, "probe", _GENERATED_AT)
     assert payload.startswith(b"%PDF")
     assert b"NotoSansLao" in payload
+
+
+def test_pdf_renders_a_code_carrying_a_symbol(caplog: pytest.LogCaptureFixture) -> None:
+    """A finding about a code carrying a symbol renders that very character, through the DejaVu Sans fallback."""
+    symbol = FhirValidationReport(findings=[_finding("error", "options", "Positive", code=_SYMBOL_CODE)])
+    with caplog.at_level(logging.DEBUG, logger="fpdf"):
+        payload = render_validation_pdf(symbol, "probe", _GENERATED_AT)
+    assert payload.startswith(b"%PDF")
+    assert b"DejaVuSans" in payload
+    assert not [record for record in caplog.records if "missing the following glyphs" in record.getMessage()]
+
+
+def test_the_pdf_library_does_not_write_on_the_terminal(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """fpdf2 narrates its own render on its own logger; the terminal is the command's, in its own register."""
+    library_logger = logging.getLogger("fpdf")
+    # What an unconfigured interpreter does with a library's warning: `logging.lastResort` prints
+    # every record of WARNING or above to stderr, which is how the line reached the terminal.
+    printing = logging.StreamHandler()
+    printing.setLevel(logging.WARNING)
+    library_logger.addHandler(printing)
+    try:
+        with caplog.at_level(logging.DEBUG, logger="fpdf"):
+            render_validation_pdf(
+                FhirValidationReport(findings=[_finding("error", "options", "Unmapped", code=_UNRENDERABLE_CODE)]),
+                "probe",
+                _GENERATED_AT,
+            )
+    finally:
+        library_logger.removeHandler(printing)
+    assert capsys.readouterr().err == ""
+    narration = [record for record in caplog.records if "missing the following glyphs" in record.getMessage()]
+    assert narration
+    assert all(record.levelno == logging.DEBUG for record in narration)
 
 
 def test_pdf_of_a_clean_report() -> None:

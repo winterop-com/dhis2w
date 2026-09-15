@@ -44,10 +44,12 @@ not exist.
 
 ## Severity
 
-Most findings are build-aborting and exit the command 1, which is what `make build` runs it for. One
-is a warning: a published form whose organisation-unit assignment names no unit the project
-publishes. That build is valid and will publish - and the form it publishes is one nobody can submit
-a response to, which is worth a look before the publisher is paid for.
+Most findings are build-aborting and exit the command 1, which is what `make build` runs it for. Two
+are warnings: a published form whose organisation-unit assignment names no organisation unit the
+project publishes, and a `[generate.*] include_ids` entry the published tree carries no trace of.
+Both builds are valid and will publish - the first publishes a form nobody can submit a response to,
+the second publishes a guide missing the very form the entry asked for - and both are worth a look
+before the publisher is paid for.
 
 ## What is checked, and why exactly this
 
@@ -79,7 +81,11 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
 from dhis2w_fhir.registry_package import RegistryMissingError, load_registry_documents
-from dhis2w_fhir.resources.questionnaires.assignments import ASSIGNMENT_DIRECTORY, ASSIGNMENT_LIST_RESOURCE_TYPE
+from dhis2w_fhir.resources.questionnaires.assignments import (
+    ASSIGNMENT_DIRECTORY,
+    ASSIGNMENT_LIST_RESOURCE_TYPE,
+    EMPTY_ASSIGNMENT_REMEDY,
+)
 from dhis2w_fhir.scaffold import SUSHI_CONFIG_RELATIVE_PATH
 from dhis2w_fhir.validation import build_aborting_code, build_aborting_name
 from dhis2w_fhir.writer import is_generated_file
@@ -182,7 +188,10 @@ class FindingOrigin(StrEnum):
     """The registry package a guide depends on, which the scan could not read at all."""
 
     ASSIGNMENT = "assignment"
-    """A published form whose organisation-unit assignment names no unit this project publishes."""
+    """A published form whose organisation-unit assignment names no organisation unit this project publishes."""
+
+    SELECTION = "selection"
+    """A `[generate.*] include_ids` entry naming a DHIS2 object this project publishes nothing for."""
 
 
 FindingSeverity = Literal["build-aborting", "warning"]
@@ -216,10 +225,14 @@ _REGISTRY_UNREADABLE_REMEDY = (
     "`--registry-package <package.tgz>` so the scan can read what the package publishes"
 )
 
-#: What answers a form nobody can submit: the registry is narrower than the forms DHIS2 assigns.
-_ASSIGNMENT_REMEDY = (
-    "Raise `[generate.organisation_units] max_level` or widen the selection in fhir.toml, "
-    "then run `d2w fhir generate` again."
+#: What answers a form nobody can submit: the registry is narrower than the forms DHIS2 assigns. The
+#: one sentence `d2w fhir generate` closes such a run with, so both commands prescribe one thing.
+_ASSIGNMENT_REMEDY = EMPTY_ASSIGNMENT_REMEDY
+
+#: What answers a selection entry the guide publishes nothing for: the UID and the instance disagree.
+_SELECTION_REMEDY = (
+    "Check the UID in the DHIS2 Maintenance app, then correct it in the include_ids table this row "
+    "names - or drop it - and run `d2w fhir generate` again."
 )
 
 #: The line each origin is answered by, stated once. `ig-identity` is not here: its line names the
@@ -230,11 +243,13 @@ _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
     FindingOrigin.REGISTRY_SELECTION: _REGISTRY_REMEDY,
     FindingOrigin.REGISTRY_MISSING: _REGISTRY_UNREADABLE_REMEDY,
     FindingOrigin.ASSIGNMENT: _ASSIGNMENT_REMEDY,
+    FindingOrigin.SELECTION: _SELECTION_REMEDY,
 }
 
-#: The origins whose finding lets the build run. One: a form nobody can submit publishes perfectly
-#: well, so stopping the build over it would refuse a guide the publisher has no quarrel with.
-_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT})
+#: The origins whose finding lets the build run. Two, and for the same reason: a form nobody can
+#: submit and a selection entry that named nothing both publish perfectly well, so stopping the
+#: build over either would refuse a guide the publisher has no quarrel with.
+_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT, FindingOrigin.SELECTION})
 
 
 class ArtifactFinding(BaseModel):
@@ -254,8 +269,9 @@ class ArtifactFinding(BaseModel):
     value: str
     """The offending string, byte-true, so a reader can search the instance for it."""
 
-    kind: Literal["name", "code", "registry", "assignment"]
-    """What raised it: a DHIS2 name, a DHIS2 code emitted as an identifier, a registry reference, an assignment."""
+    kind: Literal["name", "code", "registry", "assignment", "selection"]
+    """What raised it: a DHIS2 name, a DHIS2 code emitted as an identifier, a registry reference, an
+    assignment, or a selection entry."""
 
     origin: FindingOrigin
     """Where the value came from, which is what the remedy and the severity are read off."""
@@ -364,6 +380,7 @@ def check_publishable_artifacts(project: FhirProject, *, registry_package: Path 
         findings.extend(_findings_in_fsh(path, root))
     findings.extend(_ig_identity_findings(project))
     findings.extend(_empty_assignment_findings(project, root))
+    findings.extend(_selection_findings(project))
     findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
     return ArtifactCheckReport(
@@ -606,12 +623,13 @@ def _ig_identity_findings(project: FhirProject) -> list[ArtifactFinding]:
 
 #: Why a form whose assignment names nothing is worth stopping for, and why it stops nothing itself.
 _EMPTY_ASSIGNMENT_MESSAGE = (
-    "the form's organisation-unit assignment List names no unit this project publishes, so no unit "
-    "may report it and the facade refuses to draft a response for it. The guide builds and publishes "
-    "either way, which is why this is a warning: what it costs is a form, not a build."
+    "the form's organisation-unit assignment List names no organisation unit this project publishes, "
+    "so no organisation unit may report it and the facade refuses to draft a response for it. The "
+    "guide builds and publishes either way, which is why this is a warning: what it costs is a form, "
+    "not a build."
 )
 
-#: The element an assignment List carries its members on. A List with none is one no unit is on.
+#: The element an assignment List carries its members on. A List with none is one no organisation unit is on.
 _LIST_ENTRY_ELEMENT = "entry"
 
 #: One FSH `Reference(<target>)`, which is how a generated Questionnaire names its assignment List.
@@ -619,7 +637,7 @@ _FSH_REFERENCE = re.compile(r"Reference\((?P<target>[^)\s]+)\)")
 
 
 def _empty_assignment_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
-    """Every published form referencing an organisation-unit assignment List that names no unit.
+    """Every published form referencing an organisation-unit assignment List that names no organisation unit.
 
     Counted in forms rather than in the data sets and programs DHIS2 hangs the assignment on: a
     tracker program's stages each publish a Questionnaire of their own and share the one List, and
@@ -656,7 +674,7 @@ def _empty_assignment_findings(project: FhirProject, root: Path) -> list[Artifac
 
 
 def _empty_assignment_finding(file: str, resource_id: str, field: str, value: str) -> ArtifactFinding:
-    """One form named at the reference by which it names an assignment List no unit is on."""
+    """One form named at the reference by which it names an assignment List no organisation unit is on."""
     return ArtifactFinding(
         file=file,
         resource_id=resource_id,
@@ -695,6 +713,75 @@ def _read_text(path: Path) -> str | None:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
+
+
+#: Why a selection entry naming nothing is worth stopping for, and why it stops nothing itself.
+_SELECTION_MESSAGE = (
+    "this project publishes nothing carrying that UID, so the entry selected no DHIS2 object: the "
+    "object is not on the instance the guide was generated against, under that id. What it costs is "
+    "the form, its examples and its page - the guide builds and publishes without them, which is why "
+    "this is a warning rather than a build abort."
+)
+
+#: The directory the foundation target writes into. It is written by every generate run whatever the
+#: selection holds, so its absence is a project nothing has generated yet - where a selection naming
+#: nothing published says only that, and not that the UID is wrong.
+_FOUNDATION_DIRECTORY = "foundation"
+
+
+def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
+    """Every `[generate.*] include_ids` entry the published tree carries no trace of.
+
+    A selected form writes its DHIS2 UID into what it publishes - a data set and an event program
+    carry it as their Questionnaire's identifier, a tracker program as the program its stages and
+    its assignment List name, a tracked entity type as its own registration form - so a UID absent
+    from every published file is a UID nothing was published for. Read off the tree rather than the
+    instance, which is what lets this answer with no connection, exactly as the rest of the scan does.
+
+    A table switched off selects nothing by design and is not read, and a project that has never
+    generated raises nothing at all: there the tree is empty for a reason that has nothing to do
+    with the selection.
+    """
+    if not (project.fsh_directory / _FOUNDATION_DIRECTORY).is_dir():
+        return []
+    generate = project.config.generate
+    tables = (
+        ("data_sets", generate.data_sets),
+        ("event_programs", generate.event_programs),
+        ("tracker_programs", generate.tracker_programs),
+        ("tracked_entity_forms", generate.tracked_entity_forms),
+    )
+    wanted = {uid for _, table in tables if table.enabled for uid in table.include_ids}
+    if not wanted:
+        return []
+    published = _published_uids(project, wanted)
+    return [
+        ArtifactFinding(
+            file=FHIR_CONFIG_FILENAME,
+            resource_id=f"generate.{name}",
+            field="include_ids",
+            value=uid,
+            kind="selection",
+            origin=FindingOrigin.SELECTION,
+            message=_SELECTION_MESSAGE,
+        )
+        for name, table in tables
+        if table.enabled
+        for uid in sorted(set(table.include_ids) - published)
+    ]
+
+
+def _published_uids(project: FhirProject, wanted: set[str]) -> set[str]:
+    """Which of the wanted UIDs the published tree names anywhere, reading no more files than it must."""
+    found: set[str] = set()
+    for path in (*_fsh_paths(project), *_json_paths(project)):
+        text = _read_text(path)
+        if text is None:
+            continue
+        found |= {uid for uid in wanted - found if uid in text}
+        if found == wanted:
+            break
+    return found
 
 
 #: Why a reference into the registry package the guide does not publish stops a build.

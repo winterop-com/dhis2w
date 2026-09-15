@@ -559,3 +559,15 @@ def test_init_help_says_naming_one_family_leaves_the_others_at_all(workdir: Path
     help_text = " ".join(result.output.replace("│", " ").split())
     assert flag in help_text
     assert "Naming one family narrows that family alone" in help_text
+
+
+@pytest.mark.parametrize("flag", ["--data-set", "--event-program", "--tracker-program"])
+def test_init_help_says_an_empty_include_list_reads_as_every_member(workdir: Path, flag: str) -> None:  # noqa: ARG001
+    """`include_ids = []` selects everything, so the help states it beside the absent table it reads as."""
+    result = _runner.invoke(build_app(), ["fhir", "init", "--help"])
+
+    assert result.exit_code == 0, result.output
+    help_text = " ".join(result.output.replace("│", " ").split())
+    assert flag in help_text
+    assert "or whose include_ids is an empty list - means every member of its kind" in help_text
+    assert "`enabled = false` is what publishes none of a kind" in help_text
