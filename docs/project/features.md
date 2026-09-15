@@ -596,10 +596,11 @@ chain in one command.
   `examples/fhir/igs/` carries a `template.toml`: `scaffolds = true` with the
   `summary` the listing prints, or `scaffolds = false` with the `refusal`
   `--template` prints instead. `refused-names` is the second kind - the exhibit
-  for a selection `d2w fhir generate` refuses, with no generated tree to lay down
-  and nothing for `make sushi` to compile - so it is out of the listing and
-  `--template refused-names` states what it demonstrates rather than scaffolding
-  a project it would then tell you to compile.
+  for a selection `d2w fhir generate` refuses on the first hostile name, which
+  leaves the foundation target on disk and nothing after it, so there is no
+  generated tree to lay down and nothing `make sushi` can compile - so it is out
+  of the listing, and `--template refused-names` states what it demonstrates
+  rather than scaffolding a project it would then tell you to compile.
 - **`init` refuses what the IG publisher cannot build.** A `--title` or `--name`
   carrying `<` or `>` is refused naming the flag and the character, because the
   publisher strict-parses the pages it writes them into and aborts its last pass
@@ -1787,6 +1788,11 @@ registration form become `Questionnaire` instances.
   examples target files its own responses from, so the page teaches the capture
   the examples beside it make rather than one DHIS2 refuses with `E1029`, and a
   form the run published an example for is preferred as the worked one; the
+  attribute option combination an aggregate response is filed under, as a step of
+  its own on a form riding a category combination that is not the default one -
+  quoted as a combination the worked organisation unit may file under for the
+  worked period, because the instance refuses one it scopes away (`E8025`) or has
+  closed (`E8032`) as surely as it refuses a response naming none (`E8023`); the
   logical Patient subject and both tracker extensions; where a client obtains
   the enrollment and tracked entity UIDs
   (`d2w data tracker enrollment list`, outside the guide's scope); the
@@ -1794,6 +1800,13 @@ registration form become `Questionnaire` instances.
   grammars; the required rules; the event status map; an answer-typing table
   derived from the same tables the examples answer from; the coded-answer rule;
   and the validate-before-you-send workflow.
+- **A form this DHIS2 instance takes no capture for is never the worked one, and
+  where the selection holds no other, the page says so.** A form whose every
+  attribute option combination the instance scopes away from the worked
+  organisation unit, or has closed for the worked period, is one no response
+  exists for - the examples target publishes none for it, and the page states
+  that outright where it has to work against it rather than quoting a
+  combination the instance answers `E8025` or `E8032` to.
 - **`<Type>-<id>-intro.md` intros** that the IG publisher injects into the
   matching artifact pages - one per Questionnaire, and one per option set or
   organisation unit carrying a DHIS2 description.
@@ -4632,15 +4645,18 @@ against DHIS2 v41, v42, and v43.
   context off the instance, and starts a live facade on a port the operating
   system picks. There are no MCP examples because there are no MCP tools: what
   an agent drives is the served facade, over HTTP.
-- **`examples/fhir/igs/`**: eight complete `d2w fhir init` project trees, one
+- **`examples/fhir/igs/`**: nine complete `d2w fhir init` project trees, one
   per feature story - minimal aggregate, disaggregated aggregate, event program,
   tracker registration, strict terminology, district registry, mixed facility,
-  and the `refused-names` exhibit whose generate is refused by design. Each is
-  committed as its inputs alone (`fhir.toml`, the SUSHI skeleton, the Makefile,
-  the Dockerfile); nothing `d2w fhir generate` or SUSHI writes is. `make
+  patient summary, and the `refused-names` exhibit whose generate is refused by
+  design. Each is committed as its inputs alone (`fhir.toml`, the SUSHI skeleton,
+  the Makefile, the Dockerfile); nothing `d2w fhir generate` or SUSHI writes is,
+  and `make clean-artifacts` sweeps what a run of the catalog left on disk. `make
   verify-igs` refreshes, validates, generates, and dockerized-SUSHI-compiles all
-  eight - an on-demand target, because it needs a reachable DHIS2 instance and
-  docker. Above that, `.github/workflows/publisher-check.yml` runs one full HL7
+  nine - an on-demand target, because it needs a reachable DHIS2 instance and
+  docker. The exhibit compiles nothing and is read on what its refusal left
+  instead: the foundation target under `ig/input/fsh/`, nothing after it, and no
+  compile beside it. Above that, `.github/workflows/publisher-check.yml` runs one full HL7
   IG Publisher build of `aggregate-minimal` weekly, so a publisher release that
   tightens validation shows up as a red scheduled run rather than in a user's
   project; `make publisher-check-summary QA=<qa.json>` reads the same report

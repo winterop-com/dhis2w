@@ -3,8 +3,16 @@
 > One of nine in the [example IG catalog](../README.md). Verified by `make verify-igs`.
 
 **This guide does not build, on purpose.** It is the exhibit: a selection whose
-DHIS2 names carry a raw `<`, and a `d2w fhir generate` that refuses to write a
-single file because of it. Running it is the point.
+DHIS2 names carry a raw `<`, and a `d2w fhir generate` that refuses it because of
+that. Running it is the point.
+
+The refusal fires on the first offending name, which is after the foundation
+target has written - the profiles, extensions and code systems every guide
+publishes, which are read off the configuration rather than off the selection. So
+the run leaves `ig/input/fsh/foundation/` on disk and nothing after it, and none
+of it compiles: those profiles name `D2Location` and `D2OU_Level_VS`, which the
+organisation-unit target writes and this run never reached. `make sushi` here
+exits 2, which is the shape of a guide stopped halfway rather than a guide.
 
 ```console
 $ uv run --project ../../../.. d2w fhir generate
@@ -127,7 +135,10 @@ reason: errors exit 1.
   build path. An exhibit that stopped being hostile would be a silent hole.
 - **generate** must exit non-zero with a message naming an object whose name
   carries `<`.
-- **compile** is skipped: there is no FSH to compile, and that is the point.
+- **the fourth step** reads what the refused run left rather than compiling it:
+  `ig/input/fsh/` must hold `aliases.fsh` and `foundation/` and nothing else, and
+  no compile may sit beside them. A refusal that let a form target write, or one
+  that wrote nothing at all, fails the guide.
 
 ## Running it
 

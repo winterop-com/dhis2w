@@ -25,6 +25,7 @@ from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     AttributeOptionRestrictions,
     CategoryOptionValidity,
+    OrganisationUnitPaths,
 )
 from dhis2w_fhir.resources.examples import STATUS_BY_EVENT_STATUS
 from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
@@ -720,20 +721,56 @@ _COMBO_DATA_SET = QuestionnaireSourceIn(
 )
 
 
+#: A category combination this DHIS2 instance restricts nothing about: its one option is scoped to no
+#: organisation unit and carries no calendar window, so every published unit may file under it.
+_FUNDING_COMBO = CategoryComboIn(
+    uid="idcFundAaaa",
+    name="Funding",
+    is_default=False,
+    option_combos=[CategoryOptionComboIn(uid="Cop3aaaaaaa", name="Core funding", category_option_uids=["Cao3aaaaaaa"])],
+)
+
+#: A second data set, on the open combination, whose name sorts after the first one's - so a
+#: walk-through worked against it is worked against it for its capture rather than for its name.
+_SECOND_COMBO_DATA_SET = QuestionnaireSourceIn(
+    uid="Ds2aaaaaaaa",
+    name="Zinc stock",
+    kind="aggregate",
+    period_type="Monthly",
+    attribute_combo=_FUNDING_COMBO,
+    flat_items=[QuestionnaireItemIn(uid="De5aaaaaaaa", name="Doses issued", value_type="INTEGER")],
+)
+
+#: Where the two published organisation units sit, which is what resolves a restriction's descendants.
+_UNIT_PATHS = OrganisationUnitPaths(paths={_ROOT_UNIT.uid: _ROOT_UNIT.path, _CHILD_UNIT.uid: _CHILD_UNIT.path})
+
+
 def _combo_pages(
     *,
+    forms: list[QuestionnaireSourceIn] | None = None,
     restrictions: AttributeOptionRestrictions | None = None,
     placements: dict[str, SyntheticPlacement] | None = None,
 ) -> str:
     """capture.md for a guide whose one data set rides a category combination that is not the default one."""
     build = build_page_artifacts(
-        PagesIn(forms=[_COMBO_DATA_SET], organisation_units=[_ROOT_UNIT, _CHILD_UNIT]),
+        PagesIn(forms=forms or [_COMBO_DATA_SET], organisation_units=[_ROOT_UNIT, _CHILD_UNIT]),
         GenerateConfig(),
         _CANONICAL,
         example_placements=placements,
         attribute_option_restrictions=restrictions,
     )
     return next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+
+def _restricted_to_the_child_unit() -> AttributeOptionRestrictions:
+    """Both category options of the worked combination scoped to Bo, which the worked unit is not under."""
+    return AttributeOptionRestrictions(
+        organisation_units={
+            "Cao1aaaaaaa": frozenset({_CHILD_UNIT.uid}),
+            "Cao2aaaaaaa": frozenset({_CHILD_UNIT.uid}),
+        },
+        units=_UNIT_PATHS,
+    )
 
 
 def test_the_aggregate_walkthrough_states_the_attribute_option_combination_it_files_under() -> None:
@@ -788,3 +825,34 @@ def test_the_walkthrough_quotes_a_combination_the_organisation_unit_it_names_may
     assert "`Cop2aaaaaaa`" in capture
     assert "Expired project" not in capture
     assert "E8025" in capture
+
+
+def test_the_walkthrough_says_so_where_dhis2_leaves_the_form_no_usable_combination() -> None:
+    """A form every combination of is scoped away from the worked unit is one no capture exists for.
+
+    DHIS2 refuses a data value set naming no attribute option combination with `E8023` and one naming
+    a combination scoped away from the reporting organisation unit with `E8025`, so a page quoting a
+    combination here would teach a capture the instance takes neither way. It states the fact instead.
+    """
+    capture = _combo_pages(restrictions=_restricted_to_the_child_unit())
+
+    assert "This DHIS2 instance takes no capture for EPI Stock at" in capture
+    assert "Sierra Leone, for 202512.**" in capture
+    assert "**5. Name the attribute option combination.**" not in capture
+    assert "`Cop1aaaaaaa`" not in capture
+    assert "`Cop2aaaaaaa`" not in capture
+    assert "**5. Answer one item per `linkId`.**" in capture
+
+
+def test_the_walkthrough_is_worked_against_a_form_dhis2_takes_a_capture_for() -> None:
+    """Where one selected form is restricted away at the worked unit and another is not, the other is worked."""
+    capture = _combo_pages(
+        forms=[_COMBO_DATA_SET, _SECOND_COMBO_DATA_SET],
+        restrictions=_restricted_to_the_child_unit(),
+    )
+
+    assert "**5. Name the attribute option combination.**" in capture
+    assert "Core funding" in capture
+    assert "`Cop3aaaaaaa`" in capture
+    assert "Clean water" not in capture
+    assert "takes no capture for" not in capture

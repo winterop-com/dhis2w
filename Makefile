@@ -34,7 +34,7 @@ help:
 	@echo "                   VERSION=X.Y.Z asserts every member's pyproject version before building"
 	@echo "  deps-upgrade     Re-resolve uv.lock to pick up newer versions"
 	@echo "  clean            Remove caches, build artifacts, coverage output, and run artifacts"
-	@echo "  clean-artifacts  Remove run artifacts alone: reports, screenshots, browser state"
+	@echo "  clean-artifacts  Remove run artifacts alone: reports, screenshots, browser state, regenerated IG catalog trees"
 	@echo ""
 	@echo "Capture UI (needs node + pnpm; not part of lint/test):"
 	@echo "  frontend-dev     Vite dev server, proxying FHIR calls to \$$(SERVE_TARGET) (default :8080)"
@@ -397,6 +397,10 @@ clean-artifacts:
 	@rm -rf packages/dhis2w-fhir-serve/frontend/test-results
 	@rm -rf packages/dhis2w-fhir-serve/frontend/playwright-report
 	@find . -maxdepth 1 -type f -name "*.png" -delete
+	@echo ">>> Removing what 'make verify-igs' regenerated under examples/fhir/igs"
+	@# Ignored files only, so every committed input of a guide stays - including the
+	@# hand-authored aliases.fsh, index.md, and patient-summary's IPS resources.
+	@git clean -qfdX examples/fhir/igs 2>/dev/null || true
 	@echo "    the working tree holds no run output; regenerate any of it by re-running its command"
 
 .DEFAULT_GOAL := help

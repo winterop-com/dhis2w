@@ -6,7 +6,8 @@ scaffolds = false
 # What `d2w fhir init --template refused-names` prints instead of scaffolding.
 refusal = """
 It demonstrates the names `d2w fhir generate` refuses: a selection whose DHIS2 names carry a \
-raw '<', which aborts the IG publisher's last pass. The run is refused before a file is written, \
-so this example carries no generated tree to lay down and `make sushi` has nothing to compile. \
+raw '<', which aborts the IG publisher's last pass. The run is refused on the first such name, \
+which leaves the foundation target on disk and nothing after it, so this example carries no \
+generated tree to lay down and `make sushi` has nothing it can compile. \
 Read it at examples/fhir/igs/refused-names/README.md.\
 """

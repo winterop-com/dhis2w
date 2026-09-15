@@ -14,8 +14,10 @@ in this order:
 3. **generate** - `d2w fhir generate`. Every guide but the exhibit must succeed;
    the exhibit must be refused, by design, with a message naming the object.
 4. **compile** - the project's own `make sushi`, which is SUSHI in docker. The
-   exhibit has no FSH to compile, and skips. Every guide skips when docker is
-   not available, with that stated as the reason.
+   exhibit compiles nothing and is checked on what its refused run left instead:
+   the foundation target, written before the selection is read, and nothing
+   after it. Every guide skips the compile when docker is not available, with
+   that stated as the reason.
 
 The exhibit is `refused-names`: a selection deliberately carrying DHIS2 names
 that abort the IG publisher's last pass. Its refusal is its pass.
@@ -51,14 +53,22 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 #: Where the catalog lives; one sub-directory holding a `fhir.toml` is one guide.
 IGS_ROOT = REPO_ROOT / "examples" / "fhir" / "igs"
 
-#: The guides whose `d2w fhir generate` is expected to be refused, with the reason.
-#: An entry here inverts the generate and validate assertions and skips the compile.
-REFUSING_PROJECTS: dict[str, str] = {
-    "refused-names": (
-        "the selection deliberately carries DHIS2 names with '<', which abort the IG publisher's "
-        "last pass, so generate refuses the run and there is no FSH to compile"
-    ),
-}
+#: The guides whose `d2w fhir generate` is expected to be refused. `refused-names` is the exhibit:
+#: its selection deliberately carries DHIS2 names with '<', which abort the IG publisher's last
+#: pass, so generate exits 1 after writing the foundation target and the run stops there. An entry
+#: here inverts the generate and validate assertions and puts the last step on what the refusal
+#: left - `check_refusal_leftovers` - rather than on SUSHI, which has nothing here it can compile.
+REFUSING_PROJECTS = frozenset({"refused-names"})
+
+#: What a refused `d2w fhir generate` leaves under `ig/input/fsh/`: the hand-authored `aliases.fsh`
+#: and the foundation target, which is written before the selection is read. The refusal fires on
+#: the first offending name, so no target after it runs, and SUSHI cannot compile what is left - the
+#: foundation profiles name `D2Location` and `D2OU_Level_VS`, which the organisation-unit target
+#: writes. That is the exhibit's whole claim, and this is where it is checked rather than asserted.
+REFUSAL_FSH_ENTRIES = frozenset({"aliases.fsh", "foundation"})
+
+#: Where SUSHI writes a compile. A refused run never reaches it, so the exhibit must not hold one.
+COMPILED_DIRECTORY = Path("ig") / "fsh-generated"
 
 #: The docker image the scaffolded `make sushi` runs, built by the scaffolded `make setup`.
 DOCKER_IMAGE = "fhir-ig"
@@ -99,9 +109,9 @@ class IgOutcome(BaseModel):
     def status(self) -> str:
         """The guide's verdict: FAIL if any step failed, else PASS.
 
-        A skipped step does not withhold the verdict. The exhibit's compile is skipped because
-        its refusal is what it demonstrates, and every compile is skipped where docker is not
-        available - in both cases the per-step column says so, and the summary line counts it.
+        A skipped step does not withhold the verdict. Every compile is skipped where docker is not
+        available - the per-step column says so, and the summary line counts it. The exhibit runs a
+        step of its own in that column instead, over what its refused run left on disk.
         """
         return "FAIL" if any(step.status == "FAIL" for step in self.steps) else "PASS"
 
@@ -291,6 +301,52 @@ def check_generate(project: Path, *, d2w: Path, profile: str, timeout_seconds: f
     return StepOutcome(step="generate", status="PASS", seconds=elapsed, detail=f"{files} files across 7 targets")
 
 
+def check_refusal_leftovers(project: Path) -> StepOutcome:
+    """Assert what the exhibit's refused run left on disk: the foundation target, and nothing compiled.
+
+    The refusal fires on the first DHIS2 name the IG publisher's last pass cannot survive, which is
+    after the foundation target has written. So the exhibit does hold FSH - the foundation slice
+    alone - and none of it compiles: those profiles name types the organisation-unit target writes,
+    and that target never ran. Both halves are read off the tree here, so the claim the guide makes
+    about itself is the claim this catalog checks.
+    """
+    started = time.monotonic()
+    fsh_directory = project / "ig" / "input" / "fsh"
+    entries = {entry.name for entry in fsh_directory.iterdir()} if fsh_directory.is_dir() else set()
+    unexpected = sorted(entries - REFUSAL_FSH_ENTRIES)
+    missing = sorted(REFUSAL_FSH_ENTRIES - entries)
+    elapsed = time.monotonic() - started
+    if missing:
+        return StepOutcome(
+            step="compile",
+            status="FAIL",
+            seconds=elapsed,
+            detail=f"the refused run wrote no {', '.join(missing)} under ig/input/fsh",
+        )
+    if unexpected:
+        wrote = ", ".join(f"ig/input/fsh/{entry}" for entry in unexpected)
+        return StepOutcome(
+            step="compile",
+            status="FAIL",
+            seconds=elapsed,
+            detail=f"the refused run wrote past the foundation target: {wrote}",
+        )
+    if (project / COMPILED_DIRECTORY).is_dir():
+        return StepOutcome(
+            step="compile",
+            status="FAIL",
+            seconds=elapsed,
+            detail=f"{COMPILED_DIRECTORY} holds a compile, which a refused run leaves nothing to make",
+        )
+    foundation_files = sorted((fsh_directory / "foundation").glob("*.fsh"))
+    return StepOutcome(
+        step="compile",
+        status="PASS",
+        seconds=elapsed,
+        detail=f"the refusal left the foundation target alone ({len(foundation_files)} .fsh) and nothing compiled",
+    )
+
+
 def check_compile(project: Path, *, profile: str, timeout_seconds: float, skip_reason: str) -> StepOutcome:
     """Compile the generated FSH with the project's own dockerized SUSHI target."""
     if skip_reason:
@@ -344,17 +400,18 @@ def verify_project(
 ) -> IgOutcome:
     """Run every step of one guide in order, streaming a line per step as it finishes."""
     slug = project.name
-    refusal_reason = REFUSING_PROJECTS.get(slug, "")
-    refuses = bool(refusal_reason)
+    refuses = slug in REFUSING_PROJECTS
     steps = [
         check_refresh(project, d2w=d2w, profile=profile, timeout_seconds=timeout_seconds),
         check_validate(project, d2w=d2w, profile=profile, timeout_seconds=timeout_seconds, refuses=refuses),
         check_generate(project, d2w=d2w, profile=profile, timeout_seconds=timeout_seconds, refuses=refuses),
-        check_compile(
+        check_refusal_leftovers(project)
+        if refuses
+        else check_compile(
             project,
             profile=profile,
             timeout_seconds=timeout_seconds,
-            skip_reason=refusal_reason or compile_skip_reason,
+            skip_reason=compile_skip_reason,
         ),
     ]
     for step in steps:
