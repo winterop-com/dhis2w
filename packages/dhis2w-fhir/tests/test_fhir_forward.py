@@ -1149,6 +1149,19 @@ def test_a_project_with_no_compiled_ig_says_which_two_commands_fill_it(tmp_path:
         load_compiled_artifacts(load_project(root))
 
 
+def test_the_refusal_names_no_command_of_one_caller(tmp_path: Path) -> None:
+    """Forward reads a compiled guide and so does doctor's drift phase, so the one refusal closes on neither verb."""
+    root = tmp_path / "uncompiled"
+    root.mkdir()
+    _write_project(root, compiled=False)
+
+    with pytest.raises(CompiledIgMissingError) as refusal:
+        load_compiled_artifacts(load_project(root))
+
+    assert str(refusal.value).endswith("then run this command again.")
+    assert "forward again" not in str(refusal.value)
+
+
 def test_a_project_with_no_compiled_guide_builds_one_off_the_instance(tmp_path: Path) -> None:
     """A live capture UI needs no build step, so the drain that empties its spool needs none either."""
     root = tmp_path / "uncompiled"

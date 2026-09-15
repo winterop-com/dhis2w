@@ -66,6 +66,7 @@ from dhis2w_fhir.resources.examples.schemas import (
     ExampleSource,
     ExampleTrackerContext,
     RegistrationIdentities,
+    SyntheticCapture,
     SyntheticPlacement,
 )
 from dhis2w_fhir.resources.option_sets import (
@@ -138,6 +139,7 @@ __all__ = [
     "ExampleTrackerContext",
     "RegistrationIdentities",
     "SyntheticBuild",
+    "SyntheticCapture",
     "SyntheticPlacement",
     "answer_element",
     "build_example_artifacts",
@@ -785,7 +787,7 @@ def build_synthetic_responses(
                     source,
                     option_sets_by_uid,
                     ordinal,
-                    _placed_organisation_unit(placement, source.uid, ordinal, organisation_unit_uid, salt),
+                    _drawn_capture(source, placement, ordinal, organisation_unit_uid, salt),
                     today,
                     unanswerable,
                     indistinct,
@@ -869,7 +871,7 @@ def _synthetic_response(
     source: QuestionnaireSourceIn,
     option_sets_by_uid: dict[str, OptionSetIn],
     ordinal: int,
-    organisation_unit_uid: str,
+    capture: SyntheticCapture,
     today: datetime.date,
     unanswerable: list[str],
     indistinct: list[str],
@@ -888,7 +890,11 @@ def _synthetic_response(
     and what decides which questions the form turns out to be asking at all. Every question is
     drawn and the disabled ones are dropped afterwards, because a condition names another question
     and the answer settling it is one this same draw produces.
+
+    `capture` is where the response reports from and what it is filed under, drawn together by the
+    caller because DHIS2 grades the two together.
     """
+    organisation_unit_uid = capture.organisation_unit_uid
     generator = random.Random(derived_seed(source.uid, ordinal, salt))  # noqa: S311 - illustrative values, not a secret
     period = _synthetic_period(source, today)
     window = _SyntheticWindow.of_period(period) if period is not None else _SyntheticWindow.recent(today)
@@ -951,7 +957,7 @@ def _synthetic_response(
         organisation_unit_uid=organisation_unit_uid,
         status_code=COMPLETED_STATUS,
         period=period,
-        attribute_option_combo_uid=_drawn_attribute_option_combo(source, ordinal, salt),
+        attribute_option_combo_uid=capture.attribute_option_combo_uid,
         authored=authored,
         tracked_entity_uid=tracked_entity_uid,
         enrollment_uid=enrollment_uid,
@@ -980,6 +986,34 @@ def _enabled_answers(
     return [answer for answer in answers if answer.data_element_uid in asked]
 
 
+def _drawn_capture(
+    source: QuestionnaireSourceIn,
+    placement: SyntheticPlacement | None,
+    ordinal: int,
+    fallback: str,
+    salt: str = "",
+) -> SyntheticCapture:
+    """Where one target's `n`-th response reports from and which combo it is filed under - one choice over both.
+
+    DHIS2 grades the two together: it refuses a capture outside the form's organisation-unit
+    assignment (`E1029`) and a capture keyed to an attribute option combo whose category options are
+    scoped away from the organisation unit it was filed from (`E8025`). So the unit is drawn from the
+    units the caller placed the target on, and the combo from the very combos that unit admits -
+    which is what `usable_attribute_option_combo_uids` carries, and what makes every unit in the
+    placement one a response can actually be written at.
+
+    Each half rides a stream of its own, seeded off the target UID and the ordinal, so a corpus is
+    reproducible from the instance state alone and every other value the response's main stream
+    produces stays exactly where it is.
+    """
+    unit = _placed_organisation_unit(placement, source.uid, ordinal, fallback, salt)
+    usable = placement.usable_attribute_option_combo_uids.get(unit) if placement is not None else None
+    return SyntheticCapture(
+        organisation_unit_uid=unit,
+        attribute_option_combo_uid=_drawn_attribute_option_combo(source, ordinal, usable, salt),
+    )
+
+
 def _placed_organisation_unit(
     placement: SyntheticPlacement | None, target_uid: str, ordinal: int, fallback: str, salt: str = ""
 ) -> str:
@@ -996,8 +1030,14 @@ def _placed_organisation_unit(
     return placement.organisation_unit_uids[generator.randrange(len(placement.organisation_unit_uids))]
 
 
-def _drawn_attribute_option_combo(source: QuestionnaireSourceIn, ordinal: int, salt: str = "") -> str | None:
+def _drawn_attribute_option_combo(
+    source: QuestionnaireSourceIn, ordinal: int, usable: tuple[str, ...] | None, salt: str = ""
+) -> str | None:
     """The seeded attribute option combo one target's `n`-th response is keyed under, or None on the default combo.
+
+    `usable` is the combos the drawn organisation unit admits, which is what the draw ranges over
+    wherever the caller resolved the restrictions; None ranges over every combo the form declares,
+    which is the answer where nothing is known about where the unit sits.
 
     Drawn on a generator of its own, seeded off the target UID and the ordinal, so a corpus is
     reproducible from the instance state alone and adding the pick leaves every value the
@@ -1006,8 +1046,9 @@ def _drawn_attribute_option_combo(source: QuestionnaireSourceIn, ordinal: int, s
     combo = source.attribute_combo
     if combo is None or combo.is_default or not combo.option_combos:
         return None
+    candidates = usable if usable else tuple(option_combo.uid for option_combo in combo.option_combos)
     generator = random.Random(derived_seed(f"{source.uid}:attribute-option-combo", ordinal, salt))  # noqa: S311 - drawn
-    return combo.option_combos[generator.randrange(len(combo.option_combos))].uid
+    return candidates[generator.randrange(len(candidates))]
 
 
 def derived_seed(material: str, ordinal: int, salt: str = "") -> int:

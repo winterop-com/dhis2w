@@ -1180,7 +1180,7 @@ def test_refresh_lands_the_edited_identity_in_sushi_config(tmp_path: Path) -> No
 
 
 def test_refresh_lands_the_identity_and_keeps_a_menu_entry_the_project_added(tmp_path: Path) -> None:
-    """The identity lines are the scaffold's; every other line of sushi-config is the project's."""
+    """The identity lines are the scaffold's; every other line of sushi-config is the project's, and both are said."""
     _write_project(tmp_path)
     sushi_config = tmp_path / "ig" / "sushi-config.yaml"
     sushi_config.write_text(sushi_config.read_text(encoding="utf-8") + "  Custom: custom.html\n", encoding="utf-8")
@@ -1188,7 +1188,7 @@ def test_refresh_lands_the_identity_and_keeps_a_menu_entry_the_project_added(tmp
 
     report = refresh_project(tmp_path)
 
-    assert "ig/sushi-config.yaml" in report.refreshed_files
+    assert "ig/sushi-config.yaml" in report.refreshed_with_additions_files
     assert report.diverged_files == []
     written = sushi_config.read_text(encoding="utf-8")
     assert written.endswith("  Custom: custom.html\n")
@@ -1294,7 +1294,11 @@ def test_refresh_lands_an_edited_identity_in_every_file_that_carries_it(tmp_path
 
 
 def test_refresh_lands_the_title_on_the_front_page_and_keeps_the_prose_below_it(tmp_path: Path) -> None:
-    """Only the front page's first line is the guide's title, so prose and later headings stay."""
+    """Only the front page's first line is the guide's title, so prose and later headings stay.
+
+    Both halves happened at once - the render's identity landed, and the section written under it is
+    still there - so the file gets the verdict that says both rather than the one that says half.
+    """
     _write_project(tmp_path)
     index_page = tmp_path / "ig" / "input" / "pagecontent" / "index.md"
     index_page.write_text(
@@ -1305,10 +1309,22 @@ def test_refresh_lands_the_title_on_the_front_page_and_keeps_the_prose_below_it(
 
     report = refresh_project(tmp_path)
 
-    assert "ig/input/pagecontent/index.md" in report.refreshed_files
+    assert "ig/input/pagecontent/index.md" in report.refreshed_with_additions_files
+    assert "ig/input/pagecontent/index.md" not in report.refreshed_files
     written = index_page.read_text(encoding="utf-8")
     assert written.startswith("# Sierra Leone HMIS FHIR Guide\n")
     assert written.endswith("\n## How to read this guide\n\nAsk the data team first.\n")
+
+
+def test_refresh_of_an_identity_alone_is_reported_refreshed_and_nothing_more(tmp_path: Path) -> None:
+    """A file carrying nothing of the reader's own gains no second half to its verdict."""
+    _write_project(tmp_path)
+    _edit_fhir_toml(tmp_path, 'title = "DHIS2 FHIR Test IG"', 'title = "Sierra Leone HMIS FHIR Guide"')
+
+    report = refresh_project(tmp_path)
+
+    assert "ig/input/pagecontent/index.md" in report.refreshed_files
+    assert report.refreshed_with_additions_files == []
 
 
 def test_refresh_lands_the_identity_in_the_example_and_keeps_an_option_the_project_uncommented(

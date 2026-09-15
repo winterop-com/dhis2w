@@ -349,7 +349,7 @@ def test_a_refresh_writes_the_renamed_title_onto_a_readme_the_reader_added_to(tm
 
     report = refresh_project(tmp_path)
 
-    assert "README.md" in report.refreshed_files
+    assert "README.md" in report.refreshed_with_additions_files
     assert report.diverged_files == []
     refreshed = readme.read_text(encoding="utf-8")
     assert refreshed.startswith("# National HMIS Implementation Guide\n")
@@ -365,7 +365,7 @@ def test_a_refresh_writes_the_renamed_registry_canonical_onto_the_readme(tmp_pat
 
     report = refresh_project(tmp_path)
 
-    assert "README.md" in report.refreshed_files
+    assert "README.md" in report.refreshed_with_additions_files
     assert report.diverged_files == []
     refreshed = readme.read_text(encoding="utf-8")
     assert "The package's canonical is `http://national.example.org/fhir/registry`." in refreshed

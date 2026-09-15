@@ -31,6 +31,12 @@ that README are the guide's identity rather than the reader's - the title on its
 registry canonical it names - so they are owned lines like the front page's heading, and a rename
 in the guide's `fhir.toml` lands on both while the prose around them is kept.
 
+A file can be both written and kept at once: an identity line lands on it while it goes on holding
+lines the render does not produce. That is its own verdict - `refreshed, with your additions` - so a
+person who appended a section to the front page and then renamed the guide reads that both happened,
+rather than reading `refreshed` and having to open the file to find out whether their section is
+still there.
+
 The identity lines are the exception to line preservation, because `fhir.toml` declares them. Five
 files carry the identity in every project - `ig/sushi-config.yaml`, `fhir.example.toml`, the front
 page at `ig/input/pagecontent/index.md`, `ig/ig.ini`, and `pyproject.toml`, joined by the pair's
@@ -144,6 +150,7 @@ def _refresh_guide_and_registry(directory: Path) -> ScaffoldReport:
             "created_files",
             "rewritten_files",
             "refreshed_files",
+            "refreshed_with_additions_files",
             "unchanged_files",
             "extended_files",
             "diverged_files",
@@ -211,9 +218,14 @@ def _land_scaffold_file(destination: Path, scaffold_file: ScaffoldFile, report: 
         report.refreshed_files.append(relative_path)
     elif comparable != current:
         # The identity fhir.toml declares lands on its own lines, and every other line the
-        # project wrote - its own additions included - stays exactly where it is.
+        # project wrote - its own additions included - stays exactly where it is. A file that
+        # still carries every current scaffold line on top of that is both written and kept, and
+        # the verdict says both: a reader learns their own lines survived the write.
         destination.write_text(comparable, encoding="utf-8")
-        report.refreshed_files.append(relative_path)
+        if preserves_every_line(scaffold_file.content, comparable):
+            report.refreshed_with_additions_files.append(relative_path)
+        else:
+            report.refreshed_files.append(relative_path)
     elif preserves_every_line(scaffold_file.content, comparable):
         # The file holds every line the current render produces, plus lines of its own:
         # user additions on a current scaffold, with nothing for a refresh to add.

@@ -72,8 +72,11 @@ from dhis2w_fhir.r4 import (
 )
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
     AttributeOptionRestrictionPlan,
     AttributeOptionRestrictions,
+    UnusableAttributeOptionCombosSummary,
+    UsableAttributeOptionCombos,
     attribute_option_restriction_declaration,
     build_attribute_option_restriction_artifacts,
 )
@@ -105,19 +108,22 @@ if TYPE_CHECKING:
     from dhis2w_fhir.resources.questionnaires.schemas import QuestionnaireSourceIn
 
 __all__ = [
-    "ATTRIBUTE_COMBO_DIRECTORY",
-    "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
-    "AttributeComboBuild",
-    "AttributeOptionRestrictions",
     "attribute_combo_concept_map_file_prefix",
+    "ATTRIBUTE_COMBO_DIRECTORY",
     "attribute_combo_fsh_name",
     "attribute_combo_identities",
     "attribute_combo_sources",
+    "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
+    "AttributeComboBuild",
+    "AttributeOptionRestrictions",
     "build_attribute_combo_artifacts",
     "build_attribute_combo_concept_map_artifacts",
     "build_attribute_combo_concept_maps",
     "build_attribute_combo_identifier_artifacts",
     "max_attribute_combo_slug_length",
+    "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
+    "UnusableAttributeOptionCombosSummary",
+    "UsableAttributeOptionCombos",
 ]
 
 # The longest emitted id is `<id-stem><slug>-cs`/`-vs`, so the slug is bounded against the

@@ -209,7 +209,7 @@ rather than the printer guessing:
 
 `--json` puts the whole typed report on stdout.
 
-### One finding the build survives
+### Two findings the build survives
 
 A published Questionnaire whose organisation-unit assignment `List` names no
 unit this project publishes is a `warning` rather than a refusal. That guide
@@ -233,6 +233,15 @@ The usual cause is `[generate.organisation_units] max_level` set above the level
 the forms are assigned at; `d2w fhir generate` says the same thing at the end of
 its own run. [Set up a project](201-set-up-a-project.md#choosing-a-max-level)
 carries that trade-off.
+
+The second survivable finding is the same loss one axis over. A form binding an
+attribute-combo vocabulary whose every concept is scoped away from every
+organisation unit this project publishes is a form nobody may file a capture
+for: DHIS2 refuses one keyed to any of those combos with `E8025`. The scan reads
+it off the published restriction `List`s alone - a concept names one `List` per
+restricted category option it is met from, and it is usable only where every one
+of them holds the organisation unit - so no connection is needed, and the
+finding carries the same two dials as the assignment one.
 
 The scan covers three trees, and each position it reads is one the emitted
 resource carries byte-true into a page:

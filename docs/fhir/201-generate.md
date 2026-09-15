@@ -33,10 +33,10 @@ running 8 step(s)
 [2/8] foundation: 23 files written, 0 files unchanged
 [3/8] option sets: 13 option sets, 39 files written, 0 files unchanged
 [4/8] categories: 5 categories, 15 files written, 0 files unchanged
-[5/8] questionnaires: 14 questionnaires, 28 files written, 0 files unchanged, 1 note
-[6/8] examples: 14 examples, 14 files written, 0 files unchanged, 2 notes
+[5/8] questionnaires: 14 questionnaires, 28 files written, 0 files unchanged, 1 note raised here
+[6/8] examples: 14 examples, 14 files written, 0 files unchanged, 2 notes raised here
 [7/8] organisation units: 1,332 organisation units, 2,667 files written, 0 files unchanged
-[8/8] pages: 6 pages, 20 files written, 0 files unchanged, 1 note
+[8/8] pages: 6 pages, 20 files written, 0 files unchanged, 1 note raised here
 full pipeline: 2,806 file(s) written across 7 target(s)
 info: local_basic (fhir.toml) -> /home/you/demo-ig
                                                    fhir generate (7)
@@ -97,10 +97,10 @@ running 8 step(s)
 [2/8] foundation: 0 files written, 23 files unchanged
 [3/8] option sets: 13 option sets, 0 files written, 39 files unchanged
 [4/8] categories: 5 categories, 0 files written, 15 files unchanged
-[5/8] questionnaires: 14 questionnaires, 0 files written, 28 files unchanged, 1 note
-[6/8] examples: 14 examples, 0 files written, 14 files unchanged, 2 notes
+[5/8] questionnaires: 14 questionnaires, 0 files written, 28 files unchanged, 1 note raised here
+[6/8] examples: 14 examples, 0 files written, 14 files unchanged, 2 notes raised here
 [7/8] organisation units: 1,332 organisation units, 0 files written, 2,667 files unchanged
-[8/8] pages: 6 pages, 0 files written, 20 files unchanged, 1 note
+[8/8] pages: 6 pages, 0 files written, 20 files unchanged, 1 note raised here
 full pipeline: 0 file(s) written across 7 target(s)
 ```
 
@@ -474,7 +474,7 @@ response that did would not be a response to this form. The note names each
 one as `<data element>.<category option combo>` and counts the rest, and the
 same note is raised by every target that reads the form.
 
-### Two outcomes the notes do not carry
+### Three outcomes the notes do not carry
 
 A national instance raises several hundred terminology notes per run, and a form
 nobody can submit would be lost among them. So when an organisation-unit
@@ -498,7 +498,34 @@ same two selections.
 [Choosing a max-level](201-set-up-a-project.md#choosing-a-max-level) carries the
 trade-off that usually produces it.
 
-The second is a selection entry that matched nothing. A UID no longer on the
+The second is a form every attribute option combo it declares is restricted
+away from. DHIS2 scopes a category option to organisation units on top of the
+assignment, and refuses a capture keyed to a combo not usable at the
+organisation unit it was filed from with `E8025` - so a form whose vocabulary no
+organisation unit that may report it admits any concept of is a form nobody can
+submit, exactly as an empty assignment is, one axis over. The run already wrote
+the restriction `List`s that prove it, so it closes with the fact rather than
+leaving it to a `$generate` 422:
+
+```text
+warning: 3 published form(s) declare attribute option combos DHIS2 restricts
+away from every organisation unit that may report them under
+[generate.organisation_units] max_level 3: no capture for one of them can be
+keyed to a combo this DHIS2 instance accepts, and the facade refuses to draft a
+response for one. Widen the organisation-unit selection until one of the
+restricted organisation units is published - raise
+`[generate.organisation_units] max_level`, or set its `root` to an organisation
+unit above them - or narrow the form selection in fhir.toml to the forms those
+organisation units report, then run `d2w fhir generate` again.
+```
+
+`d2w fhir check-artifacts` files the same fact as a warning-level finding,
+reading it back off the published `List`s, so a build machine with no DHIS2
+connection asks the same question. The examples target publishes no example for
+such a form: there is no capture DHIS2 would take, so drafting one would be
+publishing the very response the facade then refuses.
+
+The third is a selection entry that matched nothing. A UID no longer on the
 instance - an object renamed, deleted, or never there - costs the guide a whole
 form, its examples and its page, so the run closes with that line of its own
 too, naming every UID the instance answered nothing for:

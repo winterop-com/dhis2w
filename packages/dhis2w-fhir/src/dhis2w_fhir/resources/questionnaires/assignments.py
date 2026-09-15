@@ -49,6 +49,7 @@ __all__ = [
     "AssignmentIndex",
     "AssignmentPlan",
     "EmptyAssignmentSummary",
+    "admitted_organisation_unit_uids",
     "assignment_container",
     "assignment_container_kind",
     "assignment_container_uid",
@@ -170,6 +171,25 @@ def assignment_container_uid(source: QuestionnaireSourceIn) -> str:
 #: tracker kinds have to resolve the one container through the program surface, or a run would name
 #: one program's List twice under two stems.
 _PROGRAM_CONTAINER_KINDS = frozenset({"tracker", "tracker-event"})
+
+
+def admitted_organisation_unit_uids(
+    source: QuestionnaireSourceIn,
+    assignments: AssignmentIndex,
+    published_organisation_unit_uids: frozenset[str],
+) -> frozenset[str]:
+    """The published organisation units one form may be captured at: its DHIS2 assignment, narrowed to the registry.
+
+    The one rule both the examples target and the questionnaires target grade against, so the unit
+    an example is placed at and the units a form is said to have are the same set. A form of a kind
+    DHIS2 hangs no assignment on - a tracked entity type - is admitted everywhere the registry
+    publishes, and a run publishing no registry at all is admitted wherever its assignment names.
+    """
+    if FORM_KIND_PROFILES[source.kind].assigned:
+        assigned = assignments.assigned(assignment_container_uid(source)) or frozenset()
+    else:
+        assigned = published_organisation_unit_uids
+    return assigned & published_organisation_unit_uids if published_organisation_unit_uids else assigned
 
 
 def assignment_container_kind(kind: FormKind) -> AssignmentContainerKind:

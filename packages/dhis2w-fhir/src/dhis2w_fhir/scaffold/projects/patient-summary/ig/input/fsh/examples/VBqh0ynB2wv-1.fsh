@@ -9,7 +9,7 @@ Usage: #example
 * extension[D2FormType].valueCode = #event
 * questionnaire = "http://example.org/fhir/examples/patient-summary/Questionnaire/VBqh0ynB2wv"
 * status = #completed
-* subject = Reference(Location/qhqAxPSTUXp)
+* subject = Reference(Location/ADeZNq1pKsu)
 * authored = "2026-09-12T14:00:00Z"
 * item[+].linkId = "qrur9Dvnyt5"
 * item[=].answer[+].valueInteger = 905

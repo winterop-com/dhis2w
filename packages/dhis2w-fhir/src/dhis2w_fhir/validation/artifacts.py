@@ -44,12 +44,14 @@ not exist.
 
 ## Severity
 
-Most findings are build-aborting and exit the command 1, which is what `make build` runs it for. Two
-are warnings: a published form whose organisation-unit assignment names no organisation unit the
-project publishes, and a `[generate.*] include_ids` entry the published tree carries no trace of.
-Both builds are valid and will publish - the first publishes a form nobody can submit a response to,
-the second publishes a guide missing the very form the entry asked for - and both are worth a look
-before the publisher is paid for.
+Most findings are build-aborting and exit the command 1, which is what `make build` runs it for.
+Three are warnings: a published form whose organisation-unit assignment names no organisation unit
+the project publishes, a published form whose whole attribute-combo vocabulary DHIS2 restricts away
+from every organisation unit the project publishes, and a `[generate.*] include_ids` entry the
+published tree carries no trace of. All three builds are valid and will publish - the first two
+publish a form nobody can submit a response to, on the two axes DHIS2 grades a capture by, the third
+a guide missing the very form the entry asked for - and all three are worth a look before the
+publisher is paid for.
 
 ## What is checked, and why exactly this
 
@@ -81,6 +83,12 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
 from dhis2w_fhir.registry_package import RegistryMissingError, load_registry_documents
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE,
+    UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
+)
+from dhis2w_fhir.resources.attribute_combos.schemas import ATTRIBUTE_COMBO_DIRECTORY
 from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
     ASSIGNMENT_LIST_RESOURCE_TYPE,
@@ -190,6 +198,9 @@ class FindingOrigin(StrEnum):
     ASSIGNMENT = "assignment"
     """A published form whose organisation-unit assignment names no organisation unit this project publishes."""
 
+    ATTRIBUTE_OPTION_COMBO = "attribute-option-combo"
+    """A published form every attribute option combo of whose vocabulary is restricted away from every unit."""
+
     SELECTION = "selection"
     """A `[generate.*] include_ids` entry naming a DHIS2 object this project publishes nothing for."""
 
@@ -243,13 +254,15 @@ _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
     FindingOrigin.REGISTRY_SELECTION: _REGISTRY_REMEDY,
     FindingOrigin.REGISTRY_MISSING: _REGISTRY_UNREADABLE_REMEDY,
     FindingOrigin.ASSIGNMENT: _ASSIGNMENT_REMEDY,
+    FindingOrigin.ATTRIBUTE_OPTION_COMBO: UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
     FindingOrigin.SELECTION: _SELECTION_REMEDY,
 }
 
-#: The origins whose finding lets the build run. Two, and for the same reason: a form nobody can
-#: submit and a selection entry that named nothing both publish perfectly well, so stopping the
-#: build over either would refuse a guide the publisher has no quarrel with.
-_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT, FindingOrigin.SELECTION})
+#: The origins whose finding lets the build run. Three, and for the same reason: a form nobody can
+#: submit - on either of the two axes DHIS2 grades a capture by - and a selection entry that named
+#: nothing all publish perfectly well, so stopping the build over one would refuse a guide the
+#: publisher has no quarrel with.
+_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT, FindingOrigin.ATTRIBUTE_OPTION_COMBO, FindingOrigin.SELECTION})
 
 
 class ArtifactFinding(BaseModel):
@@ -269,9 +282,9 @@ class ArtifactFinding(BaseModel):
     value: str
     """The offending string, byte-true, so a reader can search the instance for it."""
 
-    kind: Literal["name", "code", "registry", "assignment", "selection"]
+    kind: Literal["name", "code", "registry", "assignment", "attribute-option-combo", "selection"]
     """What raised it: a DHIS2 name, a DHIS2 code emitted as an identifier, a registry reference, an
-    assignment, or a selection entry."""
+    assignment, an attribute option combo vocabulary, or a selection entry."""
 
     origin: FindingOrigin
     """Where the value came from, which is what the remedy and the severity are read off."""
@@ -380,6 +393,7 @@ def check_publishable_artifacts(project: FhirProject, *, registry_package: Path 
         findings.extend(_findings_in_fsh(path, root))
     findings.extend(_ig_identity_findings(project))
     findings.extend(_empty_assignment_findings(project, root))
+    findings.extend(_unusable_attribute_option_combo_findings(project, root))
     findings.extend(_selection_findings(project))
     findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
@@ -705,6 +719,173 @@ def _empty_assignment_list_ids(project: FhirProject) -> set[str]:
         if isinstance(list_id, str) and not document.get(_LIST_ENTRY_ELEMENT):
             ids.add(list_id)
     return ids
+
+
+#: Why a form whose every combo is restricted away is worth stopping for, and why it stops nothing itself.
+_UNUSABLE_ATTRIBUTE_OPTION_COMBO_MESSAGE = (
+    "DHIS2 restricts every attribute option combo of the vocabulary this form binds away from every "
+    "organisation unit this project publishes, so no capture for the form can be keyed to a combo this "
+    "DHIS2 instance accepts and it is refused with E8025 whichever one it names. The guide builds and "
+    "publishes either way, which is why this is a warning: what it costs is a form, not a build."
+)
+
+#: The element a CodeSystem carries its concepts on, and the one a concept carries its properties on.
+_CONCEPT_ELEMENT = "concept"
+_PROPERTY_ELEMENT = "property"
+
+#: One FSH `Canonical(<target>)`, which is how a generated Questionnaire binds its combo vocabulary.
+_FSH_CANONICAL = re.compile(r"Canonical\((?P<target>[^)\s]+)\)")
+
+
+def _unusable_attribute_option_combo_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
+    """Every published form binding an attribute-combo vocabulary no published organisation unit may draw from.
+
+    The same fact `d2w fhir generate` closes its run with, read back off the files that run wrote
+    rather than off the instance - which is what lets a build machine with no DHIS2 connection ask
+    it. A combo concept names one restriction List per restricted category option it is met from, and
+    a capture may be keyed to that concept only at an organisation unit every one of those Lists
+    holds; a vocabulary whose every concept leaves that intersection empty is one nobody may file
+    under, and the forms binding it are forms nobody may submit.
+
+    Counted at the reference, the way the empty-assignment finding is: one row per file and element
+    naming the vocabulary, so the row a reader opens is the form rather than the terminology.
+    """
+    directory = project.resources_directory / ATTRIBUTE_COMBO_DIRECTORY
+    if not directory.is_dir():
+        return []
+    documents = [document for path in sorted(directory.glob("*.json")) if (document := _read_document(path))]
+    restrictions = _restriction_members(documents)
+    unusable_systems = {
+        url
+        for document in documents
+        if isinstance(document, dict)
+        and document.get(_RESOURCE_TYPE_ELEMENT) == "CodeSystem"
+        and isinstance(url := document.get("url"), str)
+        and _every_concept_is_unusable(document, restrictions)
+    }
+    if not unusable_systems:
+        return []
+    named = _vocabulary_names(documents, unusable_systems)
+    if not named:
+        return []
+    findings: list[ArtifactFinding] = []
+    for path in _json_paths(project):
+        # The vocabulary's own files state their own name and canonical; a resource does not bind itself.
+        if path.parent == directory:
+            continue
+        document = _read_document(path)
+        if not isinstance(document, dict) or not isinstance(document.get(_RESOURCE_TYPE_ELEMENT), str):
+            continue
+        resource_id = document.get("id")
+        found = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
+        findings.extend(
+            _unusable_attribute_option_combo_finding(_relative(path, root), found, field, value)
+            for field, value in _strings(document, prefix="")
+            if value in named
+        )
+    for path in _fsh_paths(project):
+        text = _read_text(path)
+        if text is None:
+            continue
+        findings.extend(
+            _unusable_attribute_option_combo_finding(
+                _relative(path, root), path.stem, f"line {number}", match.group("target")
+            )
+            for number, line in enumerate(text.splitlines(), start=1)
+            for match in _FSH_CANONICAL.finditer(line)
+            if match.group("target") in named
+        )
+    return findings
+
+
+def _unusable_attribute_option_combo_finding(file: str, resource_id: str, field: str, value: str) -> ArtifactFinding:
+    """One form named at the reference by which it binds a combo vocabulary no organisation unit may draw from."""
+    return ArtifactFinding(
+        file=file,
+        resource_id=resource_id,
+        field=field,
+        value=value,
+        kind="attribute-option-combo",
+        origin=FindingOrigin.ATTRIBUTE_OPTION_COMBO,
+        message=_UNUSABLE_ATTRIBUTE_OPTION_COMBO_MESSAGE,
+    )
+
+
+def _restriction_members(documents: list[Any]) -> dict[str, frozenset[str]]:
+    """The organisation units each restriction List admits, keyed by the reference a concept names it by."""
+    members: dict[str, frozenset[str]] = {}
+    for document in documents:
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != "List":
+            continue
+        list_id = document.get("id")
+        if not isinstance(list_id, str):
+            continue
+        entries = document.get(_LIST_ENTRY_ELEMENT)
+        reference = f"{ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE}/{list_id}"
+        members[reference] = frozenset(_list_entry_references(entries))
+    return members
+
+
+def _list_entry_references(entries: Any) -> Iterator[str]:  # noqa: ANN401 - JSON is Any
+    """Yield the reference each entry of one List names, passing over an entry shaped any other way."""
+    for entry in entries if isinstance(entries, list) else ():
+        if not isinstance(entry, dict):
+            continue
+        item = entry.get("item")
+        if isinstance(item, dict) and isinstance(reference := item.get("reference"), str):
+            yield reference
+
+
+def _every_concept_is_unusable(document: dict[str, Any], restrictions: dict[str, frozenset[str]]) -> bool:
+    """Whether no concept of one combo CodeSystem may be filed at any organisation unit the project publishes."""
+    concepts = document.get(_CONCEPT_ELEMENT)
+    if not isinstance(concepts, list) or not concepts:
+        return False
+    return all(_concept_admits_nothing(concept, restrictions) for concept in concepts)
+
+
+def _concept_admits_nothing(concept: Any, restrictions: dict[str, frozenset[str]]) -> bool:  # noqa: ANN401 - JSON
+    """Whether the restriction Lists one combo concept names leave no organisation unit admitting it.
+
+    A concept naming no restriction is admitted everywhere, and one naming a List this scan did not
+    read is not judged at all: the answer has to be read off files that are there, and a missing
+    List is a tree nothing generated rather than a combo nobody may file under.
+    """
+    if not isinstance(concept, dict):
+        return False
+    named = list(_restriction_references(concept.get(_PROPERTY_ELEMENT)))
+    if not named or any(reference not in restrictions for reference in named):
+        return False
+    admitted = frozenset[str].intersection(*(restrictions[reference] for reference in named))
+    return not admitted
+
+
+def _restriction_references(properties: Any) -> Iterator[str]:  # noqa: ANN401 - JSON is Any
+    """Yield every restriction List one combo concept names, one per restricted category option it is met from."""
+    for entry in properties if isinstance(properties, list) else ():
+        if not isinstance(entry, dict) or entry.get("code") != ATTRIBUTE_OPTION_RESTRICTION_PROPERTY:
+            continue
+        if isinstance(value := entry.get("valueString"), str):
+            yield value
+
+
+def _vocabulary_names(documents: list[Any], unusable_systems: set[str]) -> set[str]:
+    """Every spelling a form binds one of these dead vocabularies by: the ValueSet canonical, and its FSH name."""
+    named: set[str] = set()
+    for document in documents:
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != "ValueSet":
+            continue
+        if not _included_systems(document.get("compose")) & unusable_systems:
+            continue
+        named.update(value for key in ("url", "name") if isinstance(value := document.get(key), str))
+    return named
+
+
+def _included_systems(compose: Any) -> set[str]:  # noqa: ANN401 - JSON is Any
+    """The CodeSystem urls one ValueSet composes itself from."""
+    includes = compose.get("include") if isinstance(compose, dict) else None
+    entries = includes if isinstance(includes, list) else []
+    return {system for entry in entries if isinstance(entry, dict) and isinstance(system := entry.get("system"), str)}
 
 
 def _read_text(path: Path) -> str | None:

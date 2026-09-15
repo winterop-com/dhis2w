@@ -15,6 +15,7 @@ from dhis2w_fhir import (
     GenerateReport,
     GenerateSubject,
     LoadSetReport,
+    UnusableAttributeOptionCombosSummary,
 )
 from dhis2w_fhir.config import HostileNamePosture
 from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory
@@ -331,6 +332,42 @@ def test_a_run_every_form_can_be_reported_from_carries_no_warning(fhir_project: 
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
     assert "empty organisation-unit assignment" not in result.stderr
+
+
+def _unusable_combo_report(project_root: Path, **overrides: object) -> GenerateFullReport:
+    """The seven-target report of a run whose forms are restricted away from every organisation unit."""
+    report = _noted_report(project_root)
+    defaults: dict[str, object] = {
+        "form_count": 3,
+        "forms": ["EPI Stock (TuL8IOPzpHh)"],
+        "max_level": 3,
+    }
+    defaults.update(overrides)
+    report.questionnaires.unusable_attribute_option_combos = UnusableAttributeOptionCombosSummary.model_validate(
+        defaults
+    )
+    return report
+
+
+def test_a_run_that_published_unfileable_forms_says_so_on_its_own_line(fhir_project: Path) -> None:
+    """The restriction Lists the run just wrote prove it, so the reader learns it here rather than from a 422."""
+    mock = AsyncMock(return_value=_unusable_combo_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 3 published form(s) declare attribute option combos DHIS2 restricts away" in result.stderr
+    assert "max_level 3" in result.stderr
+    assert "Widen the organisation-unit selection" in result.stderr
+    assert "narrow the form selection in fhir.toml" in result.stderr
+
+
+def test_a_run_whose_combos_are_all_usable_carries_no_warning(fhir_project: Path) -> None:
+    """The line states an exception, so an ordinary run does not carry a reassurance nobody asked for."""
+    mock = AsyncMock(return_value=_noted_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "restricts away" not in result.stderr
 
 
 def _unmatched_selection_report(project_root: Path) -> GenerateFullReport:

@@ -123,11 +123,12 @@ class ScaffoldReport(BaseModel):
     A refresh reports through `created_files` (a scaffold file the project lacks),
     `rewritten_files` (one of the five toolchain files the scaffold owns outright, replaced whole
     from the current render), `refreshed_files` (rewritten line-preservingly, so every line on disk
-    is still there), `unchanged_files` (already current), `extended_files` (carrying every line the
-    current scaffold renders plus lines of the user's own, so there is nothing to add), and
-    `diverged_files` (holding lines the current scaffold does not write - the user's edits, or
-    scaffold lines that have since changed; a line-preserving refresh cannot tell the two apart, so
-    it claims neither and the file stays).
+    is still there), `refreshed_with_additions_files` (an identity line landed on a file that also
+    carries lines the render does not produce, so the file is both written and kept), `unchanged_files`
+    (already current), `extended_files` (carrying every line the current scaffold renders plus lines
+    of the user's own, so there is nothing to add), and `diverged_files` (holding lines the current
+    scaffold does not write - the user's edits, or scaffold lines that have since changed; a
+    line-preserving refresh cannot tell the two apart, so it claims neither and the file stays).
 
     A project scaffolded from a template names it in `template` and reports its payload through
     `template_files`, `overwritten_template_files` and `skipped_template_files`, the same verdicts
@@ -151,6 +152,7 @@ class ScaffoldReport(BaseModel):
     skipped_template_files: list[str] = Field(default_factory=list)
     rewritten_files: list[str] = Field(default_factory=list)
     refreshed_files: list[str] = Field(default_factory=list)
+    refreshed_with_additions_files: list[str] = Field(default_factory=list)
     unchanged_files: list[str] = Field(default_factory=list)
     extended_files: list[str] = Field(default_factory=list)
     diverged_files: list[str] = Field(default_factory=list)

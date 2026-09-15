@@ -282,12 +282,12 @@ $ uv run d2w fhir generate
 running 8 step(s)
 [1/8] instance metadata: 9 questionnaire target(s), 11 option set(s), 1 category, 1,332 organisation unit(s)
 [2/8] foundation: 24 files written, 0 files unchanged
-[3/8] option sets: 11 option sets, 33 files written, 0 files unchanged, 1 note
+[3/8] option sets: 11 option sets, 33 files written, 0 files unchanged, 1 note raised here
 [4/8] categories: 1 category, 3 files written, 0 files unchanged
-[5/8] questionnaires: 9 questionnaires, 21 files written, 0 files unchanged, 1 note
-[6/8] examples: 9 examples, 9 files written, 0 files unchanged, 1 note
-[7/8] organisation units: 1,332 organisation units, 2,667 files written, 0 files unchanged, 1 note
-[8/8] pages: 6 pages, 15 files written, 0 files unchanged, 1 note
+[5/8] questionnaires: 9 questionnaires, 21 files written, 0 files unchanged, 1 note raised here
+[6/8] examples: 9 examples, 9 files written, 0 files unchanged, 1 note raised here
+[7/8] organisation units: 1,332 organisation units, 2,667 files written, 0 files unchanged, 1 note raised here
+[8/8] pages: 6 pages, 15 files written, 0 files unchanged, 1 note raised here
 full pipeline: 2,772 file(s) written across 7 target(s)
 ...
 note: 4 distinct note(s) across 4 target(s); full list in /home/you/my-ig/reports/fhir-generate-notes.md (--details to print)

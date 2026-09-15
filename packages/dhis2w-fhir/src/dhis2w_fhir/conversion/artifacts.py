@@ -74,10 +74,15 @@ class CompiledIgMissingError(LookupError):
     """Raised when a project has no compiled IG to translate captured responses against."""
 
     def __init__(self, directory: Path) -> None:
-        """Carry the refusal naming the missing directory and the two commands that fill it."""
+        """Carry the refusal naming the missing directory and the two commands that fill it.
+
+        Every command that reads a compiled guide raises this one - `d2w fhir forward`, and
+        `d2w fhir doctor` in its drift phase - so the sentence names no verb of theirs. It closes on
+        the command the reader typed, whichever that was.
+        """
         super().__init__(
-            f"no compiled IG at {directory} - run `d2w fhir generate`, then `make sushi` in the project, "
-            "and forward again."
+            f"no compiled IG at {directory} - run `d2w fhir generate` and then `make sushi` in the project, "
+            "then run this command again."
         )
 
 

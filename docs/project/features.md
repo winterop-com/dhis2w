@@ -653,11 +653,14 @@ chain in one command.
   so a refresh adds what the scaffold gained (a new `path-resource` glob, a new
   `.gitignore` entry, a new menu entry) and never drops a line the user wrote.
   Each file is reported as created / rewritten (scaffold-owned) / refreshed /
-  unchanged / with your additions / diverged (kept), in the summary table and in
-  the file list below it in the same words - the last two both keep the file
-  byte-identical, and `diverged` names no author, because a line the user wrote
-  and a scaffold line that has since changed read the same to a line-preserving
-  refresh. `fhir.toml` is never written; `--force` is rejected;
+  refreshed, with your additions / unchanged / with your additions / diverged
+  (kept), in the summary table and in the file list below it in the same words -
+  the last two both keep the file byte-identical, and `diverged` names no author,
+  because a line the user wrote and a scaffold line that has since changed read
+  the same to a line-preserving refresh. `refreshed, with your additions` is
+  both halves at once: an identity line landed on a file that also carries lines
+  the render does not produce, so a title change and an appended section read as
+  two facts rather than one. `fhir.toml` is never written; `--force` is rejected;
   any flag the refresh would ignore is refused.
   The accepted consequence is that a scaffold line deliberately deleted is
   restored, since a deletion leaves the file a subsequence of the render.
@@ -995,6 +998,18 @@ NamingSystems declaring them, plus these extensions:
   run, the facade's 422, and `d2w fhir check-artifacts` all state one number. A
   national instance raises several hundred terminology notes per run, which is
   why this is a line of its own rather than one of them.
+- **A run that published forms no organisation unit may file a capture for says
+  so on its own line too.** DHIS2 scopes a category option to organisation units
+  on top of the assignment and refuses a capture keyed to a combo not usable at
+  the organisation unit it was filed from (`E8025`), so a form whose whole combo
+  vocabulary is scoped away from every organisation unit that may report it is a
+  form nobody can submit. The run already wrote the restriction `List`s that
+  prove it, so `d2w fhir generate` closes with a warning naming the forms and the
+  `max_level` in force, and names both dials in one sentence: widen the
+  organisation-unit selection until one of the restricted organisation units is
+  published, or narrow the form selection. `d2w fhir check-artifacts` answers its
+  own warning-level finding with that identical sentence, read off the published
+  `List`s with no connection.
 - **A selection entry that matched nothing says so on its own line too.** A
   `[generate.*] include_ids` UID the instance answers nothing for costs the
   guide a whole form, its examples and its page, so `d2w fhir generate` closes
@@ -1482,16 +1497,28 @@ registration form become `Questionnaire` instances.
 - **`source = "synthetic"`** (the default) generates values locally from a
   SHA-256 seed - stable across machines and runs, every option combo filled.
 - **An example is captured at an organisation unit its own form is assigned
-  to.** DHIS2 scopes a data set and a program to the organisation units it is
-  assigned to and refuses a capture outside that scope (`E1029` on an event,
-  `E1041` on an enrollment), so a published example - the shape a consumer
-  copies - is placed the way a capture has to be: the organisation-unit
-  selection's own root where the assignment names it, and otherwise the first
-  assigned organisation unit the guide publishes a Location for, by UID, so a
-  rerun places it identically. A form DHIS2 hangs no assignment on, and a form
-  whose assignment names nothing published, fall back to that root; a form left
-  with no published organisation unit at all is an aggregate note rather than a
-  reference the publisher cannot resolve.
+  to, under an attribute option combo that organisation unit admits.** DHIS2
+  scopes a data set and a program to the organisation units it is assigned to
+  and refuses a capture outside that scope (`E1029` on an event, `E1041` on an
+  enrollment); it scopes a category option to organisation units on top of that
+  and refuses a capture keyed to a combo not usable at the organisation unit it
+  was filed from (`E8025`). A published example is the shape a consumer copies,
+  so the two are one choice rather than two: the organisation-unit selection's
+  own root where both rules admit it, and otherwise the first organisation unit
+  by UID that they do, so a rerun places it identically, and the combo is drawn
+  from the very concepts that organisation unit admits. A form DHIS2 hangs no
+  assignment on, and a form whose assignment names nothing published, fall back
+  to that root; a form left with no published organisation unit at all is an
+  aggregate note rather than a reference the publisher cannot resolve, and a
+  form no organisation unit it admits may file any of its combos at publishes no
+  example, because there is no capture DHIS2 would take.
+- **A form no organisation unit may file a capture for is said out loud.**
+  `d2w fhir generate` closes such a run with a warning naming the forms and the
+  two dials that answer it, the way it does for an empty organisation-unit
+  assignment, and files the same fact as a note. `d2w fhir check-artifacts`
+  raises a warning-level finding per reference to the vocabulary, read back off
+  the published restriction `List`s alone, so a build machine with no DHIS2
+  connection asks the same question the run asked.
 - **An example answers the form it answers.** Only the questions the form's own
   `enableWhen` leaves enabled given the rest of the response are answered - the
   sweep runs to a fixed point, because dropping an answer can close the question
@@ -1735,7 +1762,8 @@ DHIS2 translations are carried through across the whole surface, filtered by
   (`note: 3 distinct note(s) across 2 target(s) (+8 validate echoes); full list
   in ...`), counting each note once across the targets that raised it - which is
   what the summary table's `Distinct notes` column counts, while a target's own
-  `[k/N]` step line counts its own share,
+  `[k/N]` step line counts its own share and names it (`379 notes raised here`),
+  so the two numbers a run prints for one target are two named numbers,
   while the notes file still carries every one, echoes under a trailing
   per-target `Restatements of validate findings` heading. A note several
   targets share is counted and filed once, on the first target that raised

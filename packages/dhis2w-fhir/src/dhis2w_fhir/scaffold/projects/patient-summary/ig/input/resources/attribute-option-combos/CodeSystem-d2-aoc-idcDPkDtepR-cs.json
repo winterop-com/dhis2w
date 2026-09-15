@@ -27,6 +27,12 @@
       "uri": "http://dhis2.org/fhir/property/dhis2-code",
       "description": "DHIS2 category option combo code.",
       "type": "string"
+    },
+    {
+      "code": "dhis2-organisation-units",
+      "uri": "http://dhis2.org/fhir/property/dhis2-organisation-units",
+      "description": "List of the organisation units a category option of this combo is restricted to. A capture is refused unless its organisation unit is on every List the concept names.",
+      "type": "string"
     }
   ],
   "concept": [
@@ -37,6 +43,10 @@
         {
           "code": "dhis2-code",
           "valueString": "COC_1452092"
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-i4Nbp8S2G6A-org-units"
         }
       ]
     },
@@ -47,6 +57,10 @@
         {
           "code": "dhis2-code",
           "valueString": "COC_1452091"
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-yMj2MnmNI8L-org-units"
         }
       ]
     },
@@ -57,6 +71,10 @@
         {
           "code": "dhis2-code",
           "valueString": "COC_1452093"
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-OUUdG3sdOqb-org-units"
         }
       ]
     },
@@ -67,6 +85,10 @@
         {
           "code": "dhis2-code",
           "valueString": "COC_1452090"
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-M58XdOfhiJ7-org-units"
         }
       ]
     }
