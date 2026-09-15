@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
     capturesSubmissions,
     DEFAULT_UI_CONFIG,
+    isPackage,
     metadataHealthOffered,
     NO_REGISTER_OFFERED,
+    ORGANISATION_UNIT_PACKAGE,
+    packageStatement,
+    packageSubject,
     PEOPLE_RESOURCE_TYPE,
     REGISTER_TITLE,
     registerChoices,
@@ -13,6 +17,7 @@ import {
     registerSubject,
     registerTitle,
     registerWords,
+    servesForms,
     servesPeopleOnly,
     subjectOfTypeName,
     trackedEntityRecordOffered,
@@ -447,5 +452,53 @@ describe('the registers a tracked entity is picked out of', () => {
     it('offers none at all where the run serves no register', () => {
         expect(registerChoices(NO_REGISTER_OFFERED)).toEqual([])
         expect(registerChoices(trackedEntitySettings(DEFAULT_UI_CONFIG))).toEqual([])
+    })
+})
+
+/**
+ * Whether this server serves a package, and what it says about itself when it does.
+ *
+ * The one fact that takes four pages away and rewrites a fifth, so the reading of it is pinned here
+ * rather than in each of them. The sentence is asserted word for word because the Python side
+ * asserts the same words: a person who met the screens and a client that met the endpoint are told
+ * the same thing about the same project, and two spellings of it would read as two projects.
+ */
+describe('a package', () => {
+    const packaged = (publishes: string | null): UiConfig => ({
+        basemaps: [],
+        dhis2_base_url: null,
+        tracked_entities: null,
+        publishes,
+    })
+
+    it('is what a server stating what it publishes is serving', () => {
+        expect(isPackage(packaged(ORGANISATION_UNIT_PACKAGE))).toBe(true)
+        expect(servesForms(packaged(ORGANISATION_UNIT_PACKAGE))).toBe(false)
+    })
+
+    it('is not what a guide is, whether the server states null or nothing at all', () => {
+        expect(isPackage(packaged(null))).toBe(false)
+        expect(isPackage(DEFAULT_UI_CONFIG)).toBe(false)
+        expect(servesForms(DEFAULT_UI_CONFIG)).toBe(true)
+    })
+
+    it('says what it publishes in prose rather than in the wire token', () => {
+        expect(packageSubject(packaged(ORGANISATION_UNIT_PACKAGE))).toBe('organisation units')
+        expect(packageSubject(packaged(null))).toBeNull()
+    })
+
+    it('states a content value nobody has written words for as it stands', () => {
+        expect(packageSubject(packaged('boundaries'))).toBe('boundaries')
+    })
+
+    it('says one sentence about itself, the one the endpoint says', () => {
+        expect(packageStatement(packaged(ORGANISATION_UNIT_PACKAGE))).toBe(
+            'This project is a package: it publishes organisation units for guides to depend on, ' +
+                'and no form. Captures are made in a guide that depends on it, not here.',
+        )
+    })
+
+    it('says nothing about itself on a guide, which is not a package to describe', () => {
+        expect(packageStatement(DEFAULT_UI_CONFIG)).toBeNull()
     })
 })

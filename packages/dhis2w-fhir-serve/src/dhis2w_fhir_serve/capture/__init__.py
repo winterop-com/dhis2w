@@ -36,6 +36,7 @@ from dhis2w_fhir_serve.capture.outcome import (
     CaptureIssueCode,
     CaptureIssueSeverity,
     CaptureRejection,
+    capture_subject_sentence,
     rejection_outcome,
     success_outcome,
 )
@@ -60,6 +61,7 @@ from dhis2w_fhir_serve.capture.validate import (
     ONE_RESPONSE_PER_REQUEST,
     WITHDRAWALS_CONFIG_KEY,
     CaptureLifecyclePostures,
+    CaptureSubject,
     ValidatedCapture,
     validate_response,
 )
@@ -102,9 +104,11 @@ __all__ = [
     "ResolvedCoding",
     "UnreadableQuestionnaireError",
     "UnresolvableCodingError",
+    "CaptureSubject",
     "ValidatedCapture",
     "build_capture_index",
     "rejection_outcome",
+    "capture_subject_sentence",
     "success_outcome",
     "validate_response",
 ]

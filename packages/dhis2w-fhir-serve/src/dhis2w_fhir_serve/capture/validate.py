@@ -220,6 +220,42 @@ class CaptureLifecyclePostures(BaseModel):
 DEFAULT_LIFECYCLE_POSTURES = CaptureLifecyclePostures()
 
 
+class CaptureSubject(BaseModel):
+    """What one submission reports: the form, the organisation unit, the period, and the attribute option combo.
+
+    The tuple `d2w fhir forward` grades a receipt by, and the tuple DHIS2 keys the values it writes
+    by. It is read off the submission and off the served guide, never off an instance, so it says
+    the same thing on a compiled facade and a live one.
+
+    A fact the submission carries no element for is None rather than a placeholder: a tracker form
+    reports for no period and a form on the default category combo is keyed to no attribute option
+    combo, and naming either would be stating something the contract does not hold.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    form_id: str
+    """The DHIS2 data set, program, or program stage UID the form was generated from."""
+
+    form_title: str | None = None
+    """What the served Questionnaire is called, or None where this server publishes no title for it."""
+
+    organisation_unit_id: str | None = None
+    """The DHIS2 UID of the organisation unit reported from, or None where the submission names none."""
+
+    organisation_unit_name: str | None = None
+    """What the published registry calls that organisation unit, or None where it publishes no name."""
+
+    period: str | None = None
+    """The DHIS2 ISO period reported for, or None on a form that reports for no period."""
+
+    attribute_option_combo_code: str | None = None
+    """The concept code the values are keyed by, or None on a form declaring no combo vocabulary."""
+
+    attribute_option_combo_display: str | None = None
+    """What the published vocabulary calls that combo, or None where the coding carries no display."""
+
+
 class ValidatedCapture(BaseModel):
     """A submission that cleared every phase: what it is, what it answers, and what the server noted."""
 
@@ -227,6 +263,7 @@ class ValidatedCapture(BaseModel):
 
     form_kind: FormKind
     canonical: str
+    subject: CaptureSubject
     warnings: tuple[CaptureIssue, ...] = ()
     response: dict[str, Any]
     """The submission as it arrived - the same byte-faithful escape hatch `StoredResponseEnvelope.response` documents.
@@ -270,9 +307,64 @@ def validate_response(
     return ValidatedCapture(
         form_kind=form_kind,
         canonical=index.canonical,
+        subject=_capture_subject(response, index, naming, form_kind, store),
         warnings=tuple(warnings),
         response=payload,
     )
+
+
+def _capture_subject(
+    response: QuestionnaireResponse,
+    index: CaptureIndex,
+    naming: CaptureNaming,
+    form_kind: FormKind,
+    store: ResourceStore,
+) -> CaptureSubject:
+    """Read the form, the organisation unit, the period, and the attribute option combo one submission reports.
+
+    Every element is read where the phase that grades it reads it, so what a receipt says it holds
+    and what the phases graded are the same four facts.
+    """
+    reference = _reported_unit(response, naming, form_kind).reference
+    unit_id = reference.split("/")[-1] if reference else None
+    combo = _extensions(response, naming.attribute_option_combo_url)
+    coding = combo[0].valueCoding if combo else None
+    return CaptureSubject(
+        form_id=index.target_uid,
+        form_title=_served_title(index.canonical, store),
+        organisation_unit_id=unit_id,
+        organisation_unit_name=None if unit_id is None else _published_unit_name(unit_id, store),
+        period=_reported_period(response, naming),
+        attribute_option_combo_code=None if coding is None else coding.code,
+        attribute_option_combo_display=None if coding is None else coding.display,
+    )
+
+
+def _served_title(canonical: str, store: ResourceStore) -> str | None:
+    """What the served Questionnaire at that canonical is called, or None where this server publishes no title."""
+    entry = store.by_canonical(canonical)
+    if entry is None:
+        return None
+    title = entry.body.get("title") or entry.body.get("name")
+    return title if isinstance(title, str) else None
+
+
+def _published_unit_name(unit_id: str, store: ResourceStore) -> str | None:
+    """What the published registry calls one organisation unit, or None where it publishes no name for it."""
+    entry = store.by_type_and_id("Location", unit_id)
+    if entry is None:
+        return None
+    name = entry.body.get("name")
+    return name if isinstance(name, str) else None
+
+
+def _reported_period(response: QuestionnaireResponse, naming: CaptureNaming) -> str | None:
+    """The DHIS2 ISO period a submission reports for, or None on a form that carries no period element."""
+    periods = _extensions(response, naming.period_url)
+    if not periods:
+        return None
+    iso_extensions = _sub_extensions(periods[0], PERIOD_ISO_SUB_EXTENSION)
+    return (iso_extensions[0].valueString or None) if iso_extensions else None
 
 
 def _read_body(raw_body: bytes) -> dict[str, Any]:

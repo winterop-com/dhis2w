@@ -1633,6 +1633,16 @@ registration form become `Questionnaire` instances.
   and no form. Captures are made in a guide that depends on it, not here." It
   answers `GET /Questionnaire` the same 404 it answers `GET /Specimen`, because
   the CapabilityStatement is the route table and it declares neither.
+- **The capture UI over a package is a package UI.** `/facade/uiconfig` carries
+  `publishes`, so `serve --ui` over a package draws a rail without Forms,
+  Responses, Evaluate, or Playground - the four pages whose reads that server
+  answers 404 and whose submissions it answers 405 - and keeps the pages a
+  package really has: the overview, the organisation-unit hierarchy and map, the
+  terminology, and the server's own contract. The overview says what the project
+  is instead of advising a generate that would produce no form, and the four
+  addresses still answer: opening `#/forms` from a link kept elsewhere renders
+  the same sentence the endpoint answers a client with, plus the way to the
+  hierarchy, rather than a card about a read that failed.
 - **`d2w fhir check-artifacts` reports a dangling registry reference** as a
   finding of the new `registry` kind, comparing the `<canonical>/Location/<id>`
   references already on disk - in compiled JSON and in generated FSH - against
@@ -1911,6 +1921,17 @@ bound to loopback by default that loads the project once at startup.
   served. Under `substitute` a form is served under the name the compiled guide
   publishes it under; under `refuse` and unset a live serve is byte-true and
   aborts over no name, because serving is not generating.
+- **What one mode publishes, both modes publish, and a test holds them to it.**
+  The live store and `d2w fhir generate` build their JSON artifacts from one
+  instance read through one set of builders, so every file a compiled project
+  commits under `ig/input/resources` is a document the live store serves under
+  the same id and the same bytes: the assignment Lists, the registry, the
+  terminology and its ConceptMaps, the attribute-option-combo vocabularies, and
+  the organisation-unit restriction Lists each combo concept names. Both stores
+  are built off one mocked instance and compared artifact for artifact, so a
+  keyword one call site stops passing is a failing test rather than a family of
+  documents only one of them publishes - which is how a `--live` draft came to
+  name a combo DHIS2 refuses at the unit it was drawn for, with `E8025`.
 - **A worked example is held, and published by nothing.** A guide compiles an
   exemplar beside its registry profiles - the `Usage: #example` Location and
   Organization that show what a published organisation unit looks like - and its
@@ -2555,6 +2576,16 @@ in phases that stop at the first level to find an error.
   `GET /QuestionnaireResponse/{id}` or `?questionnaire=` says what was
   submitted and never what DHIS2 now holds, and `ls` on that directory is the
   pending count the forwarding phase will drain.
+- **The 201 says what the receipt holds, not only which receipt it is.** The
+  information issue names the tuple `d2w fhir forward` grades the submission by
+  and DHIS2 keys the values it writes by - the form, the organisation unit
+  reported from, the period where the form reports for one, and the attribute
+  option combo where the form declares one - each as its published name beside
+  its DHIS2 UID, with the logical id still leading. A client posting a batch can
+  tell its receipts apart from the answers alone, and a clause is written only
+  where the submission carries the fact: a tracker response reports for no
+  period, and a form on the default category combo is keyed to no combo. The
+  receipt page states the same four facts in its capture context block.
 - **The spool is a directory rather than an index**: reads re-read `received/`,
   `forwarded/`, `rejected/`, and `withdrawn/` on every request, because
   `fhir forward` renames receipts between them from another process while the

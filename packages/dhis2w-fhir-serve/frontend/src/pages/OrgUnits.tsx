@@ -58,7 +58,7 @@ import {
     type SpoolResponseSummary,
 } from '@/lib/spool'
 import { identifierBadges } from '@/lib/terminology'
-import type { BasemapLayer } from '@/lib/uiconfig'
+import { servesForms, type BasemapLayer } from '@/lib/uiconfig'
 import { cn, countedNoun, formatCount, RESIZE_HANDLE_TINT } from '@/lib/utils'
 
 /**
@@ -148,10 +148,14 @@ function useThreePane(): boolean {
  */
 export function OrgUnits() {
     const registry = useFhirSearch<Location>('Location')
-    const forms = useFhirSearch<Questionnaire>('Questionnaire')
-    const assignments = useFhirSearch<ResourceList>('List')
-    const spool = useSpool()
     const settings = useUiConfig()
+    // A package publishes places and no form, so the two reads behind the form shelves are reads
+    // this server answers 404 - and the shelves themselves are shelves of nothing. The page is the
+    // tree, the map, and each unit's own identity, which is the whole of what a package has.
+    const servingForms = !settings.loading && servesForms(settings.config)
+    const forms = useFhirSearch<Questionnaire>('Questionnaire', {}, servingForms)
+    const assignments = useFhirSearch<ResourceList>('List', {}, servingForms)
+    const spool = useSpool()
     const [parameters, setParameters] = useSearchParams()
     const [query, setQuery] = useState('')
     const threePane = useThreePane()
@@ -363,7 +367,11 @@ export function OrgUnits() {
         <div className="flex min-h-0 flex-1 flex-col">
             <PageHeader
                 title="Organisation units"
-                description="The organisation units this implementation guide publishes, in the hierarchy this DHIS2 instance holds them in - where a capture may report from, and which forms it may use."
+                description={
+                    servingForms
+                        ? 'The organisation units this implementation guide publishes, in the hierarchy this DHIS2 instance holds them in - where a capture may report from, and which forms it may use.'
+                        : 'The organisation units this package publishes, in the hierarchy this DHIS2 instance holds them in - the places the guides that depend on this package report from.'
+                }
                 // The selected unit, or the whole registry when the page is framing it as a whole -
                 // which is what the map is showing in each of the two cases.
                 aside={<ApiLink path={selected === null ? '/Location' : `/Location/${selected.id}`} />}
@@ -435,15 +443,25 @@ export function OrgUnits() {
                                         onSelect={select}
                                         dhis2BaseUrl={settings.config.dhis2_base_url}
                                     />
-                                    <FormCatalogSections
-                                        catalog={catalog}
-                                        published={formsById.size}
-                                        unresolvedAssignmentFormIds={assignmentIndex.unresolvedAssignmentFormIds}
-                                        loading={forms.loading || assignments.loading}
-                                        error={forms.error ?? assignments.error}
-                                        dhis2BaseUrl={settings.config.dhis2_base_url}
-                                    />
-                                    <CapturedHere node={selected} formsById={formsById} spool={spool} />
+                                    {servingForms && (
+                                        <>
+                                            <FormCatalogSections
+                                                catalog={catalog}
+                                                published={formsById.size}
+                                                unresolvedAssignmentFormIds={
+                                                    assignmentIndex.unresolvedAssignmentFormIds
+                                                }
+                                                loading={forms.loading || assignments.loading}
+                                                error={forms.error ?? assignments.error}
+                                                dhis2BaseUrl={settings.config.dhis2_base_url}
+                                            />
+                                            <CapturedHere
+                                                node={selected}
+                                                formsById={formsById}
+                                                spool={spool}
+                                            />
+                                        </>
+                                    )}
                                     <UnitChildren key={selected.id} node={selected} onSelect={select} />
                                 </>
                             )}
@@ -493,6 +511,7 @@ export function OrgUnits() {
                                     settingsLoading={settings.loading}
                                     formsById={formsById}
                                     spool={spool}
+                                    servingForms={servingForms}
                                     onSelect={select}
                                     dhis2BaseUrl={settings.config.dhis2_base_url}
                                 />
@@ -862,6 +881,7 @@ function UnitTabs({
     settingsLoading,
     formsById,
     spool,
+    servingForms,
     onSelect,
     dhis2BaseUrl,
 }: {
@@ -878,6 +898,8 @@ function UnitTabs({
     settingsLoading: boolean
     formsById: Map<string, Questionnaire>
     spool: SpoolState
+    /** False on a package, whose form shelves and capture list are both lists of nothing. */
+    servingForms: boolean
     onSelect: (unitId: string) => void
     dhis2BaseUrl: string | null
 }) {
@@ -892,7 +914,7 @@ function UnitTabs({
         >
             <TabsList>
                 <TabsTrigger value="map">Map</TabsTrigger>
-                <TabsTrigger value="forms">Forms</TabsTrigger>
+                {servingForms && <TabsTrigger value="forms">Forms</TabsTrigger>}
                 <TabsTrigger value="details">Details</TabsTrigger>
             </TabsList>
             {/* `forceMount` + hidden rather than unmount: a tab flip must not tear down the WebGL
@@ -910,19 +932,21 @@ function UnitTabs({
                     settingsLoading={settingsLoading}
                 />
             </TabsContent>
-            <TabsContent value="forms">
-                <FormCatalogSections
-                    catalog={catalog}
-                    published={published}
-                    unresolvedAssignmentFormIds={unresolvedAssignmentFormIds}
-                    loading={formsLoading}
-                    error={formsError}
-                    dhis2BaseUrl={dhis2BaseUrl}
-                />
-            </TabsContent>
+            {servingForms && (
+                <TabsContent value="forms">
+                    <FormCatalogSections
+                        catalog={catalog}
+                        published={published}
+                        unresolvedAssignmentFormIds={unresolvedAssignmentFormIds}
+                        loading={formsLoading}
+                        error={formsError}
+                        dhis2BaseUrl={dhis2BaseUrl}
+                    />
+                </TabsContent>
+            )}
             <TabsContent value="details" className="space-y-4">
                 <UnitChildren key={node.id} node={node} onSelect={onSelect} />
-                <CapturedHere node={node} formsById={formsById} spool={spool} />
+                {servingForms && <CapturedHere node={node} formsById={formsById} spool={spool} />}
             </TabsContent>
         </Tabs>
     )

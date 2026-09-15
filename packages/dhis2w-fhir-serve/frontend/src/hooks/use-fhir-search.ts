@@ -25,10 +25,17 @@ export interface FhirSearchState<T> {
  * `parameters` is serialised into the dependency list rather than compared by
  * identity, so a caller can pass an object literal without re-running the search
  * on every render.
+ *
+ * `enabled` false runs no request and answers as a settled search of nothing -
+ * empty, not loading, no refusal. That is what a caller that already knows this
+ * server serves no such resource passes: a package publishes no Questionnaire and
+ * the server answers `GET /Questionnaire` 404, so asking anyway would put a red
+ * card about a failed read over a fact the app was told before it asked.
  */
 export function useFhirSearch<T>(
     resourceType: string,
     parameters: Record<string, string> = {},
+    enabled: boolean = true,
 ): FhirSearchState<T> {
     const [answered, setAnswered] = useState<AnsweredSearch<T> | null>(null)
     const [nonce, setNonce] = useState(0)
@@ -38,6 +45,7 @@ export function useFhirSearch<T>(
     const reload = useCallback(() => setNonce((value) => value + 1), [])
 
     useEffect(() => {
+        if (!enabled) return
         const wanted = searchKey
         let cancelled = false
         const search = JSON.parse(parameterKey) as Record<string, string>
@@ -57,9 +65,10 @@ export function useFhirSearch<T>(
         return () => {
             cancelled = true
         }
-    }, [resourceType, parameterKey, searchKey])
+    }, [resourceType, parameterKey, searchKey, enabled])
 
     const landed = answered !== null && answered.searchKey === searchKey
+    if (!enabled) return { resources: NOTHING_FOUND as T[], loading: false, error: null, reload }
     return {
         resources: answered?.resources ?? (NOTHING_FOUND as T[]),
         loading: !landed,

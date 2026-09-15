@@ -2,10 +2,29 @@ import { OrgUnitPicker, useOrgUnitScope } from '@/components/OrgUnitPicker'
 import { Label } from '@/components/ui/label'
 import type { FormType } from '@/lib/fhir'
 import type { OrgUnitChoice } from '@/lib/orgunits'
-import { countedNoun, formatCount } from '@/lib/utils'
+import { countedNoun } from '@/lib/utils'
 
 /** The one control on a capture form whose id is fixed, so its label and its trigger find each other. */
 const CONTROL_ID = 'reporting-organisation-unit'
+
+/**
+ * How wide the choice is, in the words of which of the two answers this form has.
+ *
+ * A form that publishes an assignment List admits the units that List names, and a capture outside
+ * them is what DHIS2 refuses; a form that publishes none is assigned everywhere, which means the
+ * whole published registry. Both halves count the same way - one noun, one number, the verb agreeing
+ * with it - because a reader meeting the two sentences on two forms is reading one fact stated twice.
+ */
+export function reportingScopeSentence(offered: number, restricted: boolean): string {
+    if (restricted) {
+        return (
+            `${countedNoun(offered, 'organisation unit')} ${offered === 1 ? 'is' : 'are'} assigned to ` +
+            "this form. A capture outside the form's assigned organisation units is refused when it " +
+            'reaches this DHIS2 instance.'
+        )
+    }
+    return `This form is assigned everywhere, so any of the ${countedNoun(offered, 'published organisation unit')} may report it.`
+}
 
 /**
  * Which organisation unit a whole submission reports from.
@@ -88,9 +107,7 @@ export function ReportingUnitPicker({
             />
             {!scope.loading && scope.error === null && offered > 0 && (
                 <p className="text-muted-foreground text-xs">
-                    {scope.restricted
-                        ? `${countedNoun(offered, 'organisation unit')} ${offered === 1 ? 'is' : 'are'} assigned to this form. A capture outside the form's assigned organisation units is refused when it reaches this DHIS2 instance.`
-                        : `This form is assigned everywhere, so any of the ${formatCount(offered)} published organisation units may report it.`}
+                    {reportingScopeSentence(offered, scope.restricted)}
                 </p>
             )}
             {keptUnitNotAdmitted && (

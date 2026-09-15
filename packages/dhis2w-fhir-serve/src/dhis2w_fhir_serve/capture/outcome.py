@@ -13,10 +13,13 @@ questionnaire's own item tree, and R4 names those failures separately.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from dhis2w_fhir.r4 import OperationOutcome, OperationOutcomeIssue
 from pydantic import BaseModel, ConfigDict
+
+if TYPE_CHECKING:
+    from dhis2w_fhir_serve.capture.validate import CaptureSubject
 
 CaptureIssueSeverity = Literal["error", "warning", "information"]
 """The `OperationOutcome.issue.severity` values a capture reports."""
@@ -69,14 +72,43 @@ def rejection_outcome(issues: tuple[CaptureIssue, ...]) -> OperationOutcome:
     return OperationOutcome(issue=[_issue(issue) for issue in issues])
 
 
-def success_outcome(response_id: str, warnings: tuple[CaptureIssue, ...]) -> OperationOutcome:
+def success_outcome(response_id: str, subject: CaptureSubject, warnings: tuple[CaptureIssue, ...]) -> OperationOutcome:
     """The body an accepted capture answers with: what was stored, then whatever the server had to note."""
     stored = OperationOutcomeIssue(
         severity="information",
         code="informational",
-        diagnostics=f"stored response {response_id}; {RECEIPT_NOTE}",
+        diagnostics=f"stored response {response_id}, holding {capture_subject_sentence(subject)}; {RECEIPT_NOTE}",
     )
     return OperationOutcome(issue=[stored, *(_issue(warning) for warning in warnings)])
+
+
+def capture_subject_sentence(subject: CaptureSubject) -> str:
+    """Name the four facts a forward grades a receipt by, in the order DHIS2 keys a value it writes by.
+
+    A UUID tells a client which receipt was stored and nothing about what is in it, so a session that
+    posted thirty-two drafts reads thirty-two indistinguishable lines. The tuple is what separates
+    them, and it is the same tuple the receipt page's capture context states and the same one a drain
+    reports a refusal against.
+
+    A clause is written where the submission holds the fact and left out where it does not: a tracker
+    response reports for no period, and a form on the default category combo is keyed to no attribute
+    option combo.
+    """
+    clauses = [f"{_named(subject.form_title, subject.form_id)}"]
+    if subject.organisation_unit_id is not None:
+        named = _named(subject.organisation_unit_name, subject.organisation_unit_id)
+        clauses.append(f"reported from organisation unit {named}")
+    if subject.period is not None:
+        clauses.append(f"for period {subject.period}")
+    if subject.attribute_option_combo_code is not None:
+        named = _named(subject.attribute_option_combo_display, subject.attribute_option_combo_code)
+        clauses.append(f"keyed to attribute option combo {named}")
+    return ", ".join(clauses)
+
+
+def _named(display: str | None, identifier: str) -> str:
+    """One subject as `name (id)`, or as the identifier alone where this server publishes no name for it."""
+    return identifier if display is None else f"{display} ({identifier})"
 
 
 def _issue(issue: CaptureIssue) -> OperationOutcomeIssue:

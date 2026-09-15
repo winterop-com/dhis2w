@@ -569,10 +569,10 @@ HTTP/1.1 201 Created
 date: Sat, 15 Aug 2026 18:07:03 GMT
 server: uvicorn
 location: http://localhost:8390/QuestionnaireResponse/9c0d30598b194aef9e1e1e8f4bab70ec
-content-length: 252
+content-length: 434
 content-type: application/fhir+json
 
-{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response 9c0d30598b194aef9e1e1e8f4bab70ec; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
+{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response 9c0d30598b194aef9e1e1e8f4bab70ec, holding Child Health (BfMAe6Itzgt), reported from organisation unit Bo (O6uvpzGd5pu), for period 202607, keyed to attribute option combo Improve access to clean water (pO5CEqK6c1s); a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
 ```
 
 `?seed=` is optional and reproducible: the same seed against the same form

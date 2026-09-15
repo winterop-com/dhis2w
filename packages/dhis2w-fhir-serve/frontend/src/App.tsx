@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/AppLayout'
+import { PackagePage } from '@/components/PackagePage'
 import { PageHeader } from '@/components/PageState'
 import { Card, CardContent } from '@/components/ui/card'
 import { Evaluate } from '@/pages/Evaluate'
@@ -47,6 +48,13 @@ import { TrackedEntityDetail } from '@/pages/TrackedEntityDetail'
  * whatever a project states for the rest - and a tracked entity uid alone does
  * not say which of them reads it back.
  *
+ * `/forms`, `/responses`, `/evaluate`, and `/playground` - and the two detail
+ * routes under the first two - are wrapped in `PackagePage`. A project that
+ * publishes organisation units and no form holds nothing for any of them, and the
+ * server already answers their reads 404 and their submissions 405, so each
+ * address states what the project is instead of rendering a screen over a refusal.
+ * On a guide the wrapper renders the page and nothing else changes.
+ *
  * `/tracked-entities` and its detail route are the two that can be offered or
  * not: the register is mounted only by a run that reaches a DHIS2 instance, so
  * both pages read `/facade/uiconfig` and send a reader to the overview when this run
@@ -85,18 +93,60 @@ export default function App() {
         <AppLayout>
             <Routes>
                 <Route index element={<Overview />} />
-                <Route path="forms" element={<Forms />} />
-                <Route path="forms/:questionnaireId" element={<FormFill />} />
-                <Route path="responses" element={<Responses />} />
-                <Route path="responses/:responseId" element={<ResponseDetail />} />
+                <Route
+                    path="forms"
+                    element={
+                        <PackagePage>
+                            <Forms />
+                        </PackagePage>
+                    }
+                />
+                <Route
+                    path="forms/:questionnaireId"
+                    element={
+                        <PackagePage>
+                            <FormFill />
+                        </PackagePage>
+                    }
+                />
+                <Route
+                    path="responses"
+                    element={
+                        <PackagePage>
+                            <Responses />
+                        </PackagePage>
+                    }
+                />
+                <Route
+                    path="responses/:responseId"
+                    element={
+                        <PackagePage>
+                            <ResponseDetail />
+                        </PackagePage>
+                    }
+                />
                 <Route path="tracked-entities" element={<TrackedEntities />} />
                 <Route
                     path="tracked-entities/:resourceType/:trackedEntityUid"
                     element={<TrackedEntityDetail />}
                 />
                 <Route path="organisation-units" element={<OrgUnits />} />
-                <Route path="evaluate" element={<Evaluate />} />
-                <Route path="playground" element={<Playground />} />
+                <Route
+                    path="evaluate"
+                    element={
+                        <PackagePage>
+                            <Evaluate />
+                        </PackagePage>
+                    }
+                />
+                <Route
+                    path="playground"
+                    element={
+                        <PackagePage>
+                            <Playground />
+                        </PackagePage>
+                    }
+                />
                 <Route path="metadata-health" element={<MetadataHealth />} />
                 <Route path="terminology" element={<Terminology />} />
                 <Route path="terminology/:resourceType/:resourceId" element={<TerminologyDetail />} />

@@ -36,6 +36,7 @@ import { COLLAPSE_NAVIGATION_LABEL, EXPAND_NAVIGATION_LABEL, type PalettePage } 
 import {
     metadataHealthOffered,
     registerTitle,
+    servesForms,
     trackedEntitySettings,
     REGISTER_TITLE,
     type UiConfig,
@@ -98,11 +99,17 @@ export const REGISTER_NAV_HINT = 'What this DHIS2 instance tracks'
  * command palette lists them alike, because somebody typing a page's name is not
  * navigating a tree.
  *
- * A PAGE THAT IS NOT ALWAYS THERE STATES ITS OWN CONDITION, in `offered`. Two
- * are that, and both for the same reason: the register and the metadata health
- * report each need a DHIS2 instance behind this process, and a rail entry leading
- * to a page that has nothing to show is worse than no entry - so the condition is
- * asked before the entry is drawn, rather than discovered by following it.
+ * A PAGE THAT IS NOT ALWAYS THERE STATES ITS OWN CONDITION, in `offered`. Six
+ * are that, for two reasons. The register and the metadata health report each
+ * need a DHIS2 instance behind this process, and a rail entry leading to a page
+ * that has nothing to show is worse than no entry - so the condition is asked
+ * before the entry is drawn, rather than discovered by following it. The four
+ * capture pages - the forms, what came back, the evaluator, and the API
+ * playground - need a project that has forms, and a package has none and never
+ * will: `servesForms` is that condition, and the four addresses still answer,
+ * saying what the project is instead of refusing a read. The pages a package does
+ * lead somewhere on stay: it publishes organisation units, terminology, and a
+ * CapabilityStatement, and each of those has a page here.
  *
  * A PAGE THAT IS NOT ALWAYS THE SAME PAGE STATES ITS OWN NAME, in `naming`. The
  * register is the only one of those too: DHIS2 tracks whatever a project tracks,
@@ -115,7 +122,13 @@ export const REGISTER_NAV_HINT = 'What this DHIS2 instance tracks'
  */
 export const NAV_ITEMS: NavItem[] = [
     { path: '', label: 'Overview', hint: 'State of capture', icon: LayoutDashboard },
-    { path: 'forms', label: 'Forms', hint: 'Questionnaires served', icon: ClipboardList },
+    {
+        path: 'forms',
+        label: 'Forms',
+        hint: 'Questionnaires served',
+        icon: ClipboardList,
+        offered: servesForms,
+    },
     {
         path: 'tracked-entities',
         label: REGISTER_TITLE,
@@ -127,11 +140,17 @@ export const NAV_ITEMS: NavItem[] = [
             hint: REGISTER_NAV_HINT,
         }),
     },
-    { path: 'responses', label: 'Responses', hint: 'What was captured', icon: Inbox },
+    { path: 'responses', label: 'Responses', hint: 'What was captured', icon: Inbox, offered: servesForms },
     { path: 'organisation-units', label: 'Organisation units', hint: 'Reporting hierarchy', icon: Network },
     { path: 'terminology', label: 'Terminology', hint: 'Codes and value sets', icon: Library },
-    { path: 'evaluate', label: 'Evaluate', hint: 'FHIRPath, CQL, and ELM', icon: FlaskConical },
-    { path: 'playground', label: 'Playground', hint: 'Try the FHIR API', icon: Braces },
+    {
+        path: 'evaluate',
+        label: 'Evaluate',
+        hint: 'FHIRPath, CQL, and ELM',
+        icon: FlaskConical,
+        offered: servesForms,
+    },
+    { path: 'playground', label: 'Playground', hint: 'Try the FHIR API', icon: Braces, offered: servesForms },
     { path: 'server', label: 'Server', hint: 'What this server offers', icon: ServerCog },
     {
         path: 'metadata-health',
