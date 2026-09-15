@@ -101,9 +101,12 @@ from dhis2w_fhir.resources.attribute_combos import (
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     CategoryOptionValidity,
     OrganisationUnitPaths,
+    UntimelyAttributeOptionCombosSummary,
     UnusableAttributeOptionCombosSummary,
     UsableAttributeOptionCombos,
     restricted_category_option_uids,
+    untimely_attribute_option_combo_message,
+    untimely_attribute_option_combos_summary,
     unusable_attribute_option_combo_message,
     unusable_attribute_option_combos_summary,
 )
@@ -122,6 +125,7 @@ from dhis2w_fhir.resources.examples import (
     build_example_artifacts,
     build_synthetic_responses,
     response_status_code,
+    synthetic_period,
 )
 from dhis2w_fhir.resources.examples.documents import build_example_documents
 from dhis2w_fhir.resources.examples.schemas import (
@@ -276,6 +280,8 @@ if TYPE_CHECKING:
         TrackedEntityType,
     )
     from dhis2w_core.progress import ProgressReporter
+
+    from dhis2w_fhir.period.schemas import PeriodValue
 
 _STREAM_PAGE_SIZE = 500
 _TRANSLATION_FIELDS = "translations[locale,property,value]"
@@ -543,6 +549,8 @@ class GenerateReport(BaseModel):
     """The published forms no organisation unit may report, which the run says out loud rather than noting."""
     unusable_attribute_option_combos: UnusableAttributeOptionCombosSummary | None = None
     """The published forms every attribute option combo is restricted away from, said out loud the same way."""
+    untimely_attribute_option_combos: UntimelyAttributeOptionCombosSummary | None = None
+    """The published forms every attribute option combo of theirs has closed for, said out loud the same way."""
 
 
 class LoadSetReport(BaseModel):
@@ -1949,6 +1957,9 @@ def _emit_questionnaires(
     unusable_combos = _unusable_attribute_option_combos(
         sources, assignments, attribute_option_restrictions, generate, published_organisation_unit_stems
     )
+    untimely_combos = _untimely_attribute_option_combos(
+        sources, attribute_option_restrictions, datetime.now(tz=UTC).date()
+    )
     concept_maps = build_attribute_combo_concept_map_artifacts(sources, generate, canonical, ig_status=ig_status)
     build = build_questionnaire_artifacts(
         sources,
@@ -2027,6 +2038,7 @@ def _emit_questionnaires(
         attribute_combo_count=len(attribute_combo_build.artifacts),
         empty_assignments=assignment_build.empty_assignments,
         unusable_attribute_option_combos=unusable_combos,
+        untimely_attribute_option_combos=untimely_combos,
         notes=[
             *notes,
             *build.notes,
@@ -2040,6 +2052,16 @@ def _emit_questionnaires(
                     generate_note(
                         GenerateNoteCategory.SELECTION_GAP,
                         unusable_attribute_option_combo_message(unusable_combos),
+                    )
+                ]
+            ),
+            *(
+                []
+                if untimely_combos is None
+                else [
+                    generate_note(
+                        GenerateNoteCategory.SELECTION_GAP,
+                        untimely_attribute_option_combo_message(untimely_combos),
                     )
                 ]
             ),
@@ -2075,9 +2097,44 @@ def _unusable_attribute_option_combos(
         if not _declares_attribute_option_combos(source):
             continue
         admitted = admitted_organisation_unit_uids(source, assignments, published_uids)
-        if admitted and not any(usable.usable_at(source, unit) for unit in admitted):
+        if admitted and not any(usable.usable_at(source, unit, period=None) for unit in admitted):
             forms.append(f"{source.name} ({source.uid})")
     return unusable_attribute_option_combos_summary(forms, max_level=config.organisation_units.max_level)
+
+
+def _untimely_attribute_option_combos(
+    sources: list[QuestionnaireSourceIn],
+    restrictions: AttributeOptionRestrictions,
+    today: date,
+) -> UntimelyAttributeOptionCombosSummary | None:
+    """The published forms every attribute option combo of theirs has closed for, or None when none has.
+
+    The date axis's answer to `_unusable_attribute_option_combos`. DHIS2 scopes a category option to
+    a calendar window and refuses a capture the window does not cover entirely (`E8032`), so a form
+    whose every declared combo closed before the periods it reports is a form nobody can submit -
+    the same loss the unit axis reports, and reported the same way rather than left for a reader to
+    discover by drafting a response the facade answers 422 for.
+
+    "Any period it reports" is read forward from the period the form reports now: the newest
+    completed period of its own period type, which is what `$generate` drafts for and what a
+    published example is keyed to. A window ending before that period ends is before every later
+    period's end too, so a combo closed for this one is closed for every period the form still
+    reports. A form declaring no period type reports for no period at all - an event program, a
+    tracked entity type - and the date axis has nothing to grade it against.
+    """
+    usable = UsableAttributeOptionCombos.of(restrictions)
+    forms: list[str] = []
+    for source in sources:
+        declared = _declared_attribute_option_combos(source)
+        period = synthetic_period(source, today)
+        if not declared or period is None:
+            continue
+        if all(
+            usable.window_of(option_combo.category_option_uids).closed_before(period.end_date)
+            for option_combo in declared
+        ):
+            forms.append(f"{source.name} ({source.uid})")
+    return untimely_attribute_option_combos_summary(forms)
 
 
 async def generate_examples(
@@ -2571,6 +2628,7 @@ async def _example_responses(
         published_organisation_unit_uids,
         root_organisation_unit_uid,
         UsableAttributeOptionCombos.of(restrictions),
+        today,
     )
     notes.extend(plan.notes)
     if not plan.sources:
@@ -2608,25 +2666,32 @@ def _plan_example_placements(
     published_organisation_unit_uids: frozenset[str],
     root_organisation_unit_uid: str,
     usable_combos: UsableAttributeOptionCombos,
+    today: date,
 ) -> _ExamplePlan:
-    """Place every form's example where DHIS2 accepts the whole capture: the unit and the combo as one choice.
+    """Place every form's example where DHIS2 accepts the whole capture: the unit, the combo and the period as one.
 
     DHIS2 scopes a data set and a program to the organisation units it is assigned to, and a
     capture outside that scope is refused (`E1029` on an event, `E1041` on an enrollment). It
     scopes a category option to organisation units on top of that, and refuses a capture keyed to
-    an attribute option combo not usable at the unit it was filed from (`E8025`). A published
-    example is the shape a consumer copies, so it is placed the way a capture has to be: the
-    registry root where both rules admit it, and otherwise the first organisation unit by UID that
-    they do, so a rerun places it identically.
+    an attribute option combo not usable at the unit it was filed from (`E8025`). It scopes the
+    same option to a calendar window as well, and refuses a capture whose combo does not cover the
+    whole period it reports for (`E8032`). A published example is the shape a consumer copies, so
+    it is placed the way a capture has to be: the registry root where every rule admits it, and
+    otherwise the first organisation unit by UID that they do, so a rerun places it identically.
+
+    `today` is what decides the period, because the example's period is decided before its combo is:
+    an aggregate example reports for the newest completed period of its own form's period type, and
+    that is the period its combo has to be open for.
 
     Two classes fall back to the root. A form of a kind DHIS2 hangs no assignment on - a
     tracked entity type - may register a person anywhere the guide publishes, and a form whose
     assignment names no published organisation unit at all has nowhere better to go: its
     assignment List is empty, which the run reports in its own closing warning.
 
-    A form every combo is restricted away from at every unit it admits is dropped rather than
-    placed: there is no capture for it DHIS2 would take, which the run says out loud in a closing
-    warning of its own rather than drafting the very response the facade then refuses.
+    A form every combo is restricted away from at every unit it admits, or closed for the period it
+    reports, is dropped rather than placed: there is no capture for it DHIS2 would take, which the
+    run says out loud in a closing warning of its own rather than drafting the very response the
+    facade then refuses.
     """
     plan = _ExamplePlan()
     outside: list[str] = []
@@ -2634,7 +2699,12 @@ def _plan_example_placements(
     for source in sources:
         admitted = admitted_organisation_unit_uids(source, assignments, published_organisation_unit_uids)
         placement = _example_placement(
-            source, admitted, published_organisation_unit_uids, root_organisation_unit_uid, usable_combos
+            source,
+            admitted,
+            published_organisation_unit_uids,
+            root_organisation_unit_uid,
+            usable_combos,
+            synthetic_period(source, today),
         )
         if placement is not None:
             plan.sources.append(source)
@@ -2657,7 +2727,8 @@ def _plan_example_placements(
             aggregate_generate_note(
                 GenerateNoteCategory.SELECTION_GAP,
                 f"{len(unusable)} questionnaire targets declare attribute option combos DHIS2 restricts away "
-                "from every organisation unit that may report them; no examples emitted for them",
+                "from every organisation unit that may report them, or has closed for the period they report; "
+                "no examples emitted for them",
                 unusable,
             )
         )
@@ -2670,15 +2741,17 @@ def _example_placement(
     published_organisation_unit_uids: frozenset[str],
     root_organisation_unit_uid: str,
     usable_combos: UsableAttributeOptionCombos,
+    period: PeriodValue | None,
 ) -> SyntheticPlacement | None:
     """Where one form's example reports from and what it may be filed under, or None when DHIS2 admits neither.
 
     `admitted` is the organisation units the form's own assignment leaves, narrowed here to the ones
-    that also admit a combo it declares. A form on the default category combo narrows nothing - it
-    declares no combo and its capture carries none - and a form whose declared combos every admitted
-    organisation unit is scoped away from narrows to nothing, which is the form nobody may submit.
+    that also admit a combo it declares, for the very period the example reports for. A form on the
+    default category combo narrows nothing - it declares no combo and its capture carries none - and
+    a form whose declared combos every admitted organisation unit is scoped away from, or whose every
+    combo has closed by that period, narrows to nothing, which is the form nobody may submit.
     """
-    usable = {unit: usable_combos.usable_at(source, unit) for unit in admitted}
+    usable = {unit: usable_combos.usable_at(source, unit, period=period) for unit in admitted}
     if any(usable.values()):
         admitted = frozenset(unit for unit, combos in usable.items() if combos)
     elif admitted and _declares_attribute_option_combos(source):
@@ -2700,8 +2773,15 @@ def _example_placement(
 
 def _declares_attribute_option_combos(source: QuestionnaireSourceIn) -> bool:
     """Whether one form keys its captures by an attribute option combo rather than by the default one."""
+    return bool(_declared_attribute_option_combos(source))
+
+
+def _declared_attribute_option_combos(source: QuestionnaireSourceIn) -> tuple[CategoryOptionComboIn, ...]:
+    """The attribute option combos one form keys its captures by - empty on a form riding the default combo."""
     combo = source.attribute_combo
-    return combo is not None and not combo.is_default and bool(combo.option_combos)
+    if combo is None or combo.is_default:
+        return ()
+    return tuple(combo.option_combos)
 
 
 async def _example_organisation_unit_uid(client: Dhis2Client, config: GenerateConfig) -> str | None:
@@ -3498,6 +3578,7 @@ async def generate_pages(
             restrictions=await fetch_attribute_option_restrictions(
                 client, sources, published=published.stems, units=published.paths
             ),
+            today=today,
         )
     unit_count = len(organisation_units) if published_stems is None else len(published_stems.stems)
     progress.complete(f"{len(sources):,} questionnaire target(s), {unit_count:,} organisation unit(s)")
@@ -3526,6 +3607,7 @@ async def _capture_page_placements(
     published_organisation_unit_uids: frozenset[str],
     assignments: AssignmentIndex | None,
     restrictions: AttributeOptionRestrictions,
+    today: date,
 ) -> dict[str, SyntheticPlacement]:
     """Where the run's examples file each form from - the capture page's worked organisation units.
 
@@ -3542,6 +3624,7 @@ async def _capture_page_placements(
         published_organisation_unit_uids,
         root_organisation_unit_uid,
         UsableAttributeOptionCombos.of(restrictions),
+        today,
     )
     return plan.placements
 
@@ -3733,6 +3816,7 @@ async def generate_full(
                 published_organisation_unit_uids=frozenset(inputs.organisation_unit_stems.stems),
                 assignments=inputs.assignments,
                 restrictions=inputs.attribute_option_restrictions,
+                today=datetime.now(tz=UTC).date(),
             ),
             notes=[*inputs.source_notes, *inputs.option_set_notes],
             progress=progress,

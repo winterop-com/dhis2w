@@ -76,17 +76,25 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import FHIR_CONFIG_FILENAME
+from dhis2w_fhir.period import PERIOD_TYPE_NAMES
+from dhis2w_fhir.period.parser import parse_period
+from dhis2w_fhir.period.recent import recent_periods
 from dhis2w_fhir.registry_package import RegistryMissingError, load_registry_documents
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
     ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE,
+    ATTRIBUTE_OPTION_VALID_FROM_PROPERTY,
+    ATTRIBUTE_OPTION_VALID_TO_PROPERTY,
+    UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
     UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
+    CategoryOptionValidity,
 )
 from dhis2w_fhir.resources.attribute_combos.schemas import ATTRIBUTE_COMBO_DIRECTORY
 from dhis2w_fhir.resources.questionnaires.assignments import (
@@ -103,6 +111,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from dhis2w_fhir.config import FhirProject
+    from dhis2w_fhir.period.schemas import PeriodValue
 
 __all__ = [
     "ArtifactCheckReport",
@@ -201,6 +210,9 @@ class FindingOrigin(StrEnum):
     ATTRIBUTE_OPTION_COMBO = "attribute-option-combo"
     """A published form every attribute option combo of whose vocabulary is restricted away from every unit."""
 
+    UNTIMELY_ATTRIBUTE_OPTION_COMBO = "untimely-attribute-option-combo"
+    """A published form every attribute option combo of whose vocabulary DHIS2 closed before the periods it reports."""
+
     SELECTION = "selection"
     """A `[generate.*] include_ids` entry naming a DHIS2 object this project publishes nothing for."""
 
@@ -255,14 +267,22 @@ _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
     FindingOrigin.REGISTRY_MISSING: _REGISTRY_UNREADABLE_REMEDY,
     FindingOrigin.ASSIGNMENT: _ASSIGNMENT_REMEDY,
     FindingOrigin.ATTRIBUTE_OPTION_COMBO: UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
+    FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO: UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
     FindingOrigin.SELECTION: _SELECTION_REMEDY,
 }
 
-#: The origins whose finding lets the build run. Three, and for the same reason: a form nobody can
-#: submit - on either of the two axes DHIS2 grades a capture by - and a selection entry that named
+#: The origins whose finding lets the build run. Four, and for the same reason: a form nobody can
+#: submit - on any of the three axes DHIS2 grades a capture by - and a selection entry that named
 #: nothing all publish perfectly well, so stopping the build over one would refuse a guide the
 #: publisher has no quarrel with.
-_WARNING_ORIGINS = frozenset({FindingOrigin.ASSIGNMENT, FindingOrigin.ATTRIBUTE_OPTION_COMBO, FindingOrigin.SELECTION})
+_WARNING_ORIGINS = frozenset(
+    {
+        FindingOrigin.ASSIGNMENT,
+        FindingOrigin.ATTRIBUTE_OPTION_COMBO,
+        FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO,
+        FindingOrigin.SELECTION,
+    }
+)
 
 
 class ArtifactFinding(BaseModel):
@@ -363,7 +383,9 @@ class _HostileString(BaseModel):
     kind: Literal["name", "code"]
 
 
-def check_publishable_artifacts(project: FhirProject, *, registry_package: Path | None = None) -> ArtifactCheckReport:
+def check_publishable_artifacts(
+    project: FhirProject, *, registry_package: Path | None = None, today: date | None = None
+) -> ArtifactCheckReport:
     """Scan one project's on-disk publishable inputs for every string the IG publisher would abort on.
 
     Offline and connectionless: the artifacts are the whole input. Findings sort by file, then by
@@ -394,6 +416,7 @@ def check_publishable_artifacts(project: FhirProject, *, registry_package: Path 
     findings.extend(_ig_identity_findings(project))
     findings.extend(_empty_assignment_findings(project, root))
     findings.extend(_unusable_attribute_option_combo_findings(project, root))
+    findings.extend(_untimely_attribute_option_combo_findings(project, root, today or datetime.now(tz=UTC).date()))
     findings.extend(_selection_findings(project))
     findings.extend(_registry_findings(project, root, registry_package))
     findings.sort(key=lambda finding: (finding.file, finding.resource_id, finding.field))
@@ -729,12 +752,33 @@ _UNUSABLE_ATTRIBUTE_OPTION_COMBO_MESSAGE = (
     "publishes either way, which is why this is a warning: what it costs is a form, not a build."
 )
 
+#: Why a form whose every combo has closed is worth stopping for, and why it stops nothing itself.
+_UNTIMELY_ATTRIBUTE_OPTION_COMBO_MESSAGE = (
+    "DHIS2 has closed every attribute option combo of the vocabulary this form binds: no attribute option "
+    "combo of the form is valid for any period it reports, so no capture for the form can be keyed to a combo "
+    "this DHIS2 instance accepts and it is refused with E8032 whichever one it names. The guide builds and "
+    "publishes either way, which is why this is a warning: what it costs is a form, not a build."
+)
+
 #: The element a CodeSystem carries its concepts on, and the one a concept carries its properties on.
 _CONCEPT_ELEMENT = "concept"
 _PROPERTY_ELEMENT = "property"
 
+#: The element a resource carries its extensions on, which is where a Questionnaire states its period type.
+_EXTENSION_ELEMENT = "extension"
+
+#: How many leading characters of an R4 `dateTime` spell the calendar day DHIS2 scopes a category option by.
+_ISO_DATE_LENGTH = 10
+
 #: One FSH `Canonical(<target>)`, which is how a generated Questionnaire binds its combo vocabulary.
 _FSH_CANONICAL = re.compile(r"Canonical\((?P<target>[^)\s]+)\)")
+
+#: The two facts an FSH Questionnaire states about the period it reports for and the vocabulary it keys by.
+_FSH_PERIOD_TYPE = re.compile(r"^\* extension\[D2PeriodType\]\.valueCode = #(?P<period_type>\S+)$", re.MULTILINE)
+_FSH_ATTRIBUTE_OPTION_COMBOS = re.compile(
+    r"^\* extension\[D2AttributeOptionCombos\]\.valueCanonical = Canonical\((?P<value_set>[^)\s]+)\)$",
+    re.MULTILINE,
+)
 
 
 def _unusable_attribute_option_combo_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
@@ -809,6 +853,169 @@ def _unusable_attribute_option_combo_finding(file: str, resource_id: str, field:
         origin=FindingOrigin.ATTRIBUTE_OPTION_COMBO,
         message=_UNUSABLE_ATTRIBUTE_OPTION_COMBO_MESSAGE,
     )
+
+
+def _untimely_attribute_option_combo_findings(project: FhirProject, root: Path, today: date) -> list[ArtifactFinding]:
+    """Every published form binding an attribute-combo vocabulary DHIS2 has closed for every period it reports.
+
+    The date axis's answer to `_unusable_attribute_option_combo_findings`, and the same fact
+    `d2w fhir generate` closes its run with, read back off the files that run wrote rather than off
+    the instance. Every fact it needs is on disk: a combo concept publishes the window its category
+    options are open for as `dhis2-valid-from` / `dhis2-valid-to`, and the form publishes the DHIS2
+    period type it reports on, so a build machine with no connection can ask the question.
+
+    "Any period it reports" is read forward from the period the form reports now - the newest
+    completed period of its own period type, which is the period `$generate` drafts a capture for. A
+    window that closed before that period ends closed before every later period's end too, so a
+    vocabulary whose every concept has closed for this one has closed for every period the form
+    still reports, and the forms binding it are forms nobody may submit.
+
+    Counted at the reference, the way the unit-axis finding is: one row per form and element naming
+    the vocabulary, because the period type is the form's own and two forms binding one vocabulary
+    can report on different ones.
+    """
+    directory = project.resources_directory / ATTRIBUTE_COMBO_DIRECTORY
+    if not directory.is_dir():
+        return []
+    documents = [document for path in sorted(directory.glob("*.json")) if (document := _read_document(path))]
+    windows = _vocabulary_windows(documents)
+    if not windows:
+        return []
+    findings: list[ArtifactFinding] = []
+    for path in _json_paths(project):
+        # The vocabulary's own files state their own name and canonical; a resource does not bind itself.
+        if path.parent == directory:
+            continue
+        document = _read_document(path)
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != "Questionnaire":
+            continue
+        resource_id = document.get("id")
+        found = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
+        period_type = _json_period_type(document)
+        findings.extend(
+            _untimely_attribute_option_combo_finding(_relative(path, root), found, field, value)
+            for field, value in _strings(document, prefix="")
+            if _vocabulary_has_closed(windows.get(value), period_type, today)
+        )
+    for path in _fsh_paths(project):
+        text = _read_text(path)
+        if text is None:
+            continue
+        period_match = _FSH_PERIOD_TYPE.search(text)
+        period_type = period_match.group("period_type") if period_match is not None else None
+        findings.extend(
+            _untimely_attribute_option_combo_finding(
+                _relative(path, root), path.stem, f"line {number}", match.group("value_set")
+            )
+            for number, line in enumerate(text.splitlines(), start=1)
+            for match in _FSH_ATTRIBUTE_OPTION_COMBOS.finditer(line)
+            if _vocabulary_has_closed(windows.get(match.group("value_set")), period_type, today)
+        )
+    return findings
+
+
+def _untimely_attribute_option_combo_finding(file: str, resource_id: str, field: str, value: str) -> ArtifactFinding:
+    """One form named at the reference by which it binds a combo vocabulary DHIS2 has closed."""
+    return ArtifactFinding(
+        file=file,
+        resource_id=resource_id,
+        field=field,
+        value=value,
+        kind="attribute-option-combo",
+        origin=FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO,
+        message=_UNTIMELY_ATTRIBUTE_OPTION_COMBO_MESSAGE,
+    )
+
+
+def _vocabulary_has_closed(
+    concept_windows: tuple[CategoryOptionValidity, ...] | None, period_type: str | None, today: date
+) -> bool:
+    """Whether every concept of one bound vocabulary closed before the period a form of this type reports now."""
+    if not concept_windows or period_type is None:
+        return False
+    period = _current_period(period_type, today)
+    if period is None:
+        return False
+    return all(window.closed_before(period.end_date) for window in concept_windows)
+
+
+def _current_period(period_type: str, today: date) -> PeriodValue | None:
+    """The newest completed period of one DHIS2 period type, which is the period a form reports now."""
+    isos = recent_periods(period_type, 1, today)
+    return parse_period(isos[0]) if isos else None
+
+
+def _vocabulary_windows(documents: list[Any]) -> dict[str, tuple[CategoryOptionValidity, ...]]:
+    """The window every concept of each combo vocabulary is open for, by the spellings a form binds it under."""
+    by_system = _concept_windows(documents)
+    if not by_system:
+        return {}
+    named: dict[str, tuple[CategoryOptionValidity, ...]] = {}
+    for document in documents:
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != "ValueSet":
+            continue
+        systems = sorted(_included_systems(document.get("compose")) & set(by_system))
+        if not systems:
+            continue
+        concept_windows = tuple(window for system in systems for window in by_system[system])
+        for key in ("url", "name"):
+            if isinstance(value := document.get(key), str):
+                named[value] = concept_windows
+    return named
+
+
+def _concept_windows(documents: list[Any]) -> dict[str, tuple[CategoryOptionValidity, ...]]:
+    """The window every concept of each combo CodeSystem is open for, by the CodeSystem's own canonical."""
+    windows: dict[str, tuple[CategoryOptionValidity, ...]] = {}
+    for document in documents:
+        if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != "CodeSystem":
+            continue
+        concepts = document.get(_CONCEPT_ELEMENT)
+        if not isinstance(url := document.get("url"), str) or not isinstance(concepts, list) or not concepts:
+            continue
+        windows[url] = tuple(_concept_window(concept) for concept in concepts)
+    return windows
+
+
+def _concept_window(concept: Any) -> CategoryOptionValidity:  # noqa: ANN401 - JSON is Any
+    """The calendar window one combo concept publishes, either end of it absent where it states none."""
+    return CategoryOptionValidity(
+        valid_from=_concept_date(concept, ATTRIBUTE_OPTION_VALID_FROM_PROPERTY),
+        valid_to=_concept_date(concept, ATTRIBUTE_OPTION_VALID_TO_PROPERTY),
+    )
+
+
+def _concept_date(concept: Any, property_code: str) -> date | None:  # noqa: ANN401 - JSON is Any
+    """One calendar day a concept property states, or None where it states none this scan can read.
+
+    An R4 `dateTime` admits more than a day - a time, an offset - and DHIS2 scopes a category option
+    by calendar day, so the day is what is read and anything beyond it is passed over.
+    """
+    properties = concept.get(_PROPERTY_ELEMENT) if isinstance(concept, dict) else None
+    for entry in properties if isinstance(properties, list) else ():
+        if not isinstance(entry, dict) or entry.get("code") != property_code:
+            continue
+        if not isinstance(value := entry.get("valueDateTime"), str):
+            continue
+        try:
+            return date.fromisoformat(value[:_ISO_DATE_LENGTH])
+        except ValueError:
+            return None
+    return None
+
+
+def _json_period_type(document: dict[str, Any]) -> str | None:
+    """The DHIS2 period type one compiled Questionnaire declares, read the way `$generate` reads it.
+
+    The declaration is an extension carrying a `valueCode`, and a code this toolchain's own period-type
+    vocabulary does not name is read as no declaration: the form would be stating a type no DHIS2
+    period can be spelled in, exactly as the capture facade decides it.
+    """
+    extensions = document.get(_EXTENSION_ELEMENT)
+    for entry in extensions if isinstance(extensions, list) else ():
+        if isinstance(entry, dict) and (code := entry.get("valueCode")) in PERIOD_TYPE_NAMES:
+            return str(code)
+    return None
 
 
 def _restriction_members(documents: list[Any]) -> dict[str, frozenset[str]]:

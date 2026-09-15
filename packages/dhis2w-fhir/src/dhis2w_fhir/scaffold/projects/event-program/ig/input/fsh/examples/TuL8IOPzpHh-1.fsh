@@ -11,7 +11,7 @@ Usage: #example
 * extension[D2Period].extension[type].valueCode = #Monthly
 * extension[D2Period].extension[period].valuePeriod.start = "2026-08-01"
 * extension[D2Period].extension[period].valuePeriod.end = "2026-08-31"
-* extension[D2AttributeOptionCombo].valueCoding = D2AOC_idcDPkDtepR_CS#oawMLLH7OjA "Provide access to basic education"
+* extension[D2AttributeOptionCombo].valueCoding = D2AOC_idcDPkDtepR_CS#sSeEjeQ0Rgt "Improve access to medicines"
 * questionnaire = "http://example.org/fhir/examples/event-program/Questionnaire/TuL8IOPzpHh"
 * status = #completed
 * subject = Reference(Location/AekX8HBymng)

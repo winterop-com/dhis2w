@@ -1010,9 +1010,10 @@ NamingSystems declaring them, plus these extensions:
   or narrow the form selection. `d2w fhir check-artifacts` answers its own
   finding with that identical sentence. Forms are the unit counted - a tracker
   program's stages each publish a Questionnaire and share one `List` - so the
-  run, the facade's 422, and `d2w fhir check-artifacts` all state one number. A
-  national instance raises several hundred terminology notes per run, which is
-  why this is a line of its own rather than one of them.
+  run, the facade's 422, and `d2w fhir check-artifacts` all state one number, and
+  the line names the data sets and programs the assignment hangs on. A national
+  instance raises several hundred terminology notes per run, which is why this is
+  a line of its own rather than one of them.
 - **A run that published forms no organisation unit may file a capture for says
   so on its own line too.** DHIS2 scopes a category option to organisation units
   on top of the assignment and refuses a capture keyed to a combo not usable at
@@ -1025,6 +1026,18 @@ NamingSystems declaring them, plus these extensions:
   published, or narrow the form selection. `d2w fhir check-artifacts` answers its
   own warning-level finding with that identical sentence, read off the published
   `List`s with no connection.
+- **A run that published forms DHIS2 has closed every combo of says so on its
+  own line too.** The date axis's answer to the one above: DHIS2 scopes a
+  category option to a calendar window and refuses a capture the window does not
+  cover entirely (`E8032`), so a form whose every declared combo closed before
+  the period it reports now - the newest completed period of its own period type,
+  and every later one - is a form nobody can submit. `d2w fhir generate` closes
+  with a warning naming the forms, and its remedy says plainly where the fix is:
+  a category option's `startDate` / `endDate` is DHIS2 metadata and no fhir.toml
+  setting widens it, so the options are reopened in DHIS2 or the form selection
+  is narrowed. `d2w fhir check-artifacts` answers its own warning-level finding
+  with that identical sentence, read off the windows the vocabulary publishes and
+  the period type the Questionnaire declares, with no connection.
 - **A selection entry that matched nothing says so on its own line too.** A
   `[generate.*] include_ids` UID the instance answers nothing for costs the
   guide a whole form, its examples and its page, so `d2w fhir generate` closes
@@ -1526,21 +1539,26 @@ registration form become `Questionnaire` instances.
 - **`source = "synthetic"`** (the default) generates values locally from a
   SHA-256 seed - stable across machines and runs, every option combo filled.
 - **An example is captured at an organisation unit its own form is assigned
-  to, under an attribute option combo that organisation unit admits.** DHIS2
-  scopes a data set and a program to the organisation units it is assigned to
-  and refuses a capture outside that scope (`E1029` on an event, `E1041` on an
-  enrollment); it scopes a category option to organisation units on top of that
-  and refuses a capture keyed to a combo not usable at the organisation unit it
-  was filed from (`E8025`). A published example is the shape a consumer copies,
-  so the two are one choice rather than two: the organisation-unit selection's
-  own root where both rules admit it, and otherwise the first organisation unit
-  by UID that they do, so a rerun places it identically, and the combo is drawn
-  from the very concepts that organisation unit admits. A form DHIS2 hangs no
+  to, under an attribute option combo that organisation unit admits and that is
+  open for the period the example reports for.** DHIS2 scopes a data set and a
+  program to the organisation units it is assigned to and refuses a capture
+  outside that scope (`E1029` on an event, `E1041` on an enrollment); it scopes a
+  category option to organisation units on top of that and refuses a capture
+  keyed to a combo not usable at the organisation unit it was filed from
+  (`E8025`); and it scopes the same option to a calendar window, refusing a
+  capture whose combo does not cover the whole period it reports for (`E8032`). A
+  published example is the shape a consumer copies, so the three are one choice
+  rather than three: the organisation-unit selection's own root where every rule
+  admits it, and otherwise the first organisation unit by UID that they do, so a
+  rerun places it identically, and the combo is drawn from the concepts that
+  organisation unit admits for the period the example carries - the newest
+  completed period of the form's own period type. A form DHIS2 hangs no
   assignment on, and a form whose assignment names nothing published, fall back
   to that root; a form left with no published organisation unit at all is an
   aggregate note rather than a reference the publisher cannot resolve, and a
-  form no organisation unit it admits may file any of its combos at publishes no
-  example, because there is no capture DHIS2 would take.
+  form no organisation unit it admits may file any of its combos at, or whose
+  every combo has closed for the period it reports, publishes no example,
+  because there is no capture DHIS2 would take.
 - **A form no organisation unit may file a capture for is said out loud.**
   `d2w fhir generate` closes such a run with a warning naming the forms and the
   two dials that answer it, the way it does for an empty organisation-unit

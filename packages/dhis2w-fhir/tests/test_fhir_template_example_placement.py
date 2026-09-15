@@ -3,9 +3,10 @@
 A template's `ig/input/` is a build artifact that happens to be committed, and its examples are the
 first thing anybody POSTs: `d2w fhir init --template` lays the tree down, `d2w fhir serve` serves it,
 and a reader copies one example into their own client. So an example reporting from an organisation
-unit its own form is not assigned to, or keyed to an attribute option combo DHIS2 scopes away from
-that organisation unit, is a template that teaches a capture the instance refuses - `E1029` on the
-assignment axis, `E8025` on the combo axis.
+unit its own form is not assigned to, keyed to an attribute option combo DHIS2 scopes away from that
+organisation unit, or keyed to one DHIS2 closed before the period it reports for, is a template that
+teaches a capture the instance refuses - `E1029` on the assignment axis, `E8025` on the combo's unit
+axis, `E8032` on its date axis.
 
 A tracker corpus has a third rule of the same kind: a stage example answers one enrollment, and only
 a registration example of the same template creates one. DHIS2 refuses an event naming an enrollment
@@ -15,19 +16,26 @@ unit it quotes is graded exactly as an example's is.
 
 Regenerating a payload needs a DHIS2 instance; catching one that drifted must not. Every fact is
 published in the payload itself - the form's assignment List, one restriction List per restricted
-category option of the combo vocabulary, and the enrollment each example names - so this reads the
-shipped bytes and needs no connection. `projects/README.md` says how to regenerate when it fails.
+category option of the combo vocabulary, the window each combo concept carries, and the enrollment
+each example names - so this reads the shipped bytes and needs no connection. `projects/README.md`
+says how to regenerate when it fails.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import pytest
-from dhis2w_fhir.resources.attribute_combos.restrictions import ATTRIBUTE_OPTION_RESTRICTION_PROPERTY
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    ATTRIBUTE_OPTION_VALID_FROM_PROPERTY,
+    ATTRIBUTE_OPTION_VALID_TO_PROPERTY,
+    CategoryOptionValidity,
+)
 from dhis2w_fhir.resources.attribute_combos.schemas import ATTRIBUTE_COMBO_DIRECTORY
 from dhis2w_fhir.resources.questionnaires.assignments import ASSIGNMENT_DIRECTORY
 from dhis2w_fhir.scaffold.project_templates import TemplateOrigin, list_templates
@@ -149,6 +157,60 @@ def test_every_bundled_example_is_keyed_to_a_combo_usable_at_its_own_unit(templa
             )
         checked += 1
     assert checked, f"{template.name} publishes no example on a non-default category combo"
+
+
+#: The reporting period one aggregate example carries, as the D2Period extension states its two ends.
+_EXAMPLE_PERIOD = re.compile(
+    r'^\* extension\[D2Period\]\.extension\[period\]\.valuePeriod\.start = "(?P<start>[^"]+)"$\n'
+    r'^\* extension\[D2Period\]\.extension\[period\]\.valuePeriod\.end = "(?P<end>[^"]+)"$',
+    re.MULTILINE,
+)
+
+
+def _concept_windows(documents: list[dict[str, Any]]) -> dict[tuple[str, str], CategoryOptionValidity]:
+    """The window each combo concept is open for, keyed by the CodeSystem FSH name and the concept code."""
+    windows: dict[tuple[str, str], CategoryOptionValidity] = {}
+    for document in documents:
+        if document.get("resourceType") != "CodeSystem":
+            continue
+        for concept in document.get("concept") or []:
+            stated = {
+                entry["code"]: entry["valueDateTime"]
+                for entry in concept.get("property") or []
+                if entry["code"] in {ATTRIBUTE_OPTION_VALID_FROM_PROPERTY, ATTRIBUTE_OPTION_VALID_TO_PROPERTY}
+            }
+            windows[document["name"], concept["code"]] = CategoryOptionValidity(
+                valid_from=_day(stated.get(ATTRIBUTE_OPTION_VALID_FROM_PROPERTY)),
+                valid_to=_day(stated.get(ATTRIBUTE_OPTION_VALID_TO_PROPERTY)),
+            )
+    return windows
+
+
+def _day(value: str | None) -> date | None:
+    """One published `dateTime` as the calendar day DHIS2 scopes a category option by."""
+    return None if value is None else date.fromisoformat(value[:10])
+
+
+@pytest.mark.parametrize("template", BUNDLED, ids=lambda template: template.name)
+def test_every_bundled_example_is_keyed_to_a_combo_open_for_its_own_period(template: Any) -> None:  # noqa: ANN401
+    """DHIS2 refuses a capture whose combo window does not cover the whole period it reports for, with E8032."""
+    root = _payload_root(template.name)
+    windows = _concept_windows(_documents(root / "resources" / ATTRIBUTE_COMBO_DIRECTORY))
+    checked = 0
+    for path in sorted((root / "fsh/examples").glob("*.fsh")):
+        example = path.read_text(encoding="utf-8")
+        combo = _EXAMPLE_COMBO.search(example)
+        period = _EXAMPLE_PERIOD.search(example)
+        if combo is None or period is None:
+            continue
+        window = windows[combo.group("vocabulary").removeprefix("$"), combo.group("code")]
+        start, end = date.fromisoformat(period.group("start")), date.fromisoformat(period.group("end"))
+        assert window.covers(start, end), (
+            f"{template.name}: {path.name} is keyed to {combo.group('code')} for {start} to {end}, "
+            f"which its window does not cover"
+        )
+        checked += 1
+    assert checked, f"{template.name} publishes no aggregate example on a non-default category combo"
 
 
 #: The enrollment a tracker example names, and the tracked entity it belongs to. A registration example

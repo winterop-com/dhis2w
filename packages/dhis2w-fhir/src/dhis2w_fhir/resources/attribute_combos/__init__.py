@@ -74,15 +74,18 @@ from dhis2w_fhir.r4 import (
 )
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
     UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
     AttributeOptionRestrictionPlan,
     AttributeOptionRestrictions,
     CategoryOptionValidity,
+    UntimelyAttributeOptionCombosSummary,
     UnusableAttributeOptionCombosSummary,
     UsableAttributeOptionCombos,
     attribute_option_restriction_declaration,
     attribute_option_validity_declarations,
     build_attribute_option_restriction_artifacts,
+    narrowest_window,
 )
 from dhis2w_fhir.resources.attribute_combos.schemas import (
     ATTRIBUTE_COMBO_DIRECTORY,
@@ -125,8 +128,11 @@ __all__ = [
     "build_attribute_combo_concept_maps",
     "build_attribute_combo_identifier_artifacts",
     "max_attribute_combo_slug_length",
+    "narrowest_window",
+    "UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "CategoryOptionValidity",
+    "UntimelyAttributeOptionCombosSummary",
     "UnusableAttributeOptionCombosSummary",
     "UsableAttributeOptionCombos",
 ]

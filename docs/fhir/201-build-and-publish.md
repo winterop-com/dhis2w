@@ -209,7 +209,7 @@ rather than the printer guessing:
 
 `--json` puts the whole typed report on stdout.
 
-### Two findings the build survives
+### Three findings the build survives
 
 A published Questionnaire whose organisation-unit assignment `List` names no
 unit this project publishes is a `warning` rather than a refusal. That guide
@@ -242,6 +242,17 @@ it off the published restriction `List`s alone - a concept names one `List` per
 restricted category option it is met from, and it is usable only where every one
 of them holds the organisation unit - so no connection is needed, and the
 finding carries the same two dials as the assignment one.
+
+The third is the same loss one axis further over. A category option is scoped to
+a calendar window as well, and DHIS2 refuses a capture the window does not cover
+entirely with `E8032`, so a form binding a vocabulary whose every concept closed
+before the period the form reports now is a form nobody may file a capture for.
+The scan reads it off the shipped bytes alone - the `dhis2-valid-from` /
+`dhis2-valid-to` properties each concept carries, and the DHIS2 period type the
+Questionnaire declares - so no connection is needed here either. Its line names
+no `fhir.toml` dial, because none reaches it: a category option's `startDate` and
+`endDate` are DHIS2 metadata, so the options are reopened in DHIS2 or the form
+selection is narrowed.
 
 The scan covers three trees, and each position it reads is one the emitted
 resource carries byte-true into a page:
