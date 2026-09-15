@@ -382,8 +382,10 @@ the terminology maps are a capability with a name rather than a side effect of t
 paths - and so the `owned_prefix` rule that keeps one target's sync from deleting
 another's files is stated in one place a caller can see.
 
-**R8 - The UI comes off the serve package's surface.** The six UI names and the seven
-`/facade/uiconfig` names leave `__all__`; `UiBundleMissingError` stays. This is the only
+**R8 - The UI comes off the serve package's surface.** The UI names and the seven
+`/facade/uiconfig` names leave `__all__`; the two refusals `create_app` raises stay -
+`UiBundleMissingError` where no bundle was ever built and `UiBundleStaleError` where a
+checkout's bundle is older than the frontend source beside it. This is the only
 recommendation that makes the surface smaller, and it is what makes the doctrine's
 exception legible rather than a sentence in a design paper.
 

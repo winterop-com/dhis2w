@@ -17,13 +17,30 @@
     }
   ],
   "name": "Masungbala",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Masungbala"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "type": [
     {
       "coding": [
         {
           "system": "http://example.org/fhir/examples/aggregate-minimal/CodeSystem/d2-ou-level-cs",
           "code": "level-3",
-          "display": "District"
+          "display": "Chiefdom"
         }
       ]
     }

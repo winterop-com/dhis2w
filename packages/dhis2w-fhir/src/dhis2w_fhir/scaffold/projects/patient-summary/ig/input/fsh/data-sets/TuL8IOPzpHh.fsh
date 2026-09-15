@@ -17,6 +17,11 @@ Usage: #definition
 * identifier[=].value = "DS_1149441"
 * name = "D2DS_TuL8IOPzpHh"
 * title = "EPI Stock"
+* title.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* title.extension[=].extension[+].url = "lang"
+* title.extension[=].extension[=].valueCode = #en-GB
+* title.extension[=].extension[+].url = "content"
+* title.extension[=].extension[=].valueString = "EPI Stock"
 * description = "DHIS2 data set EPI Stock (TuL8IOPzpHh) as a data capture form."
 * status = #draft
 * experimental = true
@@ -25,6 +30,11 @@ Usage: #definition
 * item[+].linkId = "cZnQDuF3IDz"
 * item[=].code = D2DE_CS#cZnQDuF3IDz "Stock PHU discarded BCG"
 * item[=].text = "Stock PHU discarded BCG"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU discarded BCG (doses, NOT vials)"
 * item[=].type = #group
 * item[=].item[+].linkId = "cZnQDuF3IDz.fsFN9T4ck3E"
 * item[=].item[=].code = D2COC_CS#fsFN9T4ck3E "Expired"
@@ -41,6 +51,11 @@ Usage: #definition
 * item[+].linkId = "FvKdfA2SuWI"
 * item[=].code = D2DE_CS#FvKdfA2SuWI "Stock PHU discarded Measles"
 * item[=].text = "Stock PHU discarded Measles"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU discarded MEASLES (doses, NOT vials)"
 * item[=].type = #group
 * item[=].item[+].linkId = "FvKdfA2SuWI.fsFN9T4ck3E"
 * item[=].item[=].code = D2COC_CS#fsFN9T4ck3E "Expired"
@@ -50,6 +65,7 @@ Usage: #definition
 * item[=].item[=].code = D2COC_CS#pn1upwnbxfn "Damages"
 * item[=].item[=].text = "Damages"
 * item[=].item[=].type = #decimal
+* item[=].item[=].required = true
 * item[=].item[+].linkId = "FvKdfA2SuWI.TxaWpw1pN5G"
 * item[=].item[=].code = D2COC_CS#TxaWpw1pN5G "VVM Change"
 * item[=].item[=].text = "VVM Change"
@@ -57,11 +73,17 @@ Usage: #definition
 * item[+].linkId = "WVrH6j3Wfye"
 * item[=].code = D2DE_CS#WVrH6j3Wfye "Stock PHU discarded OPV"
 * item[=].text = "Stock PHU discarded OPV"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU discarded OPV (doses, NOT vials)"
 * item[=].type = #group
 * item[=].item[+].linkId = "WVrH6j3Wfye.fsFN9T4ck3E"
 * item[=].item[=].code = D2COC_CS#fsFN9T4ck3E "Expired"
 * item[=].item[=].text = "Expired"
 * item[=].item[=].type = #decimal
+* item[=].item[=].required = true
 * item[=].item[+].linkId = "WVrH6j3Wfye.pn1upwnbxfn"
 * item[=].item[=].code = D2COC_CS#pn1upwnbxfn "Damages"
 * item[=].item[=].text = "Damages"
@@ -73,36 +95,81 @@ Usage: #definition
 * item[+].linkId = "p1MDHOT6ENy"
 * item[=].code = D2DE_CS#p1MDHOT6ENy "Stock PHU dispensed BCG"
 * item[=].text = "Stock PHU dispensed BCG"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU dispensed BCG (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "lVknokmR4Ip"
 * item[=].code = D2DE_CS#lVknokmR4Ip "Stock PHU dispensed Measles"
 * item[=].text = "Stock PHU dispensed Measles"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU dispensed MEASLES (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "FTINmL2lehN"
 * item[=].code = D2DE_CS#FTINmL2lehN "Stock PHU dispensed OPV"
 * item[=].text = "Stock PHU dispensed OPV"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU dispensed OPV (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "axVhq1itoQD"
 * item[=].code = D2DE_CS#axVhq1itoQD "Stock PHU received BCG"
 * item[=].text = "Stock PHU received BCG"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU received BCG (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "XNrjXqZrHD8"
 * item[=].code = D2DE_CS#XNrjXqZrHD8 "Stock PHU received Measles"
 * item[=].text = "Stock PHU received Measles"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU received MEASLES (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "nGCLjZDn0Q4"
 * item[=].code = D2DE_CS#nGCLjZDn0Q4 "Stock PHU received OPV"
 * item[=].text = "Stock PHU received OPV"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU received OPV (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "t99PL3gUxIl"
 * item[=].code = D2DE_CS#t99PL3gUxIl "Stock PHU start balance BCG"
 * item[=].text = "Stock PHU start balance BCG"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU start balance BCG (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "vEAo4KwsAzl"
 * item[=].code = D2DE_CS#vEAo4KwsAzl "Stock PHU start balance Measles"
 * item[=].text = "Stock PHU start balance Measles"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU start balance MEASLES (doses, NOT vials)"
 * item[=].type = #decimal
 * item[+].linkId = "iuSIObmKutb"
 * item[=].code = D2DE_CS#iuSIObmKutb "Stock PHU start balance OPV"
 * item[=].text = "Stock PHU start balance OPV"
+* item[=].text.extension[+].url = "http://hl7.org/fhir/StructureDefinition/translation"
+* item[=].text.extension[=].extension[+].url = "lang"
+* item[=].text.extension[=].extension[=].valueCode = #en-GB
+* item[=].text.extension[=].extension[+].url = "content"
+* item[=].text.extension[=].extension[=].valueString = "Stock PHU start balance OPV (doses, NOT vials)"
 * item[=].type = #decimal

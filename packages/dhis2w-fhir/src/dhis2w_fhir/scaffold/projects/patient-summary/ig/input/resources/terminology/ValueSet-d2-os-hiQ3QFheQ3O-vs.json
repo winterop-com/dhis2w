@@ -1,0 +1,27 @@
+{
+  "resourceType": "ValueSet",
+  "id": "d2-os-hiQ3QFheQ3O-vs",
+  "url": "http://example.org/fhir/examples/patient-summary/ValueSet/d2-os-hiQ3QFheQ3O-vs",
+  "identifier": [
+    {
+      "system": "http://dhis2.org/fhir/id/option-set",
+      "value": "hiQ3QFheQ3O"
+    },
+    {
+      "system": "http://dhis2.org/fhir/id/option-set-code",
+      "value": "hiQ3QFheQ3O"
+    }
+  ],
+  "name": "D2OS_hiQ3QFheQ3O_VS",
+  "title": "Sex",
+  "description": "DHIS2 option set Sex (hiQ3QFheQ3O). Concept codes are DHIS2 option UIDs.",
+  "status": "draft",
+  "experimental": true,
+  "compose": {
+    "include": [
+      {
+        "system": "http://example.org/fhir/examples/patient-summary/CodeSystem/d2-os-hiQ3QFheQ3O-cs"
+      }
+    ]
+  }
+}

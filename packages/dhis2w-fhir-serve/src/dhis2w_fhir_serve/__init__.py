@@ -5,9 +5,10 @@ Each module owns its schemas; this module is the one stable import surface over 
 
 What is deliberately NOT here is the capture UI. `dhis2w_fhir_serve.ui` and the `/facade/uiconfig` document
 exist so the built React bundle can work, they are reached by running the server with
-`settings.ui`, and `create_app` is the only thing that mounts them. `UiBundleMissingError` is the
-one exception: `create_app` raises it while building, so a caller of `create_app` has to be able to
-catch it by name.
+`settings.ui`, and `create_app` is the only thing that mounts them. The two refusals are the
+exception: `create_app` raises `UiBundleMissingError` where nothing was ever built and
+`UiBundleStaleError` where a checkout's bundle is older than the frontend source beside it, so a
+caller of `create_app` has to be able to catch either by name.
 """
 
 from dhis2w_fhir_serve.app import create_app
@@ -335,7 +336,7 @@ from dhis2w_fhir_serve.terminology import (
     ValidatedCode,
     load_terminology,
 )
-from dhis2w_fhir_serve.ui import UiBundleMissingError
+from dhis2w_fhir_serve.ui import UiBundleMissingError, UiBundleStaleError
 
 __all__ = [
     "FACADE_API_TITLE",
@@ -615,6 +616,7 @@ __all__ = [
     "TranslateRequest",
     "TranslationMatch",
     "UiBundleMissingError",
+    "UiBundleStaleError",
     "UnauthenticatedError",
     "UnreadableQuestionnaireError",
     "UnreadableReceiptError",

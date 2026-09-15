@@ -208,7 +208,7 @@ default and the flag wins:
 
 **`--canonical` reaches the whole tree.** A pre-built resource states its
 canonical in full - `Questionnaire.url`, `CodeSystem.url`, every `valueSet`
-reference - 409 of them in the smallest template. Scaffolding rewrites every
+reference - 545 of them in the smallest template. Scaffolding rewrites every
 one from the template's address to yours, so a project with a canonical of its
 own publishes nothing under the template's name.
 

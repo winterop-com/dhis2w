@@ -17,6 +17,23 @@
     }
   ],
   "name": "Sawuria CHP",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Sawuria CHP"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "type": [
     {
       "coding": [

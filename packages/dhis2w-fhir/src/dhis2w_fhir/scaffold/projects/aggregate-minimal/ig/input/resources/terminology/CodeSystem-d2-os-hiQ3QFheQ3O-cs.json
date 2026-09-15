@@ -1,0 +1,54 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "d2-os-hiQ3QFheQ3O-cs",
+  "url": "http://example.org/fhir/examples/aggregate-minimal/CodeSystem/d2-os-hiQ3QFheQ3O-cs",
+  "identifier": [
+    {
+      "system": "http://dhis2.org/fhir/id/option-set",
+      "value": "hiQ3QFheQ3O"
+    },
+    {
+      "system": "http://dhis2.org/fhir/id/option-set-code",
+      "value": "hiQ3QFheQ3O"
+    }
+  ],
+  "name": "D2OS_hiQ3QFheQ3O_CS",
+  "title": "Sex",
+  "description": "DHIS2 option set Sex (hiQ3QFheQ3O). Concept codes are DHIS2 option UIDs.",
+  "status": "draft",
+  "experimental": true,
+  "caseSensitive": true,
+  "content": "complete",
+  "count": 2,
+  "valueSet": "http://example.org/fhir/examples/aggregate-minimal/ValueSet/d2-os-hiQ3QFheQ3O-vs",
+  "property": [
+    {
+      "code": "dhis2-code",
+      "uri": "http://dhis2.org/fhir/property/dhis2-code",
+      "description": "DHIS2 option code.",
+      "type": "string"
+    }
+  ],
+  "concept": [
+    {
+      "code": "AZK4rjJCss5",
+      "display": "Female",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "FEMALE"
+        }
+      ]
+    },
+    {
+      "code": "UrUdMteQzlT",
+      "display": "Male",
+      "property": [
+        {
+          "code": "dhis2-code",
+          "valueString": "MALE"
+        }
+      ]
+    }
+  ]
+}

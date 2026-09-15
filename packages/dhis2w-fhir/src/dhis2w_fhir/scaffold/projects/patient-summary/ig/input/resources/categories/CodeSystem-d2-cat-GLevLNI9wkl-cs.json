@@ -38,6 +38,12 @@
           "code": "dhis2-code",
           "valueString": "default"
         }
+      ],
+      "designation": [
+        {
+          "language": "en-GB",
+          "value": "default"
+        }
       ]
     }
   ]

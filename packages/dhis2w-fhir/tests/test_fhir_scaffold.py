@@ -236,6 +236,36 @@ def test_fhir_toml_example_catalogues_only_keys_the_document_declares() -> None:
     assert config.generate.tracked_entity_types == {"Kd6Nk9wnAJa": "Group", "Bx8L1nQ4EiP": "Location"}
 
 
+def test_fhir_toml_example_says_an_empty_selection_list_still_means_everything() -> None:
+    """`include_ids = []` reads as "none of them" and selects all of them, so every table says so.
+
+    An empty list behaves exactly as an absent table, and `enabled = false` is what publishes none
+    of a kind. A catalog stating only the absent case leaves the reader who wrote the empty list
+    with a guide carrying every data set the instance holds and no line anywhere explaining it.
+    """
+    tables = _by_path()["fhir.example.toml"].split("\n[generate.")
+
+    for table in ("option_sets]", "categories]", "data_sets]", "event_programs]", "tracker_programs]"):
+        body = next(section for section in tables if section.startswith(table))
+        assert "or an empty list" in body, table
+
+
+def test_fhir_toml_example_says_which_selection_table_adds_and_which_narrows() -> None:
+    """Two adjacent tables, one wording, opposite behaviour - so each states which one it is.
+
+    `[generate.option_sets]` is additive: the option sets the selected forms bind their questions to
+    are published whatever the list says, and a UID there is one more beside them.
+    `[generate.categories]` filters: a non-empty list is the whole set published.
+    """
+    example = _by_path()["fhir.example.toml"]
+    option_sets = example.split("\n[generate.option_sets]", 1)[1].split("\n[generate.", 1)[0]
+    categories = example.split("\n[generate.categories]", 1)[1].split("\n[generate.", 1)[0]
+
+    assert "This table ADDS" in option_sets
+    assert "bind their questions to are published whatever it says" in option_sets
+    assert "This table NARROWS" in categories
+
+
 def test_fhir_toml_example_documents_the_serve_table() -> None:
     """`make serve` reads `[serve]`, so the example states the table and names the 8080 clash."""
     example = _by_path()["fhir.example.toml"]

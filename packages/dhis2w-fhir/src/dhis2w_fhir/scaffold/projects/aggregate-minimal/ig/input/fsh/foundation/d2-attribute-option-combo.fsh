@@ -3,7 +3,7 @@
 Extension: D2AttributeOptionCombo
 Id: d2-attribute-option-combo
 Title: "DHIS2 attribute option combo"
-Description: "The DHIS2 attribute option combo one aggregate response's values are keyed under, drawn from the ValueSet the form's D2AttributeOptionCombos extension names. Absent means the default attribute option combo."
+Description: "The DHIS2 attribute option combo one response is filed under - the third key of an aggregate response's values, the attribute option combo of the event or enrollment a program response creates - drawn from the ValueSet the form's D2AttributeOptionCombos extension names. Absent means the default attribute option combo."
 * ^status = #draft
 * ^experimental = true
 * ^context[+].type = #element

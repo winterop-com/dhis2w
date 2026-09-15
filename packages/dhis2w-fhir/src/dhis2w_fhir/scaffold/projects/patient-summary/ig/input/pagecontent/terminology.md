@@ -21,7 +21,7 @@ other DHIS2 identifier rides along on every concept as a property.
 | [MNCH Infant HIV test](CodeSystem-d2-os-oXR37f2wOb1-cs.html) | 4 | no |
 | [MNCH Polio doses (0-3)](CodeSystem-d2-os-kzgQRhOCadd-cs.html) | 4 | no |
 | [MNCH Yes No](CodeSystem-d2-os-XdI8KRJiRoZ-cs.html) | 3 | no |
-| [Vaccine type](CodeSystem-d2-os-OsVaccType1-cs.html) | 5 | no |
+| [Sex](CodeSystem-d2-os-hiQ3QFheQ3O-cs.html) | 2 | no |
 
 A "yes" in the fallback column means at least one option in that set has no usable DHIS2
 code, or its code was already taken inside the set, so that concept is coded by its DHIS2

@@ -2,8 +2,8 @@
 
 Instance: QuestionnaireResponse-nEenWmSyUEp-example-1
 InstanceOf: D2TrackedEntityResponse
-Title: "Example response - Person (Play)"
-Description: "Example QuestionnaireResponse against the DHIS2 tracked entity type registration Person (Play) (nEenWmSyUEp)."
+Title: "Example response - Person"
+Description: "Example QuestionnaireResponse against the DHIS2 tracked entity type registration Person (nEenWmSyUEp)."
 Usage: #example
 * id = "nEenWmSyUEp-example-1"
 * extension[D2FormType].valueCode = #tracked-entity
@@ -13,10 +13,10 @@ Usage: #example
 * subject.type = "Patient"
 * subject.identifier.system = $DHIS2-TE
 * subject.identifier.value = "SwMn9pN9cTo"
-* authored = "2026-08-09T14:00:00Z"
+* authored = "2026-09-03T14:00:00Z"
 * item[+].linkId = "w75KJ2mc4zz"
-* item[=].answer[+].valueString = "Example First name (Play)"
+* item[=].answer[+].valueString = "Example First name"
 * item[+].linkId = "zDhUuAYrxNC"
-* item[=].answer[+].valueString = "Example Last name (Play)"
+* item[=].answer[+].valueString = "Example Last name"
 * item[+].linkId = "lZGmxYbs97q"
-* item[=].answer[+].valueString = "Unique ID (Play) SwMn9pN9cTo"
+* item[=].answer[+].valueString = "Unique ID SwMn9pN9cTo"

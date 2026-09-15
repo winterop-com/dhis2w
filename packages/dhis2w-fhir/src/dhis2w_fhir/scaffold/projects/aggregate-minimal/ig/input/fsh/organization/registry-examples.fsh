@@ -2,32 +2,32 @@
 
 Instance: D2OrganizationExample
 InstanceOf: D2Organization
-Title: "Example DHIS2 Organization - Kambia (PMa2VCrupOd)"
-Description: "A worked D2Organization: DHIS2 organisation unit Kambia (PMa2VCrupOd) as the legal entity, carrying both DHIS2 identifiers and its hierarchy level."
+Title: "Example DHIS2 Organization"
+Description: "A worked D2Organization: Example organisation unit as the legal entity, carrying both DHIS2 identifier slices the profile requires and its hierarchy level. Its identifier value d2-example belongs to no organisation unit, so this example never answers a search for a published one."
 Usage: #example
 * id = "d2-organization-example"
 * identifier[dhis2id].system = $DHIS2-OU
-* identifier[dhis2id].value = "PMa2VCrupOd"
+* identifier[dhis2id].value = "d2-example"
 * identifier[dhis2code].system = $DHIS2-OU-CODE
-* identifier[dhis2code].value = "OU_211212"
+* identifier[dhis2code].value = "d2-example"
 * active = true
-* name = "Kambia"
-* type = D2OU_Level_CS#level-2 "Province"
+* name = "Example organisation unit"
+* type = D2OU_Level_CS#level-2 "District"
 
 Instance: D2LocationExample
 InstanceOf: D2Location
-Title: "Example DHIS2 Location - Kambia (PMa2VCrupOd)"
-Description: "A worked D2Location: DHIS2 organisation unit Kambia (PMa2VCrupOd) as the physical place, managed by the D2Organization of the same unit."
+Title: "Example DHIS2 Location"
+Description: "A worked D2Location: Example organisation unit as the physical place, managed by the D2Organization of the same example. Its identifier value d2-example belongs to no organisation unit, so this example never answers a search for a published one."
 Usage: #example
 * id = "d2-location-example"
 * identifier[dhis2id].system = $DHIS2-OU
-* identifier[dhis2id].value = "PMa2VCrupOd"
+* identifier[dhis2id].value = "d2-example"
 * identifier[dhis2code].system = $DHIS2-OU-CODE
-* identifier[dhis2code].value = "OU_211212"
+* identifier[dhis2code].value = "d2-example"
 * status = #active
-* name = "Kambia"
-* description = "A worked D2Location: DHIS2 organisation unit Kambia (PMa2VCrupOd) as the physical place, managed by the D2Organization of the same unit."
+* name = "Example organisation unit"
+* description = "A worked D2Location: Example organisation unit as the physical place, managed by the D2Organization of the same example. Its identifier value d2-example belongs to no organisation unit, so this example never answers a search for a published one."
 * position.longitude = -12.805049
 * position.latitude = 9.183654
-* extension[level].valueCoding = D2OU_Level_CS#level-2 "Province"
+* extension[level].valueCoding = D2OU_Level_CS#level-2 "District"
 * managingOrganization = Reference(D2OrganizationExample)

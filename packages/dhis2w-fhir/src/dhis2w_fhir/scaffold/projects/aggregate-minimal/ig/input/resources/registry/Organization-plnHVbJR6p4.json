@@ -6,6 +6,21 @@
       "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-organization"
     ]
   },
+  "extension": [
+    {
+      "extension": [
+        {
+          "url": "attributeId",
+          "valueString": "ihn1wb9eho8"
+        },
+        {
+          "url": "value",
+          "valueString": "{\"coordinates\":[[[-12.961799,9.018099],[-12.960499,9.0214],[-12.956679,9.026238],[-12.956438,9.026544],[-12.956251,9.026428],[-12.956233,9.026454],[-12.954953,9.025622],[-12.954496,9.024986],[-12.953512,9.024198],[-12.952791,9.023066],[-12.951873,9.022268],[-12.949678,9.020852],[-12.948493,9.019598],[-12.947854,9.018667],[-12.947749,9.017244],[-12.948084,9.01602],[-12.948556,9.015292],[-12.947906,9.015146],[-12.947575,9.014757],[-12.947355,9.014761],[-12.947811,9.013075],[-12.947232,9.012922],[-12.947443,9.012543],[-12.9474,9.012175],[-12.94754,9.012097],[-12.9509,9.0128],[-12.957899,9.0128],[-12.960999,9.0145],[-12.961799,9.018099]]],\"type\":\"Polygon\"}"
+        }
+      ],
+      "url": "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-attribute-value"
+    }
+  ],
   "identifier": [
     {
       "system": "http://dhis2.org/fhir/id/org-unit",
@@ -17,6 +32,23 @@
     }
   ],
   "name": "Ahamadyya Mission Cl",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Ahamadyya Mission Cl"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "type": [
     {
       "coding": [

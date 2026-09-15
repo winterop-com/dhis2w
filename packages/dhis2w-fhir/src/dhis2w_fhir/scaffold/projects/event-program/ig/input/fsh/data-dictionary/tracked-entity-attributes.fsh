@@ -37,15 +37,15 @@ Description: "DHIS2 tracked entity attributes captured by the generated tracker 
 * ^property[=].uri = "http://dhis2.org/fhir/property/display-in-list"
 * ^property[=].description = "Whether DHIS2 shows the tracked entity attribute in the working lists of any context this guide publishes."
 * ^property[=].type = #boolean
-* ^property[+].code = #searchable-PrAncCare01
-* ^property[=].uri = "http://dhis2.org/fhir/property/searchable-PrAncCare01"
-* ^property[=].description = "Whether DHIS2 declares the tracked entity attribute searchable in tracker program ANC follow-up (PrAncCare01)."
+* ^property[+].code = #searchable-IpHINAT79UW
+* ^property[=].uri = "http://dhis2.org/fhir/property/searchable-IpHINAT79UW"
+* ^property[=].description = "Whether DHIS2 declares the tracked entity attribute searchable in tracker program Child Programme (IpHINAT79UW)."
 * ^property[=].type = #boolean
 * ^property[+].code = #searchable-nEenWmSyUEp
 * ^property[=].uri = "http://dhis2.org/fhir/property/searchable-nEenWmSyUEp"
-* ^property[=].description = "Whether DHIS2 declares the tracked entity attribute searchable in tracked entity type Person (Play) (nEenWmSyUEp)."
+* ^property[=].description = "Whether DHIS2 declares the tracked entity attribute searchable in tracked entity type Person (nEenWmSyUEp)."
 * ^property[=].type = #boolean
-* #w75KJ2mc4zz "First name (Play)"
+* #w75KJ2mc4zz "First name"
 * #w75KJ2mc4zz ^property[+].code = #dhis2-code
 * #w75KJ2mc4zz ^property[=].valueString = "MMD_PER_NAM"
 * #w75KJ2mc4zz ^property[+].code = #value-type
@@ -58,11 +58,24 @@ Description: "DHIS2 tracked entity attributes captured by the generated tracker 
 * #w75KJ2mc4zz ^property[=].valueBoolean = false
 * #w75KJ2mc4zz ^property[+].code = #display-in-list
 * #w75KJ2mc4zz ^property[=].valueBoolean = true
-* #w75KJ2mc4zz ^property[+].code = #searchable-PrAncCare01
-* #w75KJ2mc4zz ^property[=].valueBoolean = false
+* #w75KJ2mc4zz ^property[+].code = #searchable-IpHINAT79UW
+* #w75KJ2mc4zz ^property[=].valueBoolean = true
 * #w75KJ2mc4zz ^property[+].code = #searchable-nEenWmSyUEp
 * #w75KJ2mc4zz ^property[=].valueBoolean = true
-* #zDhUuAYrxNC "Last name (Play)"
+* #cejWyOfXge6 "Gender"
+* #cejWyOfXge6 ^property[+].code = #value-type
+* #cejWyOfXge6 ^property[=].valueCode = #TEXT
+* #cejWyOfXge6 ^property[+].code = #unique
+* #cejWyOfXge6 ^property[=].valueBoolean = false
+* #cejWyOfXge6 ^property[+].code = #searchable
+* #cejWyOfXge6 ^property[=].valueBoolean = true
+* #cejWyOfXge6 ^property[+].code = #generated
+* #cejWyOfXge6 ^property[=].valueBoolean = false
+* #cejWyOfXge6 ^property[+].code = #display-in-list
+* #cejWyOfXge6 ^property[=].valueBoolean = false
+* #cejWyOfXge6 ^property[+].code = #searchable-IpHINAT79UW
+* #cejWyOfXge6 ^property[=].valueBoolean = true
+* #zDhUuAYrxNC "Last name"
 * #zDhUuAYrxNC ^property[+].code = #value-type
 * #zDhUuAYrxNC ^property[=].valueCode = #TEXT
 * #zDhUuAYrxNC ^property[+].code = #unique
@@ -73,11 +86,11 @@ Description: "DHIS2 tracked entity attributes captured by the generated tracker 
 * #zDhUuAYrxNC ^property[=].valueBoolean = false
 * #zDhUuAYrxNC ^property[+].code = #display-in-list
 * #zDhUuAYrxNC ^property[=].valueBoolean = true
-* #zDhUuAYrxNC ^property[+].code = #searchable-PrAncCare01
-* #zDhUuAYrxNC ^property[=].valueBoolean = false
+* #zDhUuAYrxNC ^property[+].code = #searchable-IpHINAT79UW
+* #zDhUuAYrxNC ^property[=].valueBoolean = true
 * #zDhUuAYrxNC ^property[+].code = #searchable-nEenWmSyUEp
 * #zDhUuAYrxNC ^property[=].valueBoolean = true
-* #lZGmxYbs97q "Unique ID (Play)"
+* #lZGmxYbs97q "Unique ID"
 * #lZGmxYbs97q ^property[+].code = #dhis2-code
 * #lZGmxYbs97q ^property[=].valueString = "MMD_PER_ID"
 * #lZGmxYbs97q ^property[+].code = #value-type
@@ -91,6 +104,8 @@ Description: "DHIS2 tracked entity attributes captured by the generated tracker 
 * #lZGmxYbs97q ^property[+].code = #pattern
 * #lZGmxYbs97q ^property[=].valueString = "RANDOM(#######)"
 * #lZGmxYbs97q ^property[+].code = #display-in-list
+* #lZGmxYbs97q ^property[=].valueBoolean = false
+* #lZGmxYbs97q ^property[+].code = #searchable-IpHINAT79UW
 * #lZGmxYbs97q ^property[=].valueBoolean = false
 * #lZGmxYbs97q ^property[+].code = #searchable-nEenWmSyUEp
 * #lZGmxYbs97q ^property[=].valueBoolean = false

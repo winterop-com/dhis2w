@@ -17,13 +17,30 @@
     }
   ],
   "name": "Pujehun",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Pujehun"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "type": [
     {
       "coding": [
         {
           "system": "http://example.org/fhir/examples/event-program/CodeSystem/d2-ou-level-cs",
           "code": "level-2",
-          "display": "Province"
+          "display": "District"
         }
       ]
     }

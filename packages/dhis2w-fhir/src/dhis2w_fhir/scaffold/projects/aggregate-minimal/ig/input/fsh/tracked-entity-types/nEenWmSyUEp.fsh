@@ -2,8 +2,8 @@
 
 Instance: Questionnaire-nEenWmSyUEp
 InstanceOf: Questionnaire
-Title: "Questionnaire - Person (Play)"
-Description: "DHIS2 tracked entity type Person (Play) (nEenWmSyUEp) as a registration form: the tracked entity attributes the type itself collects, captured when a person is registered without being enrolled in any program."
+Title: "Questionnaire - Person"
+Description: "DHIS2 tracked entity type Person (nEenWmSyUEp) as a registration form: the tracked entity attributes the type itself collects, captured when a person is registered without being enrolled in any program."
 Usage: #definition
 * id = "nEenWmSyUEp"
 * extension[D2FormType].valueCode = #tracked-entity
@@ -13,31 +13,31 @@ Usage: #definition
 * identifier[+].system = $DHIS2-TET-CODE
 * identifier[=].value = "nEenWmSyUEp"
 * name = "D2TET_nEenWmSyUEp"
-* title = "Person (Play)"
-* description = "DHIS2 tracked entity type Person (Play) (nEenWmSyUEp) as a registration form: the tracked entity attributes the type itself collects, captured when a person is registered without being enrolled in any program."
+* title = "Person"
+* description = "DHIS2 tracked entity type Person (nEenWmSyUEp) as a registration form: the tracked entity attributes the type itself collects, captured when a person is registered without being enrolled in any program."
 * status = #draft
 * experimental = true
 * subjectType = #Patient
 * code = D2FormType_CS#tracked-entity
 * item[+].linkId = "w75KJ2mc4zz"
-* item[=].code = D2TEA_CS#w75KJ2mc4zz "First name (Play)"
-* item[=].text = "First name (Play)"
+* item[=].code = D2TEA_CS#w75KJ2mc4zz "First name"
+* item[=].text = "First name"
 * item[=].type = #string
 * item[=].extension[+].url = "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-description"
 * item[=].extension[=].valueString = "First name"
 * item[=].extension[+].url = "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-entity-level"
 * item[=].extension[=].valueBoolean = true
 * item[+].linkId = "zDhUuAYrxNC"
-* item[=].code = D2TEA_CS#zDhUuAYrxNC "Last name (Play)"
-* item[=].text = "Last name (Play)"
+* item[=].code = D2TEA_CS#zDhUuAYrxNC "Last name"
+* item[=].text = "Last name"
 * item[=].type = #string
 * item[=].extension[+].url = "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-description"
 * item[=].extension[=].valueString = "Last name"
 * item[=].extension[+].url = "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-entity-level"
 * item[=].extension[=].valueBoolean = true
 * item[+].linkId = "lZGmxYbs97q"
-* item[=].code = D2TEA_CS#lZGmxYbs97q "Unique ID (Play)"
-* item[=].text = "Unique ID (Play)"
+* item[=].code = D2TEA_CS#lZGmxYbs97q "Unique ID"
+* item[=].text = "Unique ID"
 * item[=].type = #string
 * item[=].readOnly = true
 * item[=].extension[+].url = "http://example.org/fhir/examples/aggregate-minimal/StructureDefinition/d2-description"

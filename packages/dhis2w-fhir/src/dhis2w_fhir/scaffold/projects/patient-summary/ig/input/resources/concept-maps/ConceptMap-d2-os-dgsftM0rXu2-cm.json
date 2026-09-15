@@ -158,7 +158,7 @@
           "display": "NVP Only",
           "target": [
             {
-              "code": "NVP Only",
+              "code": "NVP-Only",
               "equivalence": "equal"
             }
           ]
@@ -168,7 +168,7 @@
           "display": "TDF/3TC/NVP - 1",
           "target": [
             {
-              "code": "TDF/3TC/NVP - 1",
+              "code": "TDF/3TC/NVP---1",
               "equivalence": "equal"
             }
           ]
@@ -178,7 +178,7 @@
           "display": "TDF/3TC/EFV - 1",
           "target": [
             {
-              "code": "TDF/3TC/EFV - 1",
+              "code": "TDF/3TC/EFV---1",
               "equivalence": "equal"
             }
           ]
@@ -188,7 +188,7 @@
           "display": "AZT/3TC/NVP - 1",
           "target": [
             {
-              "code": "AZT/3TC/NVP - 1",
+              "code": "AZT/3TC/NVP---1",
               "equivalence": "equal"
             }
           ]
@@ -198,7 +198,7 @@
           "display": "AZT/3TC/EFV - 1",
           "target": [
             {
-              "code": "AZT/3TC/EFV - 1",
+              "code": "AZT/3TC/EFV---1",
               "equivalence": "equal"
             }
           ]
@@ -208,7 +208,7 @@
           "display": "TDF/3TC/ATV/r - 2",
           "target": [
             {
-              "code": "TDF/3TC/ATV/r - 2",
+              "code": "TDF/3TC/ATV/r---2",
               "equivalence": "equal"
             }
           ]
@@ -218,7 +218,7 @@
           "display": "TDF/3TC/LPV/r - 2",
           "target": [
             {
-              "code": "TDF/3TC/LPV/r - 2",
+              "code": "TDF/3TC/LPV/r---2",
               "equivalence": "equal"
             }
           ]
@@ -228,7 +228,7 @@
           "display": "AZT/3TC/ATV/r - 2",
           "target": [
             {
-              "code": "AZT/3TC/ATV/r - 2",
+              "code": "AZT/3TC/ATV/r---2",
               "equivalence": "equal"
             }
           ]
@@ -238,7 +238,7 @@
           "display": "AZT/3TC/LPV/r - 2",
           "target": [
             {
-              "code": "AZT/3TC/LPV/r - 2",
+              "code": "AZT/3TC/LPV/r---2",
               "equivalence": "equal"
             }
           ]
@@ -248,7 +248,7 @@
           "display": "AZT/ddl/LPV/r - 2",
           "target": [
             {
-              "code": "AZT/ddl/LPV/r - 2",
+              "code": "AZT/ddl/LPV/r---2",
               "equivalence": "equal"
             }
           ]
@@ -258,7 +258,7 @@
           "display": "ABC/ddl/LPV/r -2",
           "target": [
             {
-              "code": "ABC/ddl/LPV/r -2",
+              "code": "ABC/ddl/LPV/r--2",
               "equivalence": "equal"
             }
           ]
@@ -268,7 +268,7 @@
           "display": "Other 1st line",
           "target": [
             {
-              "code": "Other 1st line",
+              "code": "Other-1st-line",
               "equivalence": "equal"
             }
           ]
@@ -278,7 +278,7 @@
           "display": "Other 2nd line",
           "target": [
             {
-              "code": "Other 2nd line",
+              "code": "Other-2nd-line",
               "equivalence": "equal"
             }
           ]

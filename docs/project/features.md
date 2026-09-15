@@ -545,6 +545,14 @@ chain in one command.
   template stating `concept_code_source` produces one `[generate]` table rather
   than a file that is not TOML. An unknown name is refused naming every template
   the listing names.
+- **A bundled payload is the tree today's generator writes.** All three are cut
+  from the DHIS2 demo database every `play.im.dhis2.org` server and the seeded
+  local stack carry, so each UID a `selection.toml` names exists on an instance
+  anyone can reach. Regenerating one needs an instance; catching a payload
+  nobody regenerated does not - `test_fhir_template_payloads.py` emits one
+  Location from a fixture organisation unit and holds every bundled Location to
+  the shape it produces, profile, identifier slices, translated name and level
+  extension alike. `scaffold/projects/README.md` is the regeneration procedure.
 - **An example is a template only when it declares itself one.** Each guide of
   `examples/fhir/igs/` carries a `template.toml`: `scaffolds = true` with the
   `summary` the listing prints, or `scaffolds = false` with the `refusal`
@@ -638,10 +646,11 @@ chain in one command.
   so a refresh adds what the scaffold gained (a new `path-resource` glob, a new
   `.gitignore` entry, a new menu entry) and never drops a line the user wrote.
   Each file is reported as created / rewritten (scaffold-owned) / refreshed /
-  unchanged / with your additions / diverged (kept) - the last two both keep the
-  file byte-identical, and `diverged` names no author, because a line the user
-  wrote and a scaffold line that has since changed read the same to a
-  line-preserving refresh. `fhir.toml` is never written; `--force` is rejected;
+  unchanged / with your additions / diverged (kept), in the summary table and in
+  the file list below it in the same words - the last two both keep the file
+  byte-identical, and `diverged` names no author, because a line the user wrote
+  and a scaffold line that has since changed read the same to a line-preserving
+  refresh. `fhir.toml` is never written; `--force` is rejected;
   any flag the refresh would ignore is refused.
   The accepted consequence is that a scaffold line deliberately deleted is
   restored, since a deletion leaves the file a subsequence of the render.
@@ -735,7 +744,12 @@ chain in one command.
   streams the package's `package.tgz` (`REGISTRY_TGZ`, defaulting to
   `<registry.path>/ig/output/package.tgz`) into the shared package-cache volume
   under `<id>#<version>/package/`; `sushi`, `build` and `build-bind` depend on
-  it. The registry project builds in its own container, so neither build
+  it. `make registry-present` runs ahead of all of them and of the volume they
+  share: an archive that is not there is two `test` calls and a refusal, so a
+  compile that cannot finish creates no docker volume on its way to failing. The
+  refusal names the registry's own `make build`, and says that
+  `d2w fhir serve --live` and `d2w fhir forward` read the two projects as they
+  stand and need no build of either. The registry project builds in its own container, so neither build
   carries the other's resources; one `JAVA_HEAP` on the root Makefile reaches
   both through make's own variable propagation, and each project derives its
   own ceiling when none is set.
@@ -3481,6 +3495,13 @@ an identifier search and a paged listing on one page, with a detail route at
 - **Routing is hash-based**, so a reload needs no SPA fallback.
 - **`--ui` without a built bundle refuses in one line** naming
   `make ui` rather than serving a blank page.
+- **Every `--ui` run names the bundle it serves**, from the stamp `make ui`
+  writes into it: the build time and a fingerprint of the frontend source that
+  build read. In a checkout the stamp is graded as well as printed, so a bundle
+  older than the source beside it refuses rather than serving JavaScript the
+  checkout has moved past; an installed wheel carries no frontend source and is
+  never graded. `make install` builds the bundle where `pnpm` is on PATH and
+  says so where it is not, so an API-only install still needs no node.
 - **Covered by vitest unit tests** over its wire layer and by a Playwright
   suite (`make e2e-frontend`) that boots a real `d2w fhir serve --ui` on its
   own port over a fixture IG project and drives the capture loop end to end

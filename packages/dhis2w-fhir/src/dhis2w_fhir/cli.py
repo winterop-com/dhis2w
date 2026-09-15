@@ -1036,10 +1036,12 @@ def _refresh_project(directory: Path) -> None:
         _line(f"  refreshed {relative_path}")
     for relative_path in report.unchanged_files:
         _line(f"  unchanged {relative_path}")
+    # The two verdicts the table separates are separate here too: "kept" for both would teach a
+    # distinction in the summary and drop it in the detail, which is where a reader looks for it.
     for relative_path in report.extended_files:
-        _line(f"  kept {relative_path} (already carries the current scaffold, plus lines of your own)")
+        _line(f"  with your additions {relative_path} (carries every current scaffold line, plus lines of your own)")
     for relative_path in report.diverged_files:
-        _line(f"  kept {relative_path} (holds lines the current scaffold does not write)")
+        _line(f"  diverged (kept) {relative_path} (holds lines the current scaffold does not write)")
     _hint("note", f"{FHIR_CONFIG_FILENAME} is yours - a refresh never writes it")
     if report.rewritten_files:
         _hint(
@@ -2129,8 +2131,9 @@ def serve_command(
         typer.Option(
             "--ui/--no-ui",
             help="Serve the capture UI at `/` alongside the FHIR routes, overriding `\\[serve] ui`. "
-            "The bundle is mounted around them and shadows none of them; a checkout that has never "
-            "run `make ui` is refused rather than served blank.",
+            "The bundle is mounted around them and shadows none of them, and the run names the build "
+            "it is serving. In a checkout, a bundle older than the frontend source beside it is refused "
+            "rather than served: `make ui` builds it, and the refusal says so.",
         ),
     ] = None,
     basemap: Annotated[
@@ -2175,6 +2178,10 @@ def serve_command(
     """
     try:
         from dhis2w_fhir_serve import ServeAuthConfigurationError, ServeSettings, configure_logging, create_app
+
+        # The stamp exists so the capture UI can be told apart from the last one built, which keeps it
+        # off the serve package's library surface: it is read from its own module, not the package root.
+        from dhis2w_fhir_serve.ui import read_ui_build_stamp
     except ImportError as error:
         raise LookupError(_serve_package_missing("serve")) from error
 
@@ -2205,14 +2212,18 @@ def serve_command(
     generation = invocation.generation
     _preflight_bind(invocation.host, invocation.port)
     configure_logging()
-    # The app is built before the banner so a missing UI bundle refuses as one line here, the way
-    # a taken port does, rather than under a message saying the server is starting.
+    # The app is built before the banner so a missing or stale UI bundle refuses as one line here,
+    # the way a taken port does, rather than under a message saying the server is starting.
     application = create_app(settings)
     surface = _serve_surface(capture=settings.capture, ui=settings.ui, publishes=settings.publishes)
     _line(
         f"starting {project.project_root} on http://{invocation.host}:{invocation.port} as a {surface} (ctrl-c to stop)"
     )
     if settings.ui:
+        # The bundle is a build artifact, so the run says which one it is serving. A checkout with a
+        # stale one never reaches this line; a wheel's bundle is whatever the release packaged.
+        stamp = read_ui_build_stamp()
+        _hint("bundle", stamp.describe() if stamp is not None else "the capture UI bundle carries no build stamp")
         _hint(
             "links",
             f"the screens link identities into {generation.profile.base_url} ({generation.name}, "

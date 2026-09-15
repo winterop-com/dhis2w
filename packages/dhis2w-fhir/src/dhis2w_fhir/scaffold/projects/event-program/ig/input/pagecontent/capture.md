@@ -126,7 +126,7 @@ reported period is a finished one.
 
 ## A tracker event response, step by step
 
-The steps are worked against **ANC follow-up - ANC visit** (`PsAncVisit1`).
+The steps are worked against **Child Programme - Baby Postnatal** (`ZzYYXq4fJie`).
 
 A tracker event response answers one stage of a tracker program, for one event of one
 enrollment. It follows the event response, with the context an enrolled tracked entity adds:
@@ -138,7 +138,7 @@ enrollment. It follows the event response, with the context an enrolled tracked 
   program *stage*, not of the tracker program.
 
 ```
-"questionnaire": "http://example.org/fhir/examples/event-program/Questionnaire/PsAncVisit1"
+"questionnaire": "http://example.org/fhir/examples/event-program/Questionnaire/ZzYYXq4fJie"
 ```
 
 **1. Name the tracked entity.** `subject` is a logical reference: this guide publishes no
@@ -182,9 +182,10 @@ aggregate form does, and are typed by the same table.
 
 | `linkId` | Grammar | Answers | Answer element | Required |
 | --- | --- | --- | --- | --- |
-| `DeAncVisNo1` | `<dataElementId>` | ANC visit number | `valueInteger` | yes |
-| `DeAncBpSys1` | `<dataElementId>` | ANC systolic blood pressure | `valueInteger` | no |
-| `DeAncDanger` | `<dataElementId>` | ANC danger signs present | `valueBoolean` | no |
+| `GQY2lXrypjO` | `<dataElementId>` | MCH Infant Weight (g) | `valueDecimal` | no |
+| `X8zyunlgUfM` | `<dataElementId>` | MCH Infant Feeding | `valueCoding` | no |
+| `FqlgKAG8HOu` | `<dataElementId>` | MCH Measles dose | `valueBoolean` | no |
+| `vTUhAUZFoys` | `<dataElementId>` | MCH Penta dose | `valueCoding` | no |
 
 `status` maps from the DHIS2 event status exactly as it does for an event program.
 

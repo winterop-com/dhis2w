@@ -9,7 +9,7 @@ Description: "DHIS2 tracked entity types the generated forms register an entity 
 * ^content = #complete
 * ^caseSensitive = true
 * ^valueSet = Canonical(D2TET_VS)
-* #nEenWmSyUEp "Person (Play)"
+* #nEenWmSyUEp "Person"
 
 ValueSet: D2TET_VS
 Id: d2-tet-vs
@@ -35,6 +35,6 @@ Usage: #definition
 * group[0].source = "http://example.org/fhir/examples/event-program/CodeSystem/d2-tet-cs"
 * group[0].target = "http://hl7.org/fhir/resource-types"
 * group[0].element[0].code = #nEenWmSyUEp
-* group[0].element[0].display = "Person (Play)"
+* group[0].element[0].display = "Person"
 * group[0].element[0].target[0].code = #Patient
 * group[0].element[0].target[0].equivalence = #equal

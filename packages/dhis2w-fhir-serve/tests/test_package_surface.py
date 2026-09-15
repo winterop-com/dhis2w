@@ -7,8 +7,10 @@ React bundle's sake would make the doctrine's one exception - see `docs/fhir/des
 a sentence in a design paper rather than something a reviewer can check.
 
 The rule the last of those leaves behind is short enough to read: if a name exists so the capture UI
-can work, it is not on the library surface. `UiBundleMissingError` is the exception, and it is
-exactly one: `create_app` raises it while building, so a caller of `create_app` catches it by name.
+can work, it is not on the library surface. The two refusals are the exception, and they are exactly
+two: `create_app` raises `UiBundleMissingError` where no bundle was ever built and
+`UiBundleStaleError` where a checkout's bundle is older than the frontend source beside it, so a
+caller of `create_app` catches either by name.
 """
 
 from __future__ import annotations
@@ -31,16 +33,21 @@ RENDER_DIRECTIVE = re.compile(rf"^:::\s+({PACKAGE_NAME}[\w.]*)\s*$", re.MULTILIN
 #: The modules that exist so the built React bundle can work.
 UI_MODULES = frozenset({f"{PACKAGE_NAME}.ui", f"{PACKAGE_NAME}.routes.uiconfig"})
 
-#: The one name from those modules the surface keeps, because `create_app` raises it while building.
-UI_EXCEPTION = "UiBundleMissingError"
+#: The names from those modules the surface keeps, because `create_app` raises them while building.
+UI_REFUSALS = frozenset({"UiBundleMissingError", "UiBundleStaleError"})
 
 #: Every name the UI modules publish that the surface does not - R8's list, stated so it can be checked.
 WITHDRAWN_UI_NAMES = (
     "STATIC_DIRECTORY",
     "UiStaticFiles",
+    "CaptureUiBuildStamp",
     "mount_ui_assets",
     "mount_ui_shell",
     "ui_bundle_present",
+    "frontend_source_directory",
+    "fingerprint_frontend_source",
+    "read_ui_build_stamp",
+    "write_build_stamp",
     "UiConfig",
     "BasemapLayer",
     "RegisterUiConfig",
@@ -101,7 +108,7 @@ def test_every_published_name_comes_from_a_module_the_reference_renders() -> Non
     unrendered = {
         name: module
         for name in dhis2w_fhir_serve.__all__
-        if name != UI_EXCEPTION
+        if name not in UI_REFUSALS
         for module in [_defining_module(name)]
         if module is not None and module not in rendered
     }
@@ -137,11 +144,11 @@ def test_no_name_that_exists_for_the_capture_ui_is_published() -> None:
     assert [name for name in WITHDRAWN_UI_NAMES if name in published] == []
 
 
-def test_the_one_ui_name_the_surface_keeps_is_the_refusal() -> None:
-    """`create_app` raises it while building, so an embedder calling `create_app` can catch it by name."""
+def test_the_ui_names_the_surface_keeps_are_the_refusals() -> None:
+    """`create_app` raises both while building, so an embedder calling `create_app` can catch either by name."""
     from_ui = {name for name in dhis2w_fhir_serve.__all__ if _defining_module(name) in UI_MODULES}
 
-    assert from_ui == {UI_EXCEPTION}
+    assert from_ui == UI_REFUSALS
 
 
 def test_the_projection_seams_are_importable_in_one_import() -> None:

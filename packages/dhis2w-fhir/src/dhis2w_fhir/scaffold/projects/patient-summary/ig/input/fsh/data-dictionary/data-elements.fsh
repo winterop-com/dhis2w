@@ -17,17 +17,27 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * ^property[=].uri = "http://dhis2.org/fhir/property/domain"
 * ^property[=].description = "DHIS2 data element domain type."
 * ^property[=].type = #code
+* ^property[+].code = #form-name
+* ^property[=].uri = "http://dhis2.org/fhir/property/form-name"
+* ^property[=].description = "DHIS2 data element form name, which is the text of every question asking it. Absent where DHIS2 states none, in which case the question is asked under the concept display."
+* ^property[=].type = #string
 * ^property[+].code = #value-type
 * ^property[=].uri = "http://dhis2.org/fhir/property/value-type"
 * ^property[=].description = "DHIS2 data element value type."
 * ^property[=].type = #code
-* #s46m5MS0hxu "BCG doses given"
-* #s46m5MS0hxu ^property[+].code = #dhis2-code
-* #s46m5MS0hxu ^property[=].valueString = "DE_359706"
-* #s46m5MS0hxu ^property[+].code = #domain
-* #s46m5MS0hxu ^property[=].valueCode = #aggregate
-* #s46m5MS0hxu ^property[+].code = #value-type
-* #s46m5MS0hxu ^property[=].valueCode = #INTEGER
+* #qrur9Dvnyt5 "Age in years"
+* #qrur9Dvnyt5 ^property[+].code = #dhis2-code
+* #qrur9Dvnyt5 ^property[=].valueString = "DE_3000003"
+* #qrur9Dvnyt5 ^property[+].code = #domain
+* #qrur9Dvnyt5 ^property[=].valueCode = #tracker
+* #qrur9Dvnyt5 ^property[+].code = #form-name
+* #qrur9Dvnyt5 ^property[=].valueString = "Age (years)"
+* #qrur9Dvnyt5 ^property[+].code = #value-type
+* #qrur9Dvnyt5 ^property[=].valueCode = #INTEGER
+* #qrur9Dvnyt5 ^designation[+].language = #es
+* #qrur9Dvnyt5 ^designation[=].value = "Edad en años"
+* #qrur9Dvnyt5 ^designation[+].language = #fr
+* #qrur9Dvnyt5 ^designation[=].value = "Âge en années"
 * #uf3svrmp8Oj "Birth certificate"
 * #uf3svrmp8Oj ^property[+].code = #dhis2-code
 * #uf3svrmp8Oj ^property[=].valueString = "DE_424405"
@@ -35,11 +45,31 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #uf3svrmp8Oj ^property[=].valueCode = #tracker
 * #uf3svrmp8Oj ^property[+].code = #value-type
 * #uf3svrmp8Oj ^property[=].valueCode = #FILE_RESOURCE
+* #oZg33kd9taw "Gender"
+* #oZg33kd9taw ^property[+].code = #dhis2-code
+* #oZg33kd9taw ^property[=].valueString = "DE_3000004"
+* #oZg33kd9taw ^property[+].code = #domain
+* #oZg33kd9taw ^property[=].valueCode = #tracker
+* #oZg33kd9taw ^property[+].code = #form-name
+* #oZg33kd9taw ^property[=].valueString = "Gender"
+* #oZg33kd9taw ^property[+].code = #value-type
+* #oZg33kd9taw ^property[=].valueCode = #TEXT
+* #oZg33kd9taw ^designation[+].language = #fr
+* #oZg33kd9taw ^designation[=].value = "Genre"
+* #F3ogKBuviRA "Household location"
+* #F3ogKBuviRA ^property[+].code = #dhis2-code
+* #F3ogKBuviRA ^property[=].valueString = "DE_862575"
+* #F3ogKBuviRA ^property[+].code = #domain
+* #F3ogKBuviRA ^property[=].valueCode = #tracker
+* #F3ogKBuviRA ^property[+].code = #value-type
+* #F3ogKBuviRA ^property[=].valueCode = #COORDINATE
 * #wQLfBvPrXqq "MCH ARV at birth"
 * #wQLfBvPrXqq ^property[+].code = #dhis2-code
 * #wQLfBvPrXqq ^property[=].valueString = "DE_2008294"
 * #wQLfBvPrXqq ^property[+].code = #domain
 * #wQLfBvPrXqq ^property[=].valueCode = #tracker
+* #wQLfBvPrXqq ^property[+].code = #form-name
+* #wQLfBvPrXqq ^property[=].valueString = "ARV at birth"
 * #wQLfBvPrXqq ^property[+].code = #value-type
 * #wQLfBvPrXqq ^property[=].valueCode = #TEXT
 * #a3kGcGDCuk6 "MCH Apgar Score"
@@ -47,6 +77,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #a3kGcGDCuk6 ^property[=].valueString = "DE_2006098"
 * #a3kGcGDCuk6 ^property[+].code = #domain
 * #a3kGcGDCuk6 ^property[=].valueCode = #tracker
+* #a3kGcGDCuk6 ^property[+].code = #form-name
+* #a3kGcGDCuk6 ^property[=].valueString = "Apgar Score"
 * #a3kGcGDCuk6 ^property[+].code = #value-type
 * #a3kGcGDCuk6 ^property[=].valueCode = #NUMBER
 * #H6uSAMO5WLD "MCH Apgar comment"
@@ -54,6 +86,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #H6uSAMO5WLD ^property[=].valueString = "DE_391382"
 * #H6uSAMO5WLD ^property[+].code = #domain
 * #H6uSAMO5WLD ^property[=].valueCode = #tracker
+* #H6uSAMO5WLD ^property[+].code = #form-name
+* #H6uSAMO5WLD ^property[=].valueString = "Apgar comment"
 * #H6uSAMO5WLD ^property[+].code = #value-type
 * #H6uSAMO5WLD ^property[=].valueCode = #LONG_TEXT
 * #bx6fsa0t90x "MCH BCG dose"
@@ -61,6 +95,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #bx6fsa0t90x ^property[=].valueString = "DE_2006101"
 * #bx6fsa0t90x ^property[+].code = #domain
 * #bx6fsa0t90x ^property[=].valueCode = #tracker
+* #bx6fsa0t90x ^property[+].code = #form-name
+* #bx6fsa0t90x ^property[=].valueString = "BCG dose"
 * #bx6fsa0t90x ^property[+].code = #value-type
 * #bx6fsa0t90x ^property[=].valueCode = #BOOLEAN
 * #sj3j9Hwc7so "MCH Child ARVs"
@@ -68,6 +104,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #sj3j9Hwc7so ^property[=].valueString = "DE_2006100"
 * #sj3j9Hwc7so ^property[+].code = #domain
 * #sj3j9Hwc7so ^property[=].valueCode = #tracker
+* #sj3j9Hwc7so ^property[+].code = #form-name
+* #sj3j9Hwc7so ^property[=].valueString = "Child ARVs"
 * #sj3j9Hwc7so ^property[+].code = #value-type
 * #sj3j9Hwc7so ^property[=].valueCode = #TEXT
 * #pOe0ogW4OWd "MCH DPT dose"
@@ -75,6 +113,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #pOe0ogW4OWd ^property[=].valueString = "DE_2006105"
 * #pOe0ogW4OWd ^property[+].code = #domain
 * #pOe0ogW4OWd ^property[=].valueCode = #tracker
+* #pOe0ogW4OWd ^property[+].code = #form-name
+* #pOe0ogW4OWd ^property[=].valueString = "DPT dose"
 * #pOe0ogW4OWd ^property[+].code = #value-type
 * #pOe0ogW4OWd ^property[=].valueCode = #TEXT
 * #hDZbpskhqDd "MCH HIV Test Type"
@@ -82,6 +122,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #hDZbpskhqDd ^property[=].valueString = "DE_2006108"
 * #hDZbpskhqDd ^property[+].code = #domain
 * #hDZbpskhqDd ^property[=].valueCode = #tracker
+* #hDZbpskhqDd ^property[+].code = #form-name
+* #hDZbpskhqDd ^property[=].valueString = "HIV Test Type"
 * #hDZbpskhqDd ^property[+].code = #value-type
 * #hDZbpskhqDd ^property[=].valueCode = #TEXT
 * #lNNb3truQoi "MCH IPT dose"
@@ -89,6 +131,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #lNNb3truQoi ^property[=].valueString = "DE_2005744"
 * #lNNb3truQoi ^property[+].code = #domain
 * #lNNb3truQoi ^property[=].valueCode = #tracker
+* #lNNb3truQoi ^property[+].code = #form-name
+* #lNNb3truQoi ^property[=].valueString = "IPT dose"
 * #lNNb3truQoi ^property[+].code = #value-type
 * #lNNb3truQoi ^property[=].valueCode = #TEXT
 * #X8zyunlgUfM "MCH Infant Feeding"
@@ -96,6 +140,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #X8zyunlgUfM ^property[=].valueString = "DE_2006103"
 * #X8zyunlgUfM ^property[+].code = #domain
 * #X8zyunlgUfM ^property[=].valueCode = #tracker
+* #X8zyunlgUfM ^property[+].code = #form-name
+* #X8zyunlgUfM ^property[=].valueString = "Infant Feeding"
 * #X8zyunlgUfM ^property[+].code = #value-type
 * #X8zyunlgUfM ^property[=].valueCode = #TEXT
 * #cYGaxwK615G "MCH Infant HIV Test Result"
@@ -103,6 +149,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #cYGaxwK615G ^property[=].valueString = "DE_2006107"
 * #cYGaxwK615G ^property[+].code = #domain
 * #cYGaxwK615G ^property[=].valueCode = #tracker
+* #cYGaxwK615G ^property[+].code = #form-name
+* #cYGaxwK615G ^property[=].valueString = "Infant HIV Test Result"
 * #cYGaxwK615G ^property[+].code = #value-type
 * #cYGaxwK615G ^property[=].valueCode = #TEXT
 * #GQY2lXrypjO "MCH Infant Weight (g)"
@@ -110,6 +158,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #GQY2lXrypjO ^property[=].valueString = "DE_2006099"
 * #GQY2lXrypjO ^property[+].code = #domain
 * #GQY2lXrypjO ^property[=].valueCode = #tracker
+* #GQY2lXrypjO ^property[+].code = #form-name
+* #GQY2lXrypjO ^property[=].valueString = "Infant Weight (g)"
 * #GQY2lXrypjO ^property[+].code = #value-type
 * #GQY2lXrypjO ^property[=].valueCode = #NUMBER
 * #FqlgKAG8HOu "MCH Measles dose"
@@ -117,6 +167,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #FqlgKAG8HOu ^property[=].valueString = "DE_2006125"
 * #FqlgKAG8HOu ^property[+].code = #domain
 * #FqlgKAG8HOu ^property[=].valueCode = #tracker
+* #FqlgKAG8HOu ^property[+].code = #form-name
+* #FqlgKAG8HOu ^property[=].valueString = "Measles dose"
 * #FqlgKAG8HOu ^property[+].code = #value-type
 * #FqlgKAG8HOu ^property[=].valueCode = #BOOLEAN
 * #ebaJjqltK5N "MCH OPV dose"
@@ -124,6 +176,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #ebaJjqltK5N ^property[=].valueString = "DE_2006104"
 * #ebaJjqltK5N ^property[+].code = #domain
 * #ebaJjqltK5N ^property[=].valueCode = #tracker
+* #ebaJjqltK5N ^property[+].code = #form-name
+* #ebaJjqltK5N ^property[=].valueString = "OPV dose"
 * #ebaJjqltK5N ^property[+].code = #value-type
 * #ebaJjqltK5N ^property[=].valueCode = #TEXT
 * #vTUhAUZFoys "MCH Penta dose"
@@ -131,6 +185,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #vTUhAUZFoys ^property[=].valueString = "DE_347311"
 * #vTUhAUZFoys ^property[+].code = #domain
 * #vTUhAUZFoys ^property[=].valueCode = #tracker
+* #vTUhAUZFoys ^property[+].code = #form-name
+* #vTUhAUZFoys ^property[=].valueString = "Penta dose"
 * #vTUhAUZFoys ^property[+].code = #value-type
 * #vTUhAUZFoys ^property[=].valueCode = #TEXT
 * #BeynU4L6VCQ "MCH Results given to caretaker"
@@ -138,6 +194,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #BeynU4L6VCQ ^property[=].valueString = "DE_2006110"
 * #BeynU4L6VCQ ^property[+].code = #domain
 * #BeynU4L6VCQ ^property[=].valueCode = #tracker
+* #BeynU4L6VCQ ^property[+].code = #form-name
+* #BeynU4L6VCQ ^property[=].valueString = "Results given to caretaker"
 * #BeynU4L6VCQ ^property[+].code = #value-type
 * #BeynU4L6VCQ ^property[=].valueCode = #TEXT
 * #aei1xRjSU2l "MCH Septrin Given"
@@ -145,6 +203,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #aei1xRjSU2l ^property[=].valueString = "DE_2006109"
 * #aei1xRjSU2l ^property[+].code = #domain
 * #aei1xRjSU2l ^property[=].valueCode = #tracker
+* #aei1xRjSU2l ^property[+].code = #form-name
+* #aei1xRjSU2l ^property[=].valueString = "Septrin Given"
 * #aei1xRjSU2l ^property[+].code = #value-type
 * #aei1xRjSU2l ^property[=].valueCode = #TEXT
 * #OuJ6sgPyAbC "MCH Visit Comment"
@@ -152,6 +212,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #OuJ6sgPyAbC ^property[=].valueString = "DE_2008126"
 * #OuJ6sgPyAbC ^property[+].code = #domain
 * #OuJ6sgPyAbC ^property[=].valueCode = #tracker
+* #OuJ6sgPyAbC ^property[+].code = #form-name
+* #OuJ6sgPyAbC ^property[=].valueString = "Visit comment (optional)"
 * #OuJ6sgPyAbC ^property[+].code = #value-type
 * #OuJ6sgPyAbC ^property[=].valueCode = #LONG_TEXT
 * #HLmTEmupdX0 "MCH Vit A"
@@ -159,6 +221,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #HLmTEmupdX0 ^property[=].valueString = "DE_2006106"
 * #HLmTEmupdX0 ^property[+].code = #domain
 * #HLmTEmupdX0 ^property[=].valueCode = #tracker
+* #HLmTEmupdX0 ^property[+].code = #form-name
+* #HLmTEmupdX0 ^property[=].valueString = "Vit A"
 * #HLmTEmupdX0 ^property[+].code = #value-type
 * #HLmTEmupdX0 ^property[=].valueCode = #BOOLEAN
 * #UXz7xuGCEhU "MCH Weight (g)"
@@ -166,6 +230,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #UXz7xuGCEhU ^property[=].valueString = "DE_2005736"
 * #UXz7xuGCEhU ^property[+].code = #domain
 * #UXz7xuGCEhU ^property[=].valueCode = #tracker
+* #UXz7xuGCEhU ^property[+].code = #form-name
+* #UXz7xuGCEhU ^property[=].valueString = "Weight (g)"
 * #UXz7xuGCEhU ^property[+].code = #value-type
 * #UXz7xuGCEhU ^property[=].valueCode = #NUMBER
 * #rxBfISxXS2U "MCH Yellow fever dose"
@@ -173,15 +239,10 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #rxBfISxXS2U ^property[=].valueString = "DE_2006126"
 * #rxBfISxXS2U ^property[+].code = #domain
 * #rxBfISxXS2U ^property[=].valueCode = #tracker
+* #rxBfISxXS2U ^property[+].code = #form-name
+* #rxBfISxXS2U ^property[=].valueString = "Yellow fever dose"
 * #rxBfISxXS2U ^property[+].code = #value-type
 * #rxBfISxXS2U ^property[=].valueCode = #BOOLEAN
-* #YtbsuPPo010 "Measles doses given"
-* #YtbsuPPo010 ^property[+].code = #dhis2-code
-* #YtbsuPPo010 ^property[=].valueString = "DE_34"
-* #YtbsuPPo010 ^property[+].code = #domain
-* #YtbsuPPo010 ^property[=].valueCode = #aggregate
-* #YtbsuPPo010 ^property[+].code = #value-type
-* #YtbsuPPo010 ^property[=].valueCode = #NUMBER
 * #cZnQDuF3IDz "Stock PHU discarded BCG"
 * #cZnQDuF3IDz ^property[+].code = #dhis2-code
 * #cZnQDuF3IDz ^property[=].valueString = "DE_360103"
@@ -189,6 +250,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #cZnQDuF3IDz ^property[=].valueCode = #aggregate
 * #cZnQDuF3IDz ^property[+].code = #value-type
 * #cZnQDuF3IDz ^property[=].valueCode = #NUMBER
+* #cZnQDuF3IDz ^designation[+].language = #en-GB
+* #cZnQDuF3IDz ^designation[=].value = "Stock PHU discarded BCG (doses, NOT vials)"
 * #FvKdfA2SuWI "Stock PHU discarded Measles"
 * #FvKdfA2SuWI ^property[+].code = #dhis2-code
 * #FvKdfA2SuWI ^property[=].valueString = "DE_360126"
@@ -196,6 +259,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #FvKdfA2SuWI ^property[=].valueCode = #aggregate
 * #FvKdfA2SuWI ^property[+].code = #value-type
 * #FvKdfA2SuWI ^property[=].valueCode = #NUMBER
+* #FvKdfA2SuWI ^designation[+].language = #en-GB
+* #FvKdfA2SuWI ^designation[=].value = "Stock PHU discarded MEASLES (doses, NOT vials)"
 * #WVrH6j3Wfye "Stock PHU discarded OPV"
 * #WVrH6j3Wfye ^property[+].code = #dhis2-code
 * #WVrH6j3Wfye ^property[=].valueString = "DE_360129"
@@ -203,6 +268,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #WVrH6j3Wfye ^property[=].valueCode = #aggregate
 * #WVrH6j3Wfye ^property[+].code = #value-type
 * #WVrH6j3Wfye ^property[=].valueCode = #NUMBER
+* #WVrH6j3Wfye ^designation[+].language = #en-GB
+* #WVrH6j3Wfye ^designation[=].value = "Stock PHU discarded OPV (doses, NOT vials)"
 * #p1MDHOT6ENy "Stock PHU dispensed BCG"
 * #p1MDHOT6ENy ^property[+].code = #dhis2-code
 * #p1MDHOT6ENy ^property[=].valueString = "DE_360049"
@@ -210,6 +277,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #p1MDHOT6ENy ^property[=].valueCode = #aggregate
 * #p1MDHOT6ENy ^property[+].code = #value-type
 * #p1MDHOT6ENy ^property[=].valueCode = #NUMBER
+* #p1MDHOT6ENy ^designation[+].language = #en-GB
+* #p1MDHOT6ENy ^designation[=].value = "Stock PHU dispensed BCG (doses, NOT vials)"
 * #lVknokmR4Ip "Stock PHU dispensed Measles"
 * #lVknokmR4Ip ^property[+].code = #dhis2-code
 * #lVknokmR4Ip ^property[=].valueString = "DE_360072"
@@ -217,6 +286,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #lVknokmR4Ip ^property[=].valueCode = #aggregate
 * #lVknokmR4Ip ^property[+].code = #value-type
 * #lVknokmR4Ip ^property[=].valueCode = #NUMBER
+* #lVknokmR4Ip ^designation[+].language = #en-GB
+* #lVknokmR4Ip ^designation[=].value = "Stock PHU dispensed MEASLES (doses, NOT vials)"
 * #FTINmL2lehN "Stock PHU dispensed OPV"
 * #FTINmL2lehN ^property[+].code = #dhis2-code
 * #FTINmL2lehN ^property[=].valueString = "DE_360075"
@@ -224,6 +295,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #FTINmL2lehN ^property[=].valueCode = #aggregate
 * #FTINmL2lehN ^property[+].code = #value-type
 * #FTINmL2lehN ^property[=].valueCode = #NUMBER
+* #FTINmL2lehN ^designation[+].language = #en-GB
+* #FTINmL2lehN ^designation[=].value = "Stock PHU dispensed OPV (doses, NOT vials)"
 * #axVhq1itoQD "Stock PHU received BCG"
 * #axVhq1itoQD ^property[+].code = #dhis2-code
 * #axVhq1itoQD ^property[=].valueString = "DE_359995"
@@ -231,6 +304,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #axVhq1itoQD ^property[=].valueCode = #aggregate
 * #axVhq1itoQD ^property[+].code = #value-type
 * #axVhq1itoQD ^property[=].valueCode = #NUMBER
+* #axVhq1itoQD ^designation[+].language = #en-GB
+* #axVhq1itoQD ^designation[=].value = "Stock PHU received BCG (doses, NOT vials)"
 * #XNrjXqZrHD8 "Stock PHU received Measles"
 * #XNrjXqZrHD8 ^property[+].code = #dhis2-code
 * #XNrjXqZrHD8 ^property[=].valueString = "DE_360018"
@@ -238,6 +313,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #XNrjXqZrHD8 ^property[=].valueCode = #aggregate
 * #XNrjXqZrHD8 ^property[+].code = #value-type
 * #XNrjXqZrHD8 ^property[=].valueCode = #NUMBER
+* #XNrjXqZrHD8 ^designation[+].language = #en-GB
+* #XNrjXqZrHD8 ^designation[=].value = "Stock PHU received MEASLES (doses, NOT vials)"
 * #nGCLjZDn0Q4 "Stock PHU received OPV"
 * #nGCLjZDn0Q4 ^property[+].code = #dhis2-code
 * #nGCLjZDn0Q4 ^property[=].valueString = "DE_360021"
@@ -245,6 +322,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #nGCLjZDn0Q4 ^property[=].valueCode = #aggregate
 * #nGCLjZDn0Q4 ^property[+].code = #value-type
 * #nGCLjZDn0Q4 ^property[=].valueCode = #NUMBER
+* #nGCLjZDn0Q4 ^designation[+].language = #en-GB
+* #nGCLjZDn0Q4 ^designation[=].value = "Stock PHU received OPV (doses, NOT vials)"
 * #t99PL3gUxIl "Stock PHU start balance BCG"
 * #t99PL3gUxIl ^property[+].code = #dhis2-code
 * #t99PL3gUxIl ^property[=].valueString = "DE_359941"
@@ -252,6 +331,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #t99PL3gUxIl ^property[=].valueCode = #aggregate
 * #t99PL3gUxIl ^property[+].code = #value-type
 * #t99PL3gUxIl ^property[=].valueCode = #NUMBER
+* #t99PL3gUxIl ^designation[+].language = #en-GB
+* #t99PL3gUxIl ^designation[=].value = "Stock PHU start balance BCG (doses, NOT vials)"
 * #vEAo4KwsAzl "Stock PHU start balance Measles"
 * #vEAo4KwsAzl ^property[+].code = #dhis2-code
 * #vEAo4KwsAzl ^property[=].valueString = "DE_359964"
@@ -259,6 +340,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #vEAo4KwsAzl ^property[=].valueCode = #aggregate
 * #vEAo4KwsAzl ^property[+].code = #value-type
 * #vEAo4KwsAzl ^property[=].valueCode = #NUMBER
+* #vEAo4KwsAzl ^designation[+].language = #en-GB
+* #vEAo4KwsAzl ^designation[=].value = "Stock PHU start balance MEASLES (doses, NOT vials)"
 * #iuSIObmKutb "Stock PHU start balance OPV"
 * #iuSIObmKutb ^property[+].code = #dhis2-code
 * #iuSIObmKutb ^property[=].valueString = "DE_359967"
@@ -266,6 +349,8 @@ Description: "DHIS2 data elements captured by the generated questionnaires. Conc
 * #iuSIObmKutb ^property[=].valueCode = #aggregate
 * #iuSIObmKutb ^property[+].code = #value-type
 * #iuSIObmKutb ^property[=].valueCode = #NUMBER
+* #iuSIObmKutb ^designation[+].language = #en-GB
+* #iuSIObmKutb ^designation[=].value = "Stock PHU start balance OPV (doses, NOT vials)"
 
 ValueSet: D2DE_VS
 Id: d2-de-vs

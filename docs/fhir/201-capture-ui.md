@@ -14,8 +14,12 @@ opening forms, filling them, and reading receipts - without writing a line
 of curl.
 
 **Before you start:** a project you can serve
-([Serve the guide](201-serve.md)). An installed wheel ships the UI already;
-a checkout needs `make ui` once.
+([Serve the guide](201-serve.md)). An installed wheel ships the UI already; a
+checkout builds it with `make ui`, which `make install` runs for you where
+`pnpm` is on PATH. The bundle is a build artifact rather than a committed one,
+so a checkout builds it again whenever the frontend source moves - and `--ui`
+refuses a bundle older than that source rather than serving it, so the rebuild
+is something the run tells you about rather than something you remember.
 
 **You will be able to:**
 
@@ -97,8 +101,37 @@ decode; a page load is the longest anything here holds one. The same rule covers
 every posture: a deployment token and a JWT are held the same way and go the
 same way.
 
-In a checkout, `--ui` before the bundle exists refuses in one line rather
-than serving a blank page:
+## Which bundle is being served
+
+Every `--ui` run names the build it mounted, on the line under the banner:
+
+```
+bundle: capture UI bundle built 2026-09-15 01:15 UTC from frontend source 8216e416b896
+```
+
+`make ui` writes that stamp into the bundle: the time it ran and a fingerprint
+of the frontend source it read - everything under `frontend/src`, plus the
+`package.json`, `index.html` and `vite.config.ts` a vite build reads beside it.
+
+In a checkout, the stamp is also graded. A bundle whose fingerprint is not the
+source in front of you refuses the run:
+
+```
+error: the capture UI bundle at .../dhis2w_fhir_serve/static is older than the
+frontend source - it was built from 8216e416b896 and the source now reads
+d96b473d56fa. Run `make ui` to rebuild it.
+```
+
+That refusal is the whole point of the stamp. Without it a checkout serves
+whatever `make ui` last wrote: the TypeScript in the editor is current, the
+vitest run over it is green, and the JavaScript in the browser is last week's,
+with nothing anywhere saying the two have parted.
+
+An installed wheel carries the bundle its release built and no frontend source
+beside it, so there is nothing to grade - it prints the stamp and serves.
+
+A checkout that has never run `make ui` has no bundle at all, and refuses in one
+line rather than serving a blank page:
 
 ```
 error: `--ui` needs a built frontend at .../dhis2w_fhir_serve/static, and there is

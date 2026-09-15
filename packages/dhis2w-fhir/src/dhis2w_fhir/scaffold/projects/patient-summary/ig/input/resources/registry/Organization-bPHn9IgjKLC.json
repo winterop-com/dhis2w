@@ -17,6 +17,23 @@
     }
   ],
   "name": "Nasarah Clinic",
+  "_name": {
+    "extension": [
+      {
+        "extension": [
+          {
+            "url": "lang",
+            "valueCode": "en-GB"
+          },
+          {
+            "url": "content",
+            "valueString": "Nasarah Clinic"
+          }
+        ],
+        "url": "http://hl7.org/fhir/StructureDefinition/translation"
+      }
+    ]
+  },
   "type": [
     {
       "coding": [

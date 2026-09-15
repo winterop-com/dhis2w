@@ -3,7 +3,7 @@
 CodeSystem: D2COC_CS
 Id: d2-coc-cs
 Title: "DHIS2 category option combinations"
-Description: "DHIS2 category option combinations the generated questionnaires disaggregate by. Concept codes are DHIS2 category option combo UIDs."
+Description: "DHIS2 category option combinations the generated questionnaires disaggregate by. Concept codes are DHIS2 category option combination UIDs."
 * ^status = #draft
 * ^experimental = true
 * ^content = #complete
@@ -36,7 +36,7 @@ Description: "DHIS2 category option combinations the generated questionnaires di
 ValueSet: D2COC_VS
 Id: d2-coc-vs
 Title: "DHIS2 category option combinations"
-Description: "DHIS2 category option combinations the generated questionnaires disaggregate by. Concept codes are DHIS2 category option combo UIDs."
+Description: "DHIS2 category option combinations the generated questionnaires disaggregate by. Concept codes are DHIS2 category option combination UIDs."
 * ^status = #draft
 * ^experimental = true
 * include codes from system D2COC_CS

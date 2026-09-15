@@ -15,11 +15,9 @@ Usage: #example
 * subject.type = "Patient"
 * subject.identifier.system = $DHIS2-TE
 * subject.identifier.value = "yhpvt4pX4xD"
-* authored = "2026-08-20T12:00:00Z"
+* authored = "2026-09-12T12:00:00Z"
 * item[+].linkId = "a3kGcGDCuk6"
 * item[=].answer[+].valueDecimal = 23.3
-* item[+].linkId = "H6uSAMO5WLD"
-* item[=].answer[+].valueString = "Example MCH Apgar comment"
 * item[+].linkId = "UXz7xuGCEhU"
 * item[=].answer[+].valueDecimal = 66.6
 * item[+].linkId = "wQLfBvPrXqq"

@@ -23,11 +23,11 @@ the very link ids they define.
 
 | Form | DHIS2 id | DHIS2 code | Sections | Questions |
 | --- | --- | --- | ---: | ---: |
-| [Supervision visit](Questionnaire-EVTsupVis01.html) | `EVTsupVis01` | `EVTsupVis01` | 0 | 2 |
+| [Malaria case registration](Questionnaire-VBqh0ynB2wv.html) | `VBqh0ynB2wv` | `VBqh0ynB2wv` | 0 | 3 |
 
-### Supervision visit
+### Malaria case registration
 
-- Outside any section (2 questions)
+- Outside any section (3 questions)
 
 ## Tracker programs
 

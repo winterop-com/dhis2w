@@ -213,7 +213,9 @@ def test_init_refresh_keeps_a_rewritten_file_and_claims_no_author(workdir: Path)
 
     assert result.exit_code == 0, result.output
     assert suppressed.read_text(encoding="utf-8") == edited
-    assert "kept ig/input/ignoreWarnings.txt (holds lines the current scaffold does not write)" in result.output
+    assert (
+        "diverged (kept) ig/input/ignoreWarnings.txt (holds lines the current scaffold does not write)" in result.output
+    )
     assert "you edited" not in result.output
     assert "your edits, or scaffold lines that have since changed" in result.output
 
@@ -251,7 +253,7 @@ def test_init_refresh_keeps_a_hand_tuned_sushi_config(workdir: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert sushi_config.read_text(encoding="utf-8") == edited
-    assert "kept ig/sushi-config.yaml (holds lines the current scaffold does not write)" in result.output
+    assert "diverged (kept) ig/sushi-config.yaml (holds lines the current scaffold does not write)" in result.output
 
 
 def test_init_refresh_names_a_pure_addition_as_yours_and_current(workdir: Path) -> None:
@@ -263,7 +265,9 @@ def test_init_refresh_names_a_pure_addition_as_yours_and_current(workdir: Path) 
     result = _runner.invoke(build_app(), ["fhir", "init", "project", "--refresh"])
 
     assert result.exit_code == 0, result.output
-    assert "kept .gitignore (already carries the current scaffold, plus lines of your own)" in result.output
+    assert (
+        "with your additions .gitignore (carries every current scaffold line, plus lines of your own)" in result.output
+    )
     assert "your edits, or scaffold lines that have since changed" not in result.output
 
 
@@ -370,7 +374,29 @@ def test_init_refresh_labels_the_files_it_kept(workdir: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert "diverged (kept)" in result.stderr
-    assert "kept ig/input/ignoreWarnings.txt (holds lines the current scaffold does not write)" in result.stderr
+    assert (
+        "diverged (kept) ig/input/ignoreWarnings.txt (holds lines the current scaffold does not write)" in result.stderr
+    )
+
+
+def test_init_refresh_gives_the_file_list_the_table_s_two_verdicts(workdir: Path) -> None:
+    """A file carrying additions and a diverged file are two outcomes, and the detail lines say which is which.
+
+    The table separates `with your additions` from `diverged (kept)`, and one word for both in the
+    list below it teaches a distinction and then drops it - the reader is left with a parenthetical
+    to tell apart the file whose scaffold lines are all current from the file whose are not.
+    """
+    project = _scaffold(workdir)
+    gitignore = project / ".gitignore"
+    gitignore.write_text(gitignore.read_text(encoding="utf-8") + "my-own-entry/\n", encoding="utf-8")
+    (project / "ig" / "input" / "ignoreWarnings.txt").write_text("== Ours ==\n", encoding="utf-8")
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--refresh"])
+
+    assert result.exit_code == 0, result.output
+    assert "with your additions .gitignore" in result.stderr
+    assert "diverged (kept) ig/input/ignoreWarnings.txt" in result.stderr
+    assert "  kept " not in result.stderr
 
 
 def test_init_renders_its_narration_on_stderr(workdir: Path) -> None:  # noqa: ARG001
