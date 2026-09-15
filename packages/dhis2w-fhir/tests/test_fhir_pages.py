@@ -174,9 +174,17 @@ def _tracker_pages_input() -> PagesIn:
     )
 
 
+def _root_placements(pages: PagesIn) -> dict[str, SyntheticPlacement]:
+    """Every form of one fixture placed at the root unit, which is what a run against an assigned form does."""
+    return {form.uid: SyntheticPlacement(organisation_unit_uids=(_ROOT_UNIT.uid,)) for form in pages.forms}
+
+
 def _pages(config: GenerateConfig | None = None) -> dict[str, str]:
     """Build the page artifacts and index them by file name."""
-    build = build_page_artifacts(_pages_input(), config or GenerateConfig(), _CANONICAL)
+    pages = _pages_input()
+    build = build_page_artifacts(
+        pages, config or GenerateConfig(), _CANONICAL, example_placements=_root_placements(pages)
+    )
     return {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts
     }
@@ -184,7 +192,10 @@ def _pages(config: GenerateConfig | None = None) -> dict[str, str]:
 
 def _tracker_pages(config: GenerateConfig | None = None) -> dict[str, str]:
     """Build the page artifacts of the tracker fixture and index them by file name."""
-    build = build_page_artifacts(_tracker_pages_input(), config or GenerateConfig(), _CANONICAL)
+    pages = _tracker_pages_input()
+    build = build_page_artifacts(
+        pages, config or GenerateConfig(), _CANONICAL, example_placements=_root_placements(pages)
+    )
     return {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts
     }
@@ -396,6 +407,26 @@ def test_capture_page_works_the_tracker_steps_against_its_own_stage_placement() 
     assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
 
 
+def test_capture_page_states_the_fact_where_no_published_unit_is_in_the_programs_assignment() -> None:
+    """A stage the run could place no example for is a stage no published unit may file an event from.
+
+    DHIS2 answers `E1029` to an event filed from outside the program's organisation-unit assignment,
+    so a walk-through quoting the fall-back unit would teach a capture the instance refuses. The page
+    states the fact and writes the reference as the shape it is.
+    """
+    placements = {_DATA_SET.uid: SyntheticPlacement(organisation_unit_uids=(_ROOT_UNIT.uid,))}
+    build = build_page_artifacts(_tracker_pages_input(), GenerateConfig(), _CANONICAL, example_placements=placements)
+    capture = next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+    assert '"valueReference": { "reference": "Location/<organisationUnitId>" }' in capture
+    assert "**This guide publishes no organisation unit the program behind " in capture
+    assert "assigned to.** DHIS2 refuses an event filed from outside the program's organisation-unit" in capture
+    assert "`E1029`" in capture
+    # The aggregate half is placed, so it still quotes its own unit - and nothing quotes the fall-back.
+    assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
+    assert '"valueReference": { "reference": "Location/ImspTQPwCqd" }' not in capture
+
+
 def test_capture_page_works_a_form_the_run_placed_an_example_for_over_one_it_did_not() -> None:
     """A form every combo of which is restricted away publishes no example, and teaches no capture either."""
     placements = {_EVENT_PROGRAM.uid: SyntheticPlacement(organisation_unit_uids=(_CHILD_UNIT.uid,))}
@@ -407,9 +438,12 @@ def test_capture_page_works_a_form_the_run_placed_an_example_for_over_one_it_did
     )
     capture = next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
 
-    # The aggregate form is unplaced, so its steps fall back to the lowest published unit and say so.
+    # The aggregate form is unplaced, so its steps state the fact rather than quoting a unit DHIS2
+    # would answer E8022 to.
     assert "The steps are worked against **Mortality &lt; 5 years by gender**" in capture
-    assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
+    assert '"subject": { "reference": "Location/<organisationUnitId>" }' in capture
+    assert "**This guide publishes no organisation unit Mortality &lt; 5 years by gender is assigned to.**" in capture
+    assert "Location/ImspTQPwCqd" not in capture
 
 
 def test_capture_page_spells_out_the_link_id_grammar_and_the_required_rule() -> None:

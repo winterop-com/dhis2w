@@ -104,11 +104,15 @@ def _concept_restrictions(documents: list[dict[str, Any]]) -> dict[tuple[str, st
 
 
 def _form_sources(root: Path) -> dict[str, str]:
-    """The FSH of every form one template publishes, by the DHIS2 UID its file is named after."""
+    """The FSH of every form one template publishes, by the DHIS2 UID its file is named after.
+
+    Read to the bottom of each directory, because the tracker target nests: a stage sits at
+    `tracker-programs/<program uid>/<stage uid>.fsh`, and a stage is a form like any other.
+    """
     return {
         path.stem: path.read_text(encoding="utf-8")
         for directory in _FORM_DIRECTORIES
-        for path in sorted((root / "fsh" / directory).glob("*.fsh"))
+        for path in sorted((root / "fsh" / directory).rglob("*.fsh"))
     }
 
 
@@ -225,8 +229,17 @@ _EXAMPLE_FORM_TYPE = re.compile(r"^\* extension\[D2FormType\]\.valueCode = #(?P<
 #: The organisation unit the capture page works its aggregate steps against, in the snippet a reader copies.
 _CAPTURE_PAGE_SUBJECT = re.compile(r'^"subject": \{ "reference": "(?P<reference>[^"]+)" \}$', re.MULTILINE)
 
-#: The DHIS2 UID of the form the capture page's aggregate walk-through is worked against.
+#: The organisation unit the tracker walk-through works against, which rides the D2OrganisationUnit
+#: extension rather than the response's subject - a tracker response's subject is the tracked entity.
+_CAPTURE_PAGE_TRACKER_UNIT = re.compile(
+    r'^  "valueReference": \{ "reference": "(?P<reference>[^"]+)" \}$', re.MULTILINE
+)
+
+#: The DHIS2 UID of each form the capture page works a walk-through against, one per section.
 _CAPTURE_PAGE_FORM = re.compile(r"^The steps are worked against \*\*.+\*\* \(`(?P<uid>[^`]+)`\)\.$", re.MULTILINE)
+
+#: Where the tracker walk-through starts, which is what separates its quoted unit from the aggregate one.
+_CAPTURE_PAGE_TRACKER_HEADING = "## A tracker event response, step by step"
 
 
 def _examples_by_kind(root: Path) -> dict[str, list[str]]:
@@ -275,10 +288,38 @@ def test_the_capture_page_of_every_bundled_template_teaches_an_assigned_organisa
     subject = _CAPTURE_PAGE_SUBJECT.search(page)
     assert worked_form is not None, f"{template.name}: capture.md works no form through the aggregate steps"
     assert subject is not None, f"{template.name}: capture.md quotes no subject for a reader to copy"
-    declared = _FORM_ASSIGNMENT.search(_form_sources(root).get(worked_form.group("uid"), ""))
-    assert declared is not None, f"{template.name}: the worked form declares no assignment List"
+    _assert_quoted_unit_is_assigned(template.name, root, worked_form.group("uid"), subject.group("reference"))
+
+
+@pytest.mark.parametrize("template", BUNDLED, ids=lambda template: template.name)
+def test_the_capture_page_of_every_bundled_template_teaches_an_assigned_unit_for_its_tracker_stage_too(
+    template: Any,  # noqa: ANN401
+) -> None:
+    """The tracker walk-through is a second form and a second assignment, and it is copied just as readily.
+
+    A tracker stage is assigned through its program, so the List the quoted unit is graded against is
+    the one the stage's own Questionnaire declares. A template whose tracker stage has no unit to
+    quote states the fact instead, and states no organisation unit at all - which is what leaves this
+    with nothing to grade rather than something wrong to grade.
+    """
+    root = _payload_root(template.name)
+    page = (root / "pagecontent/capture.md").read_text(encoding="utf-8")
+    if _CAPTURE_PAGE_TRACKER_HEADING not in page:
+        pytest.skip(f"{template.name} publishes no tracker program stage")
+    section = page.split(_CAPTURE_PAGE_TRACKER_HEADING, 1)[1]
+    unit = _CAPTURE_PAGE_TRACKER_UNIT.search(section)
+    if unit is None:
+        return
+    worked_form = _CAPTURE_PAGE_FORM.search(section)
+    assert worked_form is not None, f"{template.name}: capture.md quotes a unit for a stage it names nowhere"
+    _assert_quoted_unit_is_assigned(template.name, root, worked_form.group("uid"), unit.group("reference"))
+
+
+def _assert_quoted_unit_is_assigned(name: str, root: Path, form_uid: str, reference: str) -> None:
+    """One organisation unit the capture page quotes, graded against the assignment List its form declares."""
+    declared = _FORM_ASSIGNMENT.search(_form_sources(root).get(form_uid, ""))
+    assert declared is not None, f"{name}: the worked form {form_uid} declares no assignment List"
     members = _list_members(_documents(root / "resources" / ASSIGNMENT_DIRECTORY))[declared.group("list")]
-    assert subject.group("reference") in members, (
-        f"{template.name}: capture.md files from {subject.group('reference')}, which "
-        f"{declared.group('list')} does not hold"
+    assert reference in members, (
+        f"{name}: capture.md files from {reference}, which {declared.group('list')} does not hold"
     )

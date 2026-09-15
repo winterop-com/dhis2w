@@ -782,6 +782,7 @@ def _capture_form_example(
         organisation_unit_uid=worked.uid,
         organisation_unit_reference=worked.reference,
         organisation_unit_name=worked.name,
+        organisation_unit_assigned=units.places(source.uid),
         attribute_option_combo=attribute_option_combo.example,
         attribute_option_combo_restricted_away=attribute_option_combo.restricted_away,
     )

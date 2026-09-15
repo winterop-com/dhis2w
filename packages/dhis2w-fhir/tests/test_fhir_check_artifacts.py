@@ -20,9 +20,11 @@ from dhis2w_fhir.resources.attribute_combos.restrictions import (
     ATTRIBUTE_OPTION_VALID_FROM_PROPERTY,
     ATTRIBUTE_OPTION_VALID_TO_PROPERTY,
 )
+from dhis2w_fhir.resources.pages import PAGES_BASE_SUBDIRECTORY, PAGES_DIRECTORY
+from dhis2w_fhir.resources.questionnaires import DATA_SET_DIRECTORY
 from dhis2w_fhir.validation import artifacts
 from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
-from dhis2w_fhir.writer import GENERATED_HEADER
+from dhis2w_fhir.writer import GENERATED_HEADER, GENERATED_MARKDOWN_HEADER
 from typer.testing import CliRunner
 
 if TYPE_CHECKING:
@@ -686,15 +688,23 @@ include_ids = ["BfMAe6Itzgt", "aBcDeFgHiJk"]
 """
 
 
-def _write_selected_form(root: Path, uid: str) -> None:
-    """Write one generated Questionnaire carrying the DHIS2 UID it was generated from.
+def _write_generated_pages(root: Path) -> None:
+    """Write the page a run ends on, which is the evidence that the run reached its end at all."""
+    destination = root / f"ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}/capture.md"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(f"{GENERATED_MARKDOWN_HEADER}\n\n# Capturing data\n", encoding="utf-8")
 
-    Into the questionnaire target, which is where a run that reached the end writes one - and which
-    is the evidence the selection is graded against at all.
+
+def _write_selected_form(root: Path, uid: str) -> None:
+    """Write one generated Questionnaire carrying the DHIS2 UID it was generated from, and the run's own pages.
+
+    Into the data-set directory the questionnaire target really writes, and beside the pages the
+    pages target ends the run on - which is the evidence the selection is graded against at all.
     """
-    destination = root / f"ig/input/fsh/questionnaires/{uid}.fsh"
+    destination = root / f"ig/input/fsh/{DATA_SET_DIRECTORY}/{uid}.fsh"
     destination.parent.mkdir(parents=True, exist_ok=True)
     _write_generated_fsh(destination, f'Instance: Questionnaire-{uid}\nInstanceOf: Questionnaire\n* id = "{uid}"\n')
+    _write_generated_pages(root)
 
 
 def test_a_selection_entry_the_tree_carries_nothing_for_is_a_warning(project_root: Path) -> None:
@@ -736,9 +746,62 @@ def test_a_run_that_stopped_after_the_foundation_says_so_instead_of_grading_the_
     report = _report(project_root)
     assert report.build_aborting_count == 0
     assert [(finding.kind, finding.origin.value) for finding in report.findings] == [("selection", "incomplete-run")]
-    assert "wrote the foundation and stopped before the forms" in report.findings[0].message
+    assert "stopped before it wrote the pages" in report.findings[0].message
     assert "is not on the instance" not in report.findings[0].message
+    assert report.findings[0].value == f"ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}"
     assert "let it finish" in report.findings[0].remedy
+
+
+def test_a_completed_run_grades_its_selection_and_says_nothing_about_being_incomplete(project_root: Path) -> None:
+    """The pages are the last thing a run writes, so a page on disk is a tree every entry may be read off.
+
+    This is the whole of the incomplete-run guard's job: a run that got to the end is graded, and the
+    UID that named nothing is the one thing said about it. A guard reading for something no emitter
+    writes would say the opposite of both.
+    """
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    _write_selected_form(project_root, "BfMAe6Itzgt")
+
+    report = _report(project_root)
+
+    assert [(finding.origin.value, finding.value) for finding in report.findings] == [("selection", "aBcDeFgHiJk")]
+
+
+def test_a_finished_run_that_published_no_form_is_still_graded_rather_than_called_incomplete(
+    project_root: Path,
+) -> None:
+    """A selection that matched nothing writes no Questionnaire and still ends on its pages, so it is graded.
+
+    The evidence has to survive the case it is most likely to be asked about: every entry of the
+    selection naming nothing is exactly when the reader needs the entries named, and a tree with no
+    form in it is not a tree that stopped half-way.
+    """
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    _write_generated_pages(project_root)
+
+    report = _report(project_root)
+
+    assert [finding.value for finding in report.findings] == ["BfMAe6Itzgt", "aBcDeFgHiJk"]
+    assert all(finding.origin.value == "selection" for finding in report.findings)
+
+
+def test_a_hand_authored_page_is_no_evidence_that_a_run_finished(project_root: Path) -> None:
+    """The marker is the generated header, which is the byte a sweep deletes - a page without one says nothing."""
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    page = project_root / f"ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}/index.md"
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text("# Hand-authored front page\n", encoding="utf-8")
+
+    assert [finding.origin.value for finding in _report(project_root).findings] == ["incomplete-run"]
+
+
+def test_a_registry_package_selects_no_form_and_is_neither_graded_nor_called_incomplete(project_root: Path) -> None:
+    """A registry package runs no form target at all, so its tree answers no question about a selection."""
+    (project_root / "fhir.toml").write_text(
+        f'{_MINIMAL_TOML}kind = "package"\npublishes = "organisation-units"\n', encoding="utf-8"
+    )
+
+    assert _report(project_root).finding_count == 0
 
 
 def test_a_project_that_has_never_generated_says_nothing_about_its_selection(project_root: Path) -> None:
@@ -864,6 +927,64 @@ def test_a_hand_authored_fsh_example_answering_a_computed_question_is_named(proj
     assert finding.value == "Dea2aaaaaaa"
     assert finding.field == "line 10"
     assert report.build_aborting_count == 0
+
+
+#: The same computing form in the format a project holds before SUSHI has run: FSH, with the rule's
+#: assigned question on the `assigns` slice and no `url` line at all - SUSHI addresses the instance
+#: by the guide's canonical, the resource type and the id, which is the canonical an example names.
+_COMPUTED_QUESTIONNAIRE_FSH = """Instance: Questionnaire-Asg1aaaaaaa
+InstanceOf: Questionnaire
+Usage: #definition
+* id = "Asg1aaaaaaa"
+* extension[D2ProgramRule][+].extension[rule].valueId = "Rulea1aaaaa"
+* extension[D2ProgramRule][=].extension[name].valueString = "derive the logged reading"
+* extension[D2ProgramRule][=].extension[condition].valueString = "true"
+* extension[D2ProgramRule][=].extension[action].valueCode = #ASSIGN
+* extension[D2ProgramRule][=].extension[assigns][+].valueId = "Dea2aaaaaaa"
+* item[+].linkId = "Dea1aaaaaaa"
+* item[=].type = #decimal
+* item[+].linkId = "Dea2aaaaaaa"
+* item[=].type = #decimal
+"""
+
+
+def _write_precompile_computing_form(root: Path) -> Path:
+    """Lay down the computing form and a hand-authored example of it, with nothing compiled beside them."""
+    form = root / f"ig/input/fsh/{DATA_SET_DIRECTORY}/Asg1aaaaaaa.fsh"
+    form.parent.mkdir(parents=True, exist_ok=True)
+    _write_generated_fsh(form, _COMPUTED_QUESTIONNAIRE_FSH)
+    example = root / "ig/input/fsh/examples/Asg1aaaaaaa-example-2.fsh"
+    example.parent.mkdir(parents=True, exist_ok=True)
+    example.write_text(_COMPUTED_EXAMPLE_FSH, encoding="utf-8")
+    return example
+
+
+def test_a_computed_answer_is_found_before_anything_has_been_compiled(project_root: Path) -> None:
+    """A project before its first `make sushi` holds both halves as FSH, and that is the run this refuses.
+
+    Refusing the build before it begins is what the command is for, so the forms are read in the
+    format the project actually holds them in: `ig/fsh-generated/` does not exist yet, and the
+    question a program rule computes is on the FSH Questionnaire's own `assigns` slice.
+    """
+    _write_precompile_computing_form(project_root)
+
+    report = _report(project_root)
+
+    (finding,) = [entry for entry in report.findings if entry.kind == "computed-answer"]
+    assert finding.severity == "warning"
+    assert finding.file.endswith("Asg1aaaaaaa-example-2.fsh")
+    assert finding.value == "Dea2aaaaaaa"
+    assert finding.field == "line 10"
+    assert "E1307" in finding.message
+    assert report.build_aborting_count == 0
+
+
+def test_a_precompile_example_leaving_the_computed_question_empty_raises_nothing(project_root: Path) -> None:
+    """The FSH form is read for the question its rules compute, not for a finding on every answer beside it."""
+    example = _write_precompile_computing_form(project_root)
+    example.write_text(_COMPUTED_EXAMPLE_FSH.replace("* item[=].answer.valueDecimal = 2.0794\n", ""), encoding="utf-8")
+
+    assert [entry for entry in _report(project_root).findings if entry.kind == "computed-answer"] == []
 
 
 def test_a_hand_authored_fsh_example_leaving_the_computed_question_empty_raises_nothing(project_root: Path) -> None:

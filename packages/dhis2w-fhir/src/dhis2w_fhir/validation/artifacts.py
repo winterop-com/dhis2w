@@ -30,8 +30,10 @@ character the publisher cannot survive.
   as it dies on a DHIS2 name - and on a project that has only run `generate` there is nothing else
   on disk to find it in.
 
-`ig/input/pagecontent/**/*.md` is deliberately left out. Markdown carries HTML by design, so a `<`
-there is the page's own markup rather than a DHIS2 name that escaped.
+`ig/input/pagecontent/**/*.md` is deliberately left out of that scan. Markdown carries HTML by
+design, so a `<` there is the page's own markup rather than a DHIS2 name that escaped. One line of
+it is read for a different question: the pages are the last thing a generate run writes, so a page
+carrying the generated header is how the selection check knows it is reading a finished tree.
 
 ## What a finding is answered by
 
@@ -99,6 +101,7 @@ from dhis2w_fhir.resources.attribute_combos.restrictions import (
     CategoryOptionValidity,
 )
 from dhis2w_fhir.resources.attribute_combos.schemas import ATTRIBUTE_COMBO_DIRECTORY
+from dhis2w_fhir.resources.pages import PAGES_BASE_SUBDIRECTORY, PAGES_DIRECTORY
 from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
     ASSIGNMENT_LIST_RESOURCE_TYPE,
@@ -106,7 +109,7 @@ from dhis2w_fhir.resources.questionnaires.assignments import (
 )
 from dhis2w_fhir.scaffold import SUSHI_CONFIG_RELATIVE_PATH
 from dhis2w_fhir.validation import build_aborting_code, build_aborting_name
-from dhis2w_fhir.writer import is_generated_file
+from dhis2w_fhir.writer import generated_header, is_generated_file
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -1141,19 +1144,29 @@ _SELECTION_MESSAGE = (
 #: only that, and not that the UID is wrong.
 _FOUNDATION_DIRECTORY = "foundation"
 
-#: The directory the questionnaire target writes into, which is the evidence a run reached the end.
-#: The form-side targets run after the foundation, and a run refused at one of them - a DHIS2 name
-#: carrying '<' under `hostile_names = "refuse"` - has already written the foundation and stopped.
-#: Reading the selection off that half-written tree would say a UID live on the instance is not on
-#: it, which is exactly the object the run refused over.
-_QUESTIONNAIRE_DIRECTORY = "questionnaires"
+#: Where the pages target writes, and the one piece of evidence that a run reached its end. The
+#: pages narrate what every other target wrote, so `generate_full` runs them last - after the
+#: foundation, the option sets, the categories, the forms, the examples and the registry - and a
+#: page on disk is a run that got past all six. A run refused part-way through, a DHIS2 name
+#: carrying '<' under `hostile_names = "refuse"`, stops before it and writes none.
+#:
+#: The evidence cannot lie in either direction. A page counts only when it carries the generated
+#: header, which is the byte `clean_generated_files` sweeps on: a swept project loses the marker
+#: together with the tree the marker vouches for, and a hand-authored page carries no header and
+#: vouches for nothing. It cannot go missing on a finished run either - the pages target writes at
+#: least the narrative set whatever the selection holds, so a run that selected nothing publishable
+#: still ends with pages, and its selection is graded rather than excused.
+#: The two constants are the pages target's own, imported rather than restated, so the scan and the
+#: emitter can never disagree about where a page lands.
+_PAGES_DIRECTORY_LABEL = f"ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}"
 
 #: Why a half-written tree answers no question about the selection, and why it stops no build.
 _INCOMPLETE_RUN_MESSAGE = (
-    "the last `d2w fhir generate` run wrote the foundation and stopped before the forms, so this "
-    "project's published tree holds no Questionnaire and no `[generate.*] include_ids` entry can be "
-    "checked against it. Nothing is said here about whether those UIDs are on the instance. The "
-    "guide builds and publishes whatever is on disk, which is why this is a warning."
+    "the last `d2w fhir generate` run stopped before it wrote the pages, which are the last thing a "
+    "run writes, so this project's published tree is only part of one and no `[generate.*] "
+    "include_ids` entry can be checked against it. Nothing is said here about whether those UIDs "
+    "are on the instance. The guide builds and publishes whatever is on disk, which is why this is "
+    "a warning."
 )
 
 
@@ -1170,7 +1183,8 @@ def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
     generated raises nothing at all: there the tree is empty for a reason that has nothing to do
     with the selection. A project whose last run stopped part-way through is the third case, and it
     is said out loud in one row rather than graded: every entry would read as naming nothing, and
-    the tree is what is missing rather than the objects.
+    the tree is what is missing rather than the objects. What separates the third case from a run
+    that finished is the pages, which are the last thing a run writes.
     """
     if not (project.fsh_directory / _FOUNDATION_DIRECTORY).is_dir():
         return []
@@ -1184,13 +1198,13 @@ def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
     wanted = {uid for _, table in tables if table.enabled for uid in table.include_ids}
     if not wanted:
         return []
-    if not (project.fsh_directory / _QUESTIONNAIRE_DIRECTORY).is_dir():
+    if not _run_reached_the_pages(project):
         return [
             ArtifactFinding(
                 file=FHIR_CONFIG_FILENAME,
                 resource_id="generate",
                 field="include_ids",
-                value=f"ig/input/fsh/{_QUESTIONNAIRE_DIRECTORY}",
+                value=_PAGES_DIRECTORY_LABEL,
                 kind="selection",
                 origin=FindingOrigin.INCOMPLETE_RUN,
                 message=_INCOMPLETE_RUN_MESSAGE,
@@ -1211,6 +1225,22 @@ def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
         if table.enabled
         for uid in sorted(set(table.include_ids) - published)
     ]
+
+
+def _run_reached_the_pages(project: FhirProject) -> bool:
+    """Whether the last `d2w fhir generate` run wrote the pages, which are the last thing it writes.
+
+    One generated page is the whole answer: the pages target runs after every other target, and it
+    writes each page under the generated-markdown header. A hand-authored page beside them carries
+    no header and is not read as evidence of anything.
+    """
+    directory = project.ig_directory / PAGES_BASE_SUBDIRECTORY / PAGES_DIRECTORY
+    if not directory.is_dir():
+        return False
+    return any(
+        (text := _read_text(path)) is not None and text.split("\n", 1)[0] == generated_header(path.name)
+        for path in sorted(directory.rglob("*.md"))
+    )
 
 
 def _published_uids(project: FhirProject, wanted: set[str]) -> set[str]:
@@ -1261,6 +1291,12 @@ _FSH_LINK_ID = re.compile(rf'^\* (?P<path>{_FSH_ITEM_PATH})\.linkId = "(?P<link_
 _FSH_ANSWER = re.compile(rf"^\* (?P<path>{_FSH_ITEM_PATH})\.answer[.\[]")
 _FSH_SOFT_INDEX = re.compile(r"\[[^\]]*\]")
 
+#: How a FSH Questionnaire declares itself and its id. SUSHI addresses an instance by the IG's
+#: canonical, the resource type and that id, which is the canonical a response names, so the two
+#: lines are all it takes to reach a compiled Questionnaire's `url` without a compile.
+_FSH_INSTANCE_OF = re.compile(r"^InstanceOf:\s*(?P<resource_type>\S+)\s*$", re.MULTILINE)
+_FSH_INSTANCE_ID = re.compile(r'^\* id = "(?P<id>[^"]+)"', re.MULTILINE)
+
 
 def _computed_answer_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
     """Every published example answering a question its form says a DHIS2 program rule computes.
@@ -1272,11 +1308,16 @@ def _computed_answer_findings(project: FhirProject, root: Path) -> list[Artifact
     is for: a hand-authored example is FSH, nothing regenerates one, and the remedy sends its reader
     to that very file. It is also the only half a project holds before `make build` runs SUSHI, and
     refusing the build before it begins is what this command is for.
+
+    Which is why the forms are read in both formats too. A project before its first compile holds
+    its Questionnaires as FSH alone, and a scan that took the computed questions off compiled
+    Questionnaires only would have nothing to grade the FSH examples against at exactly the moment
+    the command is worth running.
     """
     naming = FoundationNaming.from_naming(project.config.generate.naming)
     rule_extension_suffix = f"/StructureDefinition/{naming.program_rule_extension_id}"
     documents = [(path, _read_document(path)) for path in _json_paths(project)]
-    computed: dict[str, set[str]] = {}
+    computed: dict[str, set[str]] = _fsh_computed_questions(project, naming)
     for _, document in documents:
         if not isinstance(document, dict) or document.get(_RESOURCE_TYPE_ELEMENT) != _QUESTIONNAIRE_RESOURCE_TYPE:
             continue
@@ -1318,6 +1359,34 @@ def _computed_answer_finding(file: str, resource_id: str, field: str, link_id: s
         origin=FindingOrigin.COMPUTED_ANSWER,
         message=_COMPUTED_ANSWER_MESSAGE,
     )
+
+
+def _fsh_computed_questions(project: FhirProject, naming: FoundationNaming) -> dict[str, set[str]]:
+    """The questions each FSH Questionnaire's own `ASSIGN` rules compute, keyed by the canonical it compiles to.
+
+    The FSH slice name is the foundation's own (`D2ProgramRule` under the default prefix), so a guide
+    that renamed its definition prefix is read under its own names rather than under a guess.
+    """
+    assigns = re.compile(
+        rf"^\* extension\[{re.escape(naming.program_rule_extension)}\]\[[^\]]*\]"
+        rf'\.extension\[{re.escape(PROGRAM_RULE_ASSIGNS_SUB_EXTENSION)}\]\[[^\]]*\]\.valueId = "(?P<uid>[^"]+)"',
+        re.MULTILINE,
+    )
+    canonical = project.config.ig.canonical
+    computed: dict[str, set[str]] = {}
+    for path in _fsh_paths(project):
+        text = _read_text(path)
+        if text is None:
+            continue
+        declared = _FSH_INSTANCE_OF.search(text)
+        identifier = _FSH_INSTANCE_ID.search(text)
+        if declared is None or identifier is None or declared.group("resource_type") != _QUESTIONNAIRE_RESOURCE_TYPE:
+            continue
+        assigned = {match.group("uid") for match in assigns.finditer(text)}
+        if assigned:
+            url = f"{canonical}/{_QUESTIONNAIRE_RESOURCE_TYPE}/{identifier.group('id')}"
+            computed.setdefault(url, set()).update(assigned)
+    return computed
 
 
 def _fsh_computed_answer_findings(
