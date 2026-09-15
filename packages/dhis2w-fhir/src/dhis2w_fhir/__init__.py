@@ -238,8 +238,20 @@ from dhis2w_fhir.foundation import (
     tracked_entity_attribute_value_extensions,
 )
 from dhis2w_fhir.grouping import ReportedForm, ReportedValue, group_data_values
-from dhis2w_fhir.hostile_names import HostileNameGate, HostileRewrite, HostileRewriteConfirmation
+from dhis2w_fhir.hostile_names import HostileNameGate, HostileRewrite, HostileRewriteConfirmation, project_gate
 from dhis2w_fhir.i18n import TRANSLATION_EXTENSION_URL, TranslationIn, name_translations, normalize_locale
+from dhis2w_fhir.implementation_guide import (
+    IMPLEMENTATION_GUIDE_RESOURCE_TYPE,
+    DeclaredExamples,
+    GuideDocument,
+    ImplementationGuideContents,
+    ImplementationGuideDefinition,
+    ImplementationGuideResource,
+    PublishedResourceKey,
+    declared_examples,
+    load_declared_examples,
+    reference_key,
+)
 from dhis2w_fhir.ips import (
     ADMINISTRATIVE_GENDER_CODE_SYSTEM_URL,
     ADMINISTRATIVE_GENDER_CODES,
@@ -916,6 +928,8 @@ __all__ = [
     "DataSetsConfig",
     "DateLabelIn",
     "decimal_wire_value",
+    "declared_examples",
+    "DeclaredExamples",
     "DEFAULT_BASEMAP_NAME",
     "DEFAULT_BASEMAP_TEMPLATE",
     "DEFAULT_BASEMAPS",
@@ -1075,6 +1089,7 @@ __all__ = [
     "group_data_values",
     "grouping_identifiers",
     "GroupingIdentifier",
+    "GuideDocument",
     "HostileNameGate",
     "HostileNamePosture",
     "HostileRewrite",
@@ -1083,6 +1098,10 @@ __all__ = [
     "IgConfig",
     "IMMUNIZATIONS_SECTION",
     "ImmunizationsMapping",
+    "IMPLEMENTATION_GUIDE_RESOURCE_TYPE",
+    "ImplementationGuideContents",
+    "ImplementationGuideDefinition",
+    "ImplementationGuideResource",
     "IMPORT_REPORT_SUFFIX",
     "init_project",
     "InitOptions",
@@ -1111,6 +1130,7 @@ __all__ = [
     "LIST_EMPTY_REASON_SYSTEM",
     "LiveIgInputs",
     "load_compiled_artifacts",
+    "load_declared_examples",
     "load_fhir_config",
     "load_project",
     "LoadSetReport",
@@ -1209,6 +1229,7 @@ __all__ = [
     "program_rule_names",
     "ProgramContextIn",
     "ProgramRuleNames",
+    "project_gate",
     "ProjectionBackend",
     "ProjectionConfig",
     "ProjectScaffoldState",
@@ -1217,6 +1238,7 @@ __all__ = [
     "PublishedGuide",
     "PublishedObject",
     "PublishedOptionSet",
+    "PublishedResourceKey",
     "PublishedTrackedEntityType",
     "QUARANTINE_REASON_SUFFIX",
     "QuarantinedFile",
@@ -1244,6 +1266,7 @@ __all__ = [
     "recent_periods",
     "record_refusal",
     "RecordedDose",
+    "reference_key",
     "ReferencedObjects",
     "refresh_project",
     "REFUSAL_RECORD_SUFFIX",

@@ -242,6 +242,22 @@ moved in, and what each side says about it.
 
 ::: dhis2w_fhir.drift
 
+### What a guide calls a worked example
+
+A guide compiles worked instances beside its profiles - `Usage: #example` in FSH - so a reader
+of the published pages can see what one looks like, and the guide's own `ImplementationGuide`
+is what tells them apart from what it publishes: each entry of `definition.resource[]` states
+`exampleBoolean` or `exampleCanonical` for an instance that illustrates a profile rather than
+publishing a fact. `load_declared_examples` reads that declaration off a project's published
+trees and `declared_examples` reads it off documents a caller already holds; both answer a
+`DeclaredExamples`, whose `publishes` and `declares` say which side of the line one resource
+falls on. [`d2w fhir serve`](201-serve.md) holds the declared examples out of what it searches
+and counts, and the drift phase of [`d2w fhir doctor`](201-doctor.md) holds them out of what it
+grades - the exemplar organisation unit carries an identifier no DHIS2 instance holds, so
+grading it would report a removal nobody can act on.
+
+::: dhis2w_fhir.implementation_guide
+
 ### The capture spool
 
 Where `d2w fhir serve` writes a receipt and where `d2w fhir forward` moves it next. The

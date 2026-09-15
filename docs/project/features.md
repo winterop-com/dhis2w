@@ -3965,7 +3965,12 @@ typed phases.
   name, plus the organisation-unit subtree those forms are actually assigned
   inside, since DHIS2 refuses a response naming a unit a form is not assigned
   to. `--all-targets` takes the lot instead.
-- **generate** - the full pipeline, every note kept as a finding.
+- **generate** - the full pipeline, every note kept as a finding, screened
+  through the `[generate] hostile_names` posture of the project the run
+  scaffolded - the same gate `d2w fhir generate` builds. The scaffold writes
+  `substitute`, so a DHIS2 name carrying `<` is rewritten for publication
+  rather than refused, and the phase's evidence states the posture it ran
+  under so a reader knows which of the two answers the outcome belongs to.
 - **compile** - real SUSHI when the machine offers one (`sushi` on PATH or the
   `fhir-ig` docker image the scaffold builds), and SKIPPED with that reason
   otherwise, because a compile is evidence rather than a gate every machine can
@@ -3989,8 +3994,13 @@ typed phases.
   `check-artifacts` read - and names every organisation unit, option, tracked
   entity attribute, data element, and program stage the instance now holds
   inside that project's own selection scope that the guide does not, in both
-  directions and on renames alike. Warning-class throughout: a guide is out of
-  date rather than broken, so drift never exits 1. Tracked entity types are
+  directions and on renames alike. The worked examples the guide compiled
+  beside its profiles are counted and graded nowhere - which instances those
+  are is the guide's own word, `definition.resource[]` of the compiled
+  `ImplementationGuide`, read through the same `dhis2w_fhir.implementation_guide`
+  that holds them out of what `d2w fhir serve` searches and counts. Warning-class
+  throughout: a guide is out of date rather than broken, so drift never exits 1.
+  Tracked entity types are
   left to `d2w fhir validate`'s `unmapped-tracked-entity-type` checklist and
   cross-referenced in one line rather than re-reported. Skipped, with the
   reason, from a directory holding no project or from a project that was
@@ -4076,6 +4086,8 @@ renders each module.
 | Validation, producing a report rather than rendering one | `validate_codes`, `resolve_validation_context`, `resolve_validation_scope`, `resolve_code_source`, `ValidationContext`, `display_code` |
 | The conformance runner | `run_doctor`, `DoctorOptions`, `DoctorReport`, `DoctorPhase`, `DoctorOutcome`, `DoctorPhaseResult`, `DoctorFinding`, `PhaseOutcome`, `CaptureOutcome`, `FamilyOutcome`, `resolve_doctor_profile`, `resolve_published_project`, `render_doctor_markdown`, `phase_evidence`, `generate_findings`, `drift_findings`, and the graders `grade`, `grade_capture`, `grade_forward`, `grade_oracle`, `grade_drift` |
 | Drift between a published guide and the instance | `detect_drift`, `read_published_guide`, `compare_organisation_units`, `compare_option_set`, `compare_form`, `registry_scope_line`, `DriftReport`, `DriftFinding`, `DriftSubject`, `DriftKind`, `PublishedGuide`, `PublishedForm`, `PublishedOptionSet`, `PublishedObject`, `InstanceForm`, `InstanceOptionSet`, `InstanceOption`, `InstanceObject`, `DRIFT_REMEDY` |
+| What a guide calls a worked example | `load_declared_examples`, `declared_examples`, `reference_key`, `DeclaredExamples`, `GuideDocument`, `PublishedResourceKey`, `ImplementationGuideContents`, `ImplementationGuideDefinition`, `ImplementationGuideResource`, `IMPLEMENTATION_GUIDE_RESOURCE_TYPE` |
+| The posture one generate run screens DHIS2 names under | `project_gate`, `HostileNameGate`, `HostileRewrite`, `HostileRewriteConfirmation`, `HostileNamePosture` |
 | Translating a captured response into DHIS2 | The whole `dhis2w_fhir.conversion` surface, name for name: `translate_response`, `translate_responses`, `build_conversion_context`, `build_project_context`, `load_compiled_artifacts`, `ConversionContext`, `ConversionResult`, `ConversionReport`, `ConversionPayload`, `ConversionTargetKind`, `ConversionRefusal`, `ConversionNote`, and the rest |
 | Refusal records on the spool | `record_refusal`, `read_refusal_record`, `ForwardRefusalRecord`, `RefusalReason`, `SPOOL_RELATIVE_PATH`, `REFUSAL_RECORD_SUFFIX`, `QUARANTINE_REASON_SUFFIX`, `DRAIN_LOCK_FILE_NAME`, `ORPHAN_TEMPORARY_FILE_AGE_SECONDS` |
 | The profile a run resolves | `GenerationProfile`, `resolve_generation_profile` |

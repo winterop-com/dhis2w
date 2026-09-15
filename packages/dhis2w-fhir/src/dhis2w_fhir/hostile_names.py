@@ -50,6 +50,8 @@ from dhis2w_fhir.validation.substitution import first_control_character, substit
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from dhis2w_fhir.config import FhirProject
+
 __all__ = [
     "SUBSTITUTED_CODE_FIELD",
     "SUBSTITUTED_NAME_FIELDS",
@@ -58,6 +60,7 @@ __all__ = [
     "HostileRewrite",
     "HostileRewriteConfirmation",
     "HostileRewriteSubject",
+    "project_gate",
 ]
 
 #: The projection fields a name rewrite reads, which are the fields that reach a position the IG
@@ -325,6 +328,24 @@ class HostileNameGate:
         if self._substituting is None:
             self._substituting = False if self._confirmation is None else self._confirmation(rewrites)
         return self._substituting
+
+
+def project_gate(
+    project: FhirProject,
+    *,
+    override: HostileNamePosture | None = None,
+    confirmation: HostileRewriteConfirmation | None = None,
+) -> HostileNameGate:
+    """The gate one run screens a project's DHIS2 names through: the override, else the project's posture.
+
+    One resolver for every run that generates from a project, so `d2w fhir generate` and the generate
+    phase of `d2w fhir doctor` take the same answer from the same `[generate] hostile_names` key. A
+    project stating no posture is a project that has not answered: with a `confirmation` the run asks,
+    and with none it publishes every name and code exactly as DHIS2 states it.
+
+    `override` is what a command-line flag stated for this run alone, which outranks the file.
+    """
+    return HostileNameGate(override or project.config.generate.hostile_names, confirmation=confirmation)
 
 
 def _rewrite_notes(rewrites: list[HostileRewrite]) -> list[GenerateNote]:

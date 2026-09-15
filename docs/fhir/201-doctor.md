@@ -100,6 +100,19 @@ tables instead, which means every data set, every program, and every level.
 are warnings: an unmatched selection entry, a question no synthetic answer
 fits, a reference that leaves the selection.
 
+It screens the instance's names through the `[generate] hostile_names` posture
+of the project it scaffolded, exactly as `d2w fhir generate` does, and the
+phase's evidence names the posture it took. The scaffolded `fhir.toml` writes
+`substitute`, so a DHIS2 name carrying `<` - which the demo database holds out
+of the box, in an age band such as `Female, <15y` - is rewritten for
+publication and the run carries on; a project stating `refuse` publishes every
+name as DHIS2 states it and the phase fails on that name instead. The same
+instance grades two ways, so the evidence says which answer was in force:
+
+```
+generate │ warn │ 322 file(s) across 7 target(s), 4 note(s), under hostile names substitute
+```
+
 **compile** runs a real FSH compiler over the emitted source: `sushi` on
 PATH, or the `fhir-ig` docker image the scaffold's `make setup` builds.
 Doctor never builds that image - pulling a JVM and a node toolchain is not
@@ -199,6 +212,16 @@ reader of the guide sees - `D2TEA_CS` carries every attribute's name, a
 `CodeSystem` concept carries every option's - so a guide calling an object
 what the instance no longer calls it is wrong the way documentation is wrong.
 
+**A worked example is not a published resource.** The guide compiles worked
+instances beside its profiles so a reader of the published pages can see what
+one looks like, and the exemplar organisation unit among them carries the
+identifier `d2-example`, which belongs to no organisation unit in any instance.
+Drift counts and grades none of them. Which instances are examples is the
+guide's own word - `definition.resource[]` of the compiled
+`ImplementationGuide` - so this phase and `d2w fhir serve` hold out exactly the
+same set, and the organisation-unit count here matches the `Location` count
+the served guide answers with.
+
 **Scope is the whole discipline.** Drift is measured inside
 `[generate.organisation_units]` and the selection tables, and nowhere else. An
 organisation unit outside the registry root is not drift - the project never
@@ -245,7 +268,8 @@ published guide to read. It opens with what it connected to:
 │         │         │         │ care visit (lxAQ7Zs9VYR) as the first event program by │
 │         │         │         │ name, ANC follow-up (PrAncCare01) as the first tracker │
 │         │         │         │ program by name; organisation units under at6UHUQatSo  │
-│generate │ warn    │ 0.5     │ 322 file(s) across 7 target(s), 4 note(s)              │
+│generate │ warn    │ 0.5     │ 322 file(s) across 7 target(s), 4 note(s), under       │
+│         │         │         │ hostile names substitute                               │
 │compile  │ pass    │ 152.7   │ docker fhir-ig sushi compiled 84 resource(s)           │
 │validate │ warn    │ 0.6     │ 1,634 object(s) swept; 0 selection error(s), 5         │
 │         │         │         │ selection warning(s), 0 error(s) and 5 warning(s)      │
@@ -353,7 +377,8 @@ form a redirected log wants:
 running 10 step(s)
 [1/10] connect: pass - http://localhost:8080 is DHIS2 2.43.1, bound to the v43 tree
 [2/10] scaffold: pass - 13 file(s) into /home/you/doctor-ws; ...
-[3/10] generate: warn - 322 file(s) across 7 target(s), 4 note(s)
+[3/10] generate: warn - 322 file(s) across 7 target(s), 4 note(s), under hostile names
+substitute
 [4/10] compile: pass - docker fhir-ig sushi compiled 84 resource(s)
 [5/10] validate: warn - 1,634 object(s) swept; 0 selection error(s), 5 selection warning(s),
 0 error(s) and 5 warning(s) instance-wide

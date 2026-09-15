@@ -191,10 +191,9 @@ def _generate_decisions(ctx: typer.Context) -> GenerateDecisions:
 
 def _hostile_name_gate(ctx: typer.Context, project: FhirProject) -> HostileNameGate:
     """The gate this run screens DHIS2 names through: the flag's answer, else the project's, else a question."""
-    from dhis2w_fhir.hostile_names import HostileNameGate
+    from dhis2w_fhir.hostile_names import project_gate
 
-    posture = _generate_decisions(ctx).hostile_names or project.config.generate.hostile_names
-    return HostileNameGate(posture, confirmation=_confirm_hostile_names)
+    return project_gate(project, override=_generate_decisions(ctx).hostile_names, confirmation=_confirm_hostile_names)
 
 
 def _has_terminal() -> bool:

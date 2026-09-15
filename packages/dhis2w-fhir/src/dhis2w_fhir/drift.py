@@ -44,6 +44,14 @@ Codes are not compared. A code change is a real event, but it is one the identif
 carry and one `d2w fhir validate` grades for FHIR-safety, so the drift report stays about the objects
 a form asks and the names a reader reads.
 
+A worked example is not compared either, and is not counted. The guide compiles worked instances
+beside its profiles so a reader of the published pages can see what one looks like, and the exemplar
+organisation unit among them carries the identifier `d2-example`, which belongs to no organisation
+unit in any instance. Grading it would report a removal every run, forever, that nobody can act on.
+Which instances are examples is the guide's own word - `definition.resource[]` of the compiled
+`ImplementationGuide`, read through `dhis2w_fhir.implementation_guide` - so this report and the
+served store hold out exactly the same set.
+
 The remedy is the same sentence for every finding, which is why it is stated once on the phase rather
 than once per row: regenerate, then compile. That is the documented lifecycle - `d2w fhir generate`
 re-reads the instance, `make sushi` turns the new source into artifacts - and nothing about a drifted
@@ -58,6 +66,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, ConfigDict
 
 from dhis2w_fhir.conversion.artifacts import load_compiled_artifacts
+from dhis2w_fhir.implementation_guide import load_declared_examples
 from dhis2w_fhir.names import flatten_whitespace
 from dhis2w_fhir.resources.option_sets import code_system_canonical
 from dhis2w_fhir.resources.questionnaires.schemas import FORM_KIND_PROFILES, FormKind, QuestionnaireNaming
@@ -349,8 +358,15 @@ def read_published_guide(project: FhirProject) -> PublishedGuide:
     wrote straight to JSON - so a drift pass, a served store, and a conversion context can never
     disagree about what a project publishes. It raises `CompiledIgMissingError` on a project that was
     generated but never compiled, which is a fact about the project rather than about the instance.
+
+    A worked example is held out of the reading on the guide's own word, the way `d2w fhir serve`
+    holds it out of what it searches and counts: `load_declared_examples` reads the compiled
+    `ImplementationGuide`'s `definition.resource[]`, and an instance it declares an example of a
+    profile is not something the guide publishes. The exemplar organisation unit this toolchain mints
+    carries an identifier no DHIS2 instance holds, so grading it would report a removal forever.
     """
     artifacts = load_compiled_artifacts(project)
+    examples = load_declared_examples(project)
     generate = project.config.generate
     identifier_base = f"{generate.identifier_system_base}/id"
     naming = QuestionnaireNaming.from_naming(generate.naming)
@@ -359,10 +375,13 @@ def read_published_guide(project: FhirProject) -> PublishedGuide:
         "data-element": code_system_canonical(canonical, naming.data_element_code_system_id),
         "tracked-entity-attribute": code_system_canonical(canonical, naming.tracked_entity_attribute_code_system_id),
     }
+    locations = [item for item in artifacts.locations if examples.publishes("Location", item.id)]
+    code_systems = [item for item in artifacts.code_systems if examples.publishes("CodeSystem", item.id)]
+    questionnaires = [item for item in artifacts.questionnaires if examples.publishes("Questionnaire", item.id)]
     return PublishedGuide(
-        organisation_units=_published_organisation_units(artifacts.locations, identifier_base),
-        option_sets=_published_option_sets(artifacts.code_systems, identifier_base),
-        forms=_published_forms(artifacts.questionnaires, identifier_base, question_systems),
+        organisation_units=_published_organisation_units(locations, identifier_base),
+        option_sets=_published_option_sets(code_systems, identifier_base),
+        forms=_published_forms(questionnaires, identifier_base, question_systems),
     )
 
 

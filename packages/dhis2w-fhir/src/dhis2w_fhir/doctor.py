@@ -63,6 +63,7 @@ from dhis2w_fhir.config import (
 from dhis2w_fhir.conversion.artifacts import CompiledArtifactReadError, CompiledIgMissingError
 from dhis2w_fhir.drift import detect_drift
 from dhis2w_fhir.foundation import CAPTURE_SERVER_READ_RESOURCE_TYPES
+from dhis2w_fhir.hostile_names import project_gate
 from dhis2w_fhir.names import code_or_uid, flatten_whitespace, pascal
 from dhis2w_fhir.scaffold.schemas import DEFAULT_SUSHI_TIMEOUT_SECONDS, InitOptions
 from dhis2w_fhir.service import GenerationProfile
@@ -902,14 +903,25 @@ class _DoctorRun:
         return True
 
     async def _generate(self) -> bool:
-        """Run the full pipeline against the instance, keeping every note the run raised as a finding."""
+        """Run the full pipeline against the instance under the project's posture, keeping every note as a finding.
+
+        The gate is built the way `d2w fhir generate` builds it, off `[generate] hostile_names` of the
+        project this run scaffolded. Generating under any other answer would grade the instance on a
+        posture nobody configured: a DHIS2 name carrying '<' aborts the publisher's build under
+        `refuse` and is rewritten for publication under `substitute`, and reporting the first against
+        a project stating the second would call an instance broken that the toolchain handles.
+        """
         self._progress.start(DoctorPhase.GENERATE.value, "generating the IG source from the instance")
         started = time.perf_counter()
         project = self._require_project()
+        posture = _hostile_name_posture(project)
         try:
-            report = await service.generate_full(self._generation.profile, project, client=self._client)
+            report = await service.generate_full(
+                self._generation.profile, project, client=self._client, gate=project_gate(project)
+            )
         except (Dhis2ClientError, httpx2.HTTPError, LookupError, ValueError) as error:
-            self._record(DoctorPhase.GENERATE, DoctorOutcome.FAILED, str(error), started)
+            detail = f"{error} The run generated under {posture}."
+            self._record(DoctorPhase.GENERATE, DoctorOutcome.FAILED, detail, started)
             return False
         # The distinct-notes view: a note several targets share becomes one finding, not three.
         distinct = report.with_distinct_notes()
@@ -918,7 +930,7 @@ class _DoctorRun:
         notes = [note for outcome in outcomes for note in outcome.notes]
         findings = generate_findings(notes)
         # Counted off the findings, so the evidence line and the table below it state one number.
-        evidence = f"{written:,} file(s) across {len(outcomes)} target(s), {len(findings):,} note(s)"
+        evidence = f"{written:,} file(s) across {len(outcomes)} target(s), {len(findings):,} note(s), under {posture}"
         self._record_graded(DoctorPhase.GENERATE, grade(DoctorPhase.GENERATE, evidence, findings), started)
         return True
 
@@ -1276,6 +1288,17 @@ def _connection_failure(error: Exception) -> str:
     if isinstance(error, httpx2.HTTPError):
         return f"cannot reach the DHIS2 instance: {error or type(error).__name__}"
     return str(error) or type(error).__name__
+
+
+def _hostile_name_posture(project: FhirProject) -> str:
+    """The `[generate] hostile_names` posture the generate phase screened this instance's names under.
+
+    Stated on the phase because the same instance grades two ways. One DHIS2 name carrying '<' is a
+    refusal under `refuse` and a published rewrite under `substitute`, so a reader who cannot see
+    which answer the run took cannot read the outcome.
+    """
+    posture = project.config.generate.hostile_names
+    return f"hostile names {posture.value}" if posture is not None else "hostile names not set"
 
 
 async def _probe_targets(client: Dhis2Client) -> list[_ProbeTarget]:
