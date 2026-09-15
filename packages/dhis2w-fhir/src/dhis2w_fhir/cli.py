@@ -2962,6 +2962,16 @@ def forward_command(
             "the drain, which never deletes anything.",
         ),
     ] = None,
+    registry_package: Annotated[
+        Path | None,
+        typer.Option(
+            "--registry-package",
+            help="The organisation-unit registry package to resolve this guide's unit references "
+            "through - the `package.tgz` the registry project's `make build` wrote, or a directory "
+            r"it was extracted into. Only for a guide naming `\[generate.organisation_units.registry]`, "
+            "and only when no `path` checkout answers: the checkout is read first.",
+        ),
+    ] = None,
     details: Annotated[
         bool,
         typer.Option("--details", help="Print every response's outcome instead of writing them to the report."),
@@ -2984,6 +2994,11 @@ def forward_command(
 
     An imported response moves from the spool's received/ to forwarded/, a DHIS2-rejected one to
     rejected/ beside a report, and a translator-refused one stays put - fix and forward again.
+
+    A guide whose organisation units a registry package publishes resolves every unit reference
+    through that package - the `path` checkout, or `--registry-package` - however the guide itself
+    was read, and a package neither source supplies refuses the drain rather than translating
+    against places this guide does not publish.
 
     Every payload names its own DHIS2 object - an event's UID is derived from the receipt's logical id -
     so one receipt forwarded twice is refused as an object the instance holds, never imported twice.
@@ -3022,6 +3037,7 @@ def forward_command(
                 overwrites=overwrites,
                 corrections=corrections,
                 withdrawals=withdrawals,
+                registry_package=registry_package,
                 reporter=reporter,
             )
         )

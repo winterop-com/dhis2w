@@ -85,6 +85,7 @@ from dhis2w_fhir.overwrite import (
 )
 from dhis2w_fhir.period import parse_period, recent_periods
 from dhis2w_fhir.r4 import QuestionnaireResponse
+from dhis2w_fhir.registry_package import load_registry_documents, resolve_registry_source
 from dhis2w_fhir.resources.administrative_gender import (
     administrative_gender_map_file_prefix,
     build_administrative_gender_concept_map_artifacts,
@@ -3624,7 +3625,11 @@ _LIVE_ARTIFACT_SOURCE = "built live"
 
 
 async def fetch_live_artifacts(
-    client: Dhis2Client, project: FhirProject, *, progress: _StepAnnouncer | None = None
+    client: Dhis2Client,
+    project: FhirProject,
+    *,
+    progress: _StepAnnouncer | None = None,
+    registry_package: Path | None = None,
 ) -> CompiledArtifacts:
     """Build the artifacts the translator reads off the instance, for a project holding no compiled guide.
 
@@ -3642,13 +3647,25 @@ async def fetch_live_artifacts(
     foundation terminology and the data dictionary a served store also holds say nothing the
     response direction reads, so a forward does not pay to build them.
 
+    A GUIDE WHOSE ORGANISATION UNITS A REGISTRY PACKAGE PUBLISHES RESOLVES THEM THERE, never off the
+    instance. The hierarchy walk is skipped, no Location of this guide's own is built, and the
+    package's own instances are read in instead - the checkout `path` names, or the archive
+    `registry_package` does. Walking the instance here would resolve a `Location/<id>` reference
+    through a place the published guide does not publish, and a live drain would then accept what
+    the compiled one refuses. Reaching neither source is a refusal, raised before the instance is
+    read rather than after a translation nothing can stand behind.
+
     The cost is a full metadata read per drain, where a compiled guide is read from disk. That is
     the trade a project without a build step takes, and the caller narrates it.
     """
     config = project.config.generate
     canonical = project.config.ig.canonical
     ig_status = project.config.ig.status
-    inputs = await fetch_live_ig_inputs(client, config, progress=progress)
+    # None here is a guide publishing its own units, which is the only case that walks the hierarchy.
+    registry_source = resolve_registry_source(project, package=registry_package)
+    inputs = await fetch_live_ig_inputs(
+        client, config, progress=progress, read_organisation_units=registry_source is None
+    )
     assignments = build_assignment_artifacts(
         inputs.sources,
         inputs.assignments,
@@ -3684,12 +3701,18 @@ async def fetch_live_artifacts(
         JsonBuild(
             artifacts=build_category_concept_map_artifacts(inputs.categories, config, canonical, ig_status=ig_status)
         ),
-        build_organisation_unit_instances(
-            inputs.organisation_units,
-            config,
-            canonical,
-            attribute_codes=inputs.attribute_codes,
-            level_names=inputs.organisation_unit_levels,
+        *(
+            ()
+            if registry_source is not None
+            else (
+                build_organisation_unit_instances(
+                    inputs.organisation_units,
+                    config,
+                    canonical,
+                    attribute_codes=inputs.attribute_codes,
+                    level_names=inputs.organisation_unit_levels,
+                ),
+            )
         ),
         attribute_combos,
         JsonBuild(
@@ -3706,6 +3729,10 @@ async def fetch_live_artifacts(
         SourcedDocument(source=artifact.relative_path, body=json.loads(artifact.content))
         for build in json_builds
         for artifact in build.artifacts
+    )
+    documents.extend(
+        SourcedDocument(source=document.source, body=document.body)
+        for document in load_registry_documents(project, package=registry_package)
     )
     return collect_artifacts(documents)
 
@@ -5233,9 +5260,24 @@ _DATA_VALUE_SET_REPORT_KEYS = frozenset({"importCount", "conflicts", "responseTy
 #: this document **bare** - no `WebMessage` around it - so recognising it by shape is the whole trick.
 _TRACKER_REPORT_KEYS = frozenset({"validationReport", "stats", "bundleReport"})
 
-#: The backtick-quoted identifiers DHIS2 embeds in a validation message. Generalising them is what makes
+#: The identifiers DHIS2 embeds in a validation message, quoted or bare. Generalising them is what makes
 #: two hundred rejections of one rule roll up into one cause rather than two hundred distinct sentences.
-_QUOTED_IDENTIFIER = re.compile(r"`[^`]*`")
+#:
+#: DHIS2 quotes some and not others - `E1029` backticks its organisation-unit list where `E8025` states
+#: the attribute option combo as eleven bare characters in the same sentence - so a bare DHIS2 UID
+#: generalises exactly as a quoted one does. One alternation reads both in a single pass, so a rule name
+#: substituted for a UID is never itself re-read as one.
+_EMBEDDED_IDENTIFIER = re.compile(r"`[^`]*`|\b[A-Za-z][A-Za-z0-9]{10}\b")
+
+#: Where a bare word turns from lower case to upper. A DHIS2 UID is eleven random characters and a
+#: sentence is made of words, so the two are told apart by shape: `DataElement` and `dataElement` are
+#: English spelt for a machine and turn once, where `ImspTQPwCqd` turns wherever the generator happened
+#: to land. A word of eleven letters turning at most once is left alone, and either way the response's
+#: own report carries the sentence exactly as DHIS2 sent it.
+_CASE_TURN = re.compile(r"[a-z][A-Z]")
+
+#: How many turns a bare eleven-letter word takes before it is read as a UID rather than as prose.
+_CASE_TURNS_OF_A_WORD = 1
 
 #: How often the posting step re-captions itself, so a 300-response drain narrates without one line each.
 _POST_TICK_INTERVAL = 10
@@ -5900,7 +5942,9 @@ class ForwardReport(BaseModel):
         )
 
 
-def _compiled_artifacts_or_none(project: FhirProject) -> CompiledArtifacts | None:
+def _compiled_artifacts_or_none(
+    project: FhirProject, *, registry_package: Path | None = None
+) -> CompiledArtifacts | None:
     """The project's compiled guide, or None when it holds none and the live build stands in for it.
 
     Absence of the compiled tree is the whole trigger - a project that has run SUSHI reads its own
@@ -5908,7 +5952,7 @@ def _compiled_artifacts_or_none(project: FhirProject) -> CompiledArtifacts | Non
     off, and the refusal naming the two commands that produce a build is then what a drain answers.
     """
     try:
-        return load_compiled_artifacts(project)
+        return load_compiled_artifacts(project, registry_package=registry_package)
     except CompiledIgMissingError:
         if not project.config.forward.live:
             raise
@@ -5931,6 +5975,7 @@ async def forward_responses(
     overwrites: OverwritePosture | None = None,
     corrections: CorrectionPosture | None = None,
     withdrawals: WithdrawalPosture | None = None,
+    registry_package: Path | None = None,
     reporter: ProgressReporter | None = None,
     client: Dhis2Client | None = None,
 ) -> ForwardReport:
@@ -5965,6 +6010,13 @@ async def forward_responses(
     step forwards without one. The cost is a full metadata read per drain and the progress step says
     so. `[forward] live = false` turns the stand-in off and restores the refusal naming
     `d2w fhir generate` and `make sushi`.
+
+    BOTH WAYS READ ONE REGISTRY. A guide naming `[generate.organisation_units.registry]` publishes no
+    place of its own, so a `Location/<id>` reference resolves through the package it depends on -
+    the checkout `path` names, or the archive `registry_package` does - whether the guide was read
+    off disk or built off the instance. Reaching neither source refuses the drain rather than
+    translating against places this guide does not publish, and the two halves of the command
+    therefore answer the same project the same way.
 
     Registrations post first. A tracker program's registration response creates the enrollment its
     stage responses answer against, and a client captures both in one sitting, so a drain holding
@@ -6057,6 +6109,7 @@ async def forward_responses(
             overwrites=posture,
             corrections=correcting,
             withdrawals=withdrawing,
+            registry_package=registry_package,
             reporter=reporter,
             client=client,
         )
@@ -6072,6 +6125,7 @@ async def _drain_spool(
     overwrites: OverwritePosture,
     corrections: CorrectionPosture,
     withdrawals: WithdrawalPosture,
+    registry_package: Path | None,
     reporter: ProgressReporter | None,
     client: Dhis2Client | None = None,
 ) -> ForwardReport:
@@ -6085,10 +6139,15 @@ async def _drain_spool(
     quarantined_note = f", {len(reading.quarantined):,} moved to malformed/" if reading.quarantined else ""
     progress.complete(f"{len(spooled):,} pending response(s){quarantined_note}")
 
-    compiled = _compiled_artifacts_or_none(project)
+    compiled = _compiled_artifacts_or_none(project, registry_package=registry_package)
     if compiled is not None:
         progress.step("guide", "reading the published guide")
         progress.complete(_artifacts_completion(compiled))
+    else:
+        # The live build resolves its places through the registry package too, so a guide that
+        # depends on one and can reach neither source is refused here - before a connection is
+        # opened, and on the same terms the compiled half above refuses the same project.
+        resolve_registry_source(project, package=registry_package)
 
     naming = ConversionNaming.from_config(project.config.generate, project.config.ig.canonical)
     dry_run = not import_responses
@@ -6123,7 +6182,9 @@ async def _drain_spool(
     async with _instance_connection(profile, client) as client:
         if compiled is None:
             progress.step("guide", "building the guide off the instance, this project holding no compiled one")
-            artifacts = await fetch_live_artifacts(client, project, progress=progress)
+            artifacts = await fetch_live_artifacts(
+                client, project, progress=progress, registry_package=registry_package
+            )
             progress.complete(_artifacts_completion(artifacts))
         else:
             artifacts = compiled
@@ -7090,16 +7151,35 @@ def _generalised_reason(reason: str, rule_names: ProgramRuleNames) -> str:
 
     DHIS2 names the program rule that refused an import by UID alone (`E1300`), and the guide
     published that UID beside the rule's own name, so the roll-up says which rule refused rather
-    than which twelve characters did. Every other quoted identifier still generalises, because two
-    rejections of one rule against two different objects are one cause of the run. The UID itself is
-    untouched on the response's own report, which is where a reader goes for the object.
+    than which twelve characters did. Every other identifier generalises, because two rejections of
+    one rule against two different objects are one cause of the run.
+
+    QUOTED AND BARE ALIKE. Whether DHIS2 backticks an identifier is DHIS2's own habit, not a fact
+    about the identifier - `E8025` states the attribute option combo bare and the organisation units
+    it is not usable with quoted, in one sentence - so a row grouping three responses would otherwise
+    name the first one's combo for all three. A quoted run is an identifier because DHIS2 marked it
+    as one; a bare one has to be told from the sentence it sits in, which `_reads_as_uid` is. The UID
+    itself is untouched on the response's own report, which is where a reader goes for the object.
     """
 
     def _read(match: re.Match[str]) -> str:
-        name = rule_names.name_for(match.group(0).strip("`"))
+        token = match.group(0)
+        if not token.startswith("`") and not _reads_as_uid(token):
+            return token
+        name = rule_names.name_for(token.strip("`"))
         return f"`{name}`" if name is not None else "`...`"
 
-    return _QUOTED_IDENTIFIER.sub(_read, reason)
+    return _EMBEDDED_IDENTIFIER.sub(_read, reason)
+
+
+def _reads_as_uid(token: str) -> bool:
+    """Whether a bare eleven-character word is a DHIS2 UID rather than a word of the sentence around it.
+
+    A UID carries a digit, or turns from lower case to upper more often than a word does. DHIS2 writes
+    `DataElement`, `dataElement` and `Enrollments` into the very messages this reads, each of them
+    eleven characters and each of them prose, so shape is what separates them from `ImspTQPwCqd`.
+    """
+    return any(character.isdigit() for character in token) or len(_CASE_TURN.findall(token)) > _CASE_TURNS_OF_A_WORD
 
 
 def _rejection_cause_key(error_code: str | None, generalised_reason: str) -> tuple[str | None, str]:

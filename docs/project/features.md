@@ -335,8 +335,15 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         outranking the file. One drain at a time: an exclusive
                         flock on .serve/responses/.drain.lock names its holder.
                         --strict-codes/--no-strict-codes overrides [serve]
-                        strict_codes; rejections roll up by cause (error code +
-                        the message with its quoted UIDs generalised away) as a
+                        strict_codes; a guide whose organisation units a registry
+                        package publishes resolves every unit reference through
+                        that package in both halves of the drain - the compiled
+                        guide and the guide built off the instance alike - taking
+                        the checkout [generate.organisation_units.registry] path
+                        names first and --registry-package <package.tgz> after
+                        it, and refusing before it connects when neither answers;
+                        rejections roll up by cause (error code + the message
+                        with its UIDs generalised away, quoted or bare) as a
                         reasons table on the terminal and at the head of the
                         report, so 202 rejections read as the 3 rules they
                         broke; a dry run counts a stage event whose enrollment
@@ -1551,8 +1558,13 @@ registration form become `Questionnaire` instances.
   run over a depending guide serves the package's units too** and walks no
   hierarchy on the instance: units of its own would publish a second identity
   for every place at this guide's base URL, so a client developed against
-  `--live` would resolve units the published guide never names. The refusal is
-  deliberate rather than a fall-back: with no Location loaded, reference
+  `--live` would resolve units the published guide never names. **Both halves of
+  `d2w fhir forward` read that one registry**: the guide read off disk and the
+  guide built off the instance for a project that has never run SUSHI resolve
+  every `Location/<id>` through the package, and a drain that can reach neither
+  source refuses before it opens a connection rather than translating against
+  places this guide does not publish. The refusal is deliberate rather than a
+  fall-back: with no Location loaded, reference
   resolution reads the id as the DHIS2 UID, which is right under
   `naming.source = "id"` and silently wrong under `"code"`.
 - **A package serves no capture surface.** `[ig] publishes` says the project
@@ -3600,14 +3612,20 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   `message`) whether it came from `response.conflicts[]` or
   `validationReport.errorReports[]`, with the generated `ImportSummary` /
   `TrackerImportReport` riding alongside untouched.
-- **Rejections roll up by cause** - error code plus the message with its quoted
+- **Rejections roll up by cause** - error code plus the message with its
   identifiers generalised away, except a UID naming a program rule the guide
   published, which is read back as that rule's own name so an `E1300` refusal
   says which rule refused rather than which twelve characters did (the raw UID
-  stays untouched on the response's own `.report.json`). Each response is
-  counted once per distinct cause, so `202 rejected` reads as the three rules
-  it broke, rendered as a `Responses | Code | What DHIS2 said` table on the
-  terminal and at the head of the written report.
+  stays untouched on the response's own `.report.json`). Quoted and bare alike:
+  DHIS2 backticks the organisation-unit list of an `E8025` and leaves the
+  attribute option combo in the same sentence bare, so a row standing for three
+  responses refused on three different combos names none of them rather than
+  the first one's. A bare eleven-character word is read as a UID by its shape -
+  it carries a digit, or it turns from lower case to upper more often than a
+  word does - so the `DataElement` of an `E1302` sentence stays prose. Each
+  response is counted once per distinct cause, so `202 rejected` reads as the
+  three rules it broke, rendered as a `Responses | Code | What DHIS2 said`
+  table on the terminal and at the head of the written report.
 
 #### The spool as ledger
 

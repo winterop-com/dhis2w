@@ -213,6 +213,27 @@ error: no compiled IG at /home/you/demo-ig/ig/fsh-generated/resources - run
 `d2w fhir generate`, then `make sushi` in the project, and forward again.
 ```
 
+### Both halves read one registry
+
+A guide naming `[generate.organisation_units.registry]` publishes no
+organisation unit of its own, so a receipt's `Location/<id>` resolves through
+the registry package it depends on - whichever half of the drain ran. The
+compiled guide reads the package beside the resources it was built from; the
+live build walks no hierarchy on the instance and reads the same package. The
+two sources are the checkout `path` names and then an archive on the command
+line, in that order:
+
+```bash
+d2w fhir forward --registry-package ../dist/package.tgz
+```
+
+Reaching neither is a refusal - the one
+[`d2w fhir serve` prints](201-registry-package.md#serving-forwarding-and-checking-a-depending-guide) -
+raised before the drain opens a connection. Walking the instance instead would
+resolve a reference through a place the published guide does not publish, so a
+drain with no build step would accept what a drain reading the compiled guide
+refuses.
+
 ## What a dry run cannot check
 
 A dry run writes nothing, so the enrollment a registration mints does not
@@ -1112,11 +1133,28 @@ proved everything a dry run can prove, and the import answered the rest.
 The rollup is what makes a large rejection readable. DHIS2 states a rule
 once and then names every object that broke it, so two hundred rejections
 are usually three causes; the run groups them by error code plus the message
-with its quoted identifiers generalised away, and a response counts once per
-distinct cause it met. `--details` replaces the counted hint with one row
-per receipt; `--json` puts the whole `ForwardReport` on stdout and nothing
-else, import summaries included, so a caller pipes it into `jq` without
-filtering the narration out.
+with its identifiers generalised away, and a response counts once per
+distinct cause it met.
+
+Whether DHIS2 backticks an identifier is DHIS2's own habit, so the roll-up
+reads quoted and bare alike. `E8025` states the attribute option combo bare
+and the organisation units it is not usable with quoted, in one sentence -
+so three responses refused on three different combos read as
+
+```
+E8025  Attribute option combo `...` not usable with org unit(s): `...`   3
+```
+
+rather than as one row naming the first response's combo for all three. A
+bare eleven-character word is taken for a UID by its shape: it carries a
+digit, or it turns from lower case to upper more often than a word does. So
+the `DataElement` of an `E1302` sentence stays prose, and every response's
+own report keeps the sentence exactly as DHIS2 sent it.
+
+`--details` replaces the counted hint with one row per receipt; `--json`
+puts the whole `ForwardReport` on stdout and nothing else, import summaries
+included, so a caller pipes it into `jq` without filtering the narration
+out.
 
 The written report opens with the same table and then lists each response
 with its own notes. Here is the head of the `--import` run above, and one

@@ -64,6 +64,9 @@ d2w fhir check-artifacts demo-guide --no-fail
 
 # Naming the archive, or generating the registry checkout, is what answers it:
 #   d2w fhir check-artifacts demo-guide --registry-package ../dist/package.tgz
-# The same two sources, in the same order, are what `d2w fhir serve` reads the units from.
+# The same two sources, in the same order, are what `d2w fhir serve` and `d2w fhir forward` read
+# the units from - the drain through both of its halves, the guide read off disk and the guide
+# built off the instance:
+#   d2w fhir forward demo-guide --registry-package ../dist/package.tgz
 
 rm -rf demo-both demo-registry demo-guide demo-inline

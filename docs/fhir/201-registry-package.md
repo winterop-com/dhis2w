@@ -235,6 +235,7 @@ d2w fhir serve
 # The hand-off case - no checkout, so name the archive the registry build wrote.
 d2w fhir serve --registry-package ../dist/package.tgz
 d2w fhir check-artifacts --registry-package ../dist/package.tgz
+d2w fhir forward --registry-package ../dist/package.tgz
 ```
 
 A `package.tgz` is read where it lies; nothing is unpacked onto your disk. An
@@ -258,6 +259,15 @@ hierarchy on the instance: publishing units of its own would put a second
 identity for every place at this guide's base URL, which is an address the
 published guide resolves nothing at. Reaching neither source refuses a live run
 with the line above, before the banner, exactly as it refuses a compiled one.
+
+`d2w fhir forward` has the same two halves and reads the registry in both. A
+project that has run SUSHI has its guide read off disk; a project captured
+through `d2w fhir serve --live` has never run it, so the drain builds the guide
+off the instance instead - and either way the places a receipt's
+`Location/<id>` resolves against come out of the registry package. The live
+half walks no hierarchy, and a drain that can reach neither source prints the
+line above and stops before it opens a connection, rather than translating
+against places this guide does not publish.
 
 The absolute references the guide carries are read as the units they name
 wherever the facade needs one. An assignment `List` naming
