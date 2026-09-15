@@ -3931,8 +3931,9 @@ $ d2w metadata usage [OPTIONS] {uid}
 Fetch one metadata object by UID.
 
 Prints a concise Rich summary by default (id, name, code, common metadata +
-notable extras). Use `--json` for the full payload when debugging or
-piping into jq. Pass `--fields` to narrow what DHIS2 returns.
+notable extras). `--json` is a root flag, so it goes before the subcommand:
+`d2w --json metadata get ...` prints the full payload for debugging or piping
+into jq. Pass `--fields` to narrow what DHIS2 returns.
 
 **Usage**:
 
@@ -9826,7 +9827,7 @@ $ d2w system [OPTIONS] COMMAND [ARGS]...
 
 ### `d2w system whoami`
 
-Expose everything DHIS2 reports about the authenticated user. `--json` for the raw object.
+Expose everything DHIS2 reports about the authenticated user. `d2w --json system whoami` for the raw object.
 
 **Usage**:
 
@@ -10064,7 +10065,7 @@ $ d2w user list [OPTIONS]
 
 ### `d2w user get`
 
-Fetch one user by UID or username. Prints a concise summary; `--json` for full payload.
+Fetch one user by UID or username. Prints a concise summary; `d2w --json user get` for the full payload.
 
 **Usage**:
 
@@ -10207,7 +10208,7 @@ $ d2w user group list [OPTIONS]
 
 #### `d2w user group get`
 
-Fetch one user group by UID. Prints a concise summary; `--json` for full payload.
+Fetch one user group by UID. Prints a concise summary; `d2w --json user group get` for the full payload.
 
 **Usage**:
 
@@ -10300,7 +10301,7 @@ $ d2w user group remove-member [OPTIONS] {group_uid} {user_uid}
 
 #### `d2w user group sharing-get`
 
-Print the current sharing block for one user group. `--json` for full payload.
+Print the current sharing block for one user group. `d2w --json user group sharing-get` for the full payload.
 
 **Usage**:
 
@@ -10400,7 +10401,7 @@ $ d2w user role list [OPTIONS]
 
 #### `d2w user role get`
 
-Fetch one user role by UID. Prints a concise summary; `--json` for full payload.
+Fetch one user role by UID. Prints a concise summary; `d2w --json user role get` for the full payload.
 
 **Usage**:
 

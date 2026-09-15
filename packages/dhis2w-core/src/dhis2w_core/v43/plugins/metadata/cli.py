@@ -576,8 +576,9 @@ def get_command(
     """Fetch one metadata object by UID.
 
     Prints a concise Rich summary by default (id, name, code, common metadata +
-    notable extras). Use `--json` for the full payload when debugging or
-    piping into jq. Pass `--fields` to narrow what DHIS2 returns.
+    notable extras). `--json` is a root flag, so it goes before the subcommand:
+    `d2w --json metadata get ...` prints the full payload for debugging or piping
+    into jq. Pass `--fields` to narrow what DHIS2 returns.
     """
     from dhis2w_core.v43.plugins.metadata import service
 

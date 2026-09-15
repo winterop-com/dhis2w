@@ -68,7 +68,7 @@ def _whoami_value(value: Any) -> str:
 
 @app.command("whoami")
 def whoami_command() -> None:
-    """Expose everything DHIS2 reports about the authenticated user. `--json` for the raw object."""
+    """Expose everything DHIS2 reports about the authenticated user. `d2w --json system whoami` for the raw object."""
     from dhis2w_core.v41.plugins.system import service
 
     me = asyncio.run(service.whoami(profile_from_env()))

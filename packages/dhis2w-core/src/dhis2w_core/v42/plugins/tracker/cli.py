@@ -4,8 +4,9 @@ Tracked-entity listing keys on the TrackedEntityType — the `<type>` positional
 on `list` + `get` accepts a TET name (case-insensitive) or UID directly. Names
 are resolved server-side via `/api/trackedEntityTypes?filter=name:ilike:...`.
 
-Every list/get command prints a concise Rich summary by default. Pass
-`--json` to get the raw payload (useful for scripting + debugging).
+Every list/get command prints a concise Rich summary by default. `--json` is a
+root flag, so `d2w --json data tracker ...` gets the raw payload (useful for
+scripting + debugging).
 """
 
 from __future__ import annotations
