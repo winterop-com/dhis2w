@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
 from dhis2w_fhir.config import FhirProject
+from dhis2w_fhir_serve.log import LOGGER_NAME
 from dhis2w_fhir_serve.store import (
     CompiledIgMissingError,
     IdentifierToken,
@@ -322,3 +324,136 @@ def test_first_entry_wins_on_duplicate_type_and_id() -> None:
 
     assert found is not None
     assert found.body["title"] == "compiled"
+
+
+#: The identifier system a generated Location carries its DHIS2 organisation unit UID on, which the
+#: worked exemplar carries one of too - so a search by it is where the exemplar would shadow a real
+#: unit if it were published.
+ORG_UNIT_SYSTEM = "http://dhis2.org/fhir/id/org-unit"
+
+#: The root unit of the fixture registry, and the exemplar compiled beside it.
+PUBLISHED_UNIT_ID = "ImspTQPwCqd"
+EXEMPLAR_LOCATION_ID = "d2-location-example"
+
+
+def _location(resource_id: str, unit_uid: str) -> dict[str, Any]:
+    """One organisation unit as a Location, carrying its DHIS2 UID as the identifier it is found by."""
+    return {
+        "resourceType": "Location",
+        "id": resource_id,
+        "identifier": [{"system": ORG_UNIT_SYSTEM, "value": unit_uid}],
+        "status": "active",
+        "name": "Sierra Leone",
+    }
+
+
+def _guide_declaring_the_exemplar(*, absolute: bool = False) -> dict[str, Any]:
+    """The compiled guide, listing the published unit and calling the exemplar beside it an example."""
+    exemplar = f"Location/{EXEMPLAR_LOCATION_ID}"
+    return {
+        "resourceType": "ImplementationGuide",
+        "id": "dhis2.fhir.example",
+        "url": f"{CANONICAL}/ImplementationGuide/dhis2.fhir.example",
+        "status": "draft",
+        "packageId": "dhis2.fhir.example",
+        "definition": {
+            "resource": [
+                {"reference": {"reference": f"Location/{PUBLISHED_UNIT_ID}"}, "exampleBoolean": False},
+                {
+                    "reference": {"reference": f"{CANONICAL}/{exemplar}" if absolute else exemplar},
+                    "exampleCanonical": f"{CANONICAL}/StructureDefinition/d2-location",
+                },
+            ]
+        },
+    }
+
+
+def _project_with_an_exemplar(
+    project: FhirProject, write_resource: WriteResource, *, absolute: bool = False
+) -> FhirProject:
+    """The compiled project with a published organisation unit, the exemplar, and the guide naming both."""
+    compiled = project.ig_directory / "fsh-generated" / "resources"
+    write_resource(
+        compiled / "ImplementationGuide-dhis2.fhir.example.json",
+        _guide_declaring_the_exemplar(absolute=absolute),
+    )
+    write_resource(compiled / f"Location-{EXEMPLAR_LOCATION_ID}.json", _location(EXEMPLAR_LOCATION_ID, "d2-example"))
+    registry = project.resources_directory / "registry"
+    write_resource(registry / f"Location-{PUBLISHED_UNIT_ID}.json", _location(PUBLISHED_UNIT_ID, PUBLISHED_UNIT_ID))
+    return project
+
+
+def test_an_instance_the_guide_calls_an_example_is_published_by_nothing(
+    compiled_project: FhirProject, write_resource: WriteResource
+) -> None:
+    """One Location is published and one illustrates the profile, and only the first is served."""
+    store = load_compiled_store(_project_with_an_exemplar(compiled_project, write_resource))
+
+    assert [entry.resource_id for entry in store.search("Location", SearchQuery())] == [PUBLISHED_UNIT_ID]
+    assert store.summary().counts_by_type["Location"] == 1
+    assert store.summary().example_count == 1
+    assert [entry.resource_id for entry in store.example_entries] == [EXEMPLAR_LOCATION_ID]
+    assert store.serves("Location", PUBLISHED_UNIT_ID)
+    assert not store.serves("Location", EXEMPLAR_LOCATION_ID)
+
+
+def test_an_example_is_still_read_at_its_own_address(
+    compiled_project: FhirProject, write_resource: WriteResource
+) -> None:
+    """The guide's own pages link to it by id, so the link resolves even though no search finds it."""
+    store = load_compiled_store(_project_with_an_exemplar(compiled_project, write_resource))
+
+    found = store.by_type_and_id("Location", EXEMPLAR_LOCATION_ID)
+
+    assert found is not None
+    assert found.body["id"] == EXEMPLAR_LOCATION_ID
+
+
+def test_an_identifier_search_answers_the_published_unit_and_not_the_example(
+    compiled_project: FhirProject, write_resource: WriteResource
+) -> None:
+    """The search that finds one organisation unit by its DHIS2 UID is untouched by the exemplar."""
+    store = load_compiled_store(_project_with_an_exemplar(compiled_project, write_resource))
+
+    query = SearchQuery(identifiers=(IdentifierToken(system=ORG_UNIT_SYSTEM, value=PUBLISHED_UNIT_ID),))
+
+    assert [entry.resource_id for entry in store.search("Location", query)] == [PUBLISHED_UNIT_ID]
+
+
+def test_an_example_declared_by_an_absolute_reference_is_read_as_the_instance_it_names(
+    compiled_project: FhirProject, write_resource: WriteResource
+) -> None:
+    """A guide naming its own contents under the canonical it publishes at names the same instances."""
+    store = load_compiled_store(_project_with_an_exemplar(compiled_project, write_resource, absolute=True))
+
+    assert [entry.resource_id for entry in store.example_entries] == [EXEMPLAR_LOCATION_ID]
+
+
+def test_a_guide_declaring_no_example_publishes_everything_it_holds(compiled_project: FhirProject) -> None:
+    """The guide resource states no contents here, so nothing is held back from what it publishes."""
+    store = load_compiled_store(compiled_project)
+
+    assert store.example_entries == ()
+    assert store.summary().example_count == 0
+
+
+def test_a_guide_this_server_cannot_read_costs_its_own_declarations(
+    compiled_project: FhirProject, write_resource: WriteResource, caplog: pytest.LogCaptureFixture
+) -> None:
+    """One malformed guide resource never decides what a whole store publishes - it is named and passed over."""
+    project = _project_with_an_exemplar(compiled_project, write_resource)
+    compiled = project.ig_directory / "fsh-generated" / "resources"
+    write_resource(
+        compiled / "ImplementationGuide-dhis2.fhir.example.json",
+        {
+            "resourceType": "ImplementationGuide",
+            "id": "dhis2.fhir.example",
+            "definition": {"resource": "not a list of resources"},
+        },
+    )
+
+    with caplog.at_level(logging.WARNING, logger=LOGGER_NAME):
+        store = load_compiled_store(project)
+
+    assert store.example_entries == ()
+    assert any("states contents this server cannot read" in record.getMessage() for record in caplog.records)

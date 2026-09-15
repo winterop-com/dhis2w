@@ -128,8 +128,12 @@ EVENT_WINDOW_DAYS = 30
 #: The units the registration form's published assignment admits, spelled as capture references.
 ASSIGNED_UNIT_REFERENCES = {f"Location/{uid}" for uid in SCOPED_ASSIGNMENT_UNITS}
 
-#: Every Location the fixture registry serves, including the curated profile exemplar.
-SERVED_UNIT_REFERENCES = {f"Location/{unit.uid}" for unit in ORG_UNITS} | {"Location/d2-location-example"}
+#: Every Location the fixture registry publishes. The curated profile exemplar is not among them: the
+#: guide calls it an example, so nothing publishes it and no draft may report from it.
+SERVED_UNIT_REFERENCES = {f"Location/{unit.uid}" for unit in ORG_UNITS}
+
+#: The exemplar, as a capture reference - the one Location a draft must never name.
+EXEMPLAR_UNIT_REFERENCE = "Location/d2-location-example"
 
 #: How many seeds the unit-variance tests range over - enough that a draw over two or more
 #: candidates lands on more than one of them, deterministically, since the draw is seed-keyed.
@@ -689,7 +693,11 @@ async def test_an_assignment_naming_only_something_other_than_a_location_is_not_
 async def test_an_unrestricted_form_draws_its_unit_across_the_served_registry(
     capture_client: httpx2.AsyncClient,
 ) -> None:
-    """A form publishing no assignment reports for any served Location, varying with the seed."""
+    """A form publishing no assignment reports for any published Location, varying with the seed.
+
+    The guide's worked exemplar is never one of them. A draft is meant to be postable back
+    unchanged, and a submission reporting from the example is the one this server refuses.
+    """
     drawn: set[str] = set()
     for seed in VARIANCE_SEEDS:
         response = (await _generate(capture_client, EVENT_ID, seed=seed)).json()
@@ -698,6 +706,7 @@ async def test_an_unrestricted_form_draws_its_unit_across_the_served_registry(
         drawn.add(reference)
 
     assert len(drawn) > 1
+    assert EXEMPLAR_UNIT_REFERENCE not in drawn
 
 
 async def test_a_seedless_call_draws_its_unit_across_the_admitted_set_too(

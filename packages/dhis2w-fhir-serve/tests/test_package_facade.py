@@ -151,3 +151,29 @@ async def test_a_submission_is_refused_with_the_package_sentence(package_client:
 def test_the_sentence_spells_the_organisation_units_out() -> None:
     """The token `organisation-units` is the machine spelling; a sentence a person reads says the words."""
     assert "it publishes organisation units for guides to depend on, and no form" in PACKAGE_SENTENCE
+
+
+@pytest.mark.parametrize("resource_type", ["Questionnaire", "QuestionnaireResponse", "Measure", "Bundle"])
+async def test_a_type_the_package_declares_no_interaction_for_is_refused(
+    package_client: httpx2.AsyncClient, resource_type: str
+) -> None:
+    """The statement is the route table: an empty searchset would say the package published none of these."""
+    statement = await _statement(package_client)
+    assert resource_type not in [resource["type"] for resource in statement["rest"][0]["resource"]]
+
+    response = await package_client.get(f"/{resource_type}")
+
+    assert response.status_code == 404
+    assert response.json()["resourceType"] == "OperationOutcome"
+    assert "does not serve the resource type" in response.json()["issue"][0]["diagnostics"]
+
+
+async def test_every_type_the_package_declares_answers_a_search(package_client: httpx2.AsyncClient) -> None:
+    """One set, one meaning: what `/metadata` declares is what the read catch-all answers, exactly."""
+    statement = await _statement(package_client)
+
+    declared = {resource["type"] for resource in statement["rest"][0]["resource"]}
+
+    for resource_type in sorted(declared):
+        response = await package_client.get(f"/{resource_type}")
+        assert response.status_code == 200, resource_type

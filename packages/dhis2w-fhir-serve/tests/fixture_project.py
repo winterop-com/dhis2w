@@ -16,11 +16,14 @@ serves is two FHIR resources rather than one, which is what makes the generalize
 the typed capture screens real rather than hypothetical.
 
 Beside them sits an organisation-unit registry: ten Locations over four levels, carrying every
-geometry state a real selection produces, the curated profile exemplar a generated IG publishes
-beside them - a second Location claiming the root unit's uid, which a consumer has to deduplicate -
-and the assignment List that restricts one form to two of them. The goldens publish no registry,
-and a browser that folds `partOf` into a tree, decodes a boundary, and joins an assignment needs
-one to fold, decode, and join.
+geometry state a real selection produces, and the assignment List that restricts one form to two of
+them. The goldens publish no registry, and a browser that folds `partOf` into a tree, decodes a
+boundary, and joins an assignment needs one to fold, decode, and join.
+
+The compiled tree carries the two artifacts a real build writes beside that registry: the guide's own
+`ImplementationGuide`, and the curated profile exemplar - a second Location claiming the root unit's
+uid, with no `partOf`, which the guide's own `definition.resource[]` calls an example. What a store
+makes of that pair is `dhis2w_fhir_serve.store`: the exemplar is held and published by nothing.
 
 This lives outside `conftest.py` because two callers need it and only one of them is pytest. The
 Playwright suite boots a real `d2w fhir serve --ui` and needs the same tree on disk first, which it
@@ -1060,16 +1063,61 @@ def _geometry_attachment(unit: OrgUnitFixture, payload: bytes) -> dict[str, Any]
     }
 
 
+def build_implementation_guide() -> dict[str, Any]:
+    """The guide's own statement of what it holds, naming the worked example among the published set.
+
+    SUSHI writes one of these into every compiled tree, with an `exampleBoolean` or `exampleCanonical`
+    on each entry of `definition.resource[]`. That is where `dhis2w_fhir_serve.store` reads which
+    instances illustrate a profile rather than publishing a fact, so a fixture without one would be a
+    fixture where every example is served as a unit of the registry.
+    """
+    return {
+        "resourceType": "ImplementationGuide",
+        "id": "dhis2.fhir.capture",
+        "url": f"{CAPTURE_CANONICAL}/ImplementationGuide/dhis2.fhir.capture",
+        "version": "0.1.0",
+        "name": "Dhis2FhirCapture",
+        "title": "DHIS2 FHIR Capture IG",
+        "status": "draft",
+        "packageId": "dhis2.fhir.capture",
+        "license": "CC0-1.0",
+        "fhirVersion": ["4.0.1"],
+        "definition": {
+            "resource": [
+                {
+                    "reference": {"reference": f"Location/{unit.uid}"},
+                    "name": unit.name,
+                    "exampleBoolean": False,
+                }
+                for unit in ORG_UNITS
+            ]
+            + [
+                {
+                    "reference": {"reference": "Location/d2-location-example"},
+                    "name": "Example DHIS2 Location",
+                    "description": (
+                        "A worked D2Location: the example organisation unit as the physical place. Its "
+                        "identifier belongs to no organisation unit, so this example never answers a "
+                        "search for a published one."
+                    ),
+                    "exampleCanonical": f"{CAPTURE_CANONICAL}/StructureDefinition/d2-location",
+                }
+            ],
+            "page": {"nameUrl": "index.html", "title": "Home", "generation": "markdown"},
+        },
+    }
+
+
 def build_registry_exemplar() -> dict[str, Any]:
-    """The curated `Usage: #example` Location the IG publishes beside the registry profiles.
+    """The curated `Usage: #example` Location the IG compiles beside the registry profiles.
 
     A real generated project ships this: the registry itself is pre-built JSON that SUSHI never
     compiles, so `registry-examples.fsh` builds one worked example per registry profile out of the
     selection's own root unit. It therefore carries that unit's real uid on the real org-unit
     identifier system, under an id derived from the profile rather than from the unit, and with no
-    `partOf` - which is exactly the shape that folds into a hierarchy as a second, parentless copy
-    of the root. The fixture publishes one so the browser has to deduplicate it rather than showing
-    Sierra Leone twice.
+    `partOf` - which is exactly the shape that would fold into a hierarchy as a second, parentless
+    copy of the root if anything served it. The fixture compiles one, beside the guide resource that
+    calls it an example, so the store has the pair it reads that fact from.
     """
     root = ORG_UNITS[0]
     return {
@@ -1236,10 +1284,12 @@ def build_capture_project(destination: Path) -> FhirProject:
     write_resource(compiled / f"Questionnaire-{REGISTRATION_TRACKED_ENTITY_TYPE_UID}.json", PERSON_QUESTIONNAIRE_BODY)
     write_resource(compiled / f"Questionnaire-{SPECIMEN_TRACKED_ENTITY_TYPE_UID}.json", SPECIMEN_QUESTIONNAIRE_BODY)
 
+    write_resource(compiled / "ImplementationGuide-dhis2.fhir.capture.json", build_implementation_guide())
+    write_resource(compiled / "Location-d2-location-example.json", build_registry_exemplar())
+
     registry = destination / "ig" / "input" / "resources" / "registry"
     for unit in ORG_UNITS:
         write_resource(registry / f"Location-{unit.uid}.json", build_location(unit))
-    write_resource(registry / "Location-d2-location-example.json", build_registry_exemplar())
     write_resource(
         registry / f"List-{SCOPED_ASSIGNMENT_LIST_ID}.json",
         build_assignment_list(SCOPED_ASSIGNMENT_LIST_ID, "Outbreak response - assigned organisation units"),

@@ -327,3 +327,17 @@ async def test_a_subject_under_an_authority_this_guide_does_not_publish_is_refus
     assert refused.status_code == 422
     assert "names an organisation unit under `https://hapi.fhir.org/baseR4`" in diagnostics
     assert f"published under `{CANONICAL}`" in diagnostics
+
+
+async def test_a_capture_at_the_guides_own_worked_example_is_refused(
+    capture_client: httpx2.AsyncClient,
+    aggregate_response: dict[str, Any],
+) -> None:
+    """The form names no assignment, and the exemplar is still no place: 201 would spool an unforwardable receipt."""
+    aggregate_response["subject"] = {"reference": "Location/d2-location-example"}
+
+    refused = await capture_client.post("/QuestionnaireResponse", json=aggregate_response)
+
+    assert refused.status_code == 422
+    diagnostics = refused.json()["issue"][0]["diagnostics"]
+    assert "is a worked example of this guide, not a published organisation unit" in diagnostics

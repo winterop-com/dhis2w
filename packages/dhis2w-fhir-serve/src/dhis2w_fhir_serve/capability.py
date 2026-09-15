@@ -49,13 +49,14 @@ else about it changed. The receipts it already holds are read and searched at th
 dropping their interactions would be this statement claiming less than the server does. `$generate`
 stays for the same reason: it reads a published form and answers with a draft, and writes nothing.
 
-The read set is the capture contract's read types, plus ConceptMap, plus the guide's own conformance
-resources. The IG's `kind #requirements` statement names the resources a capture *client* resolves a
-form from, and neither of the other two groups is among them - ConceptMap is what a forwarder reads a
-concept back into DHIS2 identifiers with, and a StructureDefinition is what a validator resolves a
-profile from. This installation serves both all the same, because they are published IG artifacts
-sitting in the same store as everything else, and an instance is free to support more than the
-statement it instantiates.
+The read set is the capture contract's read types, plus ConceptMap, plus NamingSystem, plus the
+guide's own conformance resources. The IG's `kind #requirements` statement names the resources a
+capture *client* resolves a form from, and none of the other three groups is among them - ConceptMap
+is what a forwarder reads a concept back into DHIS2 identifiers with, a NamingSystem is what an
+identifier system on a served resource is declared by, and a StructureDefinition is what a validator
+resolves a profile from. This installation serves all of them all the same, because they are
+published IG artifacts sitting in the same store as everything else, and an instance is free to
+support more than the statement it instantiates.
 
 The conformance entries are the ones that make a served project self-hosting: a guide's canonicals
 have to resolve somewhere, and until the guide is published under its own canonical this server is
@@ -142,12 +143,29 @@ if TYPE_CHECKING:
 #: The resource type the facade receives captures on, alongside the read types it serves.
 QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE = "QuestionnaireResponse"
 
-#: Every type the facade answers a read and a search for: the capture contract's, ConceptMap, and the
-#: conformance resources the compiled guide publishes.
+#: The type a guide declares its identifier systems on, which every resource it publishes is named by.
+NAMING_SYSTEM_RESOURCE_TYPE = "NamingSystem"
+
+#: Every type the facade answers a read and a search for: the capture contract's, ConceptMap,
+#: NamingSystem, and the conformance resources the compiled guide publishes.
 SERVED_READ_RESOURCE_TYPES = (
     *CAPTURE_SERVER_READ_RESOURCE_TYPES,
     CONCEPT_MAP_RESOURCE_TYPE,
+    NAMING_SYSTEM_RESOURCE_TYPE,
     *GUIDE_CONFORMANCE_RESOURCE_TYPES,
+)
+
+#: What the NamingSystem entry states about what a client reads it for.
+#:
+#: Every identifier a served resource carries names a system, and the guide publishes one
+#: NamingSystem per system it mints identifiers under. A client holding `identifier.system` off a
+#: Location and wanting to know what that authority is has one place to ask, and it is here.
+NAMING_SYSTEM_DOCUMENTATION = (
+    "One identifier system this guide mints identifiers under - the DHIS2 object kind the values "
+    "under it name, and the authority that assigns them. Every `identifier.system` a resource this "
+    "server publishes carries is declared by one of these. R4 states a naming system's own uri on "
+    "`uniqueId` rather than on `url`, so a search naming no parameter answers the whole set and one "
+    "is read at `NamingSystem/{id}`."
 )
 
 #: What a conformance entry states about why this server answers for it.
@@ -581,10 +599,12 @@ def _statement_description(
     """What this process holds and what it declares, counted the way the startup line counts it.
 
     THE TWO COUNTS ARE DIFFERENT NUMBERS AND EACH SAYS WHICH IT IS. The store holds every resource
-    the project wrote, including types this server answers no interaction for - a NamingSystem, a
-    StructureMap - and the statement declares the types it serves, QuestionnaireResponse among them
-    whether or not a receipt has ever been stored. So the sentence states both, names each, and says
-    what a type in one and not the other means. `dhis2w_fhir_serve.app` logs the same pair.
+    the project published, including types this server answers no interaction for - a StructureMap, a
+    Measure a project hand-wrote beside its forms - and the statement declares the types it serves,
+    QuestionnaireResponse among them whether or not a receipt has ever been stored. So the sentence
+    states both, names each, and says what a type in one and not the other means.
+    `dhis2w_fhir_serve.app` logs the same pair. A worked example is in neither: it is held by the
+    store and published by nothing, and `dhis2w_fhir_serve.store` states why.
     """
     held = (
         f"{store_summary.total} resources across {len(store_summary.counts_by_type)} types in the store, "
@@ -812,15 +832,19 @@ def _register_documentation(
 
 
 def _read_documentation(resource_type: str) -> str | None:
-    """What one read entry states about itself, which only the conformance resources need to say.
+    """What one read entry states about itself, which only some of the read types need to say.
 
     The published artifacts a capture client reads need no sentence here: a Questionnaire entry
     saying that a Questionnaire is a form would tell a reader what the type name already told them.
     The conformance resources do need one, because what they are here for is not obvious from the
-    type - a server hosting its own guide's profiles is a thing a client has to be told it may lean on.
+    type - a server hosting its own guide's profiles is a thing a client has to be told it may lean
+    on - and NamingSystem needs one because what a client reads it for is an identifier system it
+    found somewhere else.
     """
     if resource_type in GUIDE_CONFORMANCE_RESOURCE_TYPES:
         return CONFORMANCE_DOCUMENTATION
+    if resource_type == NAMING_SYSTEM_RESOURCE_TYPE:
+        return NAMING_SYSTEM_DOCUMENTATION
     return None
 
 

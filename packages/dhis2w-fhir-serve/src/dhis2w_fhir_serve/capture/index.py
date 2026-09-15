@@ -54,6 +54,9 @@ QUESTIONNAIRE_RESOURCE_TYPE = "Questionnaire"
 ASSIGNMENT_RESOURCE_TYPE = "List"
 ASSIGNMENT_REFERENCE_PREFIX = f"{ASSIGNMENT_RESOURCE_TYPE}/"
 
+#: The resource type an organisation unit is published as, which is what a reported unit references.
+LOCATION_RESOURCE_TYPE = "Location"
+
 #: The separator a disaggregated cell's link id joins its data element and category option combo with.
 CELL_LINK_ID_SEPARATOR = "."
 

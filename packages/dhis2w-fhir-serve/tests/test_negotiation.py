@@ -151,7 +151,7 @@ async def test_a_blank_format_leaves_the_header_to_decide(client: httpx2.AsyncCl
     assert response.json()["issue"][0]["diagnostics"].startswith(f"`{FHIR_XML}` accepts no JSON")
 
 
-@pytest.mark.parametrize("path", ["/Questionnaire", "/QuestionnaireResponse", "/CodeSystem", "/ValueSet"])
+@pytest.mark.parametrize("path", ["/Questionnaire", "/QuestionnaireResponse", "/CodeSystem", "/Organization"])
 async def test_a_format_narrows_no_search(client: httpx2.AsyncClient, path: str) -> None:
     """It names the format the answer comes back in, so the answer is the same set either way."""
     plain = await client.get(path)
