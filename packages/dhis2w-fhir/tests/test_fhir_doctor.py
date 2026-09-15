@@ -26,6 +26,7 @@ import respx
 from dhis2w_cli.main import build_app
 from dhis2w_client.profile import Profile
 from dhis2w_core.client_context import open_client
+from dhis2w_fhir.config import FhirProject, HostileNamePosture, load_project
 from dhis2w_fhir.conversion import (
     CodedAnswerMode,
     ConversionRefusal,
@@ -281,6 +282,22 @@ _OPTION_SETS_PAYLOAD = {
     ]
 }
 
+#: The same option set with one option named the way the DHIS2 demo database names an age band. A
+#: '<' reaches the guide byte-true and aborts the IG publisher's last pass, which is the question
+#: `[generate] hostile_names` answers - and the answer a doctor run has to take from the project.
+_HOSTILE_OPTION_SETS_PAYLOAD = {
+    "optionSets": [
+        {
+            "id": "Xa1b2c3d4e5",
+            "name": "Birth type",
+            "options": [
+                {"id": "kRRUtYaGett", "code": "NB", "name": "Natural Birth", "sortOrder": 1},
+                {"id": "EBE0c8sZazS", "code": "CS", "name": "Caesarean, <37 weeks", "sortOrder": 2},
+            ],
+        }
+    ]
+}
+
 _CATEGORIES_PAYLOAD = {
     "categories": [
         {
@@ -390,18 +407,22 @@ def _programs(request: httpx.Request) -> httpx.Response:
     return httpx.Response(200, json=_PROGRAMS_PAYLOAD)
 
 
-def _mock_whole_instance() -> None:
+def _mock_whole_instance(option_sets: dict[str, Any] | None = None) -> None:
     """Mock every endpoint a whole doctor run touches, across all ten phases.
 
     The routes answer repeatedly on purpose: generate, validate, the live store, and forward each open
     a client of their own, so a route that answered once would fail the phase that asked second.
+
+    `option_sets` is what the instance answers `/api/optionSets` and the validate sweep with, so a
+    test can hand this instance a DHIS2 name the published guide cannot carry as it stands.
     """
+    option_sets = option_sets if option_sets is not None else _OPTION_SETS_PAYLOAD
     respx.get(f"{_BASE_URL}/api/system/info").mock(return_value=httpx.Response(200, json={"version": "2.42.0"}))
     respx.get(f"{_BASE_URL}/api/attributes").mock(return_value=httpx.Response(200, json={"attributes": []}))
     respx.get(f"{_BASE_URL}/api/organisationUnitLevels").mock(
         return_value=httpx.Response(200, json={"organisationUnitLevels": []})
     )
-    respx.get(f"{_BASE_URL}/api/optionSets").mock(return_value=httpx.Response(200, json=_OPTION_SETS_PAYLOAD))
+    respx.get(f"{_BASE_URL}/api/optionSets").mock(return_value=httpx.Response(200, json=option_sets))
     respx.get(f"{_BASE_URL}/api/categories").mock(return_value=httpx.Response(200, json=_CATEGORIES_PAYLOAD))
     respx.get(f"{_BASE_URL}/api/dataSets").mock(return_value=httpx.Response(200, json=_DATA_SETS_PAYLOAD))
     respx.get(f"{_BASE_URL}/api/programs").mock(side_effect=_programs)
@@ -420,7 +441,7 @@ def _mock_whole_instance() -> None:
             200,
             json={
                 "dataElements": [{"id": uid, "name": uid, "code": None} for uid in _VALUE_TYPES],
-                "optionSets": _OPTION_SETS_PAYLOAD["optionSets"],
+                "optionSets": option_sets["optionSets"],
                 "categories": _CATEGORIES_PAYLOAD["categories"],
                 "organisationUnits": _ORGANISATION_UNITS_PAYLOAD["organisationUnits"],
                 "dataSets": _DATA_SETS_PAYLOAD["dataSets"],
@@ -494,6 +515,60 @@ async def test_a_whole_run_reaches_a_verdict_with_no_phase_left_blocked(
     assert report.version_tree == "v42"
     assert report.verdict_line.startswith(("USABLE", "BROKEN"))
     assert report.workspace_kept
+
+
+def _refusing_project(start: Path | None = None) -> FhirProject:
+    """The scaffolded project as one stating `[generate] hostile_names = "refuse"` reads.
+
+    Doctor scaffolds `substitute`, which is the posture its template writes, so the other answer is
+    reached by reading the project the run wrote and stating the other one on it.
+    """
+    project = load_project(start)
+    generate = project.config.generate.model_copy(update={"hostile_names": HostileNamePosture.REFUSE})
+    return project.model_copy(update={"config": project.config.model_copy(update={"generate": generate})})
+
+
+@respx.mock
+async def test_the_generate_phase_runs_under_the_posture_the_project_states(
+    probe_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An instance holding a name carrying '<' generates through, because the scaffold says substitute.
+
+    The scaffolded `fhir.toml` writes `hostile_names = "substitute"`, so the name is rewritten for
+    publication and nothing about the instance is broken. A run that screened under any other answer
+    would report this instance as one the toolchain cannot handle, and block four later phases.
+    """
+    monkeypatch.setattr("dhis2w_fhir.doctor.shutil.which", lambda _name: None)
+    _mock_whole_instance(_HOSTILE_OPTION_SETS_PAYLOAD)
+
+    report = await run_doctor(_profile(), DoctorOptions(workspace=tmp_path / "workspace"))
+
+    generate = next(phase for phase in report.phases if phase.phase is DoctorPhase.GENERATE)
+    assert generate.outcome is not DoctorOutcome.FAILED, generate.evidence
+    assert "under hostile names substitute" in generate.evidence
+    blocked = [phase.phase for phase in report.phases if phase.outcome is DoctorOutcome.BLOCKED]
+    assert blocked == [], f"phases that never ran: {blocked}"
+
+
+@respx.mock
+async def test_a_project_that_refuses_hostile_names_fails_the_generate_phase(
+    probe_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Under `refuse` the same name is a refusal, and the phase names the object and the posture it took."""
+    monkeypatch.setattr("dhis2w_fhir.doctor.shutil.which", lambda _name: None)
+    monkeypatch.setattr("dhis2w_fhir.doctor.load_project", _refusing_project)
+    _mock_whole_instance(_HOSTILE_OPTION_SETS_PAYLOAD)
+
+    report = await run_doctor(_profile(), DoctorOptions(workspace=tmp_path / "workspace"))
+
+    generate = next(phase for phase in report.phases if phase.phase is DoctorPhase.GENERATE)
+    assert generate.outcome is DoctorOutcome.FAILED
+    assert "whose name carries '<'" in generate.evidence
+    assert "The run generated under hostile names refuse." in generate.evidence
 
 
 @respx.mock

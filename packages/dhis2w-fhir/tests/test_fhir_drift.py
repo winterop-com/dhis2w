@@ -100,6 +100,26 @@ def _location(uid: str, name: str) -> dict[str, Any]:
     }
 
 
+def _exemplar_location() -> dict[str, Any]:
+    """The worked organisation unit this toolchain mints, under an identifier no DHIS2 instance holds."""
+    document = _location("d2-example", "Example organisation unit")
+    document["id"] = "d2-location-example"
+    return document
+
+
+def _implementation_guide(*example_references: str) -> dict[str, Any]:
+    """The guide's own statement of its contents, naming the instances it compiled as worked examples."""
+    return {
+        "resourceType": "ImplementationGuide",
+        "id": "dhis2.fhir.drift",
+        "definition": {
+            "resource": [
+                {"reference": {"reference": reference}, "exampleBoolean": True} for reference in example_references
+            ]
+        },
+    }
+
+
 def _code_system(uid: str, title: str, concepts: dict[str, str]) -> dict[str, Any]:
     """One option set as the terminology publishes its CodeSystem, one concept per option."""
     return {
@@ -523,6 +543,53 @@ def test_the_reader_finds_every_published_object_it_compares(published_project: 
     assert [option_set.uid for option_set in guide.option_sets] == ["OsAAAAAAAA1"]
     assert {form.uid for form in guide.forms} == {"DsAAAAAAAA1", "PrAAAAAAAA1", "PsAAAAAAAA1", "TetAAAAAAA1"}
     assert guide.program_stage_uids == frozenset({"PsAAAAAAAA1"})
+
+
+def test_a_worked_example_is_not_an_organisation_unit_the_guide_publishes(published_project: Path) -> None:
+    """The exemplar the guide compiled beside its profiles is held out of what the report reads.
+
+    Its identifier `d2-example` belongs to no organisation unit in any instance, so counting it
+    would make the report disagree with what `d2w fhir serve` serves and grading it would name a
+    removal every run, forever, that nobody can act on.
+    """
+    compiled = published_project / "ig/fsh-generated/resources"
+    _write(compiled / "Location-d2-location-example.json", _exemplar_location())
+    _write(
+        compiled / "ImplementationGuide-dhis2.fhir.drift.json",
+        _implementation_guide("Location/d2-location-example"),
+    )
+
+    guide = read_published_guide(load_project(published_project))
+
+    assert [unit.uid for unit in guide.organisation_units] == ["OuAAAAAAAA1", "OuAAAAAAAA2"]
+
+
+def test_an_instance_the_guide_declares_no_example_for_is_one_it_publishes(published_project: Path) -> None:
+    """The guide's own declaration is what holds a resource out, so one that declares none publishes them all."""
+    compiled = published_project / "ig/fsh-generated/resources"
+    _write(compiled / "Location-d2-location-example.json", _exemplar_location())
+
+    guide = read_published_guide(load_project(published_project))
+
+    assert [unit.uid for unit in guide.organisation_units] == ["OuAAAAAAAA1", "OuAAAAAAAA2", "d2-example"]
+
+
+@respx.mock
+async def test_a_worked_example_is_counted_and_graded_nowhere(published_project: Path) -> None:
+    """A guide holding the exemplar reads the same count as one without it, and reports nothing about it."""
+    compiled = published_project / "ig/fsh-generated/resources"
+    _write(compiled / "Location-d2-location-example.json", _exemplar_location())
+    _write(
+        compiled / "ImplementationGuide-dhis2.fhir.drift.json",
+        _implementation_guide("Location/d2-location-example"),
+    )
+    _mock_instance()
+
+    report = await _drift(published_project)
+
+    assert report.findings == ()
+    assert report.organisation_unit_count == 2
+    assert "d2-example" not in report.evidence
 
 
 @respx.mock

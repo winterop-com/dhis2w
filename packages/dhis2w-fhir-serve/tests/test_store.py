@@ -456,4 +456,4 @@ def test_a_guide_this_server_cannot_read_costs_its_own_declarations(
         store = load_compiled_store(project)
 
     assert store.example_entries == ()
-    assert any("states contents this server cannot read" in record.getMessage() for record in caplog.records)
+    assert any("states contents that cannot be read" in record.getMessage() for record in caplog.records)
