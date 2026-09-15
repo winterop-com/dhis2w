@@ -1354,31 +1354,44 @@ def test_three_rejections_on_three_combos_roll_up_into_a_row_that_names_none_of_
     ]
 
 
-def test_an_eleven_character_word_of_the_sentence_survives_the_roll_up() -> None:
-    """A UID is eleven random characters and `DataElement` is English, so only one of them generalises."""
-    report = ForwardReport(
+def _rejected_on(*messages: str) -> ForwardReport:
+    """One rejected response per message, each refused by DHIS2 under `E1302`."""
+    return ForwardReport(
         project_root=Path("."),
         dry_run=True,
         coded_answer_mode=CodedAnswerMode.LENIENT,
-        outcomes=(
+        outcomes=tuple(
             ForwardOutcome(
-                response_id="one",
-                spool_path=".serve/responses/rejected/one.json",
+                response_id=f"response-{ordinal}",
+                spool_path=f".serve/responses/rejected/response-{ordinal}.json",
                 kind=ForwardOutcomeKind.REJECTED,
                 import_outcome=ForwardImportOutcome(
                     status="ERROR",
-                    issues=(
-                        ForwardImportIssue(
-                            error_code="E1302",
-                            message="DataElement qrur9Dvnyt5 is not valid: dataElement value",
-                        ),
-                    ),
+                    issues=(ForwardImportIssue(error_code="E1302", message=message),),
                 ),
-            ),
+            )
+            for ordinal, message in enumerate(messages, start=1)
         ),
     )
 
+
+def test_an_eleven_character_word_of_the_sentence_survives_the_roll_up() -> None:
+    """A UID is eleven random characters and `DataElement` is English, so only one of them generalises."""
+    report = _rejected_on(
+        "DataElement qrur9Dvnyt5 is not valid: dataElement value",
+        "DataElement vANAXwtLwcT is not valid: dataElement value",
+    )
+
+    assert report.rejection_reasons[0].responses == 2
     assert report.rejection_reasons[0].reason == "DataElement `...` is not valid: dataElement value"
+
+
+def test_a_cause_that_ended_one_response_is_stated_as_DHIS2_stated_it() -> None:
+    """Generalising buys one row out of twenty; at one it only takes the UID the reader came for away."""
+    report = _rejected_on("DataElement qrur9Dvnyt5 is not valid: dataElement value")
+
+    assert report.rejection_reasons[0].responses == 1
+    assert report.rejection_reasons[0].reason == "DataElement qrur9Dvnyt5 is not valid: dataElement value"
 
 
 #: The data set on a non-default attribute category combo, whose every value carries a third key.
@@ -2292,9 +2305,10 @@ async def test_the_harvested_rejections_roll_up_under_the_codes_each_major_named
     assert set(reasons) == {aggregate_code, "E1302"}
     assert reasons[aggregate_code].responses == 1
     assert reasons["E1302"].responses == 1
-    # 2.41 leaves the identifier empty and 2.42 and 2.43 put the value type there, and generalising the
-    # quoted parts away folds both into one sentence - which is what one row per rule has to survive.
-    assert reasons["E1302"].reason.startswith("DataElement `...` is not valid:")
+    # 2.41 leaves the identifier empty and 2.42 and 2.43 put the value type there. The key is the code
+    # on every major, which is what makes one rule one row; each row here ended a single response, so
+    # each states the sentence DHIS2 stated rather than the generalisation a group of them would read.
+    assert reasons["E1302"].reason == _TRACKER_VALUE_TYPE_FACTS[wire_version].messages[0]
 
 
 def test_the_majors_word_one_tracker_rule_three_ways_and_only_its_code_holds_still() -> None:

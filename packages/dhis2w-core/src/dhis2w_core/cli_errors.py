@@ -56,10 +56,13 @@ _OAUTH2_HINT = [
     "or `d2w profile verify <name>` to confirm the current state",
 ]
 
-_CONNECT_HINT = [
+#: Shared with the MCP server's error middleware - a caller on either surface gets the same two lines.
+CONNECT_HINT_LINES: tuple[str, ...] = (
     "is the instance running? check the profile's base_url",
     "run `d2w profile show <name>` to see the URL being dialled",
-]
+)
+
+_CONNECT_HINT: list[str] = list(CONNECT_HINT_LINES)
 
 
 class CliUserError(Exception):
@@ -153,14 +156,38 @@ def _webmessage_detail_lines(envelope: WebMessageResponse) -> list[str]:
     return lines
 
 
-def _render_transport_error(exc: httpx2.HTTPError) -> NoReturn:
-    """Render an httpx2 transport failure — the instance never answered, so there is no DHIS2 body."""
+def transport_error_in_chain(exc: BaseException) -> httpx2.HTTPError | None:
+    """The transport failure in `exc`'s cause/context chain, or None when nothing in it is one.
+
+    What a surface that catches a wrapped exception - the MCP server's middleware sees a
+    `ToolError` around whatever the tool raised - asks before rendering the unreachable-instance
+    message, so `httpx2` stays an implementation detail of this module.
+    """
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, httpx2.HTTPError):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def unreachable_instance_message(exc: httpx2.HTTPError) -> str:
+    """One line saying the instance never answered, naming the URL that was dialled when httpx2 knows it.
+
+    The whole of what the CLI prints as its `error:` line, so an MCP caller reading a tool failure
+    reads the same sentence about the same failure rather than the bare transport string.
+    """
     detail = str(exc) or type(exc).__name__
     url = _request_url(exc)
-    if url:
-        detail = f"{detail} ({url})"
+    return f"cannot reach the DHIS2 instance: {detail} ({url})" if url else f"cannot reach the DHIS2 instance: {detail}"
+
+
+def _render_transport_error(exc: httpx2.HTTPError) -> NoReturn:
+    """Render an httpx2 transport failure — the instance never answered, so there is no DHIS2 body."""
     hint = _CONNECT_HINT if isinstance(exc, httpx2.ConnectError) else None
-    _render("error", f"cannot reach the DHIS2 instance: {detail}", hint)
+    _render("error", unreachable_instance_message(exc), hint)
 
 
 def _render(label: str, message: str, hint: list[str] | None = None, extras: list[str] | None = None) -> NoReturn:

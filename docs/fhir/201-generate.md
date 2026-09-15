@@ -61,6 +61,9 @@ info: local_basic (fhir.toml) -> /home/you/demo-ig
 │               │                          │ resources/registry        │               │               │               │
 │pages          │ 6 pages                  │ ig/input/pagecontent      │ 20            │ 0             │ 0             │
 └───────────────┴──────────────────────────┴───────────────────────────┴───────────────┴───────────────┴───────────────┘
+note: the run's step lines count 4 note(s) and the table counts 2: a step line
+counts what that target raised, and the Distinct notes column counts a note once
+for the whole run, on the first target that raised it
 note: 2 distinct note(s) across 2 target(s); full list in
 /home/you/demo-ig/reports/fhir-generate-notes.md (--details to print)
 ```
@@ -76,7 +79,9 @@ cell are files alone.
 The step lines and the table disagree about the examples on purpose: the
 step line counts what that target raised on its own, and the table counts
 each note once, on the first target that raised it - the greys-out note the
-examples and the pages both repeat is filed under the questionnaires.
+examples and the pages both repeat is filed under the questionnaires. A run
+whose two totals differ says which counting each is, in a line under the table,
+so nobody has to reconstruct it from a target that announced 329 and shows 0.
 
 The bare run is the one to reach for: it reads the instance once and every
 target builds off that single result, where seven separate commands each
@@ -512,8 +517,9 @@ warning: 3 published form(s) declare attribute option combos DHIS2 restricts
 away from every organisation unit that may report them under
 [generate.organisation_units] max_level 3: no capture for one of them can be
 keyed to a combo this DHIS2 instance accepts, and the facade refuses to draft a
-response for one. Widen the organisation-unit selection until one of the
-restricted organisation units is published - raise
+response for one. They are: EPI Stock (TuL8IOPzpHh), Life-Saving Commodities
+(ULowA8V3ucd), Project Management (QX4ZTUbOt3a). Widen the organisation-unit
+selection until one of the restricted organisation units is published - raise
 `[generate.organisation_units] max_level`, or set its `root` to an organisation
 unit above them - or narrow the form selection in fhir.toml to the forms those
 organisation units report, then run `d2w fhir generate` again.

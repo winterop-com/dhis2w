@@ -36,6 +36,7 @@ from dhis2w_fhir.resources.organisation_units.schemas import (
 )
 from dhis2w_fhir.resources.pages import PAGES_DIRECTORY, build_page_artifacts, build_registry_page_artifacts
 from dhis2w_fhir.resources.pages.schemas import PagesIn
+from dhis2w_fhir.resources.questionnaires.schemas import QuestionnaireItemIn, QuestionnaireSourceIn
 from dhis2w_fhir.scaffold import build_scaffold_files
 from dhis2w_fhir.scaffold.refresh import read_project_scaffold_state, refresh_project
 from dhis2w_fhir.service import RegistryProjectTargetError
@@ -54,6 +55,16 @@ _DISTRICT = OrganisationUnitIn(
     uid="O6uvpzGd5pu", name="Bo", level=2, path="/ImspTQPwCqd/O6uvpzGd5pu", parent_uid="ImspTQPwCqd"
 )
 _SUBJECTS = [StemSubject(uid=unit.uid, code=unit.code, label=unit.name) for unit in (_ROOT, _DISTRICT)]
+
+#: One aggregate form for the capture page to work its steps against - the page states a `subject`
+#: only where there is a form whose assignment says which organisation unit may carry one.
+_FORM = QuestionnaireSourceIn(
+    uid="BfMAe6Itzgt",
+    name="Child Health",
+    kind="aggregate",
+    period_type="Monthly",
+    flat_items=[QuestionnaireItemIn(uid="De1aaaaaaaa", name="Doses given", value_type="INTEGER")],
+)
 
 _ORGANISATION_UNITS_PAYLOAD = {
     "organisationUnits": [
@@ -214,7 +225,7 @@ def test_the_registry_package_foundation_is_the_slice_its_instances_name() -> No
 def test_the_registry_page_of_a_depending_guide_names_the_package_and_the_capture_page_references_into_it() -> None:
     """The guide read stems alone, so its Registry page states the package and its worked reference is absolute."""
     stems = plan_organisation_unit_stems(_SUBJECTS, "id", registry=_REGISTRY)
-    build = build_page_artifacts(PagesIn(), _REGISTRY_CONFIG, _CANONICAL, organisation_unit_stems=stems)
+    build = build_page_artifacts(PagesIn(forms=[_FORM]), _REGISTRY_CONFIG, _CANONICAL, organisation_unit_stems=stems)
     pages = {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts
     }
@@ -226,7 +237,7 @@ def test_the_registry_page_of_a_depending_guide_names_the_package_and_the_captur
     assert "| Organisation units |" not in registry
     capture = pages["capture.md"]
     assert '"subject": { "reference": "http://example.org/fhir/registry/Location/ImspTQPwCqd" }' in capture
-    assert "That is the DHIS2 organisation unit `ImspTQPwCqd`." in capture
+    assert "That is the DHIS2 organisation unit `ImspTQPwCqd`, one" in capture
     assert "`http://example.org/fhir/registry/StructureDefinition/d2-location`" in capture
     assert "`http://example.org/fhir/registry/Location/<organisationUnitId>` - the Location the registry" in capture
     assert not [name for name in pages if name.startswith("Organization-")]
@@ -234,7 +245,9 @@ def test_the_registry_page_of_a_depending_guide_names_the_package_and_the_captur
 
 def test_the_registry_page_of_an_inline_guide_still_tabulates_the_hierarchy() -> None:
     """Nothing about the inline page moved: totals, root, levels, profile pointers, relative worked reference."""
-    build = build_page_artifacts(PagesIn(organisation_units=[_ROOT, _DISTRICT]), _INLINE_CONFIG, _CANONICAL)
+    build = build_page_artifacts(
+        PagesIn(forms=[_FORM], organisation_units=[_ROOT, _DISTRICT]), _INLINE_CONFIG, _CANONICAL
+    )
     pages = {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts
     }
@@ -242,7 +255,7 @@ def test_the_registry_page_of_an_inline_guide_still_tabulates_the_hierarchy() ->
     assert "| Organisation units | 2 |" in pages["registry.md"]
     assert "published by the package" not in pages["registry.md"]
     assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in pages["capture.md"]
-    assert "Written out, that is Sierra Leone (`ImspTQPwCqd`)." in pages["capture.md"]
+    assert "Written out, that is Sierra Leone\n(`ImspTQPwCqd`)," in pages["capture.md"]
     assert "`D2Location`" in pages["capture.md"]
     assert "`Location/<organisationUnitId>` - the Location this guide publishes for that unit." in pages["capture.md"]
 

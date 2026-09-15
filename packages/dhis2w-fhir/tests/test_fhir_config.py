@@ -236,6 +236,31 @@ def test_a_misspelled_key_in_a_nested_section_names_that_section(tmp_path: Path)
     )
 
 
+def test_a_misspelled_key_in_a_basemap_entry_is_refused_and_placed_in_its_table(tmp_path: Path) -> None:
+    """A tile layer is pasted in with an account's key inside its URL, so a swallowed typo is a blank map."""
+    path = _write(
+        tmp_path,
+        after=(
+            '\n[[serve.basemaps]]\nname = "Satellite"\nurl = "https://tiles.example.org/{z}/{x}/{y}.jpg"\nurls = "x"\n'
+        ),
+    )
+    with pytest.raises(UnknownFhirConfigKeyError) as raised:
+        load_fhir_config(path)
+    assert raised.value.diagnostics == ("fhir.toml: unknown key 'urls' in [serve.basemaps]\n  did you mean 'url'?",)
+
+
+def test_a_basemap_entry_naming_only_what_the_table_declares_loads(tmp_path: Path) -> None:
+    """The two keys a tile source has are the two the scaffold's own example writes."""
+    path = _write(
+        tmp_path,
+        after=('\n[[serve.basemaps]]\nname = "Satellite"\nurl = "https://tiles.example.org/{z}/{x}/{y}.jpg"\n'),
+    )
+
+    config = load_fhir_config(path)
+
+    assert [source.name for source in config.serve.basemaps] == ["Satellite"]
+
+
 def test_a_key_resembling_nothing_is_refused_without_a_suggestion(tmp_path: Path) -> None:
     """A guess would be worse than none: an unknown key with no near neighbour is reported on its own."""
     path = _write(tmp_path, after='\n[serve]\nlisten_on_every_interface = "0.0.0.0"\n')

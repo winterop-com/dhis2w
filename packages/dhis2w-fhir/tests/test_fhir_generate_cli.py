@@ -357,8 +357,21 @@ def test_a_run_that_published_unfileable_forms_says_so_on_its_own_line(fhir_proj
     assert result.exit_code == 0, result.output
     assert "warning: 3 published form(s) declare attribute option combos DHIS2 restricts away" in result.stderr
     assert "max_level 3" in result.stderr
+    # The line names the forms: a count alone leaves the one fact a reader acts on in the notes file.
+    assert "They are: EPI Stock (TuL8IOPzpHh)" in result.stderr
     assert "Widen the organisation-unit selection" in result.stderr
     assert "narrow the form selection in fhir.toml" in result.stderr
+
+
+def test_the_unfileable_warning_names_every_form_it_counted(fhir_project: Path) -> None:
+    """Three forms is three names - the warning is what a reader reads, and the notes file is not on screen."""
+    forms = ["EPI Stock (TuL8IOPzpHh)", "Life-Saving Commodities (ULowA8V3ucd)", "Project Management (QX4ZTUbOt3a)"]
+    mock = AsyncMock(return_value=_unusable_combo_report(fhir_project, forms=forms))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    for form in forms:
+        assert form in result.stderr
 
 
 def test_a_run_whose_combos_are_all_usable_carries_no_warning(fhir_project: Path) -> None:
@@ -478,6 +491,26 @@ def _shared_note_report(project_root: Path) -> GenerateFullReport:
     report.examples.notes.append(shared)
     report.pages.notes.append(shared)
     return report
+
+
+def test_a_run_whose_two_note_counts_disagree_says_which_counting_each_is(fhir_project: Path) -> None:
+    """A step line announcing 329 beside a column reading 0 is one fact under two countings, and both are named."""
+    mock = AsyncMock(return_value=_shared_note_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    rendered = " ".join(result.stderr.split())
+    assert "the run's step lines count 4 note(s) and the table counts 2" in rendered
+    assert "a step line counts what that target raised" in rendered
+
+
+def test_a_run_no_note_of_which_two_targets_share_explains_nothing(fhir_project: Path) -> None:
+    """The sentence states an exception; a run whose two counts agree carries no lesson about counting."""
+    mock = AsyncMock(return_value=_noted_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "step lines count" not in " ".join(result.stderr.split())
 
 
 def test_bare_generate_counts_and_files_a_shared_note_once(fhir_project: Path) -> None:

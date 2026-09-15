@@ -343,7 +343,8 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         names first and --registry-package <package.tgz> after
                         it, and refusing before it connects when neither answers;
                         rejections roll up by cause (error code + the message
-                        with its UIDs generalised away, quoted or bare) as a
+                        with its UIDs generalised away, quoted or bare, except
+                        a row standing for one response, which keeps them) as a
                         reasons table on the terminal and at the head of the
                         report, so 202 rejections read as the 3 rules they
                         broke; a dry run counts a stage event whose enrollment
@@ -368,7 +369,8 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         import report behind as the record of what DHIS2 last
                         answered; refuses an id that is not there before
                         anything moves
-  doctor                Scaffold a throwaway project against the ambient profile
+  doctor                Scaffold a throwaway project against the profile
+                        --profile/-p, the root -p, or DHIS2_PROFILE names,
                         and drive the whole chain through it in ten typed
                         phases (connect, scaffold, generate, compile, validate,
                         serve, capture, forward, oracle, drift), each PASS /
@@ -473,6 +475,19 @@ doctor_integrity
 
 Stdio transport. Lazy plugin discovery on startup. Tool names, descriptions, and
 schemas auto-derived from function signatures and docstrings.
+
+### Errors an MCP caller can act on
+
+A tool that fails on the profile or on reaching the instance answers with the
+text the CLI prints for the same failure, hint block included - one middleware,
+one source of truth in `dhis2w_core`:
+
+- **No profile configured** names `d2w profile add <name>` and
+  `d2w profile bootstrap`.
+- **An instance nothing answers at** names the URL that was dialled and the two
+  next steps: check the profile's `base_url`, and `d2w profile show <name>` to
+  see it. A bare transport string tells an agent neither which instance it tried
+  nor what to do about it.
 
 ---
 
@@ -1519,6 +1534,16 @@ registration form become `Questionnaire` instances.
   raises a warning-level finding per reference to the vocabulary, read back off
   the published restriction `List`s alone, so a build machine with no DHIS2
   connection asks the same question the run asked.
+- **A published stage example answers an enrollment a registration example of
+  the same run creates.** A tracker program publishes a registration form and
+  its stages together, and the two are drawn as one corpus: the `n`-th
+  registration of a program mints the tracked entity and enrollment pair, and
+  every stage example of that program is assigned round-robin across those
+  registrations. DHIS2 refuses an event naming an enrollment nothing creates
+  with `E1313`, and the program mismatch that follows with `E1079`, so a corpus
+  minting a pair per example would be a guide whose own examples the instance
+  turns down. The load set and the IG examples run the same builder under the
+  same rule.
 - **An example answers the form it answers.** Only the questions the form's own
   `enableWhen` leaves enabled given the rest of the response are answered - the
   sweep runs to a fixed point, because dropping an answer can close the question
@@ -1688,8 +1713,12 @@ registration form become `Questionnaire` instances.
 - **The Capture page** states what a third party sends to capture data: the
   single-response-per-request rule; an aggregate, an event, and a tracker event
   response worked step by step against the selected forms with a real period
-  and organisation unit; the logical Patient subject and both tracker
-  extensions; where a client obtains the enrollment and tracked entity UIDs
+  and an organisation unit that form is assigned to - the very placement the
+  examples target files its own responses from, so the page teaches the capture
+  the examples beside it make rather than one DHIS2 refuses with `E1029`, and a
+  form the run published an example for is preferred as the worked one; the
+  logical Patient subject and both tracker extensions; where a client obtains
+  the enrollment and tracked entity UIDs
   (`d2w data tracker enrollment list`, outside the guide's scope); the
   `<dataElementId>` / `<dataElementId>.<categoryOptionComboId>` linkId
   grammars; the required rules; the event status map; an answer-typing table
@@ -3746,8 +3775,10 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   `importMode=VALIDATE` on `/api/tracker`, the v42 spellings taken from the
   generated OpenAPI), so DHIS2's own rules decide each outcome while nothing is
   written and no receipt moves.
-- **The terminal opens and closes with a DRY RUN banner** naming `--import` as
-  the way to commit.
+- **The terminal closes with one DRY RUN banner** naming `--import` as the way
+  to commit, under the counts it explains. The summary's `mode` row names the
+  posture above them, so the run states it at both ends without printing the
+  same forty words twice. `d2w fhir withdraw` reads the same way.
 - **`[forward] import = true`** makes the bare run of a project whose drains
   are routine commit instead, with `--import` / `--dry-run` still outranking it
   either way - flag, then table, then default, resolved in `forward_responses`
@@ -3786,6 +3817,11 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   response is counted once per distinct cause, so `202 rejected` reads as the
   three rules it broke, rendered as a `Responses | Code | What DHIS2 said`
   table on the terminal and at the head of the written report.
+- **A cause that ended exactly one response is stated as DHIS2 stated it**, its
+  identifiers intact. The generalisation is what turns twenty rejections into
+  one row; at one it buys nothing and costs the reader the very UID they came
+  for, sending them to the report file for something that fits on the line in
+  front of them.
 
 #### The spool as ledger
 
@@ -4008,6 +4044,12 @@ Two operator verbs sit beside the drain and touch no instance at all.
   working out which three it reached.
 - **`d2w fhir spool` states four states**, `withdrawn/` beside the three the
   drain files into.
+- **`--details` degrades at 80 columns rather than folding.** The form's UID and
+  the sentence saying why a receipt is where it is carry a floor and an
+  ellipsis, and the timestamp and the capture identity are dropped in that order
+  when the terminal is too narrow for them - both are on the receipt's own file
+  and in `--json`, and what is left is the id `requeue` and `withdraw` take, the
+  state, the form, and the reason. 80 columns is what a non-TTY pipe gets.
 - **Neither opens a client nor needs a profile**, because every fact either
   states is in the project directory, which is what makes them answerable while
   the instance is down.
@@ -4065,6 +4107,11 @@ typed phases.
   reason, from a directory holding no project or from a project that was
   generated but never compiled.
 
+The instance comes from `--profile/-p` on the command, then the root `-p`, then
+`DHIS2_PROFILE`, then the `fhir.toml` of a nearby project - the same resolution
+`d2w fhir validate` runs, with the command's own flag ahead of it, so a shell
+that names the profile after the verb is not turned down.
+
 Each phase reports PASS / WARN / FAIL / SKIPPED / BLOCKED with a stated reason,
 a failure never stops a phase that does not depend on it, and only a FAIL exits
 1. The run renders a phase table, a findings table, and a verdict line on
@@ -4099,6 +4146,7 @@ full key set and refuses anything else.
 | `[serve.tracked_entities]` | `enabled`, `listing`, `events`, `page_size`, `page_size_limit`, `tracked_entity_types`, `search_attributes` |
 | `[serve.data_sets]` | `responses`, `page_size`, `page_size_limit`, `data_sets`, `period_limit` |
 | `[serve.search]` | `backend` (`dhis2`, `projection`) |
+| `[[serve.basemaps]]` | `name`, `url` - one table per raster tile source the map offers |
 | `[serve.projection]` | `store` (`none`, `sqlite`), `path`, `overlap_seconds` |
 | `[forward]` | `live`, `import`, `register_completeness`, `overwrites`, `corrections`, `withdrawals` |
 
@@ -4107,7 +4155,9 @@ full key set and refuses anything else.
   with a `did you mean 'max_level'?` beneath it - one such line per unknown
   key, `difflib`-matched against the very names that table accepts, and no
   suggestion where nothing is close, instead of setting nothing and saying
-  nothing.
+  nothing. An array of tables answers the same way and under the name a reader
+  writes: a typo in `[[serve.basemaps]]` is reported `in [serve.basemaps]`,
+  without the entry's index, and matched against the two keys a tile source has.
 - **Two values unset silently**: `root = ""` and `max_level = 0`.
 - **Flags beat the table beats the defaults** on `[serve]` and `[forward]`
   alike, and `--strict-codes` / `--no-strict-codes` reaches all three levels.

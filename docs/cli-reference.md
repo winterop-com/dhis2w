@@ -2050,7 +2050,7 @@ $ d2w fhir init [OPTIONS] [directory]
 * `--registry-version <str>`: Version of the registry package `make build` installs and depends on (default: 0.1.0).
 * `--registry-path <directory>`: Local checkout of the registry project, whose build wrote the package `make build` installs. Written as given, relative to the new project&#x27;s directory, and refused when no directory stands there.
 * `--force`: Overwrite scaffold files that already exist, fhir.toml and every hand-written line in them included. Each is reported overwritten and named, and the run says what it replaced.
-* `--refresh`: Bring an existing project&#x27;s scaffold-managed files up to date. Identity comes from the project&#x27;s own fhir.toml, which a refresh never writes. Five toolchain files are the scaffold&#x27;s own and are rewritten whole from the current render - the Makefile, the Dockerfile, .python-version, ig/ig.ini and ig/fsh.ini - so an edit to one of them does not survive: every knob the Makefile has is a `?=` default, and a value you set on the command line (`make build JAVA_HEAP=8g`) or in the environment lives outside the file. Every other file carrying a line the scaffold would not produce is left alone and reported, so your edits to those survive. Rejects --force.
+* `--refresh`: Bring an existing project&#x27;s scaffold-managed files up to date. Identity comes from the project&#x27;s own fhir.toml, which a refresh never writes. Five toolchain files are the scaffold&#x27;s own and are rewritten whole from the current render - the Makefile, the Dockerfile, .python-version, ig/ig.ini and ig/fsh.ini - so an edit to one of them does not survive: every knob the Makefile has is a `?=` default, and a value you set on the command line (`make build JAVA_HEAP=8g`) or in the environment lives outside the file. fhir.example.toml is graded on the keys it sets rather than on the sentences explaining them: the prose is the scaffold&#x27;s and is re-worded release by release, so a key you set there is kept and a comment you wrote is not. Every other file carrying a line the scaffold would not produce is left alone and reported, so your edits to those survive. Rejects --force.
 * `--help`: Show this message and exit.
 
 ### `d2w fhir validate`
@@ -2394,7 +2394,8 @@ Ten phases: connect, scaffold, generate, compile, validate, serve, capture, forw
 drift. Each reports pass, warn, fail, skipped, or blocked with its reason. The first nine run in
 a throwaway workspace; drift reads the published guide the working directory sits in.
 
-The instance comes from `d2w -p &lt;name&gt;` and the ambient profile resolution, as `d2w fhir serve` does.
+The instance comes from `--profile/-p`, then `d2w -p &lt;name&gt;`, then `DHIS2_PROFILE`, then the
+`fhir.toml` of a nearby project - the resolution `d2w fhir validate` runs on the same subject.
 
 A phase that fails never stops one that does not depend on it, and only a failure exits 1.
 
@@ -2420,6 +2421,7 @@ $ d2w fhir doctor [OPTIONS]
 
 **Options**:
 
+* `-p, --profile <str>`: DHIS2 profile to run against, ahead of DHIS2_PROFILE and any nearby project.
 * `--workspace <directory>`: Directory to run in, kept after the run. The default is a temporary directory, removed when the run ends unless --keep says otherwise.
 * `--keep`: Keep the temporary workspace, so the generated project can be read afterwards.
 * `--all-targets`: Scaffold empty selection tables, which takes every data set, every program, and every organisation-unit level. The default is a small representative probe.

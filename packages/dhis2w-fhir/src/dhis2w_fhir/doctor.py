@@ -510,14 +510,14 @@ def _is_inside(candidate: Path, directory: Path) -> bool:
     return candidate.resolve() == directory or directory in candidate.resolve().parents
 
 
-def resolve_doctor_profile() -> GenerationProfile:
-    """The instance doctor runs against: `d2w -p`, then `DHIS2_PROFILE`, then a nearby project, then the default.
+def resolve_doctor_profile(explicit: str | None = None) -> GenerationProfile:
+    """The instance doctor runs against: `--profile`, then `d2w -p`, then `DHIS2_PROFILE`, then a project.
 
     The same resolution `d2w fhir validate` uses, and for the same reason: doctor's subject is an
     instance rather than a project, and it scaffolds the project it works in, so a `fhir.toml` in
     the working directory is a source of the profile name and nothing else.
     """
-    return service.resolve_validation_context().generation
+    return service.resolve_validation_context(explicit).generation
 
 
 async def run_doctor(

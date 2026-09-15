@@ -2155,6 +2155,7 @@ async def _emit_examples(
     attribute_option_restrictions: AttributeOptionRestrictions,
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
+    example_organisation_unit_uid: str | None = None,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> GenerateReport:
@@ -2178,6 +2179,10 @@ async def _emit_examples(
     organisation unit an example reports from and the attribute option combo it is keyed to are one
     choice rather than two: a form is placed at an organisation unit that admits one of its combos,
     and a form no organisation unit it admits may file any of its combos at publishes no example.
+
+    `example_organisation_unit_uid` is the organisation-unit selection's own root, which every
+    example falls back to and which the capture page is worked against; with none the target reads
+    it, so a run resolving it once hands it here rather than paying for the read twice.
     """
     progress.step("examples", f"writing ig/input/fsh/{EXAMPLES_DIRECTORY}")
     _refuse_build_aborting_form_objects(sources)
@@ -2194,6 +2199,11 @@ async def _emit_examples(
     example_count = 0
     if client is not None and project.config.generate.examples.per_target > 0:
         published_sources = _published_sources(sources)
+        root_organisation_unit_uid = (
+            example_organisation_unit_uid
+            if example_organisation_unit_uid is not None
+            else await _example_organisation_unit_uid(client, project.config.generate)
+        )
         responses = await _example_responses(
             client,
             published_sources,
@@ -2205,6 +2215,7 @@ async def _emit_examples(
             attribute_option_restrictions,
             notes,
             progress,
+            root_organisation_unit_uid,
         )
         build = build_example_artifacts(
             published_sources,
@@ -2517,6 +2528,7 @@ async def _example_responses(
     restrictions: AttributeOptionRestrictions,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
+    root_organisation_unit_uid: str | None,
 ) -> list[ExampleResponseIn]:
     """Collect the example responses from whichever source the project configured.
 
@@ -2530,7 +2542,6 @@ async def _example_responses(
     vocabulary the form declares.
     """
     today = datetime.now(tz=UTC).date()
-    root_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
     if root_organisation_unit_uid is None:
         notes.append(
             generate_note(
@@ -2570,6 +2581,7 @@ async def _example_responses(
         root_organisation_unit_uid,
         today,
         placements=plan.placements,
+        registration_program_uids=plan.registration_program_uids,
         option_concept_codes=option_concept_code_index(option_sets, config),
     )
     notes.extend(synthetic.notes)
@@ -2582,6 +2594,11 @@ class _ExamplePlan(BaseModel):
     sources: list[QuestionnaireSourceIn] = Field(default_factory=list)
     placements: dict[str, SyntheticPlacement] = Field(default_factory=dict)
     notes: list[GenerateNote] = Field(default_factory=list)
+
+    @property
+    def registration_program_uids(self) -> frozenset[str]:
+        """The tracker programs the examples emit registrations for, whose stage examples reuse those identities."""
+        return frozenset(source.uid for source in self.sources if source.kind == "tracker")
 
 
 def _plan_example_placements(
@@ -3438,18 +3455,32 @@ async def generate_pages(
             order=["name:asc"],
             paging=False,
         )
+        published = await _fetch_published_organisation_units(client, config)
         if registry is None:
             organisation_units = await _fetch_organisation_units(client, config, tally, today, progress)
             published_stems: StemResolution | None = None
         else:
             # The units are another package's; the guide reads the stems its references follow.
             organisation_units = []
-            published_stems = (await _fetch_published_organisation_units(client, config)).stems
-    option_sets = _selected_option_sets([_option_set_input(model) for model in models], sources, config, notes)
-    screening.decide(sources, option_sets, organisation_units)
-    sources = screening.screen(sources, notes)
-    option_sets = screening.screen(option_sets, notes)
-    organisation_units = screening.screen(organisation_units, notes)
+            published_stems = published.stems
+        option_sets = _selected_option_sets([_option_set_input(model) for model in models], sources, config, notes)
+        screening.decide(sources, option_sets, organisation_units)
+        sources = screening.screen(sources, notes)
+        option_sets = screening.screen(option_sets, notes)
+        organisation_units = screening.screen(organisation_units, notes)
+        # The capture page works its steps against the organisation unit the examples target places
+        # each form at, so the page reads the same two facts that target reads: the form's own DHIS2
+        # assignment, and which attribute option combos each admitted unit may file a capture under.
+        placements = await _capture_page_placements(
+            client,
+            _published_sources(sources),
+            root_organisation_unit_uid=await _example_organisation_unit_uid(client, config),
+            published_organisation_unit_uids=frozenset(published.stems.stems),
+            assignments=None,
+            restrictions=await fetch_attribute_option_restrictions(
+                client, sources, published=published.stems, units=published.paths
+            ),
+        )
     unit_count = len(organisation_units) if published_stems is None else len(published_stems.stems)
     progress.complete(f"{len(sources):,} questionnaire target(s), {unit_count:,} organisation unit(s)")
     return _emit_pages(
@@ -3463,9 +3494,38 @@ async def generate_pages(
             if published_stems is not None
             else plan_organisation_unit_stems(organisation_unit_stem_subjects(organisation_units), config.naming.source)
         ),
+        example_placements=placements,
         notes=notes,
         progress=progress,
     )
+
+
+async def _capture_page_placements(
+    client: Dhis2Client,
+    sources: list[QuestionnaireSourceIn],
+    *,
+    root_organisation_unit_uid: str | None,
+    published_organisation_unit_uids: frozenset[str],
+    assignments: AssignmentIndex | None,
+    restrictions: AttributeOptionRestrictions,
+) -> dict[str, SyntheticPlacement]:
+    """Where the run's examples file each form from - the capture page's worked organisation units.
+
+    The very plan the examples target places its own responses by, so the page and the examples name
+    one organisation unit per form rather than two. The plan's notes belong to the examples target,
+    which raises them; only the placements are read here.
+    """
+    if not sources or root_organisation_unit_uid is None:
+        return {}
+    index = assignments if assignments is not None else await fetch_assignment_index(client, sources)
+    plan = _plan_example_placements(
+        sources,
+        index,
+        published_organisation_unit_uids,
+        root_organisation_unit_uid,
+        UsableAttributeOptionCombos.of(restrictions),
+    )
+    return plan.placements
 
 
 def _emit_pages(
@@ -3476,6 +3536,7 @@ def _emit_pages(
     organisation_units: list[OrganisationUnitIn],
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
+    example_placements: dict[str, SyntheticPlacement] | None = None,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> GenerateReport:
@@ -3485,6 +3546,10 @@ def _emit_pages(
     collision gets no catalog row and no intro, because the page would link an artifact the guide
     does not hold. `stem_plan` and `organisation_unit_stems` are the run's identity resolutions,
     so every artifact link and intro file name follows the ids the emitting targets wrote.
+
+    `example_placements` is where the run's examples file each form from, which is what the capture
+    page works its steps against: the page teaches the very capture the examples beside it make,
+    filed from an organisation unit the form is assigned to.
     """
     progress.step("pages", f"writing ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}")
     _refuse_build_aborting_form_objects(sources)
@@ -3518,6 +3583,7 @@ def _emit_pages(
             project.config.ig.canonical,
             stem_plan=stem_plan,
             organisation_unit_stems=organisation_unit_stems,
+            example_placements=example_placements,
         )
     sync = sync_artifacts(project.ig_directory / PAGES_BASE_SUBDIRECTORY, PAGES_DIRECTORY, build.artifacts)
     intro_count = sum(1 for artifact in build.artifacts if artifact.relative_path.endswith(INTRO_SUFFIX))
@@ -3610,6 +3676,7 @@ async def generate_full(
             notes=list(inputs.source_notes),
             progress=progress,
         )
+        example_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
         examples = await _emit_examples(
             client,
             project,
@@ -3621,6 +3688,7 @@ async def generate_full(
             attribute_option_restrictions=inputs.attribute_option_restrictions,
             stem_plan=inputs.questionnaire_stems,
             organisation_unit_stems=inputs.organisation_unit_stems,
+            example_organisation_unit_uid=example_organisation_unit_uid,
             notes=list(inputs.source_notes),
             progress=progress,
         )
@@ -3640,6 +3708,14 @@ async def generate_full(
             organisation_units=inputs.organisation_units,
             stem_plan=inputs.questionnaire_stems,
             organisation_unit_stems=inputs.organisation_unit_stems,
+            example_placements=await _capture_page_placements(
+                client,
+                _published_sources(inputs.sources),
+                root_organisation_unit_uid=example_organisation_unit_uid,
+                published_organisation_unit_uids=frozenset(inputs.organisation_unit_stems.stems),
+                assignments=inputs.assignments,
+                restrictions=inputs.attribute_option_restrictions,
+            ),
             notes=[*inputs.source_notes, *inputs.option_set_notes],
             progress=progress,
         )
@@ -6222,27 +6298,41 @@ class ForwardReport(BaseModel):
 
         A response counts once per distinct cause it met, however many rows named that cause, so
         `E1029` against two different pairs of objects is one cause of the run rather than two. The
-        message shown for a cause is the first one the run met, with the quoted UIDs DHIS2 embeds in
-        it generalised away.
+        message shown for a cause is the first one the run met.
+
+        A cause that ended one response keeps its identifiers. The generalisation exists so twenty
+        rejections read as one row, and at a count of one it buys nothing and costs the reader the
+        very UID they need - which is then only in the report file. A UID naming a program rule the
+        guide published is read back as that rule's name at either count.
         """
         counted: Counter[tuple[str | None, str]] = Counter()
         samples: dict[tuple[str | None, str], str] = {}
+        verbatim: dict[tuple[str | None, str], str] = {}
         for outcome in self.rejected:
             imported = outcome.import_outcome
             issues = imported.issues if imported is not None else ()
             causes: dict[tuple[str | None, str], str] = {}
+            spoken: dict[tuple[str | None, str], str] = {}
             for issue in issues:
                 reason = _generalised_reason(issue.reason, self.program_rule_names)
-                causes.setdefault(_rejection_cause_key(issue.error_code, reason), reason)
+                key = _rejection_cause_key(issue.error_code, reason)
+                causes.setdefault(key, reason)
+                spoken.setdefault(key, _generalised_reason(issue.reason, self.program_rule_names, elide=False))
             if not causes:
                 message = (imported.message or "DHIS2 gave no reason") if imported is not None else ""
                 causes[(None, message)] = message
+                spoken[(None, message)] = message
             counted.update(causes.keys())
             for key, reason in causes.items():
                 samples.setdefault(key, reason)
+                verbatim.setdefault(key, spoken[key])
         ordered = sorted(counted.items(), key=lambda item: (-item[1], item[0][0] or "", item[0][1]))
         return tuple(
-            ForwardRejectionReason(error_code=key[0], reason=samples[key], responses=responses)
+            ForwardRejectionReason(
+                error_code=key[0],
+                reason=verbatim[key] if responses == 1 else samples[key],
+                responses=responses,
+            )
             for key, responses in ordered
         )
 
@@ -7463,7 +7553,7 @@ def _tracker_issue(error: TrackerImportError) -> ForwardImportIssue:
     return ForwardImportIssue(error_code=error.errorCode, subject=error.uid, message=error.message)
 
 
-def _generalised_reason(reason: str, rule_names: ProgramRuleNames) -> str:
+def _generalised_reason(reason: str, rule_names: ProgramRuleNames, *, elide: bool = True) -> str:
     """One DHIS2 message read back for a person: a published rule by name, every other UID generalised away.
 
     DHIS2 names the program rule that refused an import by UID alone (`E1300`), and the guide
@@ -7477,6 +7567,10 @@ def _generalised_reason(reason: str, rule_names: ProgramRuleNames) -> str:
     name the first one's combo for all three. A quoted run is an identifier because DHIS2 marked it
     as one; a bare one has to be told from the sentence it sits in, which `_reads_as_uid` is. The UID
     itself is untouched on the response's own report, which is where a reader goes for the object.
+
+    `elide = False` is the row standing for a single response: the rule name still lands, because
+    reading `dahuKlP7jR2` back as the rule it published is a gain at any count, and every other
+    identifier stays as DHIS2 wrote it, because there is no second object for it to be wrong about.
     """
 
     def _read(match: re.Match[str]) -> str:
@@ -7484,7 +7578,9 @@ def _generalised_reason(reason: str, rule_names: ProgramRuleNames) -> str:
         if not token.startswith("`") and not _reads_as_uid(token):
             return token
         name = rule_names.name_for(token.strip("`"))
-        return f"`{name}`" if name is not None else "`...`"
+        if name is not None:
+            return f"`{name}`"
+        return "`...`" if elide else token
 
     return _EMBEDDED_IDENTIFIER.sub(_read, reason)
 

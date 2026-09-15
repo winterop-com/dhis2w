@@ -286,9 +286,13 @@ class BasemapSource(BaseModel):
     project never renames a source it was pointed at. `url` is the `{z}/{x}/{y}` template the
     tiles are fetched from, and it is the one thing in the whole UI that reaches an origin other
     than the server the page came from.
+
+    The table refuses a key it does not know, as every other table in this file does. It is the
+    table where that matters most: a commercial tile layer is pasted in with an account's key
+    inside the URL, and a misspelt key there buys a blank map and no message at all.
     """
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     url: str
@@ -1093,7 +1097,9 @@ def _config_table_at(location: tuple[int | str, ...]) -> type[BaseModel] | None:
     model: type[BaseModel] = FhirProjectConfig
     for segment in location:
         if not isinstance(segment, str):
-            return None
+            # An array-of-tables key carries its entry's index - `[[serve.basemaps]]` reports
+            # `("serve", "basemaps", 0, ...)` - and every entry of one array is the same table.
+            continue
         field = model.model_fields.get(segment)
         if field is None:
             return None
@@ -1105,20 +1111,26 @@ def _config_table_at(location: tuple[int | str, ...]) -> type[BaseModel] | None:
 
 
 def _table_model(annotation: object) -> type[BaseModel] | None:
-    """The config model an annotation names, looking through `Model | None` for an optional table."""
+    """The config model an annotation names, through `Model | None` and through an array of tables."""
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation
-    if get_origin(annotation) in (Union, UnionType):
+    origin = get_origin(annotation)
+    if origin in (Union, UnionType):
         models = [arg for arg in get_args(annotation) if isinstance(arg, type) and issubclass(arg, BaseModel)]
         if len(models) == 1:
             return models[0]
+    if origin in (list, tuple):
+        entries = [arg for arg in get_args(annotation) if isinstance(arg, type) and issubclass(arg, BaseModel)]
+        if len(entries) == 1:
+            return entries[0]
     return None
 
 
 def _unknown_key_diagnostic(location: tuple[int | str, ...]) -> str:
     """One `fhir.toml: unknown key ...` line, with the `did you mean ...?` line under it when one fits."""
     key = str(location[-1])
-    table = ".".join(str(segment) for segment in location[:-1])
+    # An array-of-tables entry's index is not part of the name a reader writes in the file.
+    table = ".".join(str(segment) for segment in location[:-1] if isinstance(segment, str))
     where = f"in [{table}]" if table else "at the top level of the file"
     diagnostic = f"fhir.toml: unknown key {key!r} {where}"
     model = _config_table_at(location[:-1])

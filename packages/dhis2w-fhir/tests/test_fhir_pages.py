@@ -22,6 +22,7 @@ from dhis2w_fhir.foundation.schemas import IDENTIFIER_SYSTEM_SUBJECTS
 from dhis2w_fhir.names import markdown_text
 from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
 from dhis2w_fhir.resources.examples import STATUS_BY_EVENT_STATUS
+from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
 from dhis2w_fhir.resources.option_sets import option_set_identities
 from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitLevelNames
 from dhis2w_fhir.resources.pages import INTRO_SUFFIX, PAGES_DIRECTORY, SITE_PAGE_FILENAMES, build_page_artifacts
@@ -359,6 +360,50 @@ def test_capture_page_works_an_aggregate_response_through_every_step() -> None:
     assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
     assert "[Registry](registry.html)" in capture
     assert "`D2Location`" in capture
+
+
+def test_capture_page_works_the_aggregate_steps_against_the_unit_its_own_example_files_from() -> None:
+    """A reader copies the page's snippet, so the unit it names is one the form is assigned to."""
+    placements = {_DATA_SET.uid: SyntheticPlacement(organisation_unit_uids=(_CHILD_UNIT.uid,))}
+    build = build_page_artifacts(_pages_input(), GenerateConfig(), _CANONICAL, example_placements=placements)
+    capture = next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+    assert '"subject": { "reference": "Location/O6uvpzGd5pu" }' in capture
+    worked = (
+        "Written out, that is Bo\n(`O6uvpzGd5pu`), an organisation unit\n"
+        "**Mortality &lt; 5 years by gender** is assigned to"
+    )
+    assert worked in capture
+    assert "Location/ImspTQPwCqd" not in capture
+
+
+def test_capture_page_works_the_tracker_steps_against_its_own_stage_placement() -> None:
+    """The tracker walk-through is a second form and a second assignment, so it carries its own unit."""
+    placements = {
+        _DATA_SET.uid: SyntheticPlacement(organisation_unit_uids=(_ROOT_UNIT.uid,)),
+        _BIRTH_STAGE.uid: SyntheticPlacement(organisation_unit_uids=(_CHILD_UNIT.uid,)),
+    }
+    build = build_page_artifacts(_tracker_pages_input(), GenerateConfig(), _CANONICAL, example_placements=placements)
+    capture = next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+    assert '"valueReference": { "reference": "Location/O6uvpzGd5pu" }' in capture
+    assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
+
+
+def test_capture_page_works_a_form_the_run_placed_an_example_for_over_one_it_did_not() -> None:
+    """A form every combo of which is restricted away publishes no example, and teaches no capture either."""
+    placements = {_EVENT_PROGRAM.uid: SyntheticPlacement(organisation_unit_uids=(_CHILD_UNIT.uid,))}
+    build = build_page_artifacts(
+        PagesIn(forms=[_DATA_SET, _EVENT_PROGRAM], organisation_units=[_ROOT_UNIT, _CHILD_UNIT]),
+        GenerateConfig(),
+        _CANONICAL,
+        example_placements=placements,
+    )
+    capture = next(artifact.content for artifact in build.artifacts if artifact.relative_path.endswith("capture.md"))
+
+    # The aggregate form is unplaced, so its steps fall back to the lowest published unit and say so.
+    assert "The steps are worked against **Mortality &lt; 5 years by gender**" in capture
+    assert '"subject": { "reference": "Location/ImspTQPwCqd" }' in capture
 
 
 def test_capture_page_spells_out_the_link_id_grammar_and_the_required_rule() -> None:

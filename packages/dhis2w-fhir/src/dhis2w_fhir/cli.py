@@ -501,9 +501,12 @@ def init_command(
             "scaffold's own and are rewritten whole from the current render - the Makefile, the "
             "Dockerfile, .python-version, ig/ig.ini and ig/fsh.ini - so an edit to one of them does not "
             "survive: every knob the Makefile has is a `?=` default, and a value you set on the command "
-            "line (`make build JAVA_HEAP=8g`) or in the environment lives outside the file. Every other "
-            "file carrying a line the scaffold would not produce is left alone and reported, so your "
-            "edits to those survive. Rejects --force.",
+            "line (`make build JAVA_HEAP=8g`) or in the environment lives outside the file. "
+            "fhir.example.toml is graded on the keys it sets rather than on the sentences explaining "
+            "them: the prose is the scaffold's and is re-worded release by release, so a key you set "
+            "there is kept and a comment you wrote is not. Every other file carrying a line the "
+            "scaffold would not produce is left alone and reported, so your edits to those survive. "
+            "Rejects --force.",
         ),
     ] = False,
 ) -> None:
@@ -1149,6 +1152,9 @@ def _render_unusable_attribute_option_combos(report: GenerateReport | LoadSetRep
     refuses every capture such a form could carry, the run knows it at generate time from the
     restriction Lists it just wrote, and a reader who chose `max_level` to keep a build small has no
     other way to learn what it cost.
+
+    The line names the forms. A count alone sends a reader to the notes file for the one fact that
+    decides what to do next - whether the form they came for is the one nobody may submit.
     """
     if not isinstance(report, GenerateReport) or report.unusable_attribute_option_combos is None:
         return
@@ -1161,7 +1167,7 @@ def _render_unusable_attribute_option_combos(report: GenerateReport | LoadSetRep
         f"{summary.form_count} published form(s) declare attribute option combos DHIS2 restricts away from every "
         f"organisation unit that may report them{narrowed}: no capture for one of them can be keyed to a combo "
         f"this DHIS2 instance accepts, and the facade refuses to draft a response for one. "
-        f"{UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY}",
+        f"They are: {', '.join(summary.forms)}. {UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY}",
         style="yellow",
     )
 
@@ -1330,10 +1336,30 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
     ]
     _hint("info", f"{generation.name} ({generation.origin}) -> {report.foundation.project_root}")
     render_list("fhir generate", rows, _fitted_columns(rows, STDERR_CONSOLE.width), console=STDERR_CONSOLE)
+    _render_note_count_split(report, outcomes)
     _render_full_notes(outcomes, generation, details=details)
     _render_empty_assignments(report.questionnaires)
     _render_unusable_attribute_option_combos(report.questionnaires)
     _render_selection_mismatches(outcomes)
+
+
+def _render_note_count_split(report: GenerateFullReport, outcomes: list[_TargetOutcome]) -> None:
+    """Name the run's two note counts when they differ, so the screen does not read as a contradiction.
+
+    A target announcing `329 notes raised here` beside a `Distinct notes` column reading 0 states one
+    fact twice under two countings, and nothing on screen says which is which. The sentence is
+    printed under the table it explains, and only when the two numbers really do disagree.
+    """
+    raised = sum(len(outcome.report.notes) for outcome in _full_outcomes(report))
+    distinct = sum(len(outcome.report.notes) for outcome in outcomes)
+    if raised == distinct:
+        return
+    _hint(
+        "note",
+        f"the run's step lines count {raised:,} note(s) and the table counts {distinct:,}: a step line "
+        "counts what that target raised, and the Distinct notes column counts a note once for the whole "
+        "run, on the first target that raised it",
+    )
 
 
 #: The generate summary's columns, in the order they are rendered. The two prose columns carry a
@@ -2376,8 +2402,10 @@ def _run_server(application: Any, *, host: str, port: int) -> None:
 #: The basename the per-response outcomes of one forward run are written under, inside the reports directory.
 _FORWARD_REPORT_STEM = "fhir-forward-report"
 
-#: The banner a dry run opens and closes with. It says the mode, what it did instead, and how to commit -
-#: a run that reads as an import and was not one is the single worst thing this command could do.
+#: The banner a dry run closes with, once. It says the mode, what it did instead, and how to commit -
+#: a run that reads as an import and was not one is the single worst thing this command could do. It
+#: sits under the counts rather than over them, so it is the last thing on screen after the summary,
+#: the rejection table and the hints; the mode row of the summary itself states the mode up front.
 _DRY_RUN_BANNER = (
     "DRY RUN - every payload was posted to DHIS2 under its own validate-only mode "
     "(dataValueSets dryRun=true, tracker importMode=VALIDATE). Nothing was written to the instance and "
@@ -2908,8 +2936,6 @@ def _render_completeness_hints(report: ForwardReport) -> None:
 
 def _render_forward_report(report: ForwardReport, generation: GenerationProfile, *, details: bool) -> None:
     """Render one forward run: the mode first, the counts, then either every response or where they are."""
-    if report.dry_run:
-        _hint("dry run", _DRY_RUN_BANNER, style="bold yellow")
     render_detail(
         "fhir forward",
         [
@@ -3158,6 +3184,34 @@ def forward_command(
         raise typer.Exit(code=1)
 
 
+#: The spool's receipts table, in the order its columns are rendered. The form's UID and the sentence
+#: saying why a receipt is where it is carry a floor and an ellipsis: an 11-character UID rendered one
+#: character to a line says nothing, so a terminal too narrow shortens the cell instead of folding it.
+_RECEIPT_COLUMNS: list[ColumnSpec] = [
+    ColumnSpec("Receipt", "id", no_wrap=True),
+    ColumnSpec("State", "state", no_wrap=True),
+    ColumnSpec("Form", "form", overflow="ellipsis", min_width=11),
+    ColumnSpec("Received", "received", no_wrap=True),
+    ColumnSpec("Captured by", "captured_by", no_wrap=True),
+    ColumnSpec("Why it is there", "reason", overflow="ellipsis", min_width=16),
+]
+
+#: The receipt columns a narrow terminal loses, in the order they go. Both are on the receipt's own
+#: file and in `--json`, and what is left is what a reader acts on: the id `requeue` and `withdraw`
+#: take, the state, the form, and why the receipt is where it is. 80 columns is what a pipe gets.
+_DROPPED_RECEIPT_COLUMNS_WHEN_NARROW = ("captured_by", "received")
+
+
+def _fitted_receipt_columns(rows: list[dict[str, str]], width: int, *, attributed: bool) -> list[ColumnSpec]:
+    """The widest receipt column set that fits the terminal, dropping the recoverable ones until it does."""
+    columns = [column for column in _RECEIPT_COLUMNS if attributed or column.key != "captured_by"]
+    for key in _DROPPED_RECEIPT_COLUMNS_WHEN_NARROW:
+        if _table_width(columns, rows) <= width:
+            break
+        columns = [column for column in columns if column.key != key]
+    return columns
+
+
 def _render_spool_state(report: SpoolStateReport, *, details: bool) -> None:
     """Render one spool listing: the count in each state, then a row per receipt under `--details`."""
     render_detail(
@@ -3178,27 +3232,21 @@ def _render_spool_state(report: SpoolStateReport, *, details: bool) -> None:
         # no-authentication facade wrote carries none, and a column of empty cells in a table that
         # already folds would cost the two columns that explain a row their width.
         attributed = any(row.submitted_by for row in report.receipts)
+        rows = [
+            {
+                "id": row.response_id,
+                "state": row.state.value,
+                "form": row.questionnaire.rsplit("/", 1)[-1] or row.questionnaire,
+                "received": row.received_at,
+                "captured_by": row.submitted_by or "",
+                "reason": row.reason or "",
+            }
+            for row in report.receipts
+        ]
         render_list(
             "receipts",
-            [
-                {
-                    "id": row.response_id,
-                    "state": row.state.value,
-                    "form": row.questionnaire.rsplit("/", 1)[-1] or row.questionnaire,
-                    "received": row.received_at,
-                    "captured_by": row.submitted_by or "",
-                    "reason": row.reason or "",
-                }
-                for row in report.receipts
-            ],
-            [
-                ColumnSpec("Receipt", "id", no_wrap=True),
-                ColumnSpec("State", "state", no_wrap=True),
-                ColumnSpec("Form", "form"),
-                ColumnSpec("Received", "received", no_wrap=True),
-                *([ColumnSpec("Captured by", "captured_by", no_wrap=True)] if attributed else []),
-                ColumnSpec("Why it is there", "reason"),
-            ],
+            rows,
+            _fitted_receipt_columns(rows, STDERR_CONSOLE.width, attributed=attributed),
             console=STDERR_CONSOLE,
         )
     if details and report.quarantined:
@@ -3513,9 +3561,9 @@ def requeue_command(
         _hint("note", "`d2w fhir forward --import` posts them again")
 
 
-#: What a withdrawal's dry run says at both ends of its output. The delete reaches the real tracker
-#: endpoint under that endpoint's own validate-only mode, which for a terminal act is the one
-#: rehearsal worth having.
+#: What a withdrawal's dry run closes with, once, under the counts it explains. The delete reaches
+#: the real tracker endpoint under that endpoint's own validate-only mode, which for a terminal act
+#: is the one rehearsal worth having.
 _WITHDRAW_DRY_RUN_BANNER = (
     "DRY RUN - every delete was posted to DHIS2 under the tracker endpoint's own validate-only mode "
     "(importMode=VALIDATE). Nothing was deleted from the instance and no receipt moved. Re-run with "
@@ -3538,8 +3586,6 @@ def _withdrawal_kind_cell(value: Any) -> str:
 
 def _render_withdraw_report(report: WithdrawReport, generation: GenerationProfile) -> None:
     """Render one withdrawal run: the mode first, then a row per receipt, then what remains in DHIS2."""
-    if report.dry_run:
-        _hint("dry run", _WITHDRAW_DRY_RUN_BANNER, style="bold yellow")
     render_detail(
         "fhir withdraw",
         [
@@ -3764,6 +3810,14 @@ def _write_doctor_report(report: DoctorReport) -> Path:
 
 @app.command("doctor")
 def doctor_command(
+    profile: Annotated[
+        str | None,
+        typer.Option(
+            "--profile",
+            "-p",
+            help="DHIS2 profile to run against, ahead of DHIS2_PROFILE and any nearby project.",
+        ),
+    ] = None,
     workspace: Annotated[
         Path | None,
         typer.Option(
@@ -3805,7 +3859,8 @@ def doctor_command(
     drift. Each reports pass, warn, fail, skipped, or blocked with its reason. The first nine run in
     a throwaway workspace; drift reads the published guide the working directory sits in.
 
-    The instance comes from `d2w -p <name>` and the ambient profile resolution, as `d2w fhir serve` does.
+    The instance comes from `--profile/-p`, then `d2w -p <name>`, then `DHIS2_PROFILE`, then the
+    `fhir.toml` of a nearby project - the resolution `d2w fhir validate` runs on the same subject.
 
     A phase that fails never stops one that does not depend on it, and only a failure exits 1.
 
@@ -3825,7 +3880,7 @@ def doctor_command(
     """
     from dhis2w_fhir.doctor import DOCTOR_STEPS, DoctorOptions, resolve_doctor_profile, run_doctor
 
-    generation = resolve_doctor_profile()
+    generation = resolve_doctor_profile(profile)
     options = DoctorOptions(
         workspace=workspace,
         keep=keep,

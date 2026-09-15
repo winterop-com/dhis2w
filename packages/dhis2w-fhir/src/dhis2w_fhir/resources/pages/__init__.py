@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
+from pydantic import BaseModel, ConfigDict, Field
 
 from dhis2w_fhir.foundation import build_naming_system_declarations
 from dhis2w_fhir.foundation.schemas import FoundationNaming
@@ -34,6 +35,7 @@ from dhis2w_fhir.period.recent import recent_periods
 from dhis2w_fhir.period.schemas import PERIOD_TYPE_DEFINITIONS
 from dhis2w_fhir.r4 import DEFAULT_SUBJECT_RESOURCE_TYPE
 from dhis2w_fhir.resources.examples import MULTI_VALUE_TYPE, STATUS_BY_EVENT_STATUS, answer_element
+from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
 from dhis2w_fhir.resources.option_sets import option_set_code_fallback, option_set_identities
 from dhis2w_fhir.resources.organisation_units import organisation_unit_stem_subjects, plan_organisation_unit_stems
 from dhis2w_fhir.resources.organisation_units.naming import OrganisationUnitNaming, location_profile_reference
@@ -175,6 +177,7 @@ def build_page_artifacts(
     *,
     stem_plan: QuestionnaireStemPlan | None = None,
     organisation_unit_stems: StemResolution | None = None,
+    example_placements: dict[str, SyntheticPlacement] | None = None,
 ) -> FshBuild:
     """Build the six site pages plus every per-artifact intro the fetched metadata earns.
 
@@ -182,6 +185,10 @@ def build_page_artifacts(
     the intro file names, and the worked `Location/...` references follow; left None they resolve
     here through the same calls the emitting targets resolve through. Their fall-back notes are
     not raised here - the target that owns each surface reports them.
+
+    `example_placements` is where the run's own examples file each form from, so the capture page
+    works its steps against an organisation unit the form is assigned to rather than against the
+    first unit in the registry: the page teaches the capture the examples beside it make.
     """
     build = FshBuild()
     plan = stem_plan if stem_plan is not None else plan_questionnaire_stems(pages.forms, config.naming.source)
@@ -201,7 +208,7 @@ def build_page_artifacts(
     build.artifacts.append(_terminology_page(pages, config))
     build.artifacts.append(_identifiers_page(config))
     build.artifacts.append(_periods_page(config))
-    build.artifacts.append(_capture_page(pages, config, canonical, plan, unit_stems))
+    build.artifacts.append(_capture_page(pages, config, canonical, plan, unit_stems, example_placements or {}))
     build.artifacts.extend(_questionnaire_intros(forms))
     build.artifacts.extend(_code_system_intros(pages, config))
     build.artifacts.extend(_organization_intros(pages.organisation_units, unit_stems))
@@ -472,16 +479,12 @@ def _capture_page(
     canonical: str,
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
+    example_placements: dict[str, SyntheticPlacement],
 ) -> FshArtifact:
     """Build `capture.md`: what a capture client sends, worked once per form kind, and how answers are typed."""
     foundation = FoundationNaming.from_naming(config.naming)
-    organisation_unit = min(pages.organisation_units, key=lambda item: (item.level, item.path, item.uid), default=None)
-    # A guide whose registry is another package read no unit beyond its stem, so the worked
-    # reference is the first published stem and the prose cites the UID alone.
-    worked_uid = (
-        organisation_unit.uid if organisation_unit is not None else min(organisation_unit_stems.stems, default="")
-    )
-    tracker_event = _capture_form_example(pages.forms, "tracker-event", canonical, stem_plan, config)
+    units = _CaptureUnitResolver.of(pages, organisation_unit_stems, example_placements)
+    tracker_event = _capture_form_example(pages.forms, "tracker-event", canonical, stem_plan, config, units)
     view = CaptureView(
         canonical=canonical,
         period_extension=foundation.period_extension,
@@ -503,14 +506,11 @@ def _capture_page(
         capture_server=foundation.capture_server,
         capture_server_id=foundation.capture_server_id,
         location_profile=location_profile_reference(config),
-        organisation_unit_uid=worked_uid,
-        organisation_unit_reference=organisation_unit_stems.reference_for("Location", worked_uid) if worked_uid else "",
-        organisation_unit_name=markdown_text(organisation_unit.name) if organisation_unit is not None else "",
         tracker_subject_type=(
             tracker_event.subject_type if tracker_event is not None else DEFAULT_SUBJECT_RESOURCE_TYPE
         ),
-        aggregate=_capture_form_example(pages.forms, "aggregate", canonical, stem_plan, config),
-        event=_capture_form_example(pages.forms, "event", canonical, stem_plan, config),
+        aggregate=_capture_form_example(pages.forms, "aggregate", canonical, stem_plan, config, units),
+        event=_capture_form_example(pages.forms, "event", canonical, stem_plan, config, units),
         tracker_event=tracker_event,
         event_statuses=[
             EventStatusRow(event_status=event_status, response_status=STATUS_BY_EVENT_STATUS[event_status])
@@ -521,18 +521,90 @@ def _capture_page(
     return _page("capture.md", "capture.md.jinja", capture=view)
 
 
+class _WorkedCaptureUnit(BaseModel):
+    """The organisation unit one worked walk-through files its capture from, as the page cites it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    uid: str = ""
+    reference: str = ""
+    name: str = ""
+
+
+class _CaptureUnitResolver(BaseModel):
+    """Which organisation unit each worked form files from, read off the run's own example placements.
+
+    A capture outside the form's DHIS2 assignment is refused with `E1029`, so a page teaching a
+    `subject` the reader copies has to name a unit the form is assigned to. The examples target
+    already answered that question for every form it published, so the page answers it from there
+    rather than reaching for the first unit in the registry. A form the run placed no example for -
+    no assignment read, or a guide whose registry is another package - falls back to the lowest
+    published unit, which is what the page can say without an assignment to read.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    placements: dict[str, SyntheticPlacement] = Field(default_factory=dict)
+    names: dict[str, str] = Field(default_factory=dict)
+    stems: StemResolution = Field(default_factory=StemResolution)
+    fallback_uid: str = ""
+
+    @classmethod
+    def of(
+        cls,
+        pages: PagesIn,
+        organisation_unit_stems: StemResolution,
+        example_placements: dict[str, SyntheticPlacement],
+    ) -> _CaptureUnitResolver:
+        """Index the run's placements, the published unit names, and the unit an unplaced form falls back to."""
+        lowest = min(pages.organisation_units, key=lambda item: (item.level, item.path, item.uid), default=None)
+        return cls(
+            placements=example_placements,
+            names={unit.uid: unit.name for unit in pages.organisation_units},
+            stems=organisation_unit_stems,
+            # A guide whose registry is another package read no unit beyond its stem, so the worked
+            # reference is the first published stem and the prose cites the UID alone.
+            fallback_uid=lowest.uid if lowest is not None else min(organisation_unit_stems.stems, default=""),
+        )
+
+    def places(self, form_uid: str) -> bool:
+        """Whether the run published an example for this form, and so knows a unit it may report from."""
+        return form_uid in self.placements
+
+    def worked(self, form_uid: str) -> _WorkedCaptureUnit:
+        """The organisation unit this form's walk-through files from - its example's own, else the fall-back."""
+        placement = self.placements.get(form_uid)
+        uid = placement.organisation_unit_uids[0] if placement is not None else self.fallback_uid
+        if not uid:
+            return _WorkedCaptureUnit()
+        name = self.names.get(uid)
+        return _WorkedCaptureUnit(
+            uid=uid,
+            reference=self.stems.reference_for("Location", uid),
+            name=markdown_text(name) if name else "",
+        )
+
+
 def _capture_form_example(
     forms: list[QuestionnaireSourceIn],
     kind: FormKind,
     canonical: str,
     stem_plan: QuestionnaireStemPlan,
     config: GenerateConfig,
+    units: _CaptureUnitResolver,
 ) -> CaptureFormExample | None:
-    """Work one selected form of `kind` through the contract: its Questionnaire, its period, and its linkIds."""
+    """Work one selected form of `kind` through the contract: its Questionnaire, its period, and its linkIds.
+
+    A form the run filed an example for is preferred over one it did not, so the steps are worked
+    against a form the reader can actually capture for rather than against one every combo of is
+    restricted away from every organisation unit that may report it.
+    """
     candidates = [source for source in forms if source.kind == kind and _source_items(source)]
     if not candidates:
         return None
-    source = min(candidates, key=lambda item: (item.name, item.uid))
+    placed = [source for source in candidates if units.places(source.uid)]
+    source = min(placed or candidates, key=lambda item: (item.name, item.uid))
+    worked = units.worked(source.uid)
     return CaptureFormExample(
         uid=source.uid,
         name=markdown_text(source_display_name(source)),
@@ -541,6 +613,9 @@ def _capture_form_example(
         subject_type=form_subject_type(source, config.tracked_entity_types),
         period=_capture_period(source),
         links=_capture_links(source),
+        organisation_unit_uid=worked.uid,
+        organisation_unit_reference=worked.reference,
+        organisation_unit_name=worked.name,
     )
 
 

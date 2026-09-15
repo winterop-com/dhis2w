@@ -17,9 +17,11 @@ set -euo pipefail
 # the first tracker program, and the organisation-unit subtree those forms are assigned inside.
 # examples/fhir/cli/doctor_all_targets.sh is the same run over every data set and every program.
 #
-# The instance is named the way `d2w fhir serve` names it: the root flag, or DHIS2_PROFILE.
-# There is no local --profile, so one run is always about one stated instance.
+# The instance is named three ways, the command's own flag first, then the root flag, then the
+# environment - so one run is always about one stated instance whichever the shell wrote:
+#   d2w fhir doctor -p myserver
 #   d2w -p myserver fhir doctor
+#   DHIS2_PROFILE=myserver d2w fhir doctor
 #
 # The run writes reports/fhir-doctor-report.md under the working directory, so this one is made
 # from a scratch directory that goes away with it.

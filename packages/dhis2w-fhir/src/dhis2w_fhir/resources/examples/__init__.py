@@ -758,8 +758,11 @@ def build_synthetic_responses(
     one of those programs answers against a registration of the same run rather than minting a
     pair nothing creates: its ordinal is assigned round-robin across the `per_target` registrations
     of its program, so every registration carries stage events and every stage event has an
-    enrollment to land on. A program absent from the set - or a run emitting no registrations at
-    all, which is the examples path - mints the pair on the response's own stream, as before.
+    enrollment to land on. Both callers pass it - the load set and the IG examples alike - because
+    both emit a program's registration form beside its stages, and a stage naming an enrollment no
+    registration of the set creates is refused with `E1313` and `E1079`. A program absent from the
+    set is one the run publishes no registration for, and its stage responses mint the pair on
+    their own stream.
 
     A `unique` tracked entity attribute is answered from the response's own minted identity, so no
     two registrations of one corpus claim the same business identifier - DHIS2 refuses the second

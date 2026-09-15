@@ -23,6 +23,16 @@ when lines are missing in both directions, since the user's edits and a scaffold
 changed read identically from disk. `fhir.toml` is the user's configuration and is never written at
 all.
 
+`fhir.example.toml` takes the ladder on its settings lines alone. It is the catalogue of every key a
+project may set, and the sentences explaining those keys are re-worded release by release, so a
+project scaffolded by an older release carries pages of prose the current render does not produce
+and nothing of anybody's own. Grading it on the TOML - the table headers, the keys and the values a
+reader copies into `fhir.toml` - is what tells those two apart: a file whose settings the current
+render reproduces is a render of this scaffold under some release's wording, so the current render
+lands and the verdict is `refreshed`, while one carrying a setting the render does not produce is a
+divergence and is kept. The prose is the scaffold's, and a comment written into that file does not
+survive a refresh.
+
 A directory holding both projects of a split guide carries two files of its own, and both take
 the same two rules: the `Makefile` that drives the two projects is named in
 `OWNED_WHOLE_RELATIVE_PATHS` like any other and is rewritten whole, and the `README.md` beside it goes
@@ -72,7 +82,16 @@ from dhis2w_fhir.scaffold.schemas import (
     ScaffoldReport,
 )
 
-__all__ = ["preserves_every_line", "read_project_scaffold_state", "refresh_project"]
+__all__ = ["preserves_every_line", "read_project_scaffold_state", "refresh_project", "settings_lines"]
+
+#: The files whose comment prose is the scaffold's own documentation rather than anything a reader
+#: wrote. `fhir.example.toml` is the catalogue of every key a project may set: its settings lines are
+#: a reader's - they are what gets copied into `fhir.toml`, and one changed or added is a divergence
+#: the ladder keeps - while the sentences explaining each key are re-worded release by release. So
+#: the ladder compares these files on their settings lines alone, and a file whose settings the
+#: current render reproduces is a render of this scaffold under some release's prose: the current
+#: render lands, and the verdict is `refreshed`. A comment written into one does not survive that.
+_PROSE_OWNED_RELATIVE_PATHS = (CONFIG_EXAMPLE_RELATIVE_PATH,)
 
 #: What a project may carry from an older scaffold, and the file that writes that content today.
 _SUPERSEDED_FILES = {"fhir.toml.example": CONFIG_EXAMPLE_RELATIVE_PATH}
@@ -171,6 +190,22 @@ def preserves_every_line(current: str, rendered: str) -> bool:
     return all(any(candidate == line for candidate in remaining) for line in current.splitlines())
 
 
+def settings_lines(text: str) -> str:
+    """The TOML of a document with its comment prose and blank lines dropped - what a reader sets.
+
+    A table header, a key, and a value are the file's settings; a `#` line is the scaffold's prose
+    about them. Reading a prose-owned file through this is what lets a refresh tell a render of an
+    older release from an edit somebody made.
+    """
+    kept = [line for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+    return "\n".join(kept)
+
+
+def _comparable_lines(relative_path: str, text: str) -> str:
+    """One file as the line ladder grades it: its settings alone where the scaffold owns the prose."""
+    return settings_lines(text) if relative_path in _PROSE_OWNED_RELATIVE_PATHS else text
+
+
 def refresh_project(directory: Path) -> ScaffoldReport:
     """Re-render the scaffold for the project in `directory`, landing every file nothing of the project's is in.
 
@@ -213,7 +248,9 @@ def _land_scaffold_file(destination: Path, scaffold_file: ScaffoldFile, report: 
         report.rewritten_files.append(relative_path)
         return
     comparable = adopt_scaffold_owned_lines(relative_path, current, scaffold_file.content)
-    if preserves_every_line(comparable, scaffold_file.content):
+    graded = _comparable_lines(relative_path, comparable)
+    rendered = _comparable_lines(relative_path, scaffold_file.content)
+    if preserves_every_line(graded, rendered):
         destination.write_text(scaffold_file.content, encoding="utf-8")
         report.refreshed_files.append(relative_path)
     elif comparable != current:
@@ -222,11 +259,11 @@ def _land_scaffold_file(destination: Path, scaffold_file: ScaffoldFile, report: 
         # still carries every current scaffold line on top of that is both written and kept, and
         # the verdict says both: a reader learns their own lines survived the write.
         destination.write_text(comparable, encoding="utf-8")
-        if preserves_every_line(scaffold_file.content, comparable):
+        if preserves_every_line(rendered, graded):
             report.refreshed_with_additions_files.append(relative_path)
         else:
             report.refreshed_files.append(relative_path)
-    elif preserves_every_line(scaffold_file.content, comparable):
+    elif preserves_every_line(rendered, graded):
         # The file holds every line the current render produces, plus lines of its own:
         # user additions on a current scaffold, with nothing for a refresh to add.
         report.extended_files.append(relative_path)

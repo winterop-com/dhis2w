@@ -427,11 +427,23 @@ gets one of seven outcomes, all of them printed:
 | --- | --- |
 | `created` | A scaffold file the project did not have. Written. |
 | `rewritten (scaffold-owned)` | One of the five toolchain files the scaffold owns outright. Replaced whole by the current render, so an edit to it is gone. |
-| `refreshed` | A file whose render carries every line on disk plus more, or one whose identity lines `fhir.toml` declares have changed. Rewritten line-preservingly: every line you wrote is still there. |
+| `refreshed` | A file whose render carries every line on disk plus more, or one whose identity lines `fhir.toml` declares have changed. Rewritten line-preservingly: every line you wrote is still there - except in `fhir.example.toml`, whose comment prose the scaffold owns outright (see below). |
 | `refreshed, with your additions` | Both at once: an identity line landed on a file that also carries lines the render does not produce. Written, and the lines you added are still under it - so a title change and an appended section read as two facts rather than one. |
 | `unchanged` | Already byte-identical to the current scaffold. |
 | `with your additions` | Carries every line the current scaffold renders, plus lines of your own. Nothing to add, so nothing is written. |
 | `diverged (kept)` | Holds lines the current scaffold does not write - your edits, or scaffold lines that have since changed; a line-preserving refresh cannot tell which. Your version stays, reported as `kept <path> (holds lines the current scaffold does not write)`. To take the scaffold's version, delete the file and refresh again. |
+
+**`fhir.example.toml` is graded on the keys it sets.** It is the catalog of
+every option a project may set, and the sentences explaining those options are
+re-worded release by release - so a project scaffolded by an older release
+carries pages of prose the current render does not produce and nothing of
+anybody's own. The ladder reads it through its TOML alone: the table headers,
+the keys and the values you would copy into `fhir.toml`. A file whose settings
+the current render reproduces is a render of this scaffold under some release's
+wording, so the render lands and the outcome is `refreshed`; one carrying a key
+or a value the render does not produce is `diverged (kept)` like any other file.
+The prose is the scaffold's, and a comment written into that file does not
+survive a refresh.
 
 `fhir.toml` is never written - it is your configuration, and a refresh skips
 it outright. The IG identity comes off the project itself: `[ig]` and the
