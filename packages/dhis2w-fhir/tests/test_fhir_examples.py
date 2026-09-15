@@ -2189,3 +2189,65 @@ def test_a_question_whose_bounds_admit_nothing_is_left_unanswered_with_a_note() 
     assert build.responses[0].answers == []
     assert any("value range admitting no answer at all" in message for message in messages)
     assert any("Reading (Deb1aaaaaaa)" in message for message in messages)
+
+
+def _computed_program() -> QuestionnaireSourceIn:
+    """An event form whose second question a DHIS2 `ASSIGN` rule computes the answer to on import."""
+    return QuestionnaireSourceIn(
+        uid="Asg1aaaaaaa",
+        name="Computing programme",
+        kind="event",
+        flat_items=[
+            QuestionnaireItemIn(uid="Dea1aaaaaaa", name="Reading", value_type="NUMBER"),
+            QuestionnaireItemIn(uid="Dea2aaaaaaa", name="Logged reading", value_type="NUMBER"),
+        ],
+        program_rules=[_gate_rule("Rulea1aaaaa", "true", "ASSIGN", "Dea2aaaaaaa")],
+        program_rule_variables=[_gate_variable("reading", "Dea1aaaaaaa")],
+    )
+
+
+def test_the_draw_never_answers_a_question_dhis2_computes() -> None:
+    """DHIS2 calculates an assigned answer on import and refuses any other one with E1307.
+
+    A calculated value can be one no answer expresses - `d2:log(0)` calculates `-Infinity` - so the
+    only answer DHIS2 always takes is no answer at all. Both emitters draw from this one build.
+    """
+    build = build_synthetic_responses([_computed_program()], [], 4, _ROOT_ORG_UNIT, _TODAY)
+
+    answered = {answer.data_element_uid for response in build.responses for answer in response.answers}
+
+    assert answered == {"Dea1aaaaaaa"}
+
+
+def test_a_captured_value_answering_a_computed_question_is_dropped_and_tallied() -> None:
+    """A real DHIS2 event holds the value the rule calculated, and republishing it is a document E1307 refuses."""
+    source = _computed_program()
+    response = ExampleResponseIn(
+        instance_id="Asg1aaaaaaa-example-1",
+        target_uid=source.uid,
+        kind="event",
+        organisation_unit_uid=_ROOT_ORG_UNIT,
+        status_code="completed",
+        authored="2026-08-02T09:00:00Z",
+        answers=[
+            ExampleAnswerIn(data_element_uid="Dea1aaaaaaa", value="8"),
+            ExampleAnswerIn(data_element_uid="Dea2aaaaaaa", value="2.0794"),
+        ],
+    )
+
+    build = build_example_artifacts(
+        [source],
+        [response],
+        [],
+        GenerateConfig(),
+        _CANONICAL,
+        option_set_plan=option_set_identities([], GenerateConfig()),
+    )
+
+    fsh = build.artifacts[0].content
+    assert '"Dea1aaaaaaa"' in fsh
+    assert '"Dea2aaaaaaa"' not in fsh
+    messages = [note.message for note in build.notes]
+    assert any("a program rule computes the answer to" in message for message in messages)
+    assert any("E1307" in message for message in messages)
+    assert any("Logged reading (Dea2aaaaaaa)" in message for message in messages)

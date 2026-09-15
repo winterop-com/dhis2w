@@ -1060,7 +1060,24 @@ def test_validate_code_source_override_reaches_the_service(fhir_project: Path) -
     assert result.exit_code == 0, result.output
     assert mock.await_args is not None
     assert mock.await_args.args[2] == "code"
-    assert "code source" in result.output
+    assert "concept_code_source" in result.output
+
+
+def test_validate_labels_each_code_setting_by_the_key_it_is(fhir_project: Path) -> None:  # noqa: ARG001
+    """Two settings decide two different things, and the summary names both by their fhir.toml keys.
+
+    `[generate] concept_code_source` decides the concept codes a CodeSystem publishes and
+    `[generate.naming] source` decides the identity stems every artifact is named by. A row labelled
+    `code source` could be either, in the one table a reader uses to work out which of them a
+    `code-stem-refusal` finding is about.
+    """
+    mock = AsyncMock(return_value=FhirValidationReport())
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate"])
+    assert result.exit_code == 0, result.output
+    rendered = " ".join(result.output.split())
+    assert "[generate] concept_code_source" in rendered
+    assert "[generate.naming] source" in rendered
 
 
 def test_validate_rejects_an_unknown_code_source(fhir_project: Path) -> None:  # noqa: ARG001

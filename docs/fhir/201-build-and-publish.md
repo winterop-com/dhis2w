@@ -209,7 +209,7 @@ rather than the printer guessing:
 
 `--json` puts the whole typed report on stdout.
 
-### Three findings the build survives
+### The findings the build survives
 
 A published Questionnaire whose organisation-unit assignment `List` names no
 unit this project publishes is a `warning` rather than a refusal. That guide
@@ -253,6 +253,27 @@ Questionnaire declares - so no connection is needed here either. Its line names
 no `fhir.toml` dial, because none reaches it: a category option's `startDate` and
 `endDate` are DHIS2 metadata, so the options are reopened in DHIS2 or the form
 selection is narrowed.
+
+The fourth is a `[generate.*] include_ids` entry the published tree carries no
+trace of: the UID names no object on the instance the guide was generated
+against, so the guide publishes without that form, its examples, and its page.
+
+The fifth is a published example answering a question the form's own
+`D2ProgramRule` extension says DHIS2 computes. A rule whose action is `#ASSIGN`
+names each question it computes on an `assigns` sub-extension; DHIS2 calculates
+that value on import and refuses a payload whose answer is neither empty nor
+byte-equal to it, with `E1307`. `d2w fhir generate` leaves every such question
+unanswered, so a finding here is a hand-authored example, or a tree an older
+run wrote:
+
+```console
+$ d2w fhir check-artifacts
+...
+warning  computed-answer  QuestionnaireResponse  eBAyeGv0exc-example-1  ySU9WWHNoVG  1
+```
+
+The guide builds and publishes either way; what the finding costs is an example
+nobody can import.
 
 The scan covers three trees, and each position it reads is one the emitted
 resource carries byte-true into a page:

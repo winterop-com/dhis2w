@@ -34,6 +34,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from dhis2w_fhir.attributes import AttributeCodeIndex, AttributeValueIn
 from dhis2w_fhir.config import (
+    FHIR_CONFIG_FILENAME,
     CorrectionPosture,
     FhirProject,
     GenerateConfig,
@@ -3463,6 +3464,40 @@ def _emit_organisation_units(
     return report
 
 
+def _registry_naming_source_notes(project: FhirProject, registry: RegistryDependency) -> list[GenerateNote]:
+    """What this run says when the guide and the registry checkout it depends on stem identities differently.
+
+    The two projects each read `[generate.naming] source` for themselves, and a reference resolves
+    only where both read the same DHIS2 field: a registry published under `code` names its units
+    `Location/OU-211224` while a guide stemming by `id` references `Location/<uid>`, and every such
+    reference dangles. The checkout is the only source that states the answer - a built package
+    carries ids and no `fhir.toml` - so a package-only run says nothing here and
+    `d2w fhir check-artifacts` grades the references themselves.
+    """
+    if registry.path is None:
+        return []
+    checkout = project.project_root / registry.path
+    if not (checkout / FHIR_CONFIG_FILENAME).is_file():
+        return []
+    try:
+        published = load_project(checkout)
+    except (NoFhirProjectError, OSError, ValueError):
+        return []
+    theirs = published.config.generate.naming.source
+    ours = project.config.generate.naming.source
+    if theirs == ours:
+        return []
+    return [
+        generate_note(
+            GenerateNoteCategory.REGISTRY_DEPENDENCY,
+            f"this guide stems every identity from {ours!r} and {registry.id} stems its organisation units "
+            f"from {theirs!r}, so each `Location/...` reference this run writes names an id that package "
+            "does not publish. Set `[generate.naming] source` to one value in both fhir.toml files and "
+            "regenerate both projects; `d2w fhir check-artifacts` names each dangling reference.",
+        )
+    ]
+
+
 def _emit_organisation_unit_dependency(
     project: FhirProject,
     registry: RegistryDependency,
@@ -3492,6 +3527,7 @@ def _emit_organisation_unit_dependency(
             "by its absolute URL in that package. Build it with the package installed: `make registry-install` "
             "before `make build`.",
         ),
+        *_registry_naming_source_notes(project, registry),
     ]
     sync = sync_artifacts(project.fsh_directory, "organization", [])
     registry_sync = sync_json_artifacts(project.resources_directory, REGISTRY_DIRECTORY, [])
@@ -3578,15 +3614,16 @@ async def generate_pages(
         # The capture page works its steps against the organisation unit the examples target places
         # each form at, so the page reads the same two facts that target reads: the form's own DHIS2
         # assignment, and which attribute option combos each admitted unit may file a capture under.
+        restrictions = await fetch_attribute_option_restrictions(
+            client, sources, published=published.stems, units=published.paths
+        )
         placements = await _capture_page_placements(
             client,
             _published_sources(sources),
             root_organisation_unit_uid=await _example_organisation_unit_uid(client, config),
             published_organisation_unit_uids=frozenset(published.stems.stems),
             assignments=None,
-            restrictions=await fetch_attribute_option_restrictions(
-                client, sources, published=published.stems, units=published.paths
-            ),
+            restrictions=restrictions,
             today=today,
         )
     unit_count = len(organisation_units) if published_stems is None else len(published_stems.stems)
@@ -3603,6 +3640,7 @@ async def generate_pages(
             else plan_organisation_unit_stems(organisation_unit_stem_subjects(organisation_units), config.naming.source)
         ),
         example_placements=placements,
+        attribute_option_restrictions=restrictions,
         notes=notes,
         progress=progress,
     )
@@ -3647,6 +3685,7 @@ def _emit_pages(
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
     example_placements: dict[str, SyntheticPlacement] | None = None,
+    attribute_option_restrictions: AttributeOptionRestrictions | None = None,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> GenerateReport:
@@ -3659,7 +3698,10 @@ def _emit_pages(
 
     `example_placements` is where the run's examples file each form from, which is what the capture
     page works its steps against: the page teaches the very capture the examples beside it make,
-    filed from an organisation unit the form is assigned to.
+    filed from an organisation unit the form is assigned to. `attribute_option_restrictions` is the
+    other half of that capture - the organisation units and the calendar window DHIS2 scopes each
+    attribute category option to - so the page quotes an attribute option combination the instance
+    takes at the unit and for the period the page itself worked.
     """
     progress.step("pages", f"writing ig/{PAGES_BASE_SUBDIRECTORY}/{PAGES_DIRECTORY}")
     _refuse_build_aborting_form_objects(sources)
@@ -3694,6 +3736,7 @@ def _emit_pages(
             stem_plan=stem_plan,
             organisation_unit_stems=organisation_unit_stems,
             example_placements=example_placements,
+            attribute_option_restrictions=attribute_option_restrictions,
         )
     sync = sync_artifacts(project.ig_directory / PAGES_BASE_SUBDIRECTORY, PAGES_DIRECTORY, build.artifacts)
     intro_count = sum(1 for artifact in build.artifacts if artifact.relative_path.endswith(INTRO_SUFFIX))
@@ -3738,9 +3781,19 @@ async def generate_full(
     `gate` is what the run does with a DHIS2 name the IG publisher's build cannot survive. The
     whole run screens through one gate, so a run that asks asks once, over the count the whole
     instance read holds rather than the first target's share of it.
+
+    A guide naming `[generate.organisation_units.registry]` is refused before the instance is dialled
+    when neither a checkout nor a package supplies that registry, in the words `serve --live`,
+    `forward` and `check-artifacts` refuse it in: the run would otherwise write a `Location/...`
+    reference per example, assignment List and page against a package nothing on this machine holds.
     """
     if project.config.publishes_organisation_units:
         return await _generate_registry_package(profile, project, reporter=reporter, client=client, gate=gate)
+    # Before the instance is dialled: a guide whose units another package publishes writes a
+    # `Location/<id>` reference per example, per assignment List and per page, and a run that cannot
+    # read that package writes them against places nothing publishes. `serve --live`, `forward`,
+    # `check-artifacts` and `make sushi` all refuse such a project, and this is the same refusal.
+    resolve_registry_source(project)
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_FULL_STEPS)
     progress.step(_FETCH_LABEL, "fetching instance metadata")
@@ -3827,6 +3880,7 @@ async def generate_full(
                 restrictions=inputs.attribute_option_restrictions,
                 today=datetime.now(tz=UTC).date(),
             ),
+            attribute_option_restrictions=inputs.attribute_option_restrictions,
             notes=[*inputs.source_notes, *inputs.option_set_notes],
             progress=progress,
         )

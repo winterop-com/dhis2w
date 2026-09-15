@@ -26,7 +26,7 @@ below.
 
 ## Index
 
-127 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
+130 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
 stacks `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0`, plus the play channels `stable-2-41-10`,
 `stable-2-42-6`, `stable-2-43-1`, `dev-2-41`, `dev-2-42` and `dev-2-43` (see the retest log below):
 
@@ -104,6 +104,9 @@ Every entry in the file is listed here, including the four that carried no Index
 - [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value) — `importStrategy=DELETE` of a never-written value materialises a tombstone on v43 **[FIXED v41 + v42]**
 - [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted) — inline `"deleted": true` is counted as `updated` on v43 **[FIXED v41 + v42]**
 - [#125](#125-a-top-level-dataset-key-on-a-apidatavaluesets-payload-makes-every-later-import-answer-409-e7644-with-the-period-rendered-as-null-and-a-freshly-created-data-set-is-invisible-to-the-open-periods-check-for-about-two-minutes) — A top-level `dataSet` key makes later imports answer `E7644` with a null period; a new data set is invisible for two minutes **[STILL]**
+- [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements) — a dry-run data value import answers 500 for five of one data set's nineteen data elements **[STILL]**
+- [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway) — `POST /api/dataValues` accepts `dryRun=true` and writes the value anyway **[STILL]**
+- [#131](#131-a-program-rule-assigns-infinity-to-a-number-data-element-and-dhis2-then-refuses-its-own-assignment-with-e1302) — a program rule assigns `-Infinity` and DHIS2 refuses its own assignment **[STILL]**
 
 ### Metadata / Sharing / UX
 
@@ -8003,6 +8006,169 @@ ever sees the payload.
 
 **How to know it's fixed:** the `201610` post either succeeds, or its conflict names the category
 option and the window.
+
+**Verifier:** none yet.
+
+---
+
+### 129. `POST /api/dataValueSets?dryRun=true` answers 500 `DataEntryGroup.values() because "valid" is null` for five of one data set's nineteen data elements
+
+**Observed on:** DHIS2 `2.43.2-SNAPSHOT` (revision `9d68e60`, `https://play.im.dhis2.org/dev-2-43`,
+DHIS 2 Demo - Sierra Leone). Login as `admin/district`.
+
+**What a caller is trying to do.** Validate a data value set before importing it - the whole point
+of `dryRun=true` - and get back an import summary saying whether DHIS2 would take it.
+
+**Repro (against the seeded demo database):**
+
+```bash
+BASE=https://play.im.dhis2.org/dev-2-43
+
+# `TLSChlBcw7L` is a TRUE_ONLY data element of `V8MHeZHIrcP` (Facility Assessment).
+curl -s -u admin:district -H 'Content-Type: application/json' \
+  -X POST "$BASE/api/dataValueSets?dryRun=true&importStrategy=CREATE_AND_UPDATE" \
+  -d '{"dataSet":"V8MHeZHIrcP","period":"2025","orgUnit":"ImspTQPwCqd","dataValues":[{"dataElement":"TLSChlBcw7L","categoryOptionCombo":"HllvX50cXC0","value":"true"}]}'
+# {"httpStatus":"Internal Server Error","httpStatusCode":500,"status":"ERROR",
+#  "message":"Cannot invoke \"org.hisp.dhis.datavalue.DataEntryGroup.values()\" because \"valid\" is null"}
+
+# The same post for `uZJkd96hYCm` - TRUE_ONLY, same data set, same combo, same value - answers 200.
+curl -s -u admin:district -H 'Content-Type: application/json' \
+  -X POST "$BASE/api/dataValueSets?dryRun=true&importStrategy=CREATE_AND_UPDATE" \
+  -d '{"dataSet":"V8MHeZHIrcP","period":"2025","orgUnit":"ImspTQPwCqd","dataValues":[{"dataElement":"uZJkd96hYCm","categoryOptionCombo":"HllvX50cXC0","value":"true"}]}'
+```
+
+Swept over all nineteen data elements of `V8MHeZHIrcP`, one value each: **5 answer 500, 14 answer
+200.** The five are `TLSChlBcw7L`, `UMJym1vYPSu`, `MJYalhqFsHK` (all `TRUE_ONLY`), `sJWqKsx0ghX` and
+`uF1DLnZNlWe` (both `LONG_TEXT`). Deterministic across repeats. It also reproduces on
+`POST /api/dataValues` and on a `dataValueSets` body carrying no `dataSet` key at all.
+
+**Expected.** An import summary, or a conflict naming what is wrong with the payload. A dry run
+validates; it should not be able to fail differently from the import it stands in for.
+
+**Actual.** HTTP 500 with a Java `NullPointerException` message. Nothing in the answer names the
+data element, the period, or the organisation unit, so a caller draining a queue of payloads cannot
+tell a poisoned one from a healthy one without bisecting.
+
+**Not explained by:** value type (three other `TRUE_ONLY` elements of the same data set answer 200,
+and a `LONG_TEXT` in a different data set does too), existing stored values (the six elements that
+do hold a value for that tuple are all in the 200 group), or any readable metadata - `valueType`,
+`aggregationType`, `optionSet`, `zeroIsSignificant`, data-set membership and `minMaxDataElements` are
+identical across the split.
+
+**Why it matters beyond tidiness.** One data element of one data set makes a whole corpus
+unforwardable. `d2w fhir forward` drains a spool one payload at a time; a 500 is not an import
+report, so the drain stops and the rest of the queue is untouched.
+
+**Workaround applied in this repo:** none - there is nothing a caller can do about it. The drain
+stops honestly rather than guessing: it names the receipt it stopped at, states that the instance
+answered 500 rather than an import report, leaves every unposted response in the queue, and exits 1
+(`forward_responses` in `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`). A flag to skip one
+poisoned payload and drain the rest is a follow-up this entry does not assume.
+
+**How to know it's fixed:** the first post above answers 200 with an import summary.
+
+**Verifier:** none yet.
+
+---
+
+### 130. `POST /api/dataValues?dryRun=true` accepts `dryRun` and writes the value anyway
+
+**Observed on:** DHIS2 `2.43.2-SNAPSHOT` (revision `9d68e60`, `https://play.im.dhis2.org/dev-2-43`,
+DHIS 2 Demo - Sierra Leone). Login as `admin/district`.
+
+**What a caller is trying to do.** Ask DHIS2 whether it would take one data value, without writing
+it - the same thing `dryRun=true` means on `/api/dataValueSets`.
+
+**Repro (against the seeded demo database - THIS WRITES, see below):**
+
+```bash
+BASE=https://play.im.dhis2.org/dev-2-43
+TUPLE="de=uZJkd96hYCm&pe=2025&ou=ImspTQPwCqd&co=HllvX50cXC0"
+
+# Before: the tuple holds no value.
+curl -s -u admin:district "$BASE/api/dataValues?$TUPLE"
+
+# The parameter is accepted rather than refused as unknown.
+curl -s -u admin:district -X POST "$BASE/api/dataValues?$TUPLE&value=true&dryRun=true"
+
+# After: the value is stored, and `lastUpdated` moves.
+curl -s -u admin:district "$BASE/api/dataValues?$TUPLE"
+```
+
+**Expected.** Either the write is skipped, as `dryRun=true` says on the sibling endpoint, or the
+parameter is refused as one this endpoint does not take.
+
+**Actual.** The parameter is accepted silently and the value is written. Observed writing
+`uZJkd96hYCm = true` at `ImspTQPwCqd` / `2025` / `HllvX50cXC0` on the public demo, where the tuple
+held no value before; the `DELETE` that would have restored it was refused by the permission system,
+so the value is still there.
+
+**Why it matters beyond tidiness.** `dryRun` is the parameter a caller reaches for precisely because
+they are not sure the payload is safe. Two sibling endpoints that spell it the same way and mean
+opposite things is the shape of mistake that only shows up on production data.
+
+**Workaround applied in this repo:** the forwarder only ever posts data values through
+`POST /api/dataValueSets`, which honours `dryRun`, and never through `POST /api/dataValues`
+(`_DATA_VALUE_SETS_PATH`, the one aggregate import path `forward_responses` posts to, in
+`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`).
+
+**How to know it's fixed:** the third read above comes back empty, or the second call is refused.
+
+**Verifier:** none yet.
+
+---
+
+### 131. A program rule assigns `-Infinity` to a `NUMBER` data element, and DHIS2 then refuses its own assignment with `E1302`
+
+**Observed on:** DHIS2 `2.43.2-SNAPSHOT` (revision `9d68e60`, `https://play.im.dhis2.org/dev-2-43`,
+DHIS 2 Demo - Sierra Leone). Login as `admin/district`.
+
+**What a caller is trying to do.** Import an event of `eBAyeGv0exc` (Inpatient morbidity and
+mortality). The payload answers every mandatory question and answers nothing either of the
+program's two `ASSIGN` rules computes, which is the one shape `E1307` leaves open.
+
+**Repro (against the seeded demo database):**
+
+```bash
+BASE=https://play.im.dhis2.org/dev-2-43
+
+# `tZysl1WgPHF` ("ZZ PR test 4 - ASSIGN d2:log(0) edge case") fires on `condition: true` and
+# assigns to `GieVkTxp4HH` (Height in cm, NUMBER). The payload answers neither it nor `ySU9WWHNoVG`.
+curl -s -u admin:district -H 'Content-Type: application/json' \
+  -X POST "$BASE/api/tracker?async=false&importMode=VALIDATE" -d '{"events":[{"event":"Ev1aaaaaaa1","program":"eBAyeGv0exc","programStage":"Zj7UnCAulEk","orgUnit":"ABM75Q1UfoP","occurredAt":"2026-08-19","status":"COMPLETED","dataValues":[{"dataElement":"qrur9Dvnyt5","value":"710"},{"dataElement":"eMyVanycQSC","value":"2026-09-14"},{"dataElement":"K6uUAvq500H","value":"A00"},{"dataElement":"msodh3rEMJa","value":"2026-08-24"},{"dataElement":"fWIAEtYVEGk","value":"MODDISCH"}]}]}'
+# validationReport.errorReports:
+# E1302  DataElement `NUMBER` is not valid: `Value type is NUMBER but the value `-Infinity` is not.`.
+```
+
+The same payload with `{"dataElement":"ySU9WWHNoVG","value":"99.2"}` added comes back with `E1307`
+*and* the same `E1302`, so the two are independent: `E1307` is about the answer the caller sent and
+`E1302` is about the value DHIS2 calculated for itself.
+
+**Expected.** A rule whose expression evaluates to something the target data element's value type
+cannot hold is a rule the instance cannot run - and the refusal should say which rule and which data
+element, so an administrator can fix the expression. Failing that, the assignment should be skipped
+rather than written into the payload the same request then validates.
+
+**Actual.** DHIS2 writes `-Infinity` into the event on its own, validates the event it just modified,
+and refuses it. The conflict names neither the rule nor the data element: `DataElement \`NUMBER\``
+puts the value type where the identifier belongs (the same shape as #75), and the only clue that the
+value came from a program rule rather than from the caller is that the caller never sent one.
+
+**Why it matters beyond tidiness.** Every event of the program is unimportable, and no payload can
+avoid it: the rule's condition is the literal `true`, so it fires on every import, and the data
+element it targets is one the caller cannot pre-empt - an empty answer is exactly what makes room
+for the assignment. A caller reading the conflict has nothing to act on, because the offending value
+is not in the payload they sent.
+
+**Workaround applied in this repo:** none is possible on the caller's side. Every example this
+toolchain publishes already leaves an assigned question unanswered, which is what `E1307` asks for
+(`_computed_answer_text` and `PublishedProgramRule.assigns` in
+`packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/program_rules.py`), and the run says
+out loud which questions those are. The `E1302` that remains is the instance refusing its own
+arithmetic.
+
+**How to know it's fixed:** the post above answers with no error reports, or its conflict names
+`tZysl1WgPHF` and `GieVkTxp4HH`.
 
 **Verifier:** none yet.
 

@@ -2214,11 +2214,16 @@ counts a first entry, so no import summary can say it happened; a dry run says i
 is still time to act on it. `--overwrites refuse` leaves any response holding one in the queue,
 with each covered value written down beside it, instead of posting it.
 
-A DHIS2 rejection exits 1. A dry run counts a stage event whose enrollment a registration of the
-same run creates as unverifiable rather than rejected - a dry run writes nothing, so there is no
-enrollment to check it against - and a run whose only failures are those exits 0.
+THE EXIT CODE. 0 exactly when nothing was refused by the translator, nothing was rejected by
+DHIS2, and the drain reached the end of the queue. Every other outcome exits 1 with the counts on
+screen: a partial drain is not a success, and neither is a drain that posted nothing because the
+translator refused everything it read. A dry run counts a stage event whose enrollment a
+registration of the same run creates as unverifiable rather than rejected - a dry run writes
+nothing, so there is no enrollment to check it against - and a run whose only failures are those
+exits 0.
 
-Outcomes land in reports/fhir-forward-report.md; `--details` prints them here instead.
+Outcomes land in reports/fhir-forward-report.md on every run, `--details` or not; `--details`
+prints them here as well.
 
 **Usage**:
 
@@ -2238,7 +2243,7 @@ $ d2w fhir forward [OPTIONS] [directory]
 * `--overwrites <allow|refuse>`: What to do with an aggregate value a forwarded receipt already sent, overriding `[forward] overwrites`. `allow` - the default - posts it and names it; `refuse` leaves the whole response in the queue with the covered values written down beside it.
 * `--corrections <off|amend>`: Whether this deployment accepts a submission that names the receipt it corrects, overriding `[forward] corrections`. Off by default. Stated by the run rather than acted on by it - a drain imports, and a correction lands on the corrected receipt&#x27;s identity.
 * `--withdrawals <off|retract>`: Whether this deployment retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and read by `d2w fhir withdraw` rather than by the drain, which never deletes anything.
-* `--details`: Print every response&#x27;s outcome instead of writing them to the report.
+* `--details`: Print every response&#x27;s outcome here as well. The report is written either way.
 * `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
 * `--help`: Show this message and exit.
 

@@ -33,6 +33,7 @@ from dhis2w_fhir.foundation.schemas import (
     DATE_LABEL_EVENT_SUB_EXTENSION,
     DATE_LABEL_INCIDENT_SUB_EXTENSION,
     PROGRAM_RULE_ACTION_SUB_EXTENSION,
+    PROGRAM_RULE_ASSIGNS_SUB_EXTENSION,
     PROGRAM_RULE_CONDITION_SUB_EXTENSION,
     PROGRAM_RULE_DESCRIPTION_SUB_EXTENSION,
     PROGRAM_RULE_NAME_SUB_EXTENSION,
@@ -730,6 +731,10 @@ def _program_rule_extensions(
                 ),
                 Extension(url=PROGRAM_RULE_CONDITION_SUB_EXTENSION, valueString=rule.condition),
                 Extension(url=PROGRAM_RULE_ACTION_SUB_EXTENSION, valueCode=rule.action),
+                *(
+                    Extension(url=PROGRAM_RULE_ASSIGNS_SUB_EXTENSION, valueId=question_uid)
+                    for question_uid in rule.assigns
+                ),
                 # Last, because that is where SUSHI puts the optional slice: the compiled guide and
                 # the served document have to carry one order, and SUSHI's is the one to match.
                 *(

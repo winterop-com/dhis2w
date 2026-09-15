@@ -26,6 +26,7 @@ from dhis2w_fhir.conversion.values import location_id_of
 from dhis2w_fhir.foundation import build_foundation_artifacts, build_registry_foundation_artifacts
 from dhis2w_fhir.names import StemResolution, StemSubject
 from dhis2w_fhir.notes import GenerateNoteCategory
+from dhis2w_fhir.registry_package import RegistryMissingError
 from dhis2w_fhir.resources.examples import location_reference
 from dhis2w_fhir.resources.organisation_units import plan_organisation_unit_stems
 from dhis2w_fhir.resources.organisation_units.naming import location_profile_reference
@@ -40,6 +41,7 @@ from dhis2w_fhir.resources.questionnaires.schemas import QuestionnaireItemIn, Qu
 from dhis2w_fhir.scaffold import build_scaffold_files
 from dhis2w_fhir.scaffold.refresh import read_project_scaffold_state, refresh_project
 from dhis2w_fhir.service import RegistryProjectTargetError
+from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
 from typer.testing import CliRunner
 
 _HOST = "https://dhis2.example"
@@ -606,8 +608,24 @@ def _mock_instance(
 
 _REGISTRY_TABLE = (
     '\n[generate.organisation_units.registry]\nid = "dhis2.fhir.test.registry"\n'
-    'canonical = "http://example.org/fhir/registry"\nversion = "1.2.0"\n'
+    'canonical = "http://example.org/fhir/registry"\nversion = "1.2.0"\npath = "../registry"\n'
 )
+
+
+def _registry_checkout(guide_root: Path) -> Path:
+    """A sibling checkout of the registry project holding one published Location, as generate wrote it.
+
+    `d2w fhir generate` refuses a depending guide whose registry neither a checkout nor a package
+    supplies, in the words `serve --live`, `forward` and `check-artifacts` refuse it in, so every
+    run against such a guide needs a readable registry the way a real one does.
+    """
+    directory = guide_root.parent / "registry" / "ig" / "input" / "resources" / "registry"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "Location-O6uvpzGd5pu.json").write_text(
+        json.dumps({"resourceType": "Location", "id": "O6uvpzGd5pu"}), encoding="utf-8"
+    )
+    return directory
+
 
 _FULL_OPTIONS = InitOptions(
     ig_id="dhis2.fhir.full", canonical=_CANONICAL, name="Dhis2FhirFull", title="Full IG", publisher="Full Org"
@@ -630,6 +648,7 @@ async def test_a_depending_guide_writes_no_unit_and_references_the_registry_pack
     """The org-unit directories stay empty, the hierarchy is never walked, every reference is a URL into the package."""
     _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
     await _scaffold_project(tmp_path, _FULL_OPTIONS, _REGISTRY_TABLE)
+    _registry_checkout(tmp_path)
 
     report = await service.generate_full(resolve_profile("probe"), load_project(tmp_path))
 
@@ -678,6 +697,7 @@ async def test_switching_a_guide_to_a_registry_package_clears_what_the_inline_ru
 
     config_path = tmp_path / "fhir.toml"
     config_path.write_text(config_path.read_text(encoding="utf-8") + _REGISTRY_TABLE, encoding="utf-8")
+    _registry_checkout(tmp_path)
     depending = await service.generate_full(profile, load_project(tmp_path))
 
     assert "profiles.fsh" in depending.organisation_units.deleted_files
@@ -702,6 +722,8 @@ async def test_the_solo_org_unit_and_pages_targets_of_a_depending_guide_match_th
     solo_root = tmp_path / "solo"
     await _scaffold_project(full_root, _FULL_OPTIONS, _REGISTRY_TABLE)
     await _scaffold_project(solo_root, _FULL_OPTIONS, _REGISTRY_TABLE)
+    _registry_checkout(full_root)
+    _registry_checkout(solo_root)
     profile = resolve_profile("probe")
 
     await service.generate_full(profile, load_project(full_root))
@@ -818,3 +840,120 @@ async def test_an_inline_guide_is_byte_identical_with_and_without_the_feature_in
     assert "* subject only Reference(D2Location)" in (fsh / "foundation" / "d2-responses.fsh").read_text(
         encoding="utf-8"
     )
+
+
+#: The registry table without a checkout beside it - the state a run meets when the sibling project
+#: was never cloned, or was moved away after the guide named it.
+_UNREADABLE_REGISTRY_TABLE = (
+    '\n[generate.organisation_units.registry]\nid = "dhis2.fhir.test.registry"\n'
+    'canonical = "http://example.org/fhir/registry"\nversion = "1.2.0"\n'
+)
+
+
+@respx.mock
+async def test_generate_refuses_a_registry_it_cannot_read_before_it_dials_the_instance(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Every other command refuses such a project, and a run that writes references to nothing is worse.
+
+    `serve --live`, `forward`, `check-artifacts` and `make sushi` all refuse identically. A generate
+    that carried on would write a `Location/...` reference per example, per assignment List and per
+    page against a package nothing on this machine holds.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    await _scaffold_project(tmp_path, _FULL_OPTIONS, _UNREADABLE_REGISTRY_TABLE)
+
+    with pytest.raises(RegistryMissingError) as refusal:
+        await service.generate_full(resolve_profile("probe"), load_project(tmp_path))
+
+    assert "dhis2.fhir.test.registry 1.2.0" in str(refusal.value)
+    assert "neither source for it is readable" in str(refusal.value)
+    assert not respx.routes["organisationUnits"].calls
+    assert not (tmp_path / "ig" / "input" / "fsh" / "examples").exists()
+
+
+@respx.mock
+async def test_generate_names_both_identity_sources_when_the_guide_and_its_registry_disagree(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Nothing else makes the pair agree, so the run that writes the references says which two it read.
+
+    A registry published under `code` names its units `Location/OU-211224`; a guide stemming by `id`
+    references `Location/<uid>`. Every reference then dangles, and only `check-artifacts` said so.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    guide = tmp_path / "guide"
+    await _scaffold_project(guide, _FULL_OPTIONS, _REGISTRY_TABLE)
+    _registry_checkout(guide)
+    (guide.parent / "registry" / "fhir.toml").write_text(
+        '[ig]\nid = "dhis2.fhir.test.registry"\ncanonical = "http://example.org/fhir/registry"\n'
+        'name = "TestRegistry"\ntitle = "Test registry"\npublisher = "Test Organisation"\n\n'
+        '[generate.naming]\nsource = "code"\n',
+        encoding="utf-8",
+    )
+
+    report = await service.generate_full(resolve_profile("probe"), load_project(guide))
+
+    messages = [note.message for note in report.organisation_units.notes]
+    assert any("'id'" in message and "'code'" in message for message in messages)
+    assert any("check-artifacts" in message for message in messages)
+
+
+@respx.mock
+async def test_a_matching_pair_of_identity_sources_says_nothing_at_all(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """A note about two settings that agree is noise, and the run already has hundreds of notes."""
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    guide = tmp_path / "guide"
+    await _scaffold_project(guide, _FULL_OPTIONS, _REGISTRY_TABLE)
+    _registry_checkout(guide)
+    (guide.parent / "registry" / "fhir.toml").write_text(
+        '[ig]\nid = "dhis2.fhir.test.registry"\ncanonical = "http://example.org/fhir/registry"\n'
+        'name = "TestRegistry"\ntitle = "Test registry"\npublisher = "Test Organisation"\n',
+        encoding="utf-8",
+    )
+
+    report = await service.generate_full(resolve_profile("probe"), load_project(guide))
+
+    assert [note.category for note in report.organisation_units.notes] == [GenerateNoteCategory.REGISTRY_DEPENDENCY]
+
+
+def test_check_artifacts_names_every_reference_a_mismatched_identity_source_left_dangling(tmp_path: Path) -> None:
+    """The drift finding is the other half of the note: it grades the references themselves.
+
+    A guide stemming by `id` against a registry stemming by `code` publishes references to ids the
+    package does not carry, and the scan reads both trees off disk with no instance in sight.
+    """
+    guide = tmp_path / "guide"
+    (guide / "ig" / "input" / "fsh" / "examples").mkdir(parents=True)
+    (guide / "fhir.toml").write_text(
+        '[ig]\nid = "dhis2.fhir.guide"\ncanonical = "http://example.org/fhir/guide"\n'
+        'name = "Guide"\ntitle = "Guide"\npublisher = "Test Organisation"\n' + _REGISTRY_TABLE,
+        encoding="utf-8",
+    )
+    (guide / "ig" / "input" / "fsh" / "examples" / "example-1.fsh").write_text(
+        "* subject = Reference(http://example.org/fhir/registry/Location/O6uvpzGd5pu)\n", encoding="utf-8"
+    )
+    checkout = _registry_checkout(guide)
+    (checkout / "Location-O6uvpzGd5pu.json").unlink()
+    (checkout / "Location-OU-211224.json").write_text(
+        json.dumps({"resourceType": "Location", "id": "OU-211224"}), encoding="utf-8"
+    )
+
+    findings = check_publishable_artifacts(load_project(guide)).findings
+
+    dangling = [finding for finding in findings if finding.kind == "registry"]
+    assert [finding.value for finding in dangling] == ["http://example.org/fhir/registry/Location/O6uvpzGd5pu"]

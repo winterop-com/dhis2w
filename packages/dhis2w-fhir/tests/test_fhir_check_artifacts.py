@@ -692,3 +692,83 @@ def test_a_table_switched_off_selects_nothing_and_is_not_graded(project_root: Pa
         f'{_MINIMAL_TOML}\n[generate.data_sets]\nenabled = false\ninclude_ids = ["aBcDeFgHiJk"]\n', encoding="utf-8"
     )
     assert _report(project_root).finding_count == 0
+
+
+_COMPUTED_QUESTIONNAIRE = {
+    "resourceType": "Questionnaire",
+    "id": "Asg1aaaaaaa",
+    "url": "http://example.org/fhir/check/Questionnaire/Asg1aaaaaaa",
+    "extension": [
+        {
+            "url": "http://example.org/fhir/check/StructureDefinition/d2-program-rule",
+            "extension": [
+                {"url": "rule", "valueId": "Rulea1aaaaa"},
+                {"url": "name", "valueString": "derive the logged reading"},
+                {"url": "condition", "valueString": "true"},
+                {"url": "action", "valueCode": "ASSIGN"},
+                {"url": "assigns", "valueId": "Dea2aaaaaaa"},
+            ],
+        }
+    ],
+    "item": [
+        {"linkId": "Dea1aaaaaaa", "type": "decimal", "text": "Reading"},
+        {"linkId": "Dea2aaaaaaa", "type": "decimal", "text": "Logged reading"},
+    ],
+}
+
+
+def _computed_response(*, answers_the_computed_question: bool) -> dict[str, Any]:
+    """One published example of the computing form, answering the computed question or leaving it empty."""
+    items: list[dict[str, Any]] = [{"linkId": "Dea1aaaaaaa", "answer": [{"valueDecimal": 8}]}]
+    if answers_the_computed_question:
+        items.append({"linkId": "Dea2aaaaaaa", "answer": [{"valueDecimal": 2.0794}]})
+    return {
+        "resourceType": "QuestionnaireResponse",
+        "id": "Asg1aaaaaaa-example-1",
+        "questionnaire": "http://example.org/fhir/check/Questionnaire/Asg1aaaaaaa",
+        "status": "completed",
+        "item": items,
+    }
+
+
+def test_an_example_answering_a_computed_question_is_a_warning_naming_the_question(project_root: Path) -> None:
+    """The form says DHIS2 computes that answer, so an example carrying one is an example nothing can import."""
+    compiled = project_root / "ig" / "fsh-generated" / "resources"
+    _write_resource(compiled / "Questionnaire-Asg1aaaaaaa.json", _COMPUTED_QUESTIONNAIRE)
+    _write_resource(
+        compiled / "QuestionnaireResponse-Asg1aaaaaaa-example-1.json",
+        _computed_response(answers_the_computed_question=True),
+    )
+
+    report = _report(project_root)
+
+    (finding,) = [entry for entry in report.findings if entry.kind == "computed-answer"]
+    assert finding.severity == "warning"
+    assert finding.resource_id == "Asg1aaaaaaa-example-1"
+    assert finding.value == "Dea2aaaaaaa"
+    assert "E1307" in finding.message
+    assert "run `d2w fhir generate`" in finding.remedy
+    assert report.build_aborting_count == 0
+
+
+def test_an_example_leaving_the_computed_question_empty_raises_nothing(project_root: Path) -> None:
+    """No answer is the one answer DHIS2 always takes, and a guide that sends none is a guide with no finding."""
+    compiled = project_root / "ig" / "fsh-generated" / "resources"
+    _write_resource(compiled / "Questionnaire-Asg1aaaaaaa.json", _COMPUTED_QUESTIONNAIRE)
+    _write_resource(
+        compiled / "QuestionnaireResponse-Asg1aaaaaaa-example-1.json",
+        _computed_response(answers_the_computed_question=False),
+    )
+
+    assert [entry for entry in _report(project_root).findings if entry.kind == "computed-answer"] == []
+
+
+def test_an_answer_to_a_computed_question_of_another_form_is_not_this_form_s(project_root: Path) -> None:
+    """A response is joined to its form by canonical, so one form's computed question says nothing about another."""
+    compiled = project_root / "ig" / "fsh-generated" / "resources"
+    _write_resource(compiled / "Questionnaire-Asg1aaaaaaa.json", _COMPUTED_QUESTIONNAIRE)
+    elsewhere = _computed_response(answers_the_computed_question=True)
+    elsewhere["questionnaire"] = "http://example.org/fhir/check/Questionnaire/Oth1aaaaaaa"
+    _write_resource(compiled / "QuestionnaireResponse-Oth1aaaaaaa-example-1.json", elsewhere)
+
+    assert [entry for entry in _report(project_root).findings if entry.kind == "computed-answer"] == []

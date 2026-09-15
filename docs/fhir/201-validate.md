@@ -51,10 +51,20 @@ wrote /home/you/demo-ig/reports/fhir-validate-report.pdf
 │selection findings │ 4 errors, 4 warnings, 20 infos                           │
 │code coverage      │ 1/1433 (selection objects whose code can serve as an     │
 │                   │ identity stem)                                           │
-│code source        │ id                                                       │
+│[generate]         │ id                                                       │
+│concept_code_source│                                                          │
+│[generate.naming]  │ id                                                       │
+│source             │                                                          │
 │hostile names      │ refuse - every name is published exactly as DHIS2 states  │
 │                   │ it                                                       │
 └───────────────────┴──────────────────────────────────────────────────────────┘
+
+The two code rows are labelled by the `fhir.toml` key each one is, because they
+decide different things and the table is where a reader works out which of them
+a `code-stem-refusal` is about. `[generate] concept_code_source` decides the
+concept codes a CodeSystem publishes; `[generate.naming] source` decides the
+identity stems every artifact is named by, which is what the `code coverage`
+row above counts.
                findings by category (7)
 ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┓
 ┃Severity ┃ Scope     ┃ Category              ┃ Count┃

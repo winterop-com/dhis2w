@@ -582,6 +582,17 @@ Several things a capture client reads off the form, not the profiles:
   `sections[].greyedFields` - is not published at all. The cell has no
   `linkId`, so a response answering it is not of the form, which is exactly
   what it is: a cell the instance refuses input on.
+- **Questions to leave empty.** A `D2ProgramRule` extension whose `action`
+  is `#ASSIGN` names each question it computes on an `assigns` sub-extension,
+  one entry per question, valued with that question's `linkId`. **Send every
+  such question unanswered.** DHIS2 calculates the value on import and refuses
+  a payload whose answer is neither empty nor byte-equal to the calculated
+  one, with `E1307 ... The provided value must be empty or match the
+  calculated value`; the calculated value can be one no answer expresses at
+  all - `-Infinity`, out of `d2:log(0)` - so no answer is the only answer
+  that always lands. See [Program rules on the
+  form](401-identifiers-and-extensions.md#program-rules) for the whole
+  extension.
 - **Required questions.** A data set's compulsory operands become
   `required = true` at the grain DHIS2 states them - an operand naming a
   data element alone marks the whole question and every disaggregated cell
