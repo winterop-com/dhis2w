@@ -61,9 +61,12 @@ import {
     answersFromResponse,
     answersReducer,
     buildQuestionnaireResponse,
+    clearedComputedAnswers,
     clearedEntityLevelAnswers,
     clearedHiddenAnswers,
     collectsIncidentDate,
+    computedQuestionNote,
+    computedQuestions,
     dateLabelsOf,
     dateInputValue,
     dateTimeInputValue,
@@ -72,7 +75,6 @@ import {
     flattenQuestionnaire,
     implicitlySubmits,
     initialAnswers,
-    isAnswered,
     isWellShapedPeriod,
     normaliseDateTime,
     NO_DICTIONARY,
@@ -80,6 +82,7 @@ import {
     periodShape,
     programRulesOf,
     questionCodeSystemIds,
+    questionProgress,
     recentPeriods,
     refilledAttributeOptionCombo,
     refilledEnrollment,
@@ -93,6 +96,7 @@ import {
     type ExistingSubject,
     type ProgramRule,
     type QuestionDictionary,
+    type QuestionnaireSpec,
 } from '@/lib/questionnaire'
 import { cn, countedNoun, formatCount } from '@/lib/utils'
 
@@ -360,10 +364,20 @@ export function FormFill() {
 
     const existingSubject: ExistingSubject | null =
         existingPerson === null ? null : { trackedEntity: existingPerson.trackedEntityUid }
-    const lockedQuestions: LockedQuestions =
-        existingSubject === null
-            ? NO_LOCKED_QUESTIONS
-            : { linkIds: entityLevelLinkIds(spec), note: EXISTING_PERSON_QUESTION_NOTE }
+    // Which questions this DHIS2 instance answers itself, off the `assigns` slice of the program
+    // rules the form publishes. A fact about the form rather than about the submission, so it is
+    // read once per form and holds however the rest of the screen is filled in.
+    const computed = useMemo(() => computedQuestions(programRulesOf(questionnaire)), [questionnaire])
+    // Both reasons a control takes no answer, in one map. A registration answering for a person the
+    // instance already holds carries neither its entity-level answers nor its computed ones.
+    const lockedQuestions: LockedQuestions = useMemo(() => {
+        const reasons = new Map<string, string>()
+        if (existingPerson !== null) {
+            for (const linkId of entityLevelLinkIds(spec)) reasons.set(linkId, EXISTING_PERSON_QUESTION_NOTE)
+        }
+        for (const [linkId, rules] of computed) reasons.set(linkId, computedQuestionNote(rules))
+        return reasons.size === 0 ? NO_LOCKED_QUESTIONS : { reasons }
+    }, [existingPerson, spec, computed])
 
     // The one rule that has to hold however the answers got there - typed, poured in by a refill,
     // or declared as an item's `initial`: a submission about a person this instance already holds
@@ -374,6 +388,26 @@ export function FormFill() {
         const cleared = clearedEntityLevelAnswers(spec, answers)
         if (cleared !== answers) dispatch({ kind: 'replace', answers: cleared })
     }, [existingPerson, spec, answers])
+
+    // The same rule for the other half of the locked set. A question an `ASSIGN` rule names takes no
+    // keystrokes, so this catches the ways a value reaches it without one - an item's `initial`, a
+    // draft drawn against a form that declared the rule later - and says out loud that the answer
+    // went, in the same sentence the control carries. DHIS2 refuses the whole document with `E1307`
+    // over an answer that is neither empty nor the value it worked out, so keeping one would be
+    // holding a submission that cannot land.
+    useEffect(() => {
+        const cleared = clearedComputedAnswers(answers, computed)
+        if (cleared === answers) return
+        dispatch({ kind: 'replace', answers: cleared })
+        for (const linkId of Object.keys(answers)) {
+            const rules = computed.get(linkId)
+            if (rules !== undefined) {
+                toast.error('This DHIS2 instance works that answer out itself', {
+                    description: computedQuestionNote(rules),
+                })
+            }
+        }
+    }, [answers, computed])
 
     // The same shape of rule one condition over, and for a sharper reason: an answer to a question
     // the form has stopped asking describes nothing, and forwarded it becomes a real DHIS2 data
@@ -553,24 +587,23 @@ export function FormFill() {
     ])
 
     // How far through the form this is, published before the read has landed so the hook order does
-    // not depend on whether the server holds the form.
-    const answered = spec.questionLinkIds.filter((linkId) => {
-        const node = spec.byLinkId.get(linkId)
-        return node !== undefined && isAnswered(node, answers)
-    }).length
+    // not depend on whether the server holds the form. The locked questions are out of both halves
+    // of it: a question this DHIS2 instance answers itself is not work anybody has left to do.
+    const progress = questionProgress(spec, answers, new Set(lockedQuestions.reasons.keys()))
+    const answered = progress.answered
     // ONE COUNT, NOT TWO. The action bar states what is still unanswered because Submit is what
     // that count gates, and it sits directly above this bar - the same sentence in both places was
     // one fact stacked on itself. So the bar keeps the progress and leaves the gate to the gate.
     useStatusLine(
         questionnaire === null
             ? null
-            : `${formatCount(answered)} of ${countedNoun(spec.questionLinkIds.length, 'question')} answered`,
+            : `${formatCount(progress.answered)} of ${countedNoun(progress.asked, 'question')} answered`,
     )
 
     if (questionnaire === null) {
         return (
             <>
-                <FormFillHeader questionnaire={null} questionnaireId={questionnaireId} />
+                <FormFillHeader questionnaire={null} questionnaireId={questionnaireId} spec={spec} />
                 <PageState
                     loading={loading}
                     error={error}
@@ -584,7 +617,7 @@ export function FormFill() {
         )
     }
 
-    const missingRequired = unansweredRequiredLinkIds(spec, answers, lockedQuestions.linkIds)
+    const missingRequired = unansweredRequiredLinkIds(spec, answers, new Set(lockedQuestions.reasons.keys()))
     const attributeOptionCombos = attributeOptionCombosOf(questionnaire)
     const formKind = formTypeOf(questionnaire)
     // The two kinds whose submission is about a person, and therefore the two the Person control
@@ -619,6 +652,10 @@ export function FormFill() {
     const reportsForAPeriod = formKind === 'aggregate' && (declaredPeriodType !== null || draftedPeriod !== null)
     const periodType = declaredPeriodType ?? draftedPeriod?.periodType ?? null
     const reportingPeriod = reportingPeriodIso ?? draftedPeriod?.iso ?? ''
+    // What the chosen organisation unit is called, so the attribute-option-combination picker can
+    // refuse a combination by naming a place rather than an id.
+    const reportingUnitName =
+        orgUnitScope.byId.get(referencedUnitId(reportingUnit) ?? '')?.name ?? null
     // Declared and unchosen is the one state Submit refuses in. A form that declares no vocabulary
     // reports for the default combo, which is what absence means, and nothing is asked.
     const missingAttributeOptionCombo = attributeOptionCombos !== null && attributeOptionCombo === null
@@ -703,6 +740,7 @@ export function FormFill() {
             <FormFillHeader
                 questionnaire={questionnaire}
                 questionnaireId={questionnaireId}
+                spec={spec}
                 stageRepeats={repeatsPerEnrollmentHere}
             />
 
@@ -797,6 +835,10 @@ export function FormFill() {
                             selected={attributeOptionCombo}
                             disabled={uncapturable !== null}
                             chosen={attributeOptionComboChosen}
+                            periodIso={reportsForAPeriod ? reportingPeriod : null}
+                            periodType={periodType}
+                            unitId={referencedUnitId(reportingUnit)}
+                            unitName={reportingUnitName}
                             onChange={(coding) => {
                                 setAttributeOptionCombo(coding)
                                 setAttributeOptionComboChosen(true)
@@ -1379,10 +1421,13 @@ function CaptureIssueAlert({ issue }: { issue: OperationOutcomeIssue }) {
 function FormFillHeader({
     questionnaire,
     questionnaireId,
+    spec,
     stageRepeats = null,
 }: {
     questionnaire: Questionnaire | null
     questionnaireId: string
+    /** The flattened form, which is where a rule's `assigns` is turned back into a question's words. */
+    spec: QuestionnaireSpec
     /** True when one enrollment may answer this stage more than once, null when the form is silent. */
     stageRepeats?: boolean | null
 }) {
@@ -1424,7 +1469,7 @@ function FormFillHeader({
             {stageRepeats === true && (
                 <p className="text-muted-foreground text-sm">Repeats: each visit is its own record</p>
             )}
-            <ProgramRules rules={programRulesOf(questionnaire)} />
+            <ProgramRules rules={programRulesOf(questionnaire)} spec={spec} />
         </div>
     )
 }
@@ -1446,8 +1491,14 @@ function FormFillHeader({
  * only exact statement of what the rule does, so it is here rather than paraphrased - and it is mono
  * and folded away, on the rule this app follows everywhere: the machine spelling of a fact is kept
  * for whoever needs it and never put in front of a reader who does not.
+ *
+ * WHAT EACH RULE DOES IS ON THE ROW. A rule that warns and a rule that computes an answer are two
+ * different things to know before filling a form, and the form states which each is - so the row
+ * says it rather than leaving a reader to guess from a name a DHIS2 administrator chose. An `ASSIGN`
+ * rule also names the questions it works out, because those are the controls that take no answer
+ * further down the page, and this is where the two facts meet.
  */
-function ProgramRules({ rules }: { rules: ProgramRule[] }) {
+function ProgramRules({ rules, spec }: { rules: ProgramRule[]; spec: QuestionnaireSpec }) {
     if (rules.length === 0) return null
     return (
         <details className="rounded-lg border px-4 py-3">
@@ -1458,9 +1509,25 @@ function ProgramRules({ rules }: { rules: ProgramRule[] }) {
             <dl className="mt-3 grid gap-3">
                 {rules.map((rule) => (
                     <div key={rule.ruleUid} className="grid gap-1">
-                        <dt className="text-sm font-medium">{rule.name}</dt>
+                        <dt className="flex flex-wrap items-baseline gap-2 text-sm font-medium">
+                            <span>{rule.name}</span>
+                            {rule.action !== null && (
+                                <Badge variant="outline" className="text-[10px] font-normal">
+                                    {programRuleActionLabel(rule.action)}
+                                </Badge>
+                            )}
+                        </dt>
                         {rule.description !== null && (
                             <dd className="text-muted-foreground text-sm">{rule.description}</dd>
+                        )}
+                        {rule.assigns.length > 0 && (
+                            <dd className="text-muted-foreground text-sm">
+                                {rule.assigns.length === 1
+                                    ? 'It works out the answer to '
+                                    : 'It works out the answers to '}
+                                {rule.assigns.map((linkId) => spec.byLinkId.get(linkId)?.text ?? linkId).join(', ')}
+                                , so this form leaves {rule.assigns.length === 1 ? 'it' : 'them'} empty.
+                            </dd>
                         )}
                         <dd className="machine-identifier text-xs break-words">
                             {rule.ruleUid} {rule.condition}
@@ -1470,4 +1537,36 @@ function ProgramRules({ rules }: { rules: ProgramRule[] }) {
             </dl>
         </details>
     )
+}
+
+/**
+ * What one DHIS2 program rule action does, in the words a person filling the form reads it in.
+ *
+ * The DHIS2 spelling is a machine token - `SHOWWARNING`, `ASSIGN` - and putting it on a row beside
+ * the rule's own name would be the machine spelling of a fact in front of a reader who has the fact
+ * already. An action this app has no words for keeps its own spelling rather than being hidden: a
+ * rule whose effect is unnamed is still a rule the instance runs.
+ */
+function programRuleActionLabel(action: string): string {
+    return PROGRAM_RULE_ACTION_LABELS[action] ?? action
+}
+
+/** The DHIS2 program rule actions a published rule carries, and what each does to a submission. */
+const PROGRAM_RULE_ACTION_LABELS: Record<string, string> = {
+    ASSIGN: 'Works out an answer',
+    SHOWWARNING: 'Warns',
+    WARNINGONCOMPLETE: 'Warns on completion',
+    SHOWERROR: 'Refuses the submission',
+    ERRORONCOMPLETE: 'Refuses on completion',
+    DISPLAYTEXT: 'Shows a note',
+    DISPLAYKEYVALUEPAIR: 'Shows a figure',
+    HIDEFIELD: 'Hides a question',
+    HIDESECTION: 'Hides a section',
+    HIDEPROGRAMSTAGE: 'Hides a stage',
+    HIDEOPTION: 'Hides an option',
+    HIDEOPTIONGROUP: 'Hides an option group',
+    SHOWOPTIONGROUP: 'Shows an option group',
+    SETMANDATORYFIELD: 'Makes a question required',
+    SENDMESSAGE: 'Sends a message',
+    SCHEDULEMESSAGE: 'Schedules a message',
 }

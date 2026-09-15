@@ -39,15 +39,22 @@ import {
     type QuestionnaireSpec,
 } from '@/lib/questionnaire'
 
-/** The questions this form is not asking after all, and the one line each of them states instead. */
+/**
+ * The questions this form is not asking after all, and the one line each of them states instead.
+ *
+ * KEYED BY QUESTION BECAUSE THE REASONS DIFFER. Two facts lock a control, and a form can carry both
+ * at once: a registration answering for a person this DHIS2 instance already holds asks none of the
+ * questions that write onto the person, and a question an `ASSIGN` program rule names is answered by
+ * the instance itself. The second names the rule, so it is a different sentence per question rather
+ * than one sentence for the set.
+ */
 export interface LockedQuestions {
-    linkIds: ReadonlySet<string>
-    /** The short reason shown under each locked control - the full reason belongs to whatever locked them. */
-    note: string
+    /** The line each locked question states instead of its hint, keyed by its link id. */
+    reasons: ReadonlyMap<string, string>
 }
 
 /** Nothing locked, which is every form until something above it says otherwise. */
-export const NO_LOCKED_QUESTIONS: LockedQuestions = { linkIds: new Set(), note: '' }
+export const NO_LOCKED_QUESTIONS: LockedQuestions = { reasons: new Map() }
 
 /**
  * Which questions are read-only for a reason that is not the form's own.
@@ -205,11 +212,11 @@ export function QuestionnaireItemView({
             <AnswerControl
                 node={node}
                 slots={answers[node.linkId] ?? []}
-                locked={locked.linkIds.has(node.linkId)}
+                locked={locked.reasons.has(node.linkId)}
                 dispatch={dispatch}
             />
-            {locked.linkIds.has(node.linkId) ? (
-                <p className="text-muted-foreground text-xs">{locked.note}</p>
+            {locked.reasons.has(node.linkId) ? (
+                <p className="text-muted-foreground text-xs">{locked.reasons.get(node.linkId)}</p>
             ) : (
                 <QuestionHint node={node} />
             )}
@@ -633,7 +640,7 @@ function DisaggregationTable({
                                     if (cellLinkId === undefined || cell === undefined) {
                                         return <TableCell key={`${groupLinkId}-${String(row.index)}`} />
                                     }
-                                    const cellLocked = locked.linkIds.has(cellLinkId)
+                                    const cellLocked = locked.reasons.get(cellLinkId)
                                     return (
                                         <TableCell key={cellLinkId} className="px-1.5 py-1 align-top">
                                             <Label htmlFor={cellLinkId} className="sr-only">
@@ -642,12 +649,12 @@ function DisaggregationTable({
                                             <AnswerControl
                                                 node={cell}
                                                 slots={answers[cellLinkId] ?? []}
-                                                locked={cellLocked}
+                                                locked={cellLocked !== undefined}
                                                 controlClassName="w-full min-w-20"
                                                 dispatch={dispatch}
                                             />
-                                            {cellLocked && (
-                                                <p className="text-muted-foreground mt-1 text-xs">{locked.note}</p>
+                                            {cellLocked !== undefined && (
+                                                <p className="text-muted-foreground mt-1 text-xs">{cellLocked}</p>
                                             )}
                                         </TableCell>
                                     )
@@ -753,7 +760,7 @@ function ElementRows({
                         const cellLinkId = cells[row.index]
                         const cell = cellLinkId === undefined ? undefined : spec.byLinkId.get(cellLinkId)
                         if (cellLinkId === undefined || cell === undefined) return null
-                        const cellLocked = locked.linkIds.has(cellLinkId)
+                        const cellLocked = locked.reasons.has(cellLinkId)
                         return (
                             <div
                                 key={cellLinkId}
@@ -780,8 +787,8 @@ function ElementRows({
                     })}
                 </div>
             )}
-            {locked.linkIds.has(cells[0] ?? '') && (
-                <p className="text-muted-foreground px-3 pb-2 text-xs">{locked.note}</p>
+            {locked.reasons.has(cells[0] ?? '') && (
+                <p className="text-muted-foreground px-3 pb-2 text-xs">{locked.reasons.get(cells[0] ?? '')}</p>
             )}
         </div>
     )

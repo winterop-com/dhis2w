@@ -112,7 +112,7 @@ export const DESCRIPTION_EXTENSION_SUFFIX = '/StructureDefinition/d2-description
  */
 export const PROGRAM_RULE_EXTENSION_SUFFIX = '/StructureDefinition/d2-program-rule'
 
-/** The five sub-extensions one `d2-program-rule` repeat slices one rule under. */
+/** The six sub-extensions one `d2-program-rule` repeat slices one rule under. */
 export const RULE_SUB_EXTENSION = 'rule'
 export const RULE_NAME_SUB_EXTENSION = 'name'
 export const RULE_DESCRIPTION_SUB_EXTENSION = 'description'
@@ -120,11 +120,27 @@ export const RULE_CONDITION_SUB_EXTENSION = 'condition'
 export const RULE_ACTION_SUB_EXTENSION = 'action'
 
 /**
+ * The repeating sub-extension an `ASSIGN` rule names each question it computes the answer to under.
+ *
+ * THE ONE SLICE A CLIENT HAS TO ACT ON. Every other slice of a published rule is something to show
+ * a person; this one changes what the submission may carry. DHIS2 works the value out on import and
+ * takes an answer only when it is empty or already byte-equal to what it calculated, refusing the
+ * whole document with `E1307` otherwise - and a calculated value is often one no answer expresses
+ * (`d2:log(0)` is `-Infinity`). So the question is asked of nobody and sent empty.
+ */
+export const RULE_ASSIGNS_SUB_EXTENSION = 'assigns'
+
+/** The DHIS2 program rule action type that computes an answer rather than commenting on one. */
+export const ASSIGN_RULE_ACTION = 'ASSIGN'
+
+/**
  * One DHIS2 program rule a form declares its instance evaluates when the submission is imported.
  *
- * NOT A RULE THIS APP RUNS. A program rule is a DHIS2 expression over variables an instance holds,
- * and this facade holds no instance - so what a client can do with one is name it: state before the
- * capture that the rule is waiting, and read a rejection that cites its uid back as its name.
+ * NOT A RULE THIS APP RUNS, WITH ONE EXCEPTION. A program rule is a DHIS2 expression over variables
+ * an instance holds, and this facade holds no instance - so what a client can do with most of them
+ * is name them: state before the capture that the rule is waiting, and read a rejection that cites
+ * its uid back as its name. `assigns` is the exception, and it is a fact rather than an expression:
+ * it names the questions the instance answers itself, which the capture screen leaves empty.
  */
 export interface ProgramRule {
     /** The DHIS2 uid, which is what a rejection names the rule by. */
@@ -137,6 +153,8 @@ export interface ProgramRule {
     condition: string
     /** The DHIS2 program rule action type, as `SHOWWARNING`, or null when the form states none. */
     action: string | null
+    /** The link ids of the questions this rule computes the answer to, empty on every other rule. */
+    assigns: string[]
 }
 
 /**
@@ -161,9 +179,77 @@ export function programRulesOf(questionnaire: Questionnaire | null): ProgramRule
                 description: subExtension(extension, RULE_DESCRIPTION_SUB_EXTENSION)?.valueString ?? null,
                 condition,
                 action: subExtension(extension, RULE_ACTION_SUB_EXTENSION)?.valueCode ?? null,
+                assigns: (extension.extension ?? [])
+                    .filter((candidate) => candidate.url === RULE_ASSIGNS_SUB_EXTENSION)
+                    .map((candidate) => candidate.valueId)
+                    .filter((assigned) => assigned !== undefined),
             },
         ]
     })
+}
+
+/**
+ * Which questions this DHIS2 instance answers itself, and the rules that answer them.
+ *
+ * Keyed by link id and holding every rule that names the question, because two `ASSIGN` rules may
+ * compute one data element and a person reading why the control takes no answer should be told
+ * about both rather than about whichever the form listed first.
+ */
+export function computedQuestions(rules: ProgramRule[]): ReadonlyMap<string, ProgramRule[]> {
+    const computed = new Map<string, ProgramRule[]>()
+    for (const rule of rules) {
+        for (const linkId of rule.assigns) {
+            computed.set(linkId, [...(computed.get(linkId) ?? []), rule])
+        }
+    }
+    return computed
+}
+
+/**
+ * The one sentence a computed question states, wherever it is stated.
+ *
+ * ONE SENTENCE, THREE PLACES. It sits under the control that takes no answer, it is what a value
+ * arriving there anyway is refused with, and it is the same fact the server puts on the receipt
+ * (`_assigned_question_issues` in `dhis2w_fhir_serve.capture.validate`). A reader who meets it
+ * twice meets one rule, not two that might differ.
+ *
+ * The rule is named because "DHIS2 works this out" is not actionable: a person who wants the value
+ * changed has to find the rule in Maintenance, and the name is what they search for.
+ */
+export function computedQuestionNote(rules: ProgramRule[]): string {
+    const named = rules.map((rule) => rule.name)
+    const joined = named.length <= 1 ? (named[0] ?? '') : `${named.slice(0, -1).join(', ')} and ${named.at(-1) ?? ''}`
+    const opening =
+        named.length <= 1
+            ? `This DHIS2 instance works this answer out on import, under the program rule ${joined}.`
+            : `This DHIS2 instance works this answer out on import, under the program rules ${joined}.`
+    return (
+        `${opening} It is sent empty: DHIS2 refuses the whole submission when the answer is neither ` +
+        `empty nor the value it calculated, with E1307.`
+    )
+}
+
+/**
+ * The answers with every computed one dropped.
+ *
+ * WHY THEY ARE DROPPED RATHER THAN SENT. The same rule `clearedEntityLevelAnswers` holds one
+ * condition over: what the submission cannot carry is not held in state where Submit would have to
+ * remember not to send it. A value can still reach the state - an item's `initial`, a draft drawn
+ * before the form declared the rule - and the control it belongs to takes no keystrokes, so this is
+ * what makes "the screen and the wire agree" true however the value got there.
+ *
+ * The identity of the state object is preserved when nothing changes, so a form with an `ASSIGN`
+ * rule and no answer to it does not rerender every control on every keystroke elsewhere.
+ */
+export function clearedComputedAnswers(
+    answers: AnswerState,
+    computed: ReadonlyMap<string, ProgramRule[]>,
+): AnswerState {
+    const held = Object.keys(answers).filter((linkId) => computed.has(linkId))
+    if (held.length === 0) return answers
+    const next = { ...answers }
+    for (const linkId of held) delete next[linkId]
+    return next
 }
 
 /**
@@ -1493,6 +1579,31 @@ export function slotAnswer(node: QuestionnaireNode, slot: AnswerSlot): Questionn
             return slot.reference === null ? null : { valueReference: slot.reference }
         default:
             return null
+    }
+}
+
+/**
+ * How far through the form somebody is: what is answered, out of what this submission asks.
+ *
+ * `exempt` is the set the submission will not carry however the form is filled - a question this
+ * DHIS2 instance computes the answer to itself, and the entity-level questions of a registration
+ * answering for a person the instance already holds. Both are out of the count on both sides of
+ * the bar: nothing anyone types reaches the wire, so counting them would tell a person their form
+ * is four questions short and leave them no way to answer four questions. Exactly the set
+ * `unansweredRequiredLinkIds` exempts, so the progress and the Submit gate agree by construction.
+ */
+export function questionProgress(
+    spec: QuestionnaireSpec,
+    answers: AnswerState,
+    exempt: ReadonlySet<string> = new Set(),
+): { answered: number; asked: number } {
+    const asked = spec.questionLinkIds.filter((linkId) => !exempt.has(linkId))
+    return {
+        answered: asked.filter((linkId) => {
+            const node = spec.byLinkId.get(linkId)
+            return node !== undefined && isAnswered(node, answers)
+        }).length,
+        asked: asked.length,
     }
 }
 

@@ -385,12 +385,27 @@ two of them to happen before anything leaves the browser.
   an instance holds, and this server holds no instance. So a form that carries
   them says so where it describes itself - *This DHIS2 instance enforces 2 more
   rules when the submission is imported* - and lists them behind that, one name
-  each, with the description DHIS2 holds where it holds one. "More" is the
-  operative word: the bounds above are rules the form enforces itself, and
-  these are the ones beyond it. Each rule's DHIS2 expression
-  (`#{DeAncVisNo1} > 99`) is kept beside its uid, mono and folded away, because
-  it is the exact statement of what the rule does and not the first thing
-  anyone reading the form needs.
+  each, with what the rule does beside the name, and the description DHIS2 holds
+  where it holds one. "More" is the operative word: the bounds above are rules
+  the form enforces itself, and these are the ones beyond it. Each rule's DHIS2
+  expression (`#{DeAncVisNo1} > 99`) is kept beside its uid, mono and folded
+  away, because it is the exact statement of what the rule does and not the
+  first thing anyone reading the form needs.
+
+- **The questions DHIS2 answers itself** are the one rule a client acts on
+  rather than relays. A published rule whose action is `ASSIGN` names the
+  questions it computes, and DHIS2 takes an answer to one of them only when it
+  is empty or already byte-equal to the value it worked out - refusing the whole
+  document with `E1307` otherwise, over a value that is often one no answer
+  expresses at all (`d2:log(0)` is `-Infinity`). So the control takes no
+  keystrokes, says *This DHIS2 instance works this answer out on import, under
+  the program rule <name>*, and is out of the progress count at the foot of the
+  page: a question nobody can answer is not work anybody has left to do. The
+  rules panel names the question from the other end, so the two facts meet. An
+  answer that reaches such a question by any other route - an item's `initial`,
+  a draft drawn before the rule landed - is dropped, in the same sentence.
+
+![A stage form's computed question: the control taking no answer, naming the program rule this DHIS2 instance works the value out under, with the two questions the submission actually asks counted at the foot of the page](../img/fhir/capture-ui-computed-question.png)
 
 ![An aggregate form filled with test data, with the Reporting from picker and the attribute option combo picker above the questions](../img/fhir/capture-ui-form-fill.png)
 
@@ -460,6 +475,24 @@ sit above the questions - both visible in the screenshot:
   refusal naming the rule, not as a different combo in the picker. A picker
   nobody has chosen in still adopts the fresh draw, because that is the server
   proposing a whole submission rather than a choice being replaced.
+
+    **The ones DHIS2 takes no capture under are listed and disabled, with the
+    reason on the row.** A combo vocabulary states, on the concepts themselves,
+    the calendar window each combo is open for (`dhis2-valid-from` /
+    `dhis2-valid-to`, `E8032` outside it) and the organisation units each is
+    restricted to (`dhis2-organisation-units`, naming one published `List` per
+    restricted category option, `E8025` outside it). The picker grades every
+    option against the period and the organisation unit currently on the form
+    and marks the ones that fall outside - *Closed on 2016-10-01*, *Not open
+    until 2017-01-01*, *Not capturable at Njandama MCHP*. They are shown rather
+    than dropped, because a combo that has vanished from the list is a combo
+    somebody hunts for. A choice made before the period or the unit moved under
+    it says so under the control rather than sitting there looking chosen. The
+    grading is the same grading the server does before it draws, off the same
+    bytes; a period type whose date arithmetic this app does not hold - the
+    offset weeks, the financial years - grades nothing on the date axis and
+    every combo stays on offer, as does one whose restriction `List` this guide
+    publishes nothing for.
 - On an aggregate form, the **Reporting period** the submission reports for is
   required too, and knows what to ask for: the form declares its data set's
   DHIS2 period type, so the control offers recent periods *of that type* - the

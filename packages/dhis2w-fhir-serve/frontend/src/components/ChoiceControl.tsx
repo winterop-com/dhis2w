@@ -298,6 +298,14 @@ function inlineOptions(node: QuestionnaireNode): ValueSetOption[] {
     return node.answerOptions.flatMap((option) =>
         option.valueCoding === undefined
             ? []
-            : [{ coding: option.valueCoding, label: option.valueCoding.display ?? option.valueCoding.code ?? '' }],
+            : [
+                  {
+                      coding: option.valueCoding,
+                      label: option.valueCoding.display ?? option.valueCoding.code ?? '',
+                      // An inline option is an item's own `answerOption`, not a concept of a
+                      // published CodeSystem, so there is nowhere for a concept property to be.
+                      properties: [],
+                  },
+              ],
     )
 }

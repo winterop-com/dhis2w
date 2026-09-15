@@ -294,6 +294,7 @@ describe('a rejection naming a program rule', () => {
             description: null,
             condition: '#{DeAncVisNo1} > 99',
             action: 'SHOWERROR',
+            assigns: [],
         },
         {
             ruleUid: 'PrRuleOrd01',
@@ -301,6 +302,7 @@ describe('a rejection naming a program rule', () => {
             description: null,
             condition: 'd2:hasValue(#{DeAncVisNo1})',
             action: 'SHOWWARNING',
+            assigns: [],
         },
     ]
 

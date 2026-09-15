@@ -83,7 +83,7 @@ differ.
 | `questionnaire` | required | required | required | required | required |
 | `status` | required, `completed` | required | required | required | required |
 | `authored` | not read | required | required | required | required |
-| `subject.reference` | required, `Location/<uid>` | required, `Location/<uid>` | ignored, warned | ignored, warned | ignored, warned |
+| `subject.reference` | required, `Location/<id>` | required, `Location/<id>` | ignored, warned | ignored, warned | ignored, warned |
 | `subject.identifier` | not read | not read | required | required | required |
 | `subject.type` | not read | not read | graded on the dial | graded on the dial | graded on the dial |
 | `D2FormType` | required, exactly 1 | required, exactly 1 | required, exactly 1 | required, exactly 1 | required, exactly 1 |
@@ -95,20 +95,28 @@ differ.
 | `D2SubjectExists` | not read | not read | optional, 0..1 | not read | not read |
 | `D2AttributeOptionCombo` | form-driven | form-driven | form-driven | form-driven | form-driven |
 
-Four readings of that table are worth stating out loud.
+Five readings of that table are worth stating out loud.
 
-**A Location reference is read in both spellings.** `Location/<uid>` names a
-unit of the guide serving it. `<canonical>/Location/<uid>` names the same unit
+**A Location reference is read in both spellings.** `Location/<id>` names a
+unit of the guide serving it. `<canonical>/Location/<id>` names the same unit
 under the authority that published it, which is what the generator writes into
 every document of a guide depending on an organisation-unit
 [registry package](201-registry-package.md), because a relative reference does
 not resolve across a package dependency. Both are admitted wherever the table
-says `Location/<uid>` - the subject, the `D2OrganisationUnit` extension, and an
+says `Location/<id>` - the subject, the `D2OrganisationUnit` extension, and an
 `ORGANISATION_UNIT` answer - and the authority is checked: the guide's own
 canonical and its registry package's are the two a unit may be published under,
 and a reference under any other is refused naming the authority it should have
-carried. What follows `Location/` has to be the uid and nothing else, so a
-history entry or a query string names no unit.
+carried.
+
+**The id is whatever the served `Location` carries.** It is the DHIS2 UID under
+the default naming source and the organisation unit's DHIS2 code - `OU-226264` -
+under `[generate.naming] source = "code"`, and both are read: which organisation
+units exist is the store's question, not the reference's spelling. A reference to
+a unit this guide publishes no `Location` for is stored with a warning naming the
+reference, whichever of the two spellings it wears. So the whole of the spelling
+rule is the shape R4 gives an id, and what follows `Location/` is one id and
+nothing else - a history entry or a query string names no unit.
 
 **"Not read" means exactly that.** An extension outside its kind's column is
 neither refused nor warned about - it rides into the receipt untouched. There
