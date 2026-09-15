@@ -355,7 +355,7 @@ three are written by default, and each written path is echoed.
 | --- | --- |
 | `.md` | Findings grouped under one section per resource type, a Scope column on every row. |
 | `.csv` | One row per finding: `severity,scope,category,resource_type,uid,name,code,message`. For spreadsheets and for diffing two runs. |
-| `.pdf` | Cover page with summary counts, clickable table of contents, one bookmarked section per resource type with severity-tinted rows. Noto Sans with a Noto Sans Lao fallback, so Lao-script names render. |
+| `.pdf` | Cover page with summary counts, clickable table of contents, one bookmarked section per resource type with severity-tinted rows. Noto Sans with Noto Sans Lao and DejaVu Sans fallbacks, so a Lao-script name and a code carrying a symbol such as the square root sign both render as themselves. |
 
 The human-facing renderings print a code with its control characters escaped
 (`BLUE\nBLUE` reads on one line) and wrap a code with leading or trailing

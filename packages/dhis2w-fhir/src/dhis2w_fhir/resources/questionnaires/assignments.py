@@ -42,6 +42,7 @@ __all__ = [
     "ASSIGNMENT_DIRECTORY",
     "ASSIGNMENT_ID_SUFFIX",
     "ASSIGNMENT_LIST_RESOURCE_TYPE",
+    "EMPTY_ASSIGNMENT_REMEDY",
     "AssignmentBuild",
     "AssignmentContainer",
     "AssignmentContainerKind",
@@ -63,6 +64,16 @@ ASSIGNMENT_LIST_RESOURCE_TYPE = "List"
 #: The trailing token every assignment List id ends in, after the prefix, kind token, and container stem.
 ASSIGNMENT_ID_SUFFIX = "org-units"
 
+#: The one line that answers a form nobody may report, stated identically wherever the fact is
+#: reported - `d2w fhir generate` closes a run with it and `d2w fhir check-artifacts` files it as a
+#: finding's remedy. Two selections meet here and the sentence names both: the organisation-unit
+#: selection is the one to widen, the form selection the one to narrow.
+EMPTY_ASSIGNMENT_REMEDY = (
+    "Widen the organisation-unit selection - raise `[generate.organisation_units] max_level`, or set "
+    "its `root` higher up the hierarchy - or narrow the form selection in fhir.toml to the forms "
+    "those organisation units report, then run `d2w fhir generate` again."
+)
+
 AssignmentContainerKind = Literal["data-set", "program"]
 """Which DHIS2 object holds the assignment: a data set for an aggregate form, a program for both others."""
 
@@ -73,7 +84,7 @@ class AssignmentIndex(BaseModel):
     Keyed by the container's DHIS2 UID - a data set UID for an aggregate form, a program UID for an
     event program and for every stage of a tracker program. A container absent from the index was
     not read, which is not the same as a container assigned to nothing: an absent container emits
-    no artifact, an empty one emits a List no unit is on.
+    no artifact, an empty one emits a List no organisation unit is on.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -132,7 +143,7 @@ class EmptyAssignmentSummary(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     form_count: int
-    """How many published Questionnaires carry an assignment no unit is on."""
+    """How many published Questionnaires carry an assignment no organisation unit is on."""
 
     containers: list[str]
     """The data sets and programs the assignment hangs on, as `name (uid)`, sorted."""
@@ -146,7 +157,7 @@ class AssignmentBuild(JsonBuild):
 
     plan: AssignmentPlan = Field(default_factory=AssignmentPlan)
     empty_assignments: EmptyAssignmentSummary | None = None
-    """The forms no unit may report, or None when every published form has somewhere to report from."""
+    """The forms no organisation unit may report, or None when every published form has somewhere to report from."""
 
 
 def assignment_container_uid(source: QuestionnaireSourceIn) -> str:
@@ -205,7 +216,7 @@ def build_assignment_artifacts(
     intersected with that set before it is judged, so a unit DHIS2 assigns but the registry does
     not publish can never make an assignment look narrower than it is.
 
-    A container left with no member at all takes its forms with it: they publish, and no unit may
+    A container left with no member at all takes its forms with it: they publish, and no organisation unit may
     report them. That outcome is summarised on the build as well as noted, because the terminal says
     it out loud at the end of a run rather than filing it with the terminology notes.
     """
@@ -253,7 +264,7 @@ def _forms_on(sources: list[QuestionnaireSourceIn], container_uids: set[str]) ->
 
 
 def _empty_assignment_message(summary: EmptyAssignmentSummary) -> str:
-    """The note one run files about the forms no unit may report, naming what narrowed the registry."""
+    """The note one run files about the forms no organisation unit may report, naming what narrowed the registry."""
     narrowed = (
         f"; `[generate.organisation_units] max_level = {summary.max_level}` is what narrows the registry"
         if summary.max_level is not None
@@ -261,7 +272,8 @@ def _empty_assignment_message(summary: EmptyAssignmentSummary) -> str:
     )
     return (
         f"{summary.form_count} published form(s) are assigned to no organisation unit the registry publishes, "
-        f"so their assignment List is empty and no unit may report them{narrowed}. The assignment hangs on: "
+        f"so their assignment List is empty and no organisation unit may report them{narrowed}. The assignment "
+        f"hangs on: "
         f"{', '.join(summary.containers)}"
     )
 

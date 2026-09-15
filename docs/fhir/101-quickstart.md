@@ -290,7 +290,7 @@ running 8 step(s)
 [8/8] pages: 6 pages, 15 files written, 0 files unchanged, 1 note
 full pipeline: 2,772 file(s) written across 7 target(s)
 ...
-note: 4 note(s) across 4 target(s); full list in /home/you/my-ig/reports/fhir-generate-notes.md (--details to print)
+note: 4 distinct note(s) across 4 target(s); full list in /home/you/my-ig/reports/fhir-generate-notes.md (--details to print)
 ```
 
 One of the quick steps. The `...` hides a per-target table naming each target's

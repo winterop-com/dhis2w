@@ -819,6 +819,11 @@ GENERATE_FULL_STEPS = 8
 GENERATE_REGISTRY_PACKAGE_STEPS = 4
 
 
+def generate_full_steps(project: FhirProject) -> int:
+    """How many steps a full run of this project announces - a package publishes units alone, so it runs fewer."""
+    return GENERATE_REGISTRY_PACKAGE_STEPS if project.config.publishes_organisation_units else GENERATE_FULL_STEPS
+
+
 #: The label every fetch step is reported under, whichever command it belongs to.
 _FETCH_LABEL = "instance metadata"
 
@@ -1754,11 +1759,8 @@ def _selected_categories(
         return inputs
     configured_ids = set(selection.include_ids)
     selected = [item for item in inputs if item.uid in configured_ids]
-    selected_ids = {item.uid for item in selected}
-    for uid in sorted(configured_ids - selected_ids):
-        notes.append(
-            generate_note(GenerateNoteCategory.SELECTION_MISMATCH, f"include_ids entry {uid!r} matched no category")
-        )
+    selected_ids: set[str | None] = {item.uid for item in selected}
+    _note_unmatched(selection.include_ids, selected_ids, "categories", "category", notes)
     return selected
 
 
@@ -2071,6 +2073,7 @@ async def _emit_examples(
     option_sets: list[OptionSetIn],
     option_set_plan: OptionSetIdentityPlan,
     published_organisation_unit_uids: frozenset[str],
+    assignments: AssignmentIndex | None = None,
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
     notes: list[GenerateNote],
@@ -2085,7 +2088,9 @@ async def _emit_examples(
 
     `published_organisation_unit_uids` is the registry's own selection, so an `ORGANISATION_UNIT`
     answer naming a unit the guide publishes no Location for is left unanswered rather than
-    pointed at a resource no consumer can resolve. `stem_plan` and `organisation_unit_stems` are
+    pointed at a resource no consumer can resolve. `assignments` is the run's already-read index
+    of what each form is assigned to, which is what places every example inside the scope DHIS2
+    accepts a capture in; with none the target reads it. `stem_plan` and `organisation_unit_stems` are
     the run's identity resolutions - the file names and the `questionnaire` canonical follow the
     target's stem, every `Location/...` reference follows the registry's - and their fall-back
     notes stay on the targets that own those surfaces.
@@ -2112,6 +2117,7 @@ async def _emit_examples(
             project.config.generate,
             project.config.generate.examples,
             published_organisation_unit_uids,
+            assignments,
             notes,
             progress,
         )
@@ -2422,13 +2428,19 @@ async def _example_responses(
     config: GenerateConfig,
     selection: ExampleSelection,
     published_organisation_unit_uids: frozenset[str],
+    assignments: AssignmentIndex | None,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> list[ExampleResponseIn]:
-    """Collect the example responses from whichever source the project configured."""
+    """Collect the example responses from whichever source the project configured.
+
+    `assignments` is the run's already-read container-to-units index; with none the examples
+    target reads it itself, because a synthetic example is captured at an organisation unit its
+    form's own DHIS2 assignment names and there is no other way to know which those are.
+    """
     today = datetime.now(tz=UTC).date()
-    example_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
-    if example_organisation_unit_uid is None:
+    root_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
+    if root_organisation_unit_uid is None:
         notes.append(
             generate_note(
                 GenerateNoteCategory.EMPTY_SELECTION,
@@ -2436,29 +2448,105 @@ async def _example_responses(
             )
         )
         return []
-    if published_organisation_unit_uids and example_organisation_unit_uid not in published_organisation_unit_uids:
-        notes.append(
-            generate_note(
-                GenerateNoteCategory.SELECTION_GAP,
-                f"organisation unit {example_organisation_unit_uid} sits outside the organisation-unit "
-                "selection, which the guide publishes no Location for; no examples emitted",
-            )
-        )
-        return []
     if selection.source == "instance":
+        if published_organisation_unit_uids and root_organisation_unit_uid not in published_organisation_unit_uids:
+            notes.append(
+                generate_note(
+                    GenerateNoteCategory.SELECTION_GAP,
+                    f"organisation unit {root_organisation_unit_uid} sits outside the organisation-unit "
+                    "selection, which the guide publishes no Location for; no examples emitted",
+                )
+            )
+            return []
         return await _fetch_instance_responses(
-            client, sources, selection.per_target, example_organisation_unit_uid, notes, progress
+            client, sources, selection.per_target, root_organisation_unit_uid, notes, progress
         )
+    index = assignments if assignments is not None else await fetch_assignment_index(client, sources)
+    plan = _plan_example_placements(sources, index, published_organisation_unit_uids, root_organisation_unit_uid)
+    notes.extend(plan.notes)
+    if not plan.sources:
+        return []
     synthetic = build_synthetic_responses(
-        sources,
+        plan.sources,
         option_sets,
         selection.per_target,
-        example_organisation_unit_uid,
+        root_organisation_unit_uid,
         today,
+        placements=plan.placements,
         option_concept_codes=option_concept_code_index(option_sets, config),
     )
     notes.extend(synthetic.notes)
     return synthetic.responses
+
+
+class _ExamplePlan(BaseModel):
+    """The forms the examples target publishes an example for, and the organisation unit each reports from."""
+
+    sources: list[QuestionnaireSourceIn] = Field(default_factory=list)
+    placements: dict[str, SyntheticPlacement] = Field(default_factory=dict)
+    notes: list[GenerateNote] = Field(default_factory=list)
+
+
+def _plan_example_placements(
+    sources: list[QuestionnaireSourceIn],
+    assignments: AssignmentIndex,
+    published_organisation_unit_uids: frozenset[str],
+    root_organisation_unit_uid: str,
+) -> _ExamplePlan:
+    """Place every form's example at an organisation unit that form's own DHIS2 assignment names.
+
+    DHIS2 scopes a data set and a program to the organisation units it is assigned to, and a
+    capture outside that scope is refused (`E1029` on an event, `E1041` on an enrollment). A
+    published example is the shape a consumer copies, so it is placed the way a capture has to
+    be: the registry root where the assignment names it, and otherwise the first assigned
+    organisation unit the guide publishes a Location for, taken by UID so a rerun places it
+    identically.
+
+    Two classes fall back to the root. A form of a kind DHIS2 hangs no assignment on - a
+    tracked entity type - may register a person anywhere the guide publishes, and a form whose
+    assignment names no published organisation unit at all has nowhere better to go: its
+    assignment List is empty, which the run reports in its own closing warning.
+    """
+    plan = _ExamplePlan()
+    outside: list[str] = []
+    for source in sources:
+        unit = _example_placement_uid(source, assignments, published_organisation_unit_uids, root_organisation_unit_uid)
+        if unit is None:
+            outside.append(f"{source.name} ({source.uid})")
+            continue
+        plan.sources.append(source)
+        plan.placements[source.uid] = SyntheticPlacement(organisation_unit_uids=(unit,))
+    if outside:
+        plan.notes.append(
+            aggregate_generate_note(
+                GenerateNoteCategory.SELECTION_GAP,
+                f"{len(outside)} questionnaire targets report from no organisation unit the guide publishes "
+                f"a Location for, {root_organisation_unit_uid} included; no examples emitted for them",
+                outside,
+            )
+        )
+    return plan
+
+
+def _example_placement_uid(
+    source: QuestionnaireSourceIn,
+    assignments: AssignmentIndex,
+    published_organisation_unit_uids: frozenset[str],
+    root_organisation_unit_uid: str,
+) -> str | None:
+    """The organisation unit one form's example reports from, or None when the guide publishes none it may use."""
+    if FORM_KIND_PROFILES[source.kind].assigned:
+        assigned = assignments.assigned(assignment_container_uid(source)) or frozenset()
+    else:
+        assigned = published_organisation_unit_uids
+    admitted = assigned & published_organisation_unit_uids if published_organisation_unit_uids else assigned
+    if root_organisation_unit_uid in admitted:
+        return root_organisation_unit_uid
+    if admitted:
+        return min(admitted)
+    if published_organisation_unit_uids and root_organisation_unit_uid not in published_organisation_unit_uids:
+        return None
+    return root_organisation_unit_uid
 
 
 async def _example_organisation_unit_uid(client: Dhis2Client, config: GenerateConfig) -> str | None:
@@ -3343,6 +3431,7 @@ async def generate_full(
             option_sets=_bound_option_sets(inputs.sources, inputs.option_sets),
             option_set_plan=inputs.option_set_plan,
             published_organisation_unit_uids=frozenset(inputs.organisation_unit_stems.stems),
+            assignments=inputs.assignments,
             stem_plan=inputs.questionnaire_stems,
             organisation_unit_stems=inputs.organisation_unit_stems,
             notes=list(inputs.source_notes),
@@ -3755,11 +3844,8 @@ def _selected_option_sets(
         selection,
     )
     selected = [item for item in inputs if item.uid in wanted_ids]
-    selected_ids = {item.uid for item in selected}
-    for uid in sorted(set(selection.include_ids) - selected_ids):
-        notes.append(
-            generate_note(GenerateNoteCategory.SELECTION_MISMATCH, f"include_ids entry {uid!r} matched no option set")
-        )
+    selected_ids: set[str | None] = {item.uid for item in selected}
+    _note_unmatched(selection.include_ids, selected_ids, "option_sets", "option set", notes, additive=True)
     return selected
 
 
@@ -4118,19 +4204,47 @@ def _uid_filter(uids: list[str]) -> str:
     return f"id:in:[{','.join(uids)}]"
 
 
+def _article(noun: str) -> str:
+    """The indefinite article one noun takes, so `an event program` never reads as `a event program`."""
+    return "an" if noun[:1].lower() in "aeiou" else "a"
+
+
 def _note_unmatched(
-    configured_ids: list[str], found_ids: set[str | None], table: str, label: str, notes: list[GenerateNote]
+    configured_ids: list[str],
+    found_ids: set[str | None],
+    table: str,
+    label: str,
+    notes: list[GenerateNote],
+    *,
+    additive: bool = False,
 ) -> None:
-    """Note the configured UIDs the instance answered nothing for, rather than dropping them silently."""
+    """Note every configured UID the instance answered nothing for, and say when the table matched nothing at all.
+
+    Each unmatched UID is named in full rather than sampled: the reader wrote them, and a guide
+    regenerated against an instance that has moved on loses a whole form per entry. A table none of
+    whose entries matched says so in its own sentence, because the run then publishes a guide with
+    nothing of that kind in it. `additive` is the option-set case, where the forms' own closure
+    publishes code lists whatever the table says, so a table matching nothing costs nothing.
+    """
     missing = [uid for uid in configured_ids if uid not in found_ids]
-    if missing:
-        notes.append(
-            aggregate_generate_note(
-                GenerateNoteCategory.SELECTION_MISMATCH,
-                f"{len(missing)} [generate.{table}] include_ids entries matched no {label}",
-                missing,
-            )
+    if not missing:
+        return
+    configured_count = len(set(configured_ids))
+    if len(missing) < configured_count:
+        message = f"{len(missing)} of {configured_count} [generate.{table}] include_ids entries matched no {label}"
+    elif additive:
+        message = (
+            f"no [generate.{table}] include_ids entry matched {_article(label)} {label} on this instance; this "
+            f"run publishes the code lists the selected forms bind and nothing beyond them"
         )
+    else:
+        message = (
+            f"no [generate.{table}] include_ids entry matched {_article(label)} {label} on this instance, so "
+            f"this run publishes no {label} at all"
+        )
+    notes.append(
+        aggregate_generate_note(GenerateNoteCategory.SELECTION_MISMATCH, message, missing, sample_size=len(missing))
+    )
 
 
 def _data_set_source(model: DataSet, notes: list[GenerateNote]) -> QuestionnaireSourceIn:

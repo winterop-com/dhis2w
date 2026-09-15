@@ -100,7 +100,7 @@ models and ship no templates.
 | `scaffold/refresh.py` | `d2w fhir init --refresh`: `read_project_scaffold_state` recovering the scaffold inputs off disk, `preserves_every_line` deciding whether a rewrite loses a line, and `refresh_project`. Not re-exported from the package - it is a CLI path, not library surface. |
 | `validation/__init__.py` | `build_code_validation` - the instance-wide sweep, the deep option-set pass, and the deep attribute pass. Its module docstring carries "What the deep passes do not repeat, and why". |
 | `validation/report.py` | Markdown and CSV rendering, `display_code`, `CSV_HEADER`. |
-| `validation/pdf.py` | `render_validation_pdf` - cover page, clickable contents, per-type sections, Noto Sans with a Noto Sans Lao fallback vendored under `validation/fonts/`. |
+| `validation/pdf.py` | `render_validation_pdf` - cover page, clickable contents, per-type sections, Noto Sans with Noto Sans Lao and DejaVu Sans fallbacks vendored under `validation/fonts/`. |
 | `validation/schemas.py` | `MetadataItemIn`, `MetadataCollectionIn`, `ValidationFinding`, `SeverityBreakdown`, `FhirValidationReport` (option-set, option, attribute, resource-type, and object counts plus the findings), `pluralize`. |
 
 `resources/` is reserved for DHIS2 resource domains, which is why `scaffold/`,

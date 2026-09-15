@@ -67,8 +67,8 @@ token = "d2p_secondary"
     return tmp_path
 
 
-def _note(message: str, category: GenerateNoteCategory = GenerateNoteCategory.SELECTION_MISMATCH) -> GenerateNote:
-    """One note of a given kind - the default is a config note, which the terminal always carries."""
+def _note(message: str, category: GenerateNoteCategory = GenerateNoteCategory.FORM_STRUCTURE) -> GenerateNote:
+    """One note of a given kind - the default is an emit-time note, which the notes file carries."""
     return GenerateNote(category=category, message=message)
 
 
@@ -172,6 +172,66 @@ def test_bare_generate_renders_one_consolidated_table(fhir_project: Path) -> Non
     assert positions == sorted(positions)
 
 
+def test_the_full_table_stays_readable_at_eighty_columns(
+    fhir_project: Path,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Eighty columns is a terminal, not an edge case: every rendered column carries a heading and a value."""
+    monkeypatch.setenv("COLUMNS", "80")
+    report = _full_report()
+    report.organisation_units = _report(
+        "organization",
+        organisation_unit_count=1332,
+        subject=GenerateSubject(count=1332, noun="organisation unit"),
+    )
+    mock = AsyncMock(return_value=report)
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    header = next(line for line in result.stderr.splitlines() if "Target" in line)
+    assert "Subject" in header
+    assert "Files written" in header
+    assert "Distinct notes" in header
+    assert "1,332 organisation units" in result.stderr
+    assert max(len(line) for line in result.stderr.splitlines()) <= 80
+
+
+def test_a_wide_terminal_keeps_every_column(
+    fhir_project: Path,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Room for all seven columns is room for the two a narrow table gives up, so a wide run loses nothing."""
+    monkeypatch.setenv("COLUMNS", "200")
+    mock = AsyncMock(return_value=_full_report())
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    header = next(line for line in result.stderr.splitlines() if "Target" in line)
+    for label in ("Subject", "Directory", "Files written", "Files unchanged", "Files deleted", "Distinct notes"):
+        assert label in header
+
+
+def test_a_package_announces_the_steps_a_package_runs(fhir_project: Path) -> None:
+    """A registry package runs four steps, so the reporter opens on four rather than on a guide's eight."""
+    (fhir_project / "fhir.toml").write_text(_PACKAGE_TOML, encoding="utf-8")
+    report = _full_report()
+    mock = AsyncMock(return_value=report)
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "running 4 step(s)" in result.stderr
+    assert "running 8 step(s)" not in result.stderr
+
+
+def test_a_guide_announces_the_steps_a_guide_runs(fhir_project: Path) -> None:  # noqa: ARG001
+    """A guide runs its eight, which is the count the same reporter opens on for a project holding forms."""
+    mock = AsyncMock(return_value=_full_report())
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "running 8 step(s)" in result.stderr
+
+
 def test_the_full_table_names_what_each_target_covers_beside_its_file_counts(
     fhir_project: Path,  # noqa: ARG001
 ) -> None:
@@ -225,7 +285,7 @@ def test_bare_generate_counts_its_notes_and_writes_them_to_a_file(fhir_project: 
     assert result.exit_code == 0, result.output
     notes = fhir_project / "reports" / "fhir-generate-notes.md"
     assert "no data values for the period" not in result.stderr
-    assert "1 note(s) across 1 target(s)" in result.stderr
+    assert "1 distinct note(s) across 1 target(s)" in result.stderr
     assert str(notes) in result.stderr
     body = notes.read_text(encoding="utf-8")
     assert "## examples" in body
@@ -250,7 +310,8 @@ def test_a_run_that_published_unreportable_forms_says_so_on_its_own_line(fhir_pr
     assert result.exit_code == 0, result.output
     assert "warning: 29 published form(s) carry an empty organisation-unit assignment" in result.stderr
     assert "max_level 2" in result.stderr
-    assert "Raise max_level" in result.stderr
+    assert "Widen the organisation-unit selection" in result.stderr
+    assert "narrow the form selection in fhir.toml" in result.stderr
 
 
 def test_a_run_with_no_max_level_still_names_the_forms_nobody_may_report(fhir_project: Path) -> None:
@@ -270,6 +331,45 @@ def test_a_run_every_form_can_be_reported_from_carries_no_warning(fhir_project: 
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
     assert "empty organisation-unit assignment" not in result.stderr
+
+
+def _unmatched_selection_report(project_root: Path) -> GenerateFullReport:
+    """The seven-target report of a run whose selection named a UID the instance answered nothing for."""
+    report = _noted_report(project_root)
+    report.questionnaires.notes.append(
+        _note(
+            "1 of 2 [generate.data_sets] include_ids entries matched no data set: aBcDeFgHiJk",
+            GenerateNoteCategory.SELECTION_MISMATCH,
+        )
+    )
+    report.questionnaires.notes.append(
+        _note(
+            "no [generate.event_programs] include_ids entry matched an event program on this instance, "
+            "so this run publishes no event program at all: aBcDeFgHiJl",
+            GenerateNoteCategory.SELECTION_MISMATCH,
+        )
+    )
+    return report
+
+
+def test_a_selection_that_matched_nothing_says_so_on_its_own_line(fhir_project: Path) -> None:
+    """A UID that named nothing costs a whole form, so it closes the run rather than sitting in the file."""
+    mock = AsyncMock(return_value=_unmatched_selection_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 1 of 2 [generate.data_sets] include_ids entries matched no data set: aBcDeFgHiJk" in result.stderr
+    assert "warning: no [generate.event_programs] include_ids entry matched an event program" in result.stderr
+    assert "publishes no event program at all: aBcDeFgHiJl" in result.stderr
+
+
+def test_a_run_whose_selection_matched_everything_carries_no_selection_warning(fhir_project: Path) -> None:
+    """The line states an exception, so a run that found every UID it named says nothing about it."""
+    mock = AsyncMock(return_value=_noted_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "matched no" not in result.stderr
 
 
 def test_the_questionnaires_target_alone_says_the_same_thing(fhir_project: Path) -> None:
@@ -297,8 +397,9 @@ def test_bare_generate_counts_validate_echoes_apart_from_what_generation_found(f
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
     notes = fhir_project / "reports" / "fhir-generate-notes.md"
-    assert f"note: 1 note(s) across 1 target(s) (+3 validate echoes); full list in {notes} (--details to print)" in (
-        result.stderr
+    assert (
+        f"note: 1 distinct note(s) across 1 target(s) (+3 validate echoes); full list in {notes} (--details to print)"
+        in (result.stderr)
     )
     assert "1 option codes collided" not in result.stderr
 
@@ -329,7 +430,7 @@ def test_a_run_of_nothing_but_echoes_says_so_rather_than_counting_zero(fhir_proj
     with patch("dhis2w_fhir.service.generate_full", new=mock):
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
-    assert "note: 2 validate echo(es) across 2 target(s); full list in " in result.stderr
+    assert "note: 2 distinct validate echo(es) across 2 target(s); full list in " in result.stderr
 
 
 def _shared_note_report(project_root: Path) -> GenerateFullReport:
@@ -348,7 +449,7 @@ def test_bare_generate_counts_and_files_a_shared_note_once(fhir_project: Path) -
     with patch("dhis2w_fhir.service.generate_full", new=mock):
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
-    assert "2 note(s) across 2 target(s)" in result.stderr
+    assert "2 distinct note(s) across 2 target(s)" in result.stderr
     body = (fhir_project / "reports" / "fhir-generate-notes.md").read_text(encoding="utf-8")
     assert body.count("a note three targets share") == 1
     assert body.index("## questionnaires") < body.index("a note three targets share") < body.index("## examples")
@@ -422,7 +523,7 @@ def test_bare_generate_json_carries_every_note_as_the_whole_model(fhir_project: 
     payload = json.loads(result.stdout)
     assert payload["examples"]["notes"] == [
         {
-            "category": "selection-mismatch",
+            "category": "form-structure",
             "message": "no data values for the period",
             "echoes_validate": False,
         }

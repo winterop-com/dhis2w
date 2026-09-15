@@ -1536,6 +1536,38 @@ async def test_an_unmatched_target_uid_is_noted(
 
     assert report.questionnaire_count == 1
     assert any("Missing1234" in note.message and "matched no data set" in note.message for note in report.notes)
+    assert any("1 of 2 [generate.data_sets] include_ids entries" in note.message for note in report.notes)
+
+
+@respx.mock
+async def test_a_selection_matching_nothing_at_all_says_the_run_publishes_none(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """A table none of whose entries matched costs the guide every form of its kind, and the note says so."""
+    mock_system_info("v42")
+    mock_attributes()
+    mock_organisation_unit_levels()
+    await _scaffold_project(tmp_path, data_sets='"Missing1234", "Missing5678"')
+    respx.get(f"{_HOST}/api/dataSets").mock(return_value=httpx.Response(200, json={"dataSets": []}))
+    respx.get(f"{_HOST}/api/programs").mock(return_value=httpx.Response(200, json={"programs": []}))
+    respx.get(f"{_HOST}/api/programRules").mock(return_value=httpx.Response(200, json={"programRules": []}))
+    respx.get(f"{_HOST}/api/trackedEntityTypes").mock(return_value=httpx.Response(200, json={"trackedEntityTypes": []}))
+    _mock_option_sets()
+    _mock_categories()
+
+    _mock_organisation_units()
+    report = await service.generate_questionnaires(resolve_profile("probe"), load_project(tmp_path))
+
+    assert report.questionnaire_count == 0
+    message = next(note.message for note in report.notes if "include_ids" in note.message)
+    assert message == (
+        "no [generate.data_sets] include_ids entry matched a data set on this instance, so this run "
+        "publishes no data set at all: Missing1234, Missing5678"
+    )
 
 
 @respx.mock

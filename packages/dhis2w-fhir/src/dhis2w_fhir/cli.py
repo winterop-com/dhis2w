@@ -41,6 +41,8 @@ from dhis2w_fhir import (
     load_project,
 )
 from dhis2w_fhir.doctor import DEFAULT_ORACLE_SAMPLES
+from dhis2w_fhir.notes import GenerateNoteCategory
+from dhis2w_fhir.resources.questionnaires.assignments import EMPTY_ASSIGNMENT_REMEDY
 from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 
 if TYPE_CHECKING:
@@ -394,11 +396,12 @@ def init_command(
         typer.Option(
             "--data-set",
             help="Data set UID to seed `\\[generate.data_sets]` include_ids with (repeatable). Naming one "
-            "family narrows that family alone: an absent selection table means every member of its kind, "
-            "so a guide naming data sets here still publishes every event program and every tracker "
-            "program. Narrow those with --event-program and --tracker-program, or by writing "
-            "`\\[generate.event_programs]` and `\\[generate.tracker_programs]` in fhir.toml. Offline: the "
-            "UID shape is checked here, never the instance.",
+            "family narrows that family alone: a selection table that is absent - or whose include_ids is an "
+            "empty list - means every member of its kind, so a guide naming data sets here still publishes "
+            "every event program and every tracker program. Narrow those with --event-program and "
+            "--tracker-program, or by writing `\\[generate.event_programs]` and "
+            "`\\[generate.tracker_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. "
+            "Offline: the UID shape is checked here, never the instance.",
         ),
     ] = None,
     event_program_ids: Annotated[
@@ -406,11 +409,12 @@ def init_command(
         typer.Option(
             "--event-program",
             help="Event program UID to seed `\\[generate.event_programs]` include_ids with (repeatable). Naming "
-            "one family narrows that family alone: an absent selection table means every member of its "
-            "kind, so a guide naming event programs here still publishes every data set and every tracker "
-            "program. Narrow those with --data-set and --tracker-program, or by writing "
-            "`\\[generate.data_sets]` and `\\[generate.tracker_programs]` in fhir.toml. Offline: the UID "
-            "shape is checked here, never the instance.",
+            "one family narrows that family alone: a selection table that is absent - or whose include_ids is "
+            "an empty list - means every member of its kind, so a guide naming event programs here still "
+            "publishes every data set and every tracker program. Narrow those with --data-set and "
+            "--tracker-program, or by writing `\\[generate.data_sets]` and `\\[generate.tracker_programs]` "
+            "in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is "
+            "checked here, never the instance.",
         ),
     ] = None,
     tracker_program_ids: Annotated[
@@ -419,11 +423,11 @@ def init_command(
             "--tracker-program",
             help="Tracker program UID to seed `\\[generate.tracker_programs]` include_ids with (repeatable); the "
             "program emits one Questionnaire per program stage. Naming one family narrows that family "
-            "alone: an absent selection table means every member of its kind, so a guide naming tracker "
-            "programs here still publishes every data set and every event program. Narrow those with "
-            "--data-set and --event-program, or by writing `\\[generate.data_sets]` and "
-            "`\\[generate.event_programs]` in fhir.toml. Offline: the UID shape is checked here, never the "
-            "instance.",
+            "alone: a selection table that is absent - or whose include_ids is an empty list - means every "
+            "member of its kind, so a guide naming tracker programs here still publishes every data set and "
+            "every event program. Narrow those with --data-set and --event-program, or by writing "
+            "`\\[generate.data_sets]` and `\\[generate.event_programs]` in fhir.toml; `enabled = false` is "
+            "what publishes none of a kind. Offline: the UID shape is checked here, never the instance.",
         ),
     ] = None,
     publishes: Annotated[
@@ -1120,11 +1124,25 @@ def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
     )
     _hint(
         "warning",
-        f"{summary.form_count} published form(s) carry an empty organisation-unit assignment{narrowed}: no unit "
-        "may report them, and the facade refuses to draft a response for one. Raise max_level, or narrow the "
-        "form selection in fhir.toml to what the registry covers.",
+        f"{summary.form_count} published form(s) carry an empty organisation-unit assignment{narrowed}: no "
+        f"organisation unit may report them, and the facade refuses to draft a response for one. "
+        f"{EMPTY_ASSIGNMENT_REMEDY}",
         style="yellow",
     )
+
+
+def _render_selection_mismatches(outcomes: list[_TargetOutcome]) -> None:
+    """Say out loud that a `[generate.*] include_ids` entry named something the instance does not hold.
+
+    Its own line at the end of the run, for the reason the empty-assignment warning has one: a UID
+    that matched nothing costs a whole form, its examples and its pages, and the run that lost them
+    otherwise reports the loss as one note among the several hundred a national instance raises.
+    A guide is regenerated against an instance that has moved on, so this is how a reader learns
+    that a data set was renamed out from under the selection rather than that the guide shrank.
+    """
+    for note in {note.message: note for outcome in outcomes for note in outcome.report.notes}.values():
+        if note.category is GenerateNoteCategory.SELECTION_MISMATCH:
+            _hint("warning", note.message, style="yellow")
 
 
 def _full_outcomes(report: GenerateFullReport) -> list[_TargetOutcome]:
@@ -1209,16 +1227,21 @@ def _write_generate_notes(
 
 
 def _generate_notes_hint(outcomes: list[_TargetOutcome], destination: Path) -> str:
-    """The one line a bare run carries its notes on: what generation raised, then the validate echoes."""
+    """The one line a bare run carries its notes on: what generation raised, then the validate echoes.
+
+    The counts are distinct notes, which is what the summary table's own column counts: a note two
+    targets raise about the same object is one note here and one row in the report file, while each
+    target's `[k/N]` step line counts its own share of it.
+    """
     plain_targets = [outcome for outcome in outcomes if _plain_notes(outcome)]
     plain_total = sum(len(_plain_notes(outcome)) for outcome in plain_targets)
     echo_total = sum(len(_echo_notes(outcome)) for outcome in outcomes)
     tail = f"; full list in {destination} (--details to print)"
     if not plain_total:
         echo_targets = sum(1 for outcome in outcomes if _echo_notes(outcome))
-        return f"{echo_total} validate echo(es) across {echo_targets} target(s){tail}"
+        return f"{echo_total} distinct validate echo(es) across {echo_targets} target(s){tail}"
     echoes = f" (+{echo_total} validate echoes)" if echo_total else ""
-    return f"{plain_total} note(s) across {len(plain_targets)} target(s){echoes}{tail}"
+    return f"{plain_total} distinct note(s) across {len(plain_targets)} target(s){echoes}{tail}"
 
 
 def _render_full_notes(outcomes: list[_TargetOutcome], generation: GenerationProfile, *, details: bool) -> None:
@@ -1253,37 +1276,71 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
 
     Rendering reads the distinct-notes view of the run, so a note several targets share is
     counted and printed once, on the first target that raised it; the `--json` dump keeps the
-    full per-target lists, which read exactly as the solo commands' do.
+    full per-target lists, which read exactly as the solo commands' do. That is also why the
+    `Distinct notes` column and a target's own `[k/N]` step line carry different numbers: the
+    step line counts what that target raised, the column counts it once for the whole run.
     """
     outcomes = _full_outcomes(report.with_distinct_notes())
+    rows = [
+        {
+            "target": outcome.target,
+            "subject": outcome.report.subject.label() if outcome.report.subject is not None else "",
+            "directory": _target_label(outcome.report),
+            "written": f"{len(outcome.report.written_files):,}",
+            "unchanged": f"{outcome.report.unchanged_count:,}",
+            "deleted": f"{len(outcome.report.deleted_files):,}",
+            "notes": f"{len(outcome.report.notes):,}",
+        }
+        for outcome in outcomes
+    ]
     _hint("info", f"{generation.name} ({generation.origin}) -> {report.foundation.project_root}")
-    render_list(
-        "fhir generate",
-        [
-            {
-                "target": outcome.target,
-                "subject": outcome.report.subject.label() if outcome.report.subject is not None else "",
-                "directory": _target_label(outcome.report),
-                "written": f"{len(outcome.report.written_files):,}",
-                "unchanged": f"{outcome.report.unchanged_count:,}",
-                "deleted": f"{len(outcome.report.deleted_files):,}",
-                "notes": f"{len(outcome.report.notes):,}",
-            }
-            for outcome in outcomes
-        ],
-        [
-            ColumnSpec("Target", "target", no_wrap=True),
-            ColumnSpec("Subject", "subject"),
-            ColumnSpec("Directory", "directory"),
-            ColumnSpec("Files written", "written", no_wrap=True),
-            ColumnSpec("Files unchanged", "unchanged", no_wrap=True),
-            ColumnSpec("Files deleted", "deleted", no_wrap=True),
-            ColumnSpec("Notes", "notes", no_wrap=True),
-        ],
-        console=STDERR_CONSOLE,
-    )
+    render_list("fhir generate", rows, _fitted_columns(rows, STDERR_CONSOLE.width), console=STDERR_CONSOLE)
     _render_full_notes(outcomes, generation, details=details)
     _render_empty_assignments(report.questionnaires)
+    _render_selection_mismatches(outcomes)
+
+
+#: The generate summary's columns, in the order they are rendered. The two prose columns carry a
+#: floor and an ellipsis, so a terminal too narrow for them shortens what they say instead of
+#: rendering two blank characters; the counting columns wrap their heading rather than lose a digit.
+_FULL_REPORT_COLUMNS: list[ColumnSpec] = [
+    ColumnSpec("Target", "target", no_wrap=True),
+    ColumnSpec("Subject", "subject", overflow="ellipsis", min_width=12),
+    ColumnSpec("Directory", "directory", overflow="ellipsis", min_width=12),
+    ColumnSpec("Files written", "written"),
+    ColumnSpec("Files unchanged", "unchanged"),
+    ColumnSpec("Files deleted", "deleted"),
+    ColumnSpec("Distinct notes", "notes"),
+]
+
+#: The columns a narrow terminal loses, in the order they go. Each one's number is on the target's
+#: own `[k/N]` step line and in the `--json` dump, so what a narrow table drops is said elsewhere;
+#: what is left is the four a reader identifies a target and its cost by.
+_DROPPED_WHEN_NARROW = ("unchanged", "deleted", "directory")
+
+
+def _fitted_columns(rows: list[dict[str, str]], width: int) -> list[ColumnSpec]:
+    """The widest column set that fits the terminal, dropping the recoverable ones until it does."""
+    columns = list(_FULL_REPORT_COLUMNS)
+    for key in _DROPPED_WHEN_NARROW:
+        if _table_width(columns, rows) <= width:
+            break
+        columns = [column for column in columns if column.key != key]
+    return columns
+
+
+#: What a column a cell may be cut in is measured at, however long its longest cell runs. A column
+#: that ends in an ellipsis still reads as itself, so it is not what a narrow table has to give up.
+_CUTTABLE_COLUMN_WIDTH = 20
+
+
+def _table_width(columns: list[ColumnSpec], rows: list[dict[str, str]]) -> int:
+    """How wide the table asks to be: every cell plus the frame, with a cuttable column at its cut width."""
+    content = 0
+    for column in columns:
+        natural = max([len(column.label), *(len(row[column.key]) for row in rows)])
+        content += min(natural, _CUTTABLE_COLUMN_WIDTH) if column.overflow == "ellipsis" else natural
+    return content + 3 * len(columns) - 1
 
 
 @generate_app.callback(invoke_without_command=True)
@@ -1329,12 +1386,12 @@ def generate_callback(
     )
     if ctx.invoked_subcommand is not None:
         return
-    from dhis2w_fhir import GENERATE_FULL_STEPS, service
+    from dhis2w_fhir import service
 
     project = load_project()
     generation = service.resolve_generation_profile(project)
     gate = _hostile_name_gate(ctx, project)
-    with _progress(GENERATE_FULL_STEPS, enabled=progress) as reporter:
+    with _progress(service.generate_full_steps(project), enabled=progress) as reporter:
         report = asyncio.run(service.generate_full(generation.profile, project, reporter=reporter, gate=gate))
         if reporter is not None:
             reporter.finish(_full_run_summary(report))
@@ -1861,9 +1918,10 @@ def check_artifacts_command(
     the publisher happened to die on, and the line that answers it follows from where the value came
     from rather than assuming DHIS2 wrote it.
 
-    One finding is a warning rather than a refusal: a published form whose organisation-unit
-    assignment names no unit this project publishes. That guide builds and publishes; what it costs
-    is a form nobody can submit a response to.
+    Two findings are warnings rather than refusals: a published form whose organisation-unit
+    assignment names no organisation unit this project publishes, and a `[generate.*] include_ids`
+    entry this project publishes nothing carrying that UID for. That guide builds and publishes;
+    what it costs is a form nobody can submit a response to, and a form the guide never carried.
 
     No connection, no profile, no compile - the artifacts are the whole input, so it answers in
     seconds. Exit 1 when anything build-aborting is found, which is what `make build` runs it for.

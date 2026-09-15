@@ -32,12 +32,15 @@ Three rules apply to every selection table:
    find one is the Maintenance app, where it is shown on the object's details
    pane (it is also the last part of the address bar when the object is open).
 2. **An absent table, or an empty list, means "all of them".** You write a
-   list to narrow the guide, not to switch it on.
-3. **A UID that matches nothing does not stop the run - it is written down.**
-   The guide is generated without that object, and the run records a note
-   naming the UID and the table it was written in. So a misspelled UID and an
-   object somebody deleted from DHIS2 look identical in the guide, and are told
-   apart by reading the note and checking the id against the Maintenance app.
+   list to narrow the guide, not to switch it on - `include_ids = []` reads
+   exactly as no table at all, and `enabled = false` is the switch that
+   publishes none of a kind.
+3. **A UID that matches nothing does not stop the run - it is said out loud.**
+   The guide is generated without that object, and the run closes with a
+   warning naming the UID and the table it was written in; `d2w fhir
+   check-artifacts` reports the same entry against `fhir.toml`. So a misspelled
+   UID and an object somebody deleted from DHIS2 look identical in the guide,
+   and are told apart by checking the id against the Maintenance app.
 
 ### Where the run tells you what it left out { #reading-the-notes }
 
@@ -49,14 +52,30 @@ everything is reported after the run instead.
 they are:
 
 ```text
-note: 3 note(s) across 2 target(s); full list in /home/you/hmis-ig/reports/fhir-generate-notes.md (--details to print)
+note: 3 distinct note(s) across 2 target(s); full list in /home/you/hmis-ig/reports/fhir-generate-notes.md (--details to print)
 ```
+
+The count is of distinct notes, which is what the summary table's
+`Distinct notes` column counts too: a note two targets raise about the same
+object is one note in both. Each target's own `[k/N]` step line counts its own
+share of it, so a step line and the table can name different numbers for the
+same run.
 
 `reports/fhir-generate-notes.md` is an ordinary text file grouped by what was
 being generated, one line per note. An unmatched selection reads:
 
 ```text
-- 1 [generate.data_sets] include_ids entries matched no data set: BfMAe6Itzgu
+- 1 of 2 [generate.data_sets] include_ids entries matched no data set: BfMAe6Itzgu
+```
+
+A selection entry that matched nothing does not stay in the file: the run
+closes with it as a warning of its own, naming every UID the instance answered
+nothing for, because what it costs is a whole form and the examples and pages
+that go with it. `d2w fhir check-artifacts` reports the same entry as a
+warning-level finding against `fhir.toml`, so the guide on disk says it too.
+
+```text
+warning: 1 of 2 [generate.data_sets] include_ids entries matched no data set: BfMAe6Itzgu
 ```
 
 `d2w fhir generate --details` prints every note in the terminal instead of
@@ -87,12 +106,13 @@ include_ids = ["BfMAe6Itzgt", "Nyh6laLdBEJ"]
 
 The guide publishes exactly two data-set forms.
 
-**Default:** absent - **If you leave it out:** every data set on the instance
-becomes a form.
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+every data set on the instance becomes a form. `enabled = false` is what
+publishes none.
 
-**If you get it wrong:** a UID matching nothing selects nothing and is named in
-the run's notes ([reading the notes](#reading-the-notes)). Writing a single UID
-without list brackets stops the run:
+**If you get it wrong:** a UID matching nothing selects nothing, and the run
+closes with a warning naming it ([reading the notes](#reading-the-notes)).
+Writing a single UID without list brackets stops the run:
 
 ```text
 pydantic_core._pydantic_core.ValidationError: 1 validation error for FhirProjectConfig
@@ -117,8 +137,9 @@ include_ids = ["VBqh0ynB2wv"]
 
 That program's stage becomes one form in the guide.
 
-**Default:** absent - **If you leave it out:** every event program on the
-instance becomes a form.
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+every event program on the instance becomes a form. `enabled = false` is what
+publishes none.
 
 **If you get it wrong:** a non-list value refuses the run exactly as under
 [data sets](#data-sets). A *tracker* program's UID listed here is refused by
@@ -150,8 +171,9 @@ include_ids = ["IpHINAT79UW"]
 The guide gets that program's registration form and one form for each of its
 stages.
 
-**Default:** absent - **If you leave it out:** every tracker program on the
-instance is covered.
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+every tracker program on the instance is covered. `enabled = false` is what
+publishes none.
 
 **If you get it wrong:** a non-list value refuses the run as under
 [data sets](#data-sets); an event program's UID listed here is refused by
@@ -180,7 +202,8 @@ only some of the types they do.
 include_ids = ["nEenWmSyUEp"]
 ```
 
-**Default:** absent - **If you leave it out:** one form per tracked entity type
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+one form per tracked entity type
 that a selected tracker programme registers. This is the one selection table
 whose empty default is not the whole instance: a project that selects no tracker
 programme and names no type here publishes no person-only form at all, and costs
@@ -256,14 +279,15 @@ include_ids = ["Qdm5fPK5Ra9"]
 
 That option set's code list is published even if no selected form uses it.
 
-**Default:** absent - **If you leave it out:** every option set on the
-instance is published (and with forms selected, everything they use is always
-included regardless).
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+every option set on the instance is published. A non-empty list is not a filter
+on what the forms need: every option set a published form binds is included
+whatever the list says, and the list adds the sets beyond them.
 
 **If you get it wrong:** same behaviour as every selection table: an unknown
-UID selects nothing and is named in the run's notes as
-`include_ids entry '...' matched no option set`; a non-list value refuses the
-run as under [data sets](#data-sets).
+UID selects nothing, and the run closes with a warning naming it
+([reading the notes](#reading-the-notes)); a non-list value refuses the run as
+under [data sets](#data-sets).
 
 ### `[generate.categories]` include_ids { #categories }
 
@@ -283,13 +307,15 @@ include_ids = ["O5P6e8yu1T6"]
 
 Only that category's code list is published.
 
-**Default:** absent - **If you leave it out:** every category on the instance
-is published - except DHIS2's built-in `default` category, which the next
-option controls.
+**Default:** absent - **If you leave it out, or write `include_ids = []`:**
+every category on the instance is published - except DHIS2's built-in `default`
+category, which the next option controls. Unlike the option sets above, a
+non-empty list here is a real filter: the categories it names are the ones
+published.
 
 **If you get it wrong:** same behaviour as every selection table: an unknown
-UID selects nothing and is named in the run's notes as
-`include_ids entry '...' matched no category`.
+UID selects nothing, and the run closes with a warning naming it
+([reading the notes](#reading-the-notes)).
 
 ### `[generate.categories]` include_default { #include_default }
 

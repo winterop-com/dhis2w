@@ -445,3 +445,59 @@ def test_a_warning_alone_lets_the_build_start(project_root: Path, monkeypatch: p
     # The bracketed table name reaches the reader: Rich reads `[generate.organisation_units]` as a
     # style tag and prints nothing in its place unless the cell states its own brackets.
     assert "[generate.organisation_units] max_level" in result.output
+
+
+#: A guide selecting two data sets by UID: one the published tree carries, one it carries nowhere.
+_SELECTION_TOML = f"""{_MINIMAL_TOML}
+[generate.data_sets]
+include_ids = ["BfMAe6Itzgt", "aBcDeFgHiJk"]
+"""
+
+
+def _write_selected_form(root: Path, uid: str) -> None:
+    """Write one generated Questionnaire carrying the DHIS2 UID it was generated from."""
+    _write_generated_fsh(
+        root / f"ig/input/fsh/foundation/{uid}.fsh",
+        f'Instance: Questionnaire-{uid}\nInstanceOf: Questionnaire\n* id = "{uid}"\n',
+    )
+
+
+def test_a_selection_entry_the_tree_carries_nothing_for_is_a_warning(project_root: Path) -> None:
+    """A UID that selected nothing costs the guide a form, and the tree on disk is enough to say so."""
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    _write_selected_form(project_root, "BfMAe6Itzgt")
+    report = _report(project_root)
+    assert report.warning_count == 1
+    assert report.build_aborting_count == 0
+    finding = report.findings[0]
+    assert finding.kind == "selection"
+    assert finding.severity == "warning"
+    assert finding.file == "fhir.toml"
+    assert finding.resource_id == "generate.data_sets"
+    assert finding.field == "include_ids"
+    assert finding.value == "aBcDeFgHiJk"
+    assert "Maintenance app" in finding.remedy
+
+
+def test_a_selection_every_entry_of_which_published_raises_nothing(project_root: Path) -> None:
+    """The finding states an exception: a UID the tree carries is the selection working as written."""
+    (project_root / "fhir.toml").write_text(
+        f'{_MINIMAL_TOML}\n[generate.data_sets]\ninclude_ids = ["BfMAe6Itzgt"]\n', encoding="utf-8"
+    )
+    _write_selected_form(project_root, "BfMAe6Itzgt")
+    assert _report(project_root).finding_count == 0
+
+
+def test_a_project_that_has_never_generated_says_nothing_about_its_selection(project_root: Path) -> None:
+    """An empty tree is an empty tree; only a generated one says what a selection did or did not find."""
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    (project_root / "ig/input/fsh/foundation").rmdir()
+    assert _report(project_root).finding_count == 0
+
+
+def test_a_table_switched_off_selects_nothing_and_is_not_graded(project_root: Path) -> None:
+    """`enabled = false` publishes no form of that kind by design, so its ids are not a selection that failed."""
+    (project_root / "fhir.toml").write_text(
+        f'{_MINIMAL_TOML}\n[generate.data_sets]\nenabled = false\ninclude_ids = ["aBcDeFgHiJk"]\n', encoding="utf-8"
+    )
+    assert _report(project_root).finding_count == 0
