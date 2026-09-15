@@ -67,7 +67,7 @@ def get_command(
     uid: Annotated[str, typer.Argument(help="User-role UID.")],
     fields: Annotated[str | None, typer.Option("--fields", help="DHIS2 field selector.")] = None,
 ) -> None:
-    """Fetch one user role by UID. Prints a concise summary; `--json` for full payload."""
+    """Fetch one user role by UID. Prints a concise summary; `d2w --json user role get` for the full payload."""
     from dhis2w_core.v43.plugins.user_role import service
 
     role = asyncio.run(service.get_user_role(profile_from_env(), uid, fields=fields))

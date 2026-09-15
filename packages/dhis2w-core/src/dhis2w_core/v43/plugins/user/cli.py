@@ -96,7 +96,7 @@ def get_command(
     uid_or_username: Annotated[str, typer.Argument(help="User UID (11 chars) or username.")],
     fields: Annotated[str | None, typer.Option("--fields", help="DHIS2 field selector.")] = None,
 ) -> None:
-    """Fetch one user by UID or username. Prints a concise summary; `--json` for full payload."""
+    """Fetch one user by UID or username. Prints a concise summary; `d2w --json user get` for the full payload."""
     from dhis2w_core.v43.plugins.user import service
     from dhis2w_core.v43.plugins.user.service import UserNotFoundError
 

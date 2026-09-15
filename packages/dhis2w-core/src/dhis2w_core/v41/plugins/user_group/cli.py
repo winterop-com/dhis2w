@@ -82,7 +82,7 @@ def get_command(
     uid: Annotated[str, typer.Argument(help="User-group UID.")],
     fields: Annotated[str | None, typer.Option("--fields", help="DHIS2 field selector.")] = None,
 ) -> None:
-    """Fetch one user group by UID. Prints a concise summary; `--json` for full payload."""
+    """Fetch one user group by UID. Prints a concise summary; `d2w --json user group get` for the full payload."""
     from dhis2w_core.v41.plugins.user_group import service
 
     group = asyncio.run(service.get_user_group(profile_from_env(), uid, fields=fields))
@@ -164,7 +164,7 @@ def remove_member_command(
 def sharing_get_command(
     uid: Annotated[str, typer.Argument(help="User-group UID.")],
 ) -> None:
-    """Print the current sharing block for one user group. `--json` for full payload."""
+    """Print the current sharing block for one user group. `d2w --json user group sharing-get` for the full payload."""
     from dhis2w_core.v41.plugins.user_group import service
 
     sharing = asyncio.run(service.get_group_sharing(profile_from_env(), uid))
