@@ -144,14 +144,38 @@ tracked entity types are not.
 
 ```text
 error: [generate.naming] source = "code" needs a usable, unique code on
-every selected option set; 3 cannot serve as identity stems: <name> (<uid>)
-<defect>; ... Fix the codes in DHIS2, or use source = "code-or-id" while
-migrating; `d2w fhir validate` names every offender.
+every selected option set; 3 of the 12 selected cannot serve as identity
+stems: <name> (<uid>) <defect>; ... A stem becomes a FHIR resource id, so it
+takes ASCII letters, digits, hyphen and dot, 1 to 64 characters, and no two
+of the selection may share one. Give those option sets such codes in DHIS2,
+or set source = "code-or-id", which takes the code wherever one can serve and
+the DHIS2 id on the 3 that cannot, so the run completes. `d2w fhir validate`
+names every offender.
 ```
 
 Cause: `[generate.naming] source = "code"` met a selected object with a
 missing, unusable, or colliding code. Fix: what the message says - the
 validate report names every offender as `code-stem-refusal`.
+
+On the DHIS2 demo database every organisation unit is coded `OU_<digits>`, and
+a FHIR resource id forbids the underscore, so `source = "code"` refuses there on
+all 1,332 of them. `source = "code-or-id"` runs on that instance: every unit
+falls back to its DHIS2 id under one aggregate note, and the objects that do
+carry usable codes are still named by them.
+
+**A compile that stopped on an error left nothing behind:**
+
+```text
+SUSHI stopped on an error. Removed ig/fsh-generated, which held a partial
+compile: the FHIR endpoint has nothing to read until a compile finishes.
+```
+
+Cause: SUSHI exited non-zero, and it keeps whatever it had written up to that
+point. That half would read as a finished guide to `d2w fhir serve`,
+`d2w fhir check-artifacts` and `d2w fhir forward`, so `make sushi` removes it.
+Fix: read SUSHI's own errors above the line, correct what they name, and compile
+again. The commands that read the compiled tree now refuse the project outright
+rather than publishing a partial one.
 
 **A program UID listed under the wrong selection table fails by name:**
 

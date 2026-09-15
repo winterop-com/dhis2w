@@ -357,8 +357,10 @@ are being cleaned up. Stay on `"id"` when in doubt.
 source = "code-or-id"
 ```
 
-An option set coded `BIRTH_TYPE` is published as `D2OS_BirthType_CS`; an
-uncoded one keeps its id-based name, with a note listing every fall-back.
+An option set coded `birth-type` is published as `D2OS_BirthType_CS`; an
+uncoded one keeps its id-based name, with a note listing every fall-back. A
+code carrying a character a FHIR resource id forbids - `BIRTH_TYPE`, with its
+underscore - falls back the same way.
 
 **Default:** `"id"` - **If you leave it out:** every name is built on DHIS2
 ids. Safe on any instance.
@@ -375,8 +377,13 @@ Under `source = "code"`, a selected object whose code is missing, unusable, or
 shared with another object refuses the run with a message shaped like:
 
 ```text
-error: [generate.naming] source = "code" needs a usable, unique code on every selected option set; 3 cannot serve as identity stems: Birth type (Qdm5fPK5Ra9) has no code; ... Fix the codes in DHIS2, or use source = "code-or-id" while migrating; `d2w fhir validate` names every offender.
+error: [generate.naming] source = "code" needs a usable, unique code on every selected option set; 3 of the 12 selected cannot serve as identity stems: Birth type (Qdm5fPK5Ra9) has no code; ... A stem becomes a FHIR resource id, so it takes ASCII letters, digits, hyphen and dot, 1 to 64 characters, and no two of the selection may share one. Give those option sets such codes in DHIS2, or set source = "code-or-id", which takes the code wherever one can serve and the DHIS2 id on the 3 that cannot, so the run completes. `d2w fhir validate` names every offender.
 ```
+
+The count is of the selection this run makes, and the codes it reads are the
+codes the instance holds: the identity plan every target resolves through is
+read with `code` beside the UID and the name, so a set that carries a good code
+is named by it and only the ones that carry none are refused.
 
 ### The name pieces and their shared rule { #the-token-rule }
 

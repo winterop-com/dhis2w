@@ -281,7 +281,11 @@ so a per-object name cannot be reconstructed from one object alone. The
 resulting identity plan is the boundary object every other target reads names
 from, which is what lets a questionnaire's
 `answerValueSet = Canonical(D2OS_SEX_VS)` name the ValueSet the same run
-writes. Concept codes work the same way: they are assigned once per set, and
+writes. Every projection a plan is resolved from carries the DHIS2 code beside
+the UID and the name, and the terminology target emits from the plan rather than
+resolving its own: a second resolution over a code-less read would publish a set
+under one stem and reference it under another, and SUSHI stops on the canonical
+that then resolves to nothing. Concept codes work the same way: they are assigned once per set, and
 every target that names a concept reads that one assignment, so an example
 cannot code an answer the CodeSystem has no concept for.
 

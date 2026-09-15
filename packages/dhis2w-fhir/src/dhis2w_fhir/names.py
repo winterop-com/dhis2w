@@ -366,7 +366,7 @@ def resolve_identity_stems(
     ]
     offenders = [verdict for verdict in verdicts if verdict.defect is not None]
     if source == "code" and offenders:
-        raise CodeStemError(_code_stem_refusal(offenders, surface_label))
+        raise CodeStemError(_code_stem_refusal(offenders, len(ordered), surface_label))
     stems = {
         verdict.subject.uid: verdict.subject.uid if verdict.defect is not None else verdict.subject.code or ""
         for verdict in verdicts
@@ -387,8 +387,14 @@ def resolve_identity_stems(
 _CODE_STEM_SAMPLE_SIZE = 5
 
 
-def _code_stem_refusal(offenders: list[_StemVerdict], surface_label: str) -> str:
-    """The `CodeStemError` message: a capped offender sample, the remainder, and the two ways out."""
+def _code_stem_refusal(offenders: list[_StemVerdict], selected: int, surface_label: str) -> str:
+    """The `CodeStemError` message: how many of the selection cannot serve, a capped sample, and the way out.
+
+    It states the rule a stem is held to rather than only the defect each offender carries, because
+    an instance whose objects simply carry no code would otherwise be told a count and no rule. And
+    it says what the alternative source does with these very objects - the code where one serves,
+    the DHIS2 id where none does - so the reader knows the run completes rather than refusing again.
+    """
     sample = "; ".join(
         f"{verdict.subject.label} ({verdict.subject.uid}) {verdict.defect}"
         for verdict in offenders[:_CODE_STEM_SAMPLE_SIZE]
@@ -397,6 +403,10 @@ def _code_stem_refusal(offenders: list[_StemVerdict], surface_label: str) -> str
     listed = sample + (f" and {remainder} more" if remainder > 0 else "")
     return (
         f'[generate.naming] source = "code" needs a usable, unique code on every selected {surface_label}; '
-        f"{len(offenders)} cannot serve as identity stems: {listed}. Fix the codes in DHIS2, or use "
-        'source = "code-or-id" while migrating; `d2w fhir validate` names every offender.'
+        f"{len(offenders)} of the {selected} selected cannot serve as identity stems: {listed}. A stem "
+        "becomes a FHIR resource id, so it takes ASCII letters, digits, hyphen and dot, 1 to 64 "
+        f"characters, and no two of the selection may share one. Give those {surface_label}s such codes "
+        'in DHIS2, or set source = "code-or-id", which takes the code wherever one can serve and the '
+        f"DHIS2 id on the {len(offenders)} that cannot, so the run completes. `d2w fhir validate` names "
+        "every offender."
     )

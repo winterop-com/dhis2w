@@ -800,6 +800,43 @@ def test_make_asks_docker_once_per_build_and_never_outside_one(
         assert expected_heap in completed.stdout
 
 
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_a_compile_that_stops_on_an_error_leaves_no_fsh_generated_behind(tmp_path: Path) -> None:
+    """SUSHI keeps what it wrote before it stopped, and that half would read as a finished guide.
+
+    The FHIR endpoint publishes whatever `ig/fsh-generated/resources` holds, so a partial compile
+    left on disk is served as though the run had succeeded. The recipe removes it and says so, and
+    hands SUSHI's own status back to make.
+    """
+    project = tmp_path / "project"
+    (project / "ig" / "fsh-generated" / "resources").mkdir(parents=True)
+    (project / "ig" / "fsh-generated" / "resources" / "Questionnaire-half.json").write_text("{}", encoding="utf-8")
+    (project / "Makefile").write_text(_by_path()["Makefile"], encoding="utf-8")
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n", sushi_exit_status=2)
+
+    completed = run_make(project, stub, "sushi")
+
+    assert completed.returncode == 2
+    assert not (project / "ig" / "fsh-generated").exists()
+    assert "Removed ig/fsh-generated, which held a partial compile" in completed.stdout
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_a_compile_that_finishes_keeps_what_it_wrote(tmp_path: Path) -> None:
+    """The clean-up is the failure path's alone - a compile that exits zero keeps its output."""
+    project = tmp_path / "project"
+    (project / "ig" / "fsh-generated" / "resources").mkdir(parents=True)
+    (project / "ig" / "fsh-generated" / "resources" / "Questionnaire-whole.json").write_text("{}", encoding="utf-8")
+    (project / "Makefile").write_text(_by_path()["Makefile"], encoding="utf-8")
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+
+    completed = run_make(project, stub, "sushi")
+
+    assert completed.returncode == 0, completed.stderr
+    assert (project / "ig" / "fsh-generated" / "resources" / "Questionnaire-whole.json").is_file()
+    assert "partial compile" not in completed.stdout
+
+
 def test_makefile_drives_d2w_through_the_projects_own_environment() -> None:
     """`uv run d2w` is the default, with the checkout override on one comment line; the guide holds the rest."""
     makefile = _by_path()["Makefile"]

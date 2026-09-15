@@ -318,12 +318,19 @@ def build_option_set_artifacts(
     *,
     ig_status: IgStatus,
     attribute_codes: AttributeCodeIndex,
+    plan: OptionSetIdentityPlan | None = None,
 ) -> JsonBuild:
-    """Build one `terminology/CodeSystem-<id>.json` and `terminology/ValueSet-<id>.json` per option set."""
+    """Build one `terminology/CodeSystem-<id>.json` and `terminology/ValueSet-<id>.json` per option set.
+
+    `plan` is the run's one option-set identity plan - the same object the questionnaires bind
+    `answerValueSet` to and the examples code their answers from. Passing it is what keeps the
+    stem this target publishes under and the stem every other target references identical; a
+    caller holding no plan gets one assigned over `option_sets` here.
+    """
     build = JsonBuild()
     systems = _OptionSetSystems.from_config(config, canonical)
     extension_url = attribute_value_extension_url(config, canonical)
-    plan = option_set_identities(option_sets, config)
+    plan = plan if plan is not None else option_set_identities(option_sets, config)
     by_uid = {option_set.uid: option_set for option_set in option_sets}
     for identity in plan.identities:
         option_set = by_uid[identity.uid]
@@ -353,6 +360,7 @@ def build_option_set_concept_maps(
     canonical: str,
     *,
     ig_status: IgStatus,
+    plan: OptionSetIdentityPlan | None = None,
 ) -> list[ConceptMap]:
     """Build one ConceptMap per option set, taking its concept codes back to the DHIS2 option identifiers.
 
@@ -367,7 +375,7 @@ def build_option_set_concept_maps(
     element, and a map with no group states nothing.
     """
     systems = _OptionSetSystems.from_config(config, canonical)
-    plan = option_set_identities(option_sets, config)
+    plan = plan if plan is not None else option_set_identities(option_sets, config)
     by_uid = {option_set.uid: option_set for option_set in option_sets}
     concept_maps = [
         _build_concept_map(by_uid[identity.uid], identity, config, systems, ig_status=ig_status)
@@ -382,11 +390,12 @@ def build_option_set_concept_map_artifacts(
     canonical: str,
     *,
     ig_status: IgStatus,
+    plan: OptionSetIdentityPlan | None = None,
 ) -> list[JsonArtifact]:
     """Build one `concept-maps/ConceptMap-<id>.json` per option set that emitted concepts."""
     return [
         _json_artifact(CONCEPT_MAP_DIRECTORY, f"ConceptMap-{concept_map.id}", concept_map)
-        for concept_map in build_option_set_concept_maps(option_sets, config, canonical, ig_status=ig_status)
+        for concept_map in build_option_set_concept_maps(option_sets, config, canonical, ig_status=ig_status, plan=plan)
     ]
 
 
@@ -396,6 +405,7 @@ def build_option_set_identifier_artifacts(
     canonical: str,
     *,
     ig_status: IgStatus,
+    plan: OptionSetIdentityPlan | None = None,
 ) -> list[JsonArtifact]:
     """Build one complete `terminology/CodeSystem-<id>.json` per identifier namespace the maps target.
 
@@ -407,7 +417,7 @@ def build_option_set_identifier_artifacts(
     """
     return build_identifier_code_system_artifacts(
         TERMINOLOGY_DIRECTORY,
-        build_option_set_concept_maps(option_sets, config, canonical, ig_status=ig_status),
+        build_option_set_concept_maps(option_sets, config, canonical, ig_status=ig_status, plan=plan),
         config,
         ig_status=ig_status,
         substitutions=code_substitutions(option_sets),
