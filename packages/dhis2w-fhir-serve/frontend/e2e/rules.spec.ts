@@ -13,7 +13,8 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
  * WHERE THE FACTS COME FROM. The fixture project publishes each on the form that would really carry
  * it (packages/dhis2w-fhir-serve/tests/fixture_project.py): the temporal event form carries a range
  * of calendar days and a condition, its coverage question already carried a numeric range, and the
- * antenatal visit stage lists the two program rules its instance holds.
+ * antenatal visit stage lists the three program rules its instance holds - two that only warn, and
+ * one that computes a question's value itself.
  */
 
 const TEMPORAL_FORM = 'PrTemporal1'
@@ -28,10 +29,14 @@ const COVERAGE_MAXIMUM = '100'
 const OUTBREAK_LAST_DAY = '2026-12-31'
 const COVERAGE_LINK_THRESHOLD = 50
 
-/** The two rules the antenatal visit stage lists, as the fixture's instance names them. */
+/** The three rules the antenatal visit stage lists, as the fixture's instance names them. */
 const HAEMOGLOBIN_RULE = 'The haemoglobin value cannot be above 99'
 const VISIT_ORDER_RULE = 'A visit is filed in the order it happened'
+const ASSIGNED_PRESSURE_RULE = 'The systolic blood pressure is worked out from the visit number'
 const HAEMOGLOBIN_RULE_CONDITION = '#{DeAncVisNo1} > 99'
+
+/** How many of them the panel counts - every rule the instance holds for the form, whatever it does. */
+const STAGE_RULE_COUNT = 3
 
 /** Open one form and wait for the skeleton, which is what puts the drafted values in the controls. */
 async function openForm(page: Page, questionnaireId: string): Promise<void> {
@@ -99,7 +104,9 @@ test('a question its conditions close is not asked, and its answer goes with it'
 test('a form names the DHIS2 program rules its instance enforces after the submission leaves', async ({ page }) => {
     await openForm(page, STAGE_FORM)
 
-    const statement = page.getByText('This DHIS2 instance enforces 2 further rules on import, beyond the ones this form checks')
+    const statement = page.getByText(
+        `This DHIS2 instance enforces ${STAGE_RULE_COUNT} further rules on import, beyond the ones this form checks`,
+    )
     await expect(statement).toBeVisible()
 
     // Folded away by default: the names are what a person reads, and the DHIS2 expression behind
@@ -110,6 +117,12 @@ test('a form names the DHIS2 program rules its instance enforces after the submi
     await expect(page.getByText(HAEMOGLOBIN_RULE)).toBeVisible()
     await expect(page.getByText(VISIT_ORDER_RULE)).toBeVisible()
     await expect(page.getByText(HAEMOGLOBIN_RULE_CONDITION)).toBeVisible()
+
+    // The ASSIGN rule is listed with the two that only warn. It is the one of the three that
+    // rewrites what a submission carries - DHIS2 computes the value and answers E1307 to a document
+    // disagreeing with it - so leaving it out would hide the rule with the most to say about what
+    // happens after the submission leaves.
+    await expect(page.getByText(ASSIGNED_PRESSURE_RULE)).toBeVisible()
 })
 
 test('a form its instance holds no rules for says nothing about rules', async ({ page }) => {

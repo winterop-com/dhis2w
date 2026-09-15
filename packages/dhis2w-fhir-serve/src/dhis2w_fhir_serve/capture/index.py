@@ -112,6 +112,12 @@ _RULE_DESCRIPTION_SUB_EXTENSION = "description"
 _RULE_CONDITION_SUB_EXTENSION = "condition"
 _RULE_ACTION_SUB_EXTENSION = "action"
 
+#: The repeating sub-extension an `ASSIGN` rule names the DHIS2 object it computes on, one `valueId`
+#: per data element or tracked entity attribute. It is the one slice of a published rule this server
+#: acts on rather than only relays: the uid is a question's linkId, and DHIS2 accepts an answer to
+#: such a question only when it is empty or already equal to what the rule works out (`E1307`).
+_RULE_ASSIGNS_SUB_EXTENSION = "assigns"
+
 #: The resource type a question's support terminology resolves to.
 _CODE_SYSTEM_RESOURCE_TYPE = "CodeSystem"
 
@@ -187,6 +193,15 @@ class CaptureProgramRule(BaseModel):
 
     action: str | None = None
     """The DHIS2 program rule action type, as `SHOWWARNING` or `ERRORONCOMPLETE`, when the form states one."""
+
+    assigns: tuple[str, ...] = ()
+    """The DHIS2 data elements and tracked entity attributes this rule computes, empty on a rule computing none.
+
+    An `ASSIGN` rule is the one action a submission has to be written around rather than merely told
+    about: DHIS2 works the value out itself and accepts an answer only where it is empty or already
+    equal to the calculated one, refusing anything else with `E1307`. Each uid is a question's linkId
+    on the form that declares the rule.
+    """
 
 
 class CaptureGate(BaseModel):
@@ -422,6 +437,14 @@ class CaptureIndex(BaseModel):
 
     attribute_option_combos: CaptureAttributeOptionCombos | None = None
     """The vocabulary the form's responses key their values from, or None on the default category combo."""
+
+    def assigned_link_ids(self) -> frozenset[str]:
+        """The questions DHIS2 computes itself, as the form's own `ASSIGN` program rules name them."""
+        return frozenset(link_id for rule in self.program_rules for link_id in rule.assigns)
+
+    def rules_assigning(self, link_id: str) -> tuple[CaptureProgramRule, ...]:
+        """The program rules that compute one question's value, empty on a question no rule computes."""
+        return tuple(rule for rule in self.program_rules if link_id in rule.assigns)
 
 
 class CaptureIndexCache(BaseModel):
@@ -989,7 +1012,9 @@ def _program_rules(questionnaire: Questionnaire, naming: CaptureNaming) -> tuple
     for extension in questionnaire.extension or []:
         if extension.url != naming.program_rule_url:
             continue
-        parts = {sub.url: sub for sub in extension.extension or [] if sub.url}
+        sliced = [sub for sub in extension.extension or [] if sub.url]
+        parts = {sub.url: sub for sub in sliced}
+        assigns = tuple(sub.valueId for sub in sliced if sub.url == _RULE_ASSIGNS_SUB_EXTENSION and sub.valueId)
         stated = parts.get(_RULE_SUB_EXTENSION)
         named = parts.get(_RULE_NAME_SUB_EXTENSION)
         tested = parts.get(_RULE_CONDITION_SUB_EXTENSION)
@@ -1007,6 +1032,7 @@ def _program_rules(questionnaire: Questionnaire, naming: CaptureNaming) -> tuple
                 description=described.valueString if described is not None else None,
                 condition=condition,
                 action=acted.valueCode if acted is not None else None,
+                assigns=assigns,
             )
         )
     return tuple(rules)

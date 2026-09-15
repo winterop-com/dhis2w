@@ -17,7 +17,11 @@ only decides which `value[x]` element carries it (`dhis2w_fhir.seeded_format_con
 one rule this server and the guide's example corpus both draw from). The value types DHIS2 stores a
 document or a UID reference for - a file, an image, GeoJSON, a `REFERENCE`, a `TRACKER_ASSOCIATE` -
 are left unanswered rather than invented, for the same reason a question bound to unpublished
-terminology is: an invented answer names a target nothing resolves.
+terminology is: an invented answer names a target nothing resolves. A question an `ASSIGN` program
+rule computes is left unanswered too, and for a harder reason: DHIS2 works that value out itself and
+answers `E1307` to any document carrying anything but an empty answer or the calculated one. The
+form declares which questions its rules compute (`assigns` on `d2-program-rule`) and nothing here
+evaluates a rule, so the empty answer is the only one a draft can carry and be accepted.
 
 Nothing here invents terminology. A coded answer is a concept the served CodeSystem really publishes,
 carried in the exact spelling the contract asks for (the concept code, never the DHIS2 code or UID
@@ -255,21 +259,31 @@ def generate_response(
     today: datetime.date,
     spool: ResponseSpool | None = None,
     subject_location_id: str | None = None,
+    attribute_option_combo_code: str | None = None,
 ) -> QuestionnaireResponse:
     """Generate one synthetic response to a served form: its context, then an answer to every question.
 
     The whole document is a function of `(questionnaire, store, spool, seed, today,
-    subject_location_id)`. Three terms move on their own: `today` decides which completed reporting
-    period an aggregate response is for and which thirty days an event's timestamps fall in, `spool`
-    decides which registration a stage response answers against, and `subject_location_id` pins the
-    organisation unit the response reports from rather than leaving it to the draw. A caller naming
-    no spool generates a stage response that mints its own tracker pair, which is what a form kind
-    whose context is data rather than metadata otherwise does.
+    subject_location_id, attribute_option_combo_code)`. Four terms move on their own: `today` decides
+    which completed reporting period an aggregate response is for and which thirty days an event's
+    timestamps fall in, `spool` decides which registration a stage response answers against, and
+    `subject_location_id` and `attribute_option_combo_code` pin the two halves of the capture key the
+    response reports under rather than leaving either to the draw. A caller naming no spool generates
+    a stage response that mints its own tracker pair, which is what a form kind whose context is data
+    rather than metadata otherwise does.
     """
     period = _reporting_period(index, today) if index.form_kind == "aggregate" else None
     window = DateWindow.of_period(period) if period is not None else DateWindow.recent(today)
     resolvers = CodingResolverSet(store=store)
-    target = capture_target(index, store, resolvers, seed, period=period, location_id=subject_location_id)
+    target = capture_target(
+        index,
+        store,
+        resolvers,
+        seed,
+        period=period,
+        location_id=subject_location_id,
+        attribute_option_combo_code=attribute_option_combo_code,
+    )
     generator = _Generator(
         index=index,
         naming=naming,
@@ -372,10 +386,12 @@ class _Generator(BaseModel):
     """The spooled registration's pair a generated stage response answers against, or None to mint one."""
 
     _random: random.Random = PrivateAttr(default_factory=random.Random)
+    _assigned_link_ids: frozenset[str] = PrivateAttr(default=frozenset())
 
     def model_post_init(self, context: Any, /) -> None:
-        """Seed the generator (private attributes stay settable on a frozen model)."""
+        """Seed the generator and read the questions DHIS2 computes (private attributes stay settable)."""
         self._random.seed(self.seed)
+        self._assigned_link_ids = self.index.assigned_link_ids()
 
     def build(self, questionnaire: Questionnaire, period: PeriodValue | None) -> QuestionnaireResponse:
         """Assemble the response: the context its profile requires first, then the answered item tree.
@@ -584,10 +600,19 @@ class _Generator(BaseModel):
         one is worse, because it reads as a claim about a person's identifier. The rule holds even
         when the form marks the question required, and the capture grading admits the absence on the
         same grounds: what DHIS2 answers is not something a client is waiting to be asked for.
+
+        A question an `ASSIGN` program rule computes is left unanswered on the same ground, one step
+        further out: DHIS2 does not merely discard what a client sends for it, it refuses the whole
+        document with `E1307` unless the answer is empty or already equal to the value the rule works
+        out. The rule is never evaluated here - the form states which questions it computes, not what
+        it computes for them, and a guessed value is exactly the one thing `E1307` refuses. So the
+        empty answer is the only one that is always accepted, and it is what a draft carries.
         """
         if question is None or question.answer_element in _UNGENERATED_ANSWER_ELEMENTS:
             return []
         if question.read_only:
+            return []
+        if question.link_id in self._assigned_link_ids:
             return []
         if question.value_type in UNSYNTHESIZABLE_VALUE_TYPES:
             return []
@@ -891,6 +916,7 @@ def capture_target(
     *,
     period: PeriodValue | None = None,
     location_id: str | None = None,
+    attribute_option_combo_code: str | None = None,
 ) -> CaptureTarget:
     """Where a generated response reports from and what it is filed under - one seeded draw over both.
 
@@ -932,6 +958,13 @@ def capture_target(
     drawn at the named unit, so the pair the client gets back agrees with the choice instead of
     replacing it. A named unit the form does not admit is refused by name, because drafting a capture
     DHIS2 answers `E1029` would be worse than saying which organisation units the form admits.
+
+    `attribute_option_combo_code` is the same caller naming the other half of the key, and it stands
+    in for its half of the draw on the same terms. Both halves named pins the whole target; the combo
+    named alone pins the combo and draws a unit the instance accepts it at, which is the unit axis
+    read the other way round. A named combo the form's vocabulary does not publish, or one no
+    admitted unit may file for this period, is refused with which of the two closed it - swapping it
+    for one the draw preferred would be discarding a choice somebody made.
     """
     assignment = index.assignment
     if assignment is not None and not assignment.location_ids:
@@ -952,10 +985,24 @@ def capture_target(
     resolver = resolvers.for_system(declared.system) if declared is not None and declared.system else None
     declared_options = resolver.options if resolver is not None else ()
     if declared is None or not declared_options:
+        if attribute_option_combo_code is not None:
+            raise UnusableAttributeOptionComboError(
+                _undeclared_combo_diagnostics(declared, attribute_option_combo_code)
+            )
         if not admitted:
             return CaptureTarget(location_id=_shaped_uid(generator))
         return CaptureTarget(location_id=admitted[generator.randrange(len(admitted))])
     options = _timely_options(declared_options, declared, period)
+    if attribute_option_combo_code is not None:
+        return _named_combo_target(
+            declared,
+            declared_options,
+            options,
+            admitted,
+            generator,
+            attribute_option_combo_code,
+            period,
+        )
     if not options:
         raise UnusableAttributeOptionComboError(_untimely_combo_diagnostics(declared, declared_options, period))
     if not admitted:
@@ -970,7 +1017,83 @@ def capture_target(
             return CaptureTarget(
                 location_id=location_id, attribute_option_combo=usable[generator.randrange(len(usable))]
             )
-    raise UnusableAttributeOptionComboError(_unusable_combo_diagnostics(declared, options, len(admitted)))
+    raise UnusableAttributeOptionComboError(
+        _unusable_combo_diagnostics(declared, declared_options, options, len(admitted), period)
+    )
+
+
+def _named_combo_target(
+    declared: CaptureAttributeOptionCombos,
+    declared_options: tuple[ResolvedCoding, ...],
+    timely: tuple[ResolvedCoding, ...],
+    admitted: tuple[str, ...],
+    generator: random.Random,
+    attribute_option_combo_code: str,
+    period: PeriodValue | None,
+) -> CaptureTarget:
+    """The target a caller naming an attribute option combo gets: that combo, at a unit it is usable at.
+
+    The named combo is never swapped. Where the caller named the organisation unit too, `admitted`
+    already holds that one unit alone and this reads as "is the pair the caller asked for a pair the
+    instance accepts"; where they named only the combo, it draws among the units that may file it.
+    Each way of the combo being unusable is refused in its own words - unpublished by the form's
+    vocabulary, closed for the period, or restricted away from every unit the form admits - because
+    the three send a client to three different places.
+    """
+    chosen = _combo_named(declared, declared_options, attribute_option_combo_code)
+    if chosen not in timely:
+        raise UnusableAttributeOptionComboError(_untimely_named_combo_diagnostics(declared, chosen, period))
+    if not admitted:
+        return CaptureTarget(location_id=_shaped_uid(generator), attribute_option_combo=chosen)
+    usable = tuple(location_id for location_id in admitted if _usable_options((chosen,), declared, location_id))
+    if not usable:
+        raise UnusableAttributeOptionComboError(_unusable_named_combo_diagnostics(declared, chosen, admitted))
+    return CaptureTarget(location_id=usable[generator.randrange(len(usable))], attribute_option_combo=chosen)
+
+
+def _combo_named(
+    declared: CaptureAttributeOptionCombos,
+    declared_options: tuple[ResolvedCoding, ...],
+    attribute_option_combo_code: str,
+) -> ResolvedCoding:
+    """The concept a caller named, spelled as a bare code or behind its system and a vertical bar.
+
+    A coding on the wire is a system and a code, and a caller holding one has both - so both
+    spellings are read, and a system that is not the vocabulary's own is refused rather than
+    ignored. The code itself resolves through the tiers a submitted coding resolves through, so a
+    client holding the DHIS2 UID or the DHIS2 code of the combo names it the same way one holding
+    the published concept code does.
+    """
+    system, _, code = attribute_option_combo_code.rpartition("|")
+    if system and declared.system is not None and system != declared.system:
+        raise UnusableAttributeOptionComboError(
+            f"`{system}` is not the system this form's attribute option combos are published under "
+            f"(`{declared.system}`), so `{attribute_option_combo_code}` names no combo of this form"
+        )
+    for option in declared_options:
+        if code in (option.concept_code, option.option_uid, option.dhis2_code):
+            return option
+    raise UnusableAttributeOptionComboError(
+        f"`{code}` is none of the {len(declared_options)} attribute option combo(s) of "
+        f"`{declared.value_set}`, which is the vocabulary this form files its values under"
+    )
+
+
+def _undeclared_combo_diagnostics(
+    declared: CaptureAttributeOptionCombos | None, attribute_option_combo_code: str
+) -> str:
+    """Say why a named combo cannot be honoured on a form that publishes no vocabulary to read it against."""
+    if declared is None:
+        return (
+            f"`{attribute_option_combo_code}` names an attribute option combo, and this form declares none: "
+            f"it reports on the default category combo, so its responses are keyed by the organisation unit "
+            f"and the period alone"
+        )
+    return (
+        f"`{attribute_option_combo_code}` names an attribute option combo of `{declared.value_set}`, and this "
+        f"server publishes no readable CodeSystem behind that ValueSet - so there is nothing here to resolve "
+        f"the name against"
+    )
 
 
 def _timely_options(
@@ -1002,14 +1125,72 @@ def _usable_options(
 
 
 def _unusable_combo_diagnostics(
-    declared: CaptureAttributeOptionCombos, options: tuple[ResolvedCoding, ...], admitted_count: int
+    declared: CaptureAttributeOptionCombos,
+    declared_options: tuple[ResolvedCoding, ...],
+    timely: tuple[ResolvedCoding, ...],
+    admitted_count: int,
+    period: PeriodValue | None,
 ) -> str:
-    """Say why no draft could be written for a form whose every combo is restricted away from every unit."""
+    """Say why no draft could be written for a form none of whose combos may be filed anywhere it admits.
+
+    THE COUNT IS WHAT THE VALUESET HOLDS, NOT WHAT SURVIVED THE FIRST AXIS. The two axes close a
+    combo for different reasons and a reader looking at the picker beside this sentence is counting
+    every concept in it, so the sentence counts the same set and then says how the two axes divided
+    it. Counting the survivors of the date axis and calling them the ValueSet's would be a number
+    that disagrees with the control on the same screen.
+    """
+    closed = len(declared_options) - len(timely)
+    reported = f"period `{period.iso}`" if period is not None else "the period it reports for"
+    closed_clause = (
+        ""
+        if closed == 0
+        else (
+            f"{closed} of them is closed for the {reported} - DHIS2 opens a category option for a calendar "
+            f"window and answers a capture outside it E8032 - and "
+        )
+    )
+    restricted = "the rest are" if closed else "every one of them is"
     return (
-        f"none of the {len(options)} attribute option combo(s) of `{declared.value_set}` may be captured at any "
-        f"of the {admitted_count} organisation unit(s) this form admits: DHIS2 restricts the category options "
-        f"behind them to organisation units this project publishes none of, and refuses a capture keyed to one "
-        f"of them with E8025"
+        f"none of the {len(declared_options)} attribute option combo(s) of `{declared.value_set}` may be "
+        f"captured at any of the {admitted_count} organisation unit(s) this form admits: {closed_clause}"
+        f"{restricted} restricted to organisation units this project publishes none of, which DHIS2 "
+        f"answers with E8025"
+    )
+
+
+def _untimely_named_combo_diagnostics(
+    declared: CaptureAttributeOptionCombos, chosen: ResolvedCoding, period: PeriodValue | None
+) -> str:
+    """Say why the combo a caller named cannot be drafted for the period the response reports for."""
+    restriction = declared.restriction_for(chosen.concept_code)
+    window = f" ({restriction.window()})" if restriction is not None else ""
+    reported = f"period `{period.iso}`" if period is not None else "the period it reports for"
+    return (
+        f"attribute option combo `{chosen.concept_code}` is not open for the {reported}{window}: DHIS2 opens "
+        f"a category option for a calendar window and refuses a capture whose period the window does not "
+        f"cover entirely, with E8032"
+    )
+
+
+def _unusable_named_combo_diagnostics(
+    declared: CaptureAttributeOptionCombos, chosen: ResolvedCoding, admitted: tuple[str, ...]
+) -> str:
+    """Say why the combo a caller named may be filed at none of the organisation units in hand."""
+    restriction = declared.restriction_for(chosen.concept_code)
+    named = (
+        ""
+        if restriction is None
+        else " (" + ", ".join(f"`{ASSIGNMENT_REFERENCE_PREFIX}{list_id}`" for list_id in restriction.list_ids) + ")"
+    )
+    where = (
+        f"organisation unit `{LOCATION_RESOURCE_TYPE}/{admitted[0]}`"
+        if len(admitted) == 1
+        else f"any of the {len(admitted)} organisation unit(s) this form admits"
+    )
+    return (
+        f"attribute option combo `{chosen.concept_code}` may not be captured at {where}: DHIS2 restricts the "
+        f"category options behind it to the organisation units of its own restriction{named}, and refuses a "
+        f"capture keyed to it anywhere else with E8025"
     )
 
 

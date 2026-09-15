@@ -16,6 +16,9 @@ from dhis2w_fhir_serve.capture import (
 from dhis2w_fhir_serve.capture.index import asked_link_ids
 from dhis2w_fhir_serve.store import ResourceStore
 from fixture_project import (
+    ASSIGNED_PRESSURE_LINK_ID,
+    ASSIGNED_PRESSURE_RULE_NAME,
+    ASSIGNED_PRESSURE_RULE_UID,
     COLLECTS_INCIDENT_DATE_EXTENSION,
     COVERAGE_LINK_THRESHOLD,
     HAEMOGLOBIN_RULE_CONDITION,
@@ -244,7 +247,11 @@ def test_a_form_lists_the_program_rules_its_instance_enforces(
     """The rules are read for naming rather than for evaluating - DHIS2 evaluates its own on import."""
     index = _index(ANC_QUESTIONNAIRE, capture_indexes, capture_naming, capture_store)
 
-    assert [rule.rule_uid for rule in index.program_rules] == [HAEMOGLOBIN_RULE_UID, VISIT_ORDER_RULE_UID]
+    assert [rule.rule_uid for rule in index.program_rules] == [
+        HAEMOGLOBIN_RULE_UID,
+        VISIT_ORDER_RULE_UID,
+        ASSIGNED_PRESSURE_RULE_UID,
+    ]
     haemoglobin = index.program_rules[0]
     assert haemoglobin.name == HAEMOGLOBIN_RULE_NAME
     assert haemoglobin.description == HAEMOGLOBIN_RULE_DESCRIPTION
@@ -390,3 +397,24 @@ def test_a_body_that_is_not_a_readable_questionnaire_is_refused(
 ) -> None:
     with pytest.raises(UnreadableQuestionnaireError, match="could not be read"):
         build_capture_index({"resourceType": "Questionnaire", "item": "not a list"}, capture_naming, capture_store)
+
+
+def test_a_form_reads_which_questions_its_assign_rules_compute(
+    capture_indexes: CaptureIndexCache, capture_naming: CaptureNaming, capture_store: ResourceStore
+) -> None:
+    """An `assigns` slice names a question DHIS2 works out itself, and the index holds it by link id."""
+    index = _index(ANC_QUESTIONNAIRE, capture_indexes, capture_naming, capture_store)
+
+    assert index.assigned_link_ids() == frozenset({ASSIGNED_PRESSURE_LINK_ID})
+    assigning = index.rules_assigning(ASSIGNED_PRESSURE_LINK_ID)
+    assert [rule.name for rule in assigning] == [ASSIGNED_PRESSURE_RULE_NAME]
+    assert assigning[0].action == "ASSIGN"
+
+
+def test_a_question_no_rule_computes_is_assigned_by_none(
+    capture_indexes: CaptureIndexCache, capture_naming: CaptureNaming, capture_store: ResourceStore
+) -> None:
+    """The two rules that only warn name no question, so nothing they mention is read as computed."""
+    index = _index(ANC_QUESTIONNAIRE, capture_indexes, capture_naming, capture_store)
+
+    assert index.rules_assigning("DeAncVisNo1") == ()

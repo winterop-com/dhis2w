@@ -71,7 +71,7 @@ a receipt into DHIS2 data values, events, and enrollments is a later phase.
 from __future__ import annotations
 
 import json
-from typing import Any, Final, cast
+from typing import Any, Final, Literal, cast
 
 from dhis2w_fhir.config import CorrectionPosture, FhirProject, WithdrawalPosture
 from dhis2w_fhir.conversion.schemas import COMBO_REFUSAL_CODES, ComboRefusalCodes
@@ -125,6 +125,9 @@ mistake by the client - so the default records the drift as a warning and stores
 This constant is the single flip point for that decision; `ServeSettings.strict_codes` is the
 runtime source a request is actually validated against.
 """
+
+CapturedUnitStanding = Literal["published", "unpublished", "unchecked"]
+"""Whether the guide serves a Location for the organisation unit a capture reports from, or cannot say."""
 
 #: The status an aggregate capture has to carry. A data value set is reported for a period, not
 #: drafted against one, so a half-finished aggregate submission is not something to store as sent.
@@ -247,6 +250,14 @@ class CaptureSubject(BaseModel):
     organisation_unit_name: str | None = None
     """What the published registry calls that organisation unit, or None where it publishes no name."""
 
+    organisation_unit_standing: CapturedUnitStanding = "unchecked"
+    """Whether the guide this server holds publishes a Location for the organisation unit reported from.
+
+    Three answers rather than two, because a guide publishing no organisation-unit registry at all is
+    not a guide saying this unit is not one of its own. `unchecked` is that absence, and it is what a
+    project generated without an organisation-unit selection reports every capture under.
+    """
+
     period: str | None = None
     """The DHIS2 ISO period reported for, or None on a form that reports for no period."""
 
@@ -335,10 +346,23 @@ def _capture_subject(
         form_title=_served_title(index.canonical, store),
         organisation_unit_id=unit_id,
         organisation_unit_name=None if unit_id is None else _published_unit_name(unit_id, store),
+        organisation_unit_standing=_unit_standing(unit_id, store),
         period=_reported_period(response, naming),
         attribute_option_combo_code=None if coding is None else coding.code,
         attribute_option_combo_display=None if coding is None else coding.display,
     )
+
+
+def _unit_standing(unit_id: str | None, store: ResourceStore) -> CapturedUnitStanding:
+    """Whether this guide publishes a Location for the organisation unit a receipt names.
+
+    The receipt's own sentence turns on it. A guide that publishes a registry and not this unit is
+    saying something about the capture, and printing the bare id where a name goes would hide that
+    behind what reads as a unit whose name simply went missing.
+    """
+    if unit_id is None or not store.publishes_any(LOCATION_RESOURCE_TYPE):
+        return "unchecked"
+    return "published" if store.serves(LOCATION_RESOURCE_TYPE, unit_id) else "unpublished"
 
 
 def _served_title(canonical: str, store: ResourceStore) -> str | None:
@@ -912,16 +936,22 @@ def _assignment_issues(
     A form that publishes none is assigned everywhere, which means every organisation unit this
     server publishes - not every string shaped like a reference. So the same unit is graded against
     the served registry instead, by `_published_unit_issues`.
+
+    BOTH QUESTIONS ARE ASKED OF EVERY FORM, because they are two facts and not two spellings of one.
+    Whether this guide publishes the organisation unit at all is answered by the registry; whether
+    this form may be reported from it is answered by the assignment. A subject that is no published
+    Location is a finding on a form with a List exactly as it is on a form without one - the List
+    saying nothing about it is the point, not an excuse - so the existence question runs first and
+    the assignment question runs after it, and a subject that fails both is told both.
     """
     reported = _reported_unit(response, naming, form_kind)
     if reported.reference is None:
         return ()
+    published = _published_unit_issues(reported, naming, store, form_kind, strict=strict)
     assignment = index.assignment
-    if assignment is None:
-        return _published_unit_issues(reported, naming, store, form_kind, strict=strict)
-    if assignment.admits(reported.reference):
-        return ()
-    return (_assignment_issue(assignment, reported.reference, reported.expression, strict=strict),)
+    if assignment is None or assignment.admits(reported.reference):
+        return published
+    return (*published, _assignment_issue(assignment, reported.reference, reported.expression, strict=strict))
 
 
 def _published_unit_issues(
@@ -1360,6 +1390,8 @@ class _ItemValidator(BaseModel):
 
     def _answers(self, question: CaptureQuestion, answers: list[QuestionnaireResponseAnswer]) -> None:
         """Check the answers to one question: how many there may be, and what each one carries."""
+        if answers:
+            self._issues.extend(_assigned_question_issues(self.index, question.link_id))
         if len(answers) > 1 and not question.repeats:
             self._issues.append(
                 _error(
@@ -1675,6 +1707,32 @@ def _expression(location: object) -> str | None:
 def _item_expression(link_id: str) -> str:
     """Name one answered item as FHIRPath into the submission."""
     return f"QuestionnaireResponse.item.where(linkId='{link_id}')"
+
+
+def _assigned_question_issues(index: CaptureIndex, link_id: str) -> tuple[CaptureIssue, ...]:
+    """Note an answer sent for a question DHIS2 computes itself, which it accepts on one condition only.
+
+    A WARNING WHATEVER THE DIAL SAYS, AND NOT A REFUSAL. DHIS2 evaluates the rule on import and takes
+    the answer when it is empty or already equal to what the rule worked out - so a client that ran
+    the same arithmetic and sent the result is sending something the instance accepts, and refusing
+    it here would refuse a correct submission on a rule this server cannot evaluate. What it can do
+    is say which rule is waiting and what the instance does with a value that disagrees with it, and
+    that is what the note says. `$generate` answers such a question with nothing at all, which is the
+    only value that is accepted whatever the rule computes.
+    """
+    rules = index.rules_assigning(link_id)
+    if not rules:
+        return ()
+    named = ", ".join(f"`{rule.name}` (`{rule.rule_uid}`)" for rule in rules)
+    return (
+        _warning(
+            "business-rule",
+            _item_expression(link_id),
+            f"`{link_id}` is computed on import by the program rule {named}; DHIS2 takes an answer to it only "
+            f"when it is empty or already equal to the value the rule works out, and refuses the whole "
+            f"document with E1307 otherwise",
+        ),
+    )
 
 
 def _location_reference_issues(reference: str, naming: CaptureNaming, expression: str) -> tuple[CaptureIssue, ...]:

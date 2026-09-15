@@ -357,20 +357,25 @@ export async function readResource<T>(resourceType: string, resourceId: string):
  * response's identifier so the same call reproduces the same bytes. A UI's
  * "fill with test data" button is this one call.
  *
- * `subjectLocationId` pins the organisation unit the draft reports from. A
- * refill on a form somebody has already chosen an organisation unit on sends
- * it, so the whole context - the attribute option combo included - comes back
- * drawn at that organisation unit rather than at one the server picked.
+ * `subjectLocationId` pins the organisation unit the draft reports from and
+ * `attributeOptionComboCode` pins what it is filed under. A refill on a form
+ * somebody has already made either choice on sends the choice, so the whole
+ * context comes back drawn around it rather than around one the server picked.
+ * A pair this DHIS2 instance does not accept is refused with the reason, never
+ * swapped for one the draw preferred.
  */
 export async function generateResponse(
     questionnaireId: string,
     seed?: number,
     subjectLocationId?: string,
+    attributeOptionComboCode?: string,
 ): Promise<QuestionnaireResponse> {
     const parameters = new URLSearchParams()
     if (seed !== undefined) parameters.set('seed', String(seed))
     if (subjectLocationId !== undefined && subjectLocationId !== '')
         parameters.set('subject', `Location/${subjectLocationId}`)
+    if (attributeOptionComboCode !== undefined && attributeOptionComboCode !== '')
+        parameters.set('attributeOptionCombo', attributeOptionComboCode)
     const query = parameters.toString()
     return readJson<QuestionnaireResponse>(`/Questionnaire/${questionnaireId}/$generate${query ? `?${query}` : ''}`)
 }

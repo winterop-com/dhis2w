@@ -574,4 +574,22 @@ describe('asking the server to fill a form', () => {
 
         expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate?subject=Location%2FImspTQPwCqd')
     })
+
+    it('names the chosen attribute option combination beside the organisation unit', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC', 7, 'ImspTQPwCqd', 'XVl0bL5Bl4q')
+
+        expect(calls[0].url).toBe(
+            '/Questionnaire/lyLU2wR22tC/$generate?seed=7&subject=Location%2FImspTQPwCqd&attributeOptionCombo=XVl0bL5Bl4q',
+        )
+    })
+
+    it('names the attribute option combination on its own where nothing else was asked for', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC', undefined, undefined, 'XVl0bL5Bl4q')
+
+        expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate?attributeOptionCombo=XVl0bL5Bl4q')
+    })
 })

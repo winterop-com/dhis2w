@@ -278,6 +278,95 @@ async def test_a_form_whose_combos_are_usable_nowhere_is_not_drafted(
     assert "E8025" in outcome["issue"][0]["diagnostics"]
 
 
+#: The four concepts the fixture's combo vocabulary publishes, which is what a refusal counts.
+PUBLISHED_CONCEPTS = ("pO5CEqK6c1s", "sSeEjeQ0Rgt", "BqblOcSwGey", "oawMLLH7OjA")
+
+#: The property a concept states the end of its calendar window on, and one window already closed.
+VALID_TO_PROPERTY = "dhis2-valid-to"
+CLOSED_WINDOW_END = "2016-10-01"
+
+
+def _closed_code_system(body: dict[str, Any], *concept_codes: str) -> dict[str, Any]:
+    """The combo vocabulary with a window that has already ended on each named concept."""
+    closed = copy.deepcopy(body)
+    closed["property"] = [
+        *(closed.get("property") or []),
+        {
+            "code": VALID_TO_PROPERTY,
+            "uri": f"http://dhis2.org/fhir/property/{VALID_TO_PROPERTY}",
+            "description": "The day the calendar window this combo is open for ends.",
+            "type": "dateTime",
+        },
+    ]
+    for concept in closed.get("concept") or []:
+        if concept["code"] not in concept_codes:
+            continue
+        concept["property"] = [
+            *(concept.get("property") or []),
+            {"code": VALID_TO_PROPERTY, "valueDateTime": CLOSED_WINDOW_END},
+        ]
+    return closed
+
+
+def _dead_project(
+    project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+    *closed_concepts: str,
+) -> FhirProject:
+    """The golden project with every combo restricted to nowhere, and the named ones closed by date too."""
+    compiled = project.ig_directory / "fsh-generated" / "resources" / _CODE_SYSTEM_FILE
+    body: dict[str, Any] = json.loads(compiled.read_text(encoding="utf-8"))
+    codes = tuple(concept["code"] for concept in body.get("concept") or [])
+    write_resource(compiled, _closed_code_system(_restricted_code_system(body, *codes), *closed_concepts))
+    write_resource(
+        project.ig_directory / "input" / "resources" / "registry" / f"List-{RESTRICTION_LIST_ID}.json",
+        _restriction_list(),
+    )
+    return project
+
+
+async def test_the_refusal_counts_every_combo_the_value_set_holds(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """The count is the ValueSet's own, which is what the picker beside the sentence offers a reader.
+
+    One of the four is closed on the date axis before the unit axis is read. Counting the survivors
+    and calling them the ValueSet's would print a three under a control showing four.
+    """
+    project = _dead_project(capture_project, write_resource, "BqblOcSwGey")
+
+    async with _serving(project) as client:
+        refused = await _generate(client, ATTRIBUTE_COMBO_ID, seed=3)
+
+    diagnostics = refused.json()["issue"][0]["diagnostics"]
+
+    assert refused.status_code == 422
+    assert f"none of the {len(PUBLISHED_CONCEPTS)} attribute option combo(s)" in diagnostics
+    assert "1 of them is closed for the period" in diagnostics
+    assert "the rest are restricted to organisation units this project publishes none of" in diagnostics
+    assert "E8032" in diagnostics
+    assert "E8025" in diagnostics
+
+
+async def test_the_refusal_says_nothing_about_a_date_axis_that_closed_nothing(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Every combo is open for the period, so the sentence is about the one axis that did close them."""
+    project = _dead_project(capture_project, write_resource)
+
+    async with _serving(project) as client:
+        refused = await _generate(client, ATTRIBUTE_COMBO_ID, seed=3)
+
+    diagnostics = refused.json()["issue"][0]["diagnostics"]
+
+    assert f"none of the {len(PUBLISHED_CONCEPTS)} attribute option combo(s)" in diagnostics
+    assert "every one of them is restricted to organisation units this project publishes none of" in diagnostics
+    assert "closed for the period" not in diagnostics
+    assert "E8032" not in diagnostics
+
+
 #: The registry package a guide in registry mode names its organisation units under.
 REGISTRY_CANONICAL = "http://example.org/fhir/registry"
 

@@ -126,13 +126,25 @@ echo
 # client whose user has already chosen an organisation unit names it here, and the whole
 # context - the attribute option combo included - is drawn there, so what comes back is a
 # capture this DHIS2 instance accepts at that organisation unit rather than one that
-# replaces the choice. Named as `Location/<id>`, or as the bare UID.
+# replaces the choice. Named as `Location/<id>`, or as the bare id - whichever id the
+# served Location carries, which is the DHIS2 code under a code-stemmed guide.
 UNIT=$(curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=1" | jq -r '.subject.reference')
 curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=99&subject=${UNIT}" \
     | jq -c '.subject.reference'
 
-# An organisation unit the form is not assigned to is refused rather than swapped for one
-# that is: drafting a capture DHIS2 answers E1029 would say less than naming the rule.
+# attributeOptionCombo pins the other half of the capture key the same way - the concept
+# code the form's own ValueSet publishes, or that code behind its system and a vertical
+# bar. Naming it alone leaves the organisation unit to the draw, which then draws among
+# the units this DHIS2 instance accepts that combo at.
+COMBO=$(curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=1" \
+    | jq -r '.extension[] | select(.url | endswith("/d2-attribute-option-combo")) | .valueCoding.code')
+curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=99&attributeOptionCombo=${COMBO}" \
+    | jq -c '[.subject.reference, (.extension[] | select(.url | endswith("/d2-attribute-option-combo")) | .valueCoding.code)]'
+
+# A pin this DHIS2 instance does not accept is refused rather than swapped for one it
+# does: an organisation unit this guide publishes no Location for, one the form is not
+# assigned to (E1029), or a combo restricted away from the unit (E8025). 422, with the
+# rule that closed it in the OperationOutcome.
 curl -s -o /dev/null -w '%{http_code}\n' \
     "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?subject=Location/notaunituid"
 

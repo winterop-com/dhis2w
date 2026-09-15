@@ -164,6 +164,7 @@ RULE_NAME_SUB_EXTENSION = "name"
 RULE_DESCRIPTION_SUB_EXTENSION = "description"
 RULE_CONDITION_SUB_EXTENSION = "condition"
 RULE_ACTION_SUB_EXTENSION = "action"
+RULE_ASSIGNS_SUB_EXTENSION = "assigns"
 
 #: The two program rules the fixture's instance holds for its antenatal visit stage, exactly as the
 #: DHIS2 demo database states them: one that refuses an implausible haemoglobin reading, and one that
@@ -177,6 +178,15 @@ HAEMOGLOBIN_RULE_CONDITION = "#{DeAncVisNo1} > 99"
 VISIT_ORDER_RULE_UID = "PrRuleOrd01"
 VISIT_ORDER_RULE_NAME = "A visit is filed in the order it happened"
 VISIT_ORDER_RULE_CONDITION = "d2:hasValue(#{DeAncVisNo1})"
+
+#: The third rule of the same stage, and the one kind a submission has to be written around rather
+#: than merely told about: DHIS2 works the systolic blood pressure out itself and refuses the whole
+#: document with `E1307` unless what a client sent for it is empty or already equal to the calculated
+#: value. `assigns` is the slice that says which question it computes.
+ASSIGNED_PRESSURE_RULE_UID = "PrRuleAsg01"
+ASSIGNED_PRESSURE_RULE_NAME = "The systolic blood pressure is worked out from the visit number"
+ASSIGNED_PRESSURE_RULE_CONDITION = "true"
+ASSIGNED_PRESSURE_LINK_ID = "DeAncBpSys1"
 
 #: The sub-extensions `d2-date-labels` slices, one per date a DHIS2 program lets an instance rename.
 ENROLLMENT_DATE_LABEL_SUB_EXTENSION = "enrollmentDate"
@@ -1215,6 +1225,7 @@ def program_rule(
     condition: str,
     action: str,
     rule_description: str | None = None,
+    assigns: Sequence[str] = (),
 ) -> dict[str, Any]:
     """One `d2-program-rule` repeat: the rule a DHIS2 instance evaluates when a submission is imported."""
     sliced: list[dict[str, Any]] = [
@@ -1225,6 +1236,7 @@ def program_rule(
         sliced.append({"url": RULE_DESCRIPTION_SUB_EXTENSION, "valueString": rule_description})
     sliced.append({"url": RULE_CONDITION_SUB_EXTENSION, "valueString": condition})
     sliced.append({"url": RULE_ACTION_SUB_EXTENSION, "valueCode": action})
+    sliced.extend({"url": RULE_ASSIGNS_SUB_EXTENSION, "valueId": assigned} for assigned in assigns)
     return {"url": PROGRAM_RULE_EXTENSION, "extension": sliced}
 
 
@@ -1252,6 +1264,13 @@ def capture_questionnaire(filename: str) -> dict[str, Any]:
                 HAEMOGLOBIN_RULE_DESCRIPTION,
             ),
             program_rule(VISIT_ORDER_RULE_UID, VISIT_ORDER_RULE_NAME, VISIT_ORDER_RULE_CONDITION, "SHOWWARNING"),
+            program_rule(
+                ASSIGNED_PRESSURE_RULE_UID,
+                ASSIGNED_PRESSURE_RULE_NAME,
+                ASSIGNED_PRESSURE_RULE_CONDITION,
+                "ASSIGN",
+                assigns=[ASSIGNED_PRESSURE_LINK_ID],
+            ),
         )
         return with_item_extension(stated, "DeAncVisNo1", description(VISIT_NUMBER_DESCRIPTION))
     return resource

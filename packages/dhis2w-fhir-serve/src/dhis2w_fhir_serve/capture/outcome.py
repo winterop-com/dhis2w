@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Literal
 from dhis2w_fhir.r4 import OperationOutcome, OperationOutcomeIssue
 from pydantic import BaseModel, ConfigDict
 
+from dhis2w_fhir_serve.capture.index import LOCATION_RESOURCE_TYPE
+
 if TYPE_CHECKING:
     from dhis2w_fhir_serve.capture.validate import CaptureSubject
 
@@ -96,14 +98,31 @@ def capture_subject_sentence(subject: CaptureSubject) -> str:
     """
     clauses = [f"{_named(subject.form_title, subject.form_id)}"]
     if subject.organisation_unit_id is not None:
-        named = _named(subject.organisation_unit_name, subject.organisation_unit_id)
-        clauses.append(f"reported from organisation unit {named}")
+        clauses.append(f"reported from {_organisation_unit_clause(subject)}")
     if subject.period is not None:
         clauses.append(f"for period {subject.period}")
     if subject.attribute_option_combo_code is not None:
         named = _named(subject.attribute_option_combo_display, subject.attribute_option_combo_code)
         clauses.append(f"keyed to attribute option combo {named}")
     return ", ".join(clauses)
+
+
+def _organisation_unit_clause(subject: CaptureSubject) -> str:
+    """Name the organisation unit a receipt reports from, or say that this guide publishes none such.
+
+    THE PARENTHETICAL IS LABELLED BECAUSE IT IS NOT ALWAYS A UID. A guide naming its organisation
+    units by their DHIS2 code publishes `Location/OU-226264`, and the same parenthetical in an
+    id-stemmed guide is the DHIS2 UID - so it is written as the reference it is, and a reader holding
+    one knows which of the two they have without having to know how the guide was generated.
+
+    A unit this guide publishes no Location for gets no name because there is none to have, and
+    printing the id where a name goes would read as a unit whose name went missing rather than as
+    the finding it is. So the clause says what is true of it instead.
+    """
+    reference = f"{LOCATION_RESOURCE_TYPE}/{subject.organisation_unit_id}"
+    if subject.organisation_unit_standing == "unpublished":
+        return f"an organisation unit this guide does not publish ({reference})"
+    return f"organisation unit {_named(subject.organisation_unit_name, reference)}"
 
 
 def _named(display: str | None, identifier: str) -> str:

@@ -475,10 +475,16 @@ never travelled. Everything past this point is a **422**.
 
 ### What is always a warning
 
-Six findings are stated and stored, whatever the server's strictness dial:
+Seven findings are stated and stored, whatever the server's strictness dial:
 
 - **an ignored subject reference** - a tracker response carrying
   `subject.reference` beside its identifier;
+- **an answer to a question an `ASSIGN` program rule computes** (`E1307`) -
+  DHIS2 works the value out itself and takes what a client sent only when it is
+  empty or already equal to the calculated one. A client that ran the same
+  arithmetic is sending what the instance accepts, and this server evaluates no
+  rule and so cannot tell the two apart - so it names the rule rather than
+  refusing the document. `$generate` answers such a question with nothing;
 - **a missing incident date** where the form declares one is collected
   (`E1023`);
 - **a claimed date range that is not what the ISO period resolves to** - the
@@ -500,6 +506,10 @@ warning to 422 ([Serve the guide](201-serve.md#coded-answers-lenient-by-default)
 - a subject typed as something other than what the form is answered about;
 - an organisation unit outside the form's published assignment (`E1029`) -
   both on the envelope and on any answer carrying a reference;
+- an organisation unit this guide publishes no `Location` for - asked of every
+  form, whether or not it publishes an assignment List, because a List saying
+  nothing about a reference is not the List saying the reference names a
+  published organisation unit;
 - a response naming an attribute option combo against a form declaring no
   vocabulary;
 - a response carrying no attribute option combo against a form declaring one
@@ -527,13 +537,14 @@ and `entered-in-error` are read against `[forward] corrections` and
 `[forward] withdrawals`, which are a project's posture rather than a run's
 strictness, and a lenient facade refuses them exactly as a strict one does.
 
-**What is never checked at all**: whether the subject exists, whether a `unique`
-attribute's value is already taken, whether the Location a response names is one
-the project published, and which profile the response's `meta.profile` claims.
-The first two are global instance state, and a facade holds none; the third is
-graded on the reference's *shape* so that a project publishing no registry still
-captures; the fourth is a claim the server has no reason to trust over the
-`D2FormType` it reads instead.
+**What is never checked at all**: whether the DHIS2 instance behind the guide
+holds the organisation unit, whether a `unique` attribute's value is already
+taken, and which profile the response's `meta.profile` claims. The first two are
+global instance state, and a facade holds none; the third is a claim the server
+has no reason to trust over the `D2FormType` it reads instead. A project that
+publishes no organisation-unit registry at all states no set to check against,
+and the reference is then graded on its *shape* alone - which is the one case
+where the published-`Location` finding above cannot be raised.
 
 ## The prose half, and the examples that check it
 

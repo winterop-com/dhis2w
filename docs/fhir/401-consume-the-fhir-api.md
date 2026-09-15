@@ -1275,6 +1275,30 @@ project that published no registry at all gets a shaped UID, which the
 [capture contract](401-capture-contract.md) admits because it checks the
 reference's shape rather than its target.
 
+Two inputs beside `seed` pin what would otherwise be drawn, and neither is ever
+swapped for something the draw preferred:
+
+| Input | Spelling | What it pins |
+| --- | --- | --- |
+| `subject` | `Location/<id>`, or the bare id | The organisation unit the response reports from. The id is whatever the served `Location` carries - the DHIS2 UID under the default naming source, the organisation unit's DHIS2 code under `[generate.naming] source = "code"`. |
+| `attributeOptionCombo` | `<code>`, or `<system>\|<code>` | The attribute option combo the response is filed under, as a concept of the form's own attribute-option-combo ValueSet. |
+
+Both are read off the query (GET) or a `Parameters` body (POST), like the seed,
+and a body value wins over a query one. A client naming one leaves the other to
+the draw, and the draw then reads DHIS2's own scoping the other way round: name
+the combo alone and the organisation unit is drawn from the ones that combo may
+be filed at. A pin the instance does not accept is a 422 naming which rule
+closed it - an organisation unit this server publishes no `Location` for, one
+the form is not assigned to (`E1029`), a combo restricted away from the unit
+(`E8025`), or a combo whose calendar window the period falls outside (`E8032`).
+
+A question one of the form's `ASSIGN` program rules computes is left unanswered.
+DHIS2 works that value out on import and refuses the whole document with `E1307`
+unless what a client sent is empty or already equal to the calculated value, so
+the empty answer is the only one that is always accepted. The form declares
+which questions its rules compute, on the `assigns` slice of its
+`d2-program-rule` extension; nothing here evaluates a rule.
+
 A generated **registration** mints the tracked entity and the enrollment it
 creates, exactly as a real client does - shaped UIDs, which is what the
 [capture contract](401-capture-contract.md) checks. A generated **stage**
@@ -1488,7 +1512,7 @@ location: http://localhost:8389/QuestionnaireResponse/d78a53c1afe54f09aeb104d0fd
 content-length: 367
 content-type: application/fhir+json
 
-{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response d78a53c1afe54f09aeb104d0fd1844c2, holding Child Health (BfMAe6Itzgt), reported from organisation unit Sierra Leone (ImspTQPwCqd), for period 202608; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
+{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response d78a53c1afe54f09aeb104d0fd1844c2, holding Child Health (BfMAe6Itzgt), reported from organisation unit Sierra Leone (Location/ImspTQPwCqd), for period 202608; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
 ```
 
 Validation runs in phases, and the phase that finds an error is the last one

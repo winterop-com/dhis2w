@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from dhis2w_mcp.profile_errors import NoProfileHintMiddleware
 from dhis2w_mcp.readonly import ReadOnlyMiddleware, is_read_tool, readonly_enabled
+from dhis2w_mcp.tool_logging import quieten_tool_failures
 
 
 def build_server() -> FastMCP:
@@ -23,7 +24,12 @@ def build_server() -> FastMCP:
     `ProfileVersionMismatchError` from `resolve_profile()` rather than silently
     parsing wire payloads through the wrong schemas. The CLI does not need this
     binding because it discovers plugins fresh per invocation.
+
+    Puts a failing tool call's traceback behind debug logging first, so a routine
+    "the instance is not running" writes one line to the client's server log
+    rather than the whole transport chain - see `dhis2w_mcp.tool_logging`.
     """
+    quieten_tool_failures()
     server = FastMCP(name="dhis2")
     bound_tree = resolve_startup_version()
     bind_version_tree(bound_tree)

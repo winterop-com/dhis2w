@@ -1248,7 +1248,7 @@ describe('the attribute option combo a submission reports for', () => {
         expect(built.extension).toBeUndefined()
     })
 
-    it('takes the fresh draw on a refill, and keeps the choice when the draw states none', () => {
+    it('takes the fresh draw on a refill, and keeps the selection when the draw states none', () => {
         expect(refilledAttributeOptionCombo(chosen, attributeComboResponse)).toEqual(
             attributeOptionComboOf(attributeComboResponse),
         )
@@ -1256,6 +1256,19 @@ describe('the attribute option combo a submission reports for', () => {
             chosen,
         )
         expect(refilledAttributeOptionCombo(null, null)).toBeNull()
+    })
+
+    it('keeps a chosen combo across a refill, whatever the fresh draw states', () => {
+        const drawn = attributeOptionComboOf(attributeComboResponse)
+
+        expect(drawn).not.toEqual(chosen)
+        expect(refilledAttributeOptionCombo(chosen, attributeComboResponse, true)).toEqual(chosen)
+    })
+
+    it('takes the draw for a picker nobody has chosen in, which is where a draft opens', () => {
+        expect(refilledAttributeOptionCombo(null, attributeComboResponse, true)).toEqual(
+            attributeOptionComboOf(attributeComboResponse),
+        )
     })
 })
 

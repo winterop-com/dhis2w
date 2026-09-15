@@ -451,9 +451,15 @@ sit above the questions - both visible in the screenshot:
   and adopting that pick would make every submission nobody read claim to be
   filed under whichever project a random draw landed on. DHIS2's own capture
   app refuses to render the form at all until the combo is chosen; this is the
-  same refusal in this app's idiom. **Fill with test data** still adopts the
-  fresh draw, because that is the server proposing a whole submission rather
-  than a form waiting to be filled in.
+  same refusal in this app's idiom. Once a combo is chosen, **Fill with test
+  data** keeps it and asks the server for a draft filed under it -
+  `$generate`'s `attributeOptionCombo` input, the twin of the `subject` the
+  organisation unit beside it sends - so the refill draws *for* the choice
+  rather than over it. A combo this DHIS2 instance takes no capture under at
+  the chosen organisation unit or for the chosen period comes back as a
+  refusal naming the rule, not as a different combo in the picker. A picker
+  nobody has chosen in still adopts the fresh draw, because that is the server
+  proposing a whole submission rather than a choice being replaced.
 - On an aggregate form, the **Reporting period** the submission reports for is
   required too, and knows what to ask for: the form declares its data set's
   DHIS2 period type, so the control offers recent periods *of that type* - the

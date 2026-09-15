@@ -319,8 +319,15 @@ d2w fhir            FHIR IG generation (SUSHI/FSH + pre-built JSON, package dhis
                         $translate is answered over the published maps;
                         Questionnaire/{id}/$generate answers a served form with a
                         synthetic response postable straight back, optionally from a
-                        named seed; stored responses are receipts; the profile is
-                        the root d2w -p, resolved before the start banner)
+                        named seed, a named subject (the organisation unit, as
+                        Location/<id> in whatever spelling the guide publishes) and
+                        a named attributeOptionCombo (<code> or <system>|<code>) -
+                        a named pin is never swapped, and one this DHIS2 instance
+                        does not accept is a 422 naming the rule that closed it;
+                        a question an ASSIGN program rule computes is left
+                        unanswered (E1307) and a submitted answer to one is a
+                        warning naming the rule; stored responses are receipts; the
+                        profile is the root d2w -p, resolved before the start banner)
   forward               Drain the capture spool back into DHIS2: translate every
                         received QuestionnaireResponse into its /api/dataValueSets
                         envelope or /api/tracker event and post it. DRY RUN IS THE

@@ -1039,17 +1039,22 @@ export const NO_CAPTURE_CONTEXT: CaptureContext = {
 }
 
 /**
- * The picker's selection after "fill with test data": what the fresh draw states, else what is chosen.
+ * The picker's selection after "fill with test data": what is chosen, else what the fresh draw states.
  *
- * The other order, and for the same reason the answers are replaced wholesale - a refill is the
- * server proposing a whole submission, so its combo lands in the picker too. A draw that states no
- * combo leaves the selection alone rather than clearing it: an emptied picker would take a required
- * choice away from a person who had already made one.
+ * A CHOICE ALREADY MADE ALWAYS WINS, the rule the organisation unit beside it follows: taking a
+ * required choice away from a person who had already made one is the one outcome worse than not
+ * refilling at all. The refill asks the server for a draft drawn FOR the chosen combo -
+ * `$generate`'s `attributeOptionCombo` parameter - so the draw's own combo is the chosen one and the
+ * organisation unit beside it is one this DHIS2 instance accepts it at. `chosen` is what says a
+ * person made the choice; the draw stands where nobody has, and a draw that states no combo leaves
+ * the selection alone rather than clearing it.
  */
 export function refilledAttributeOptionCombo(
     current: Coding | null,
     envelope: QuestionnaireResponse | null,
+    chosen: boolean = false,
 ): Coding | null {
+    if (chosen && current !== null) return current
     return (envelope === null ? null : attributeOptionComboOf(envelope)) ?? current
 }
 
@@ -1112,6 +1117,10 @@ export function openedReportingUnit(
  * `subject` parameter - so the draw's own organisation unit is the chosen one and the combo beside
  * it is one the instance accepts there. `chosen` is what says a person made the choice; the draw
  * stands where nobody has.
+ *
+ * Both choices go to the server together, and the server refuses a pair this DHIS2 instance does
+ * not accept rather than quietly moving either half of it - so a refill either comes back around
+ * both choices or says why it could not.
  */
 export function refilledReportingUnit(
     current: Reference | null,

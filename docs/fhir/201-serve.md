@@ -572,19 +572,24 @@ location: http://localhost:8390/QuestionnaireResponse/9c0d30598b194aef9e1e1e8f4b
 content-length: 434
 content-type: application/fhir+json
 
-{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response 9c0d30598b194aef9e1e1e8f4bab70ec, holding Child Health (BfMAe6Itzgt), reported from organisation unit Bo (O6uvpzGd5pu), for period 202607, keyed to attribute option combo Improve access to clean water (pO5CEqK6c1s); a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
+{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response 9c0d30598b194aef9e1e1e8f4bab70ec, holding Child Health (BfMAe6Itzgt), reported from organisation unit Bo (Location/O6uvpzGd5pu), for period 202607, keyed to attribute option combo Improve access to clean water (pO5CEqK6c1s); a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
 ```
 
 `?seed=` is optional and reproducible: the same seed against the same form
 draws the same answers, so a submission that misbehaved can be asked for
 again.
 
-`?subject=Location/<id>` is optional too, and pins the organisation unit the
-draft reports from instead of leaving it to the draw. A capture client refilling
-a form somebody has already chosen an organisation unit on names it here, so the
-whole context comes back drawn there and the choice is not replaced. An
-organisation unit the form is not assigned to is refused rather than silently
-swapped for one that is.
+`?subject=Location/<id>` and `?attributeOptionCombo=<code>` are optional too,
+and pin the two halves of the capture key instead of leaving either to the
+draw. A capture client refilling a form somebody has already made a choice on
+names the choice, so the whole context comes back drawn around it. The id is
+whatever the served `Location` carries - the DHIS2 UID under the default naming
+source, the organisation unit's DHIS2 code under `[generate.naming] source =
+"code"` - and the combo is the concept code the form's own ValueSet publishes,
+optionally behind its system and a vertical bar. Neither is ever swapped: an
+organisation unit this server publishes no `Location` for, one the form is not
+assigned to, or a combo DHIS2 does not accept at that unit or for that period is
+refused with the reason.
 
 The organisation unit, the period and the attribute option combo are one draw,
 because DHIS2 grades them together. A category option is scoped to organisation
@@ -594,9 +599,18 @@ the window does not cover earns `E8032 Untimely data entry`. So `$generate`
 draws the combo from the concepts usable at the unit it drew **and** open for
 the period it reports for, and where a unit admits none it moves on to the next
 unit the form admits. A form whose every declared combo is closed to it on
-either axis is not drafted at all - the operation answers 422 saying which axis
-closed it, the way it does for a form assigned to no published organisation
-unit.
+either axis is not drafted at all - the operation answers 422 counting every
+combo the ValueSet holds and saying how many each axis closed, the way it does
+for a form assigned to no published organisation unit.
+
+A question one of the form's `ASSIGN` program rules computes is left unanswered.
+DHIS2 works that value out itself on import and takes what a client sent only
+when it is empty or already equal to the calculated one, refusing the whole
+document with `E1307` otherwise - so the empty answer is the only one that is
+always accepted, and no rule is evaluated here to look for another. A submission
+that does answer such a question is still stored, with a warning naming the rule
+and `E1307`: a client that ran the same arithmetic is sending something the
+instance accepts, and this server cannot tell the two apart.
 
 A refused capture answers with the same resource type, a different severity,
 and a FHIRPath `expression` naming where each problem is. Validation runs in

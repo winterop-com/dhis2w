@@ -30,6 +30,12 @@ Usage: #definition
 * parameter[=].max = "1"
 * parameter[=].type = #string
 * parameter[=].documentation = "{{ subject_documentation }}"
+* parameter[+].name = #{{ attribute_option_combo_parameter }}
+* parameter[=].use = #in
+* parameter[=].min = 0
+* parameter[=].max = "1"
+* parameter[=].type = #string
+* parameter[=].documentation = "{{ attribute_option_combo_documentation }}"
 * parameter[+].name = #return
 * parameter[=].use = #out
 * parameter[=].min = 1
