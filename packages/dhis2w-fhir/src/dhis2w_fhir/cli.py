@@ -74,7 +74,7 @@ if TYPE_CHECKING:
         SpoolStateReport,
         WithdrawReport,
     )
-    from dhis2w_fhir.validation.schemas import FhirValidationReport
+    from dhis2w_fhir.validation.schemas import FhirValidationReport, ValidationFinding
 
 app = typer.Typer(help="FHIR Implementation Guide generation from DHIS2 metadata.", no_args_is_help=True)
 generate_app = typer.Typer()
@@ -1829,7 +1829,7 @@ def validate_command(
     from dhis2w_fhir import REPORTS_DIRECTORY, VALIDATE_CODES_STEPS, find_project_fhir_config, service
     from dhis2w_fhir.notes import pluralize
     from dhis2w_fhir.validation.pdf import render_validation_pdf
-    from dhis2w_fhir.validation.report import display_code, render_validation_csv, render_validation_markdown
+    from dhis2w_fhir.validation.report import render_validation_csv, render_validation_markdown
 
     selected_formats = _parse_report_formats(formats)
     requested_source = code_source.value if code_source is not None else None
@@ -1912,22 +1912,12 @@ def validate_command(
         _render_finding_rollup(report)
         listed = [finding for finding in report.findings if details or finding.severity == "error"]
         if listed:
-            rows = [
-                {
-                    "severity": finding.severity,
-                    "scope": _scope_cell(finding.scope),
-                    "category": finding.category,
-                    "type": finding.resource_type,
-                    "object": f"{finding.name} ({finding.uid})",
-                    "code": display_code(finding.code),
-                    "message": _truncate(finding.message, _FINDING_MESSAGE_WIDTH),
-                }
-                for finding in listed
-            ]
+            rows = _finding_rows(listed, STDERR_CONSOLE.width)
+            columns = _fitted_finding_columns(rows, STDERR_CONSOLE.width)
             render_list(
                 "findings",
-                rows,
-                _fitted_finding_columns(rows, STDERR_CONSOLE.width),
+                _sentences_fitted(rows, columns, STDERR_CONSOLE.width),
+                columns,
                 console=STDERR_CONSOLE,
             )
         if not report.error_count:
@@ -1953,47 +1943,141 @@ def _severity_cell(value: Any) -> str:
     return f"[{_SEVERITY_STYLES.get(severity, 'default')}]{severity}[/]"
 
 
-def _scope_cell(scope: str) -> str:
+def _scope_cell(value: Any) -> str:
     """Render one scope: selection full-strength, instance dimmed, so the build path carries the weight."""
+    scope = str(value)
     return f"[dim]{scope}[/]" if scope == "instance" else scope
 
 
-#: How many characters of a finding's sentence the terminal carries. The whole of it is in the
-#: markdown and csv reports the run writes; on screen it is what tells one row's fault from the next,
-#: and a cell left unbounded takes every other column's width with it however wide the screen is.
+#: How many characters of a finding's sentence the terminal carries at its widest, and the fewest
+#: worth printing at all. The whole of it is in the markdown and csv reports the run writes; on
+#: screen it is what tells one row's fault from the next, and a cell left unbounded takes every
+#: other column's width with it however wide the screen is. Between the two the sentence takes
+#: whatever the terminal has left once every other column has what it needs, which is what makes it
+#: the cell a narrow screen shortens.
 _FINDING_MESSAGE_WIDTH = 60
+_FINDING_MESSAGE_FLOOR = 24
 
-#: The findings table's columns, in the order they are rendered. Every column carries a floor, so a
-#: terminal too narrow shortens what a cell says instead of folding it to two blank characters, and
-#: the three carrying what a reader acts on - the object, its code, and the sentence saying what it
-#: costs - end in an ellipsis rather than down the page: an 11-character UID rendered one character
-#: to a line names nothing.
+#: What one DHIS2 code carries on screen. A code is a short identifier by design, and one long
+#: enough to matter is in the reports and in `--json` - so the column is bounded rather than left to
+#: take the sentence's room.
+_FINDING_CODE_WIDTH = 20
+
+#: What the two columns the fit is worked around are headed, named once because it measures their
+#: headings as well as their cells.
+_OBJECT_COLUMN_LABEL = "Object"
+_MESSAGE_COLUMN_LABEL = "Why it matters"
+
+#: How long a DHIS2 UID is, and the three characters an Object cell spends parenthesising one.
+_UID_WIDTH = 11
+_PARENTHESISED_UID_WIDTH = len(" ()") + _UID_WIDTH
+
+#: The narrowest an Object cell is ever cut to: a DHIS2 name of `_FINDING_NAME_FLOOR` characters and
+#: the whole parenthesised UID behind it. A cell is cut on its name, never on its UID - the UID is
+#: what a reader greps the report files for and what every remedy is typed against, and a name is
+#: recognisable long before it is complete.
+_FINDING_NAME_FLOOR = 20
+_FINDING_OBJECT_WIDTH = _FINDING_NAME_FLOOR + _PARENTHESISED_UID_WIDTH
+
+#: The terminal the floors are set for: 80 columns is what a pipe gets, and the width at which the
+#: table has already given up every column it can. A wider screen spends a quarter of what it adds
+#: on the name, which is what a reader identifies a row by after its UID.
+_NARROW_TERMINAL_WIDTH = 80
+
+#: The findings table's columns, in the order they are rendered. Every cell is cut to what this
+#: terminal carries before the table is built, so the table asks for no more room than the screen
+#: has and every column renders at the width its own cells need: nothing folds down the page, and no
+#: column is squeezed to the blank stub an 11-character UID rendered one character to a line would
+#: be. The floors are what each column keeps when the fit is tight.
 _FINDING_COLUMNS: list[ColumnSpec] = [
     ColumnSpec("Severity", "severity", formatter=_severity_cell, no_wrap=True, min_width=8),
-    ColumnSpec("Scope", "scope", no_wrap=True, min_width=5),
+    ColumnSpec("Scope", "scope", formatter=_scope_cell, no_wrap=True, min_width=5),
     ColumnSpec("Category", "category", no_wrap=True, min_width=8),
     ColumnSpec("Type", "type", no_wrap=True, min_width=4),
-    ColumnSpec("Object", "object", no_wrap=True, overflow="ellipsis", min_width=24),
+    ColumnSpec(_OBJECT_COLUMN_LABEL, "object", no_wrap=True, overflow="ellipsis"),
     ColumnSpec("Code", "code", no_wrap=True, overflow="ellipsis", min_width=8),
-    ColumnSpec("Why it matters", "message", no_wrap=True, overflow="ellipsis", min_width=24),
+    ColumnSpec(_MESSAGE_COLUMN_LABEL, "message", no_wrap=True, overflow="ellipsis", min_width=_FINDING_MESSAGE_FLOOR),
 ]
 
+
 #: The finding columns a narrow terminal loses, in the order they go. The scope and the category of
-#: every finding are counted in the `findings by category` table printed above this one, and all
-#: three are in the report files and in `--json`, so what a narrow table drops is said elsewhere.
-#: What is left is what a reader acts on: how bad it is, what kind of object it is, which object,
-#: its code, and why. 80 columns is what a pipe gets.
-_DROPPED_FINDING_COLUMNS_WHEN_NARROW = ("scope", "category", "type")
+#: every finding are counted in the `findings by category` table printed above this one, and every
+#: one of the four is in the report files and in `--json`, so what a narrow table drops is said
+#: elsewhere. The code goes last of the four and only where the object and the sentence cannot both
+#: stand beside it: what a reader acts on first is how bad it is, which object, and why. 80 columns
+#: is what a pipe gets.
+_DROPPED_FINDING_COLUMNS_WHEN_NARROW = ("scope", "category", "type", "code")
+
+
+def _finding_rows(findings: list[ValidationFinding], width: int) -> list[dict[str, str]]:
+    """One table row per finding, every cell already cut to what a terminal of `width` carries."""
+    from dhis2w_fhir.validation.report import display_code
+
+    return [
+        {
+            "severity": finding.severity,
+            "scope": finding.scope,
+            "category": finding.category,
+            "type": finding.resource_type,
+            "object": _finding_object_cell(finding.name, finding.uid, width),
+            "code": _truncate(display_code(finding.code), _FINDING_CODE_WIDTH),
+            "message": _truncate(finding.message, _FINDING_MESSAGE_WIDTH),
+        }
+        for finding in findings
+    ]
 
 
 def _fitted_finding_columns(rows: list[dict[str, str]], width: int) -> list[ColumnSpec]:
-    """The widest finding column set that fits the terminal, dropping the recoverable ones until it does."""
+    """The widest finding column set that fits the terminal, dropping the recoverable ones until it does.
+
+    Measured with the sentence at its floor, because the sentence is what takes whatever the other
+    columns leave: a set is kept as soon as every other column's own cells fit beside a readable
+    fragment of it.
+    """
     columns = list(_FINDING_COLUMNS)
     for key in _DROPPED_FINDING_COLUMNS_WHEN_NARROW:
-        if _table_width(columns, rows) <= width:
+        if _finding_table_width(columns, rows) <= width:
             break
         columns = [column for column in columns if column.key != key]
     return columns
+
+
+def _sentences_fitted(rows: list[dict[str, str]], columns: list[ColumnSpec], width: int) -> list[dict[str, str]]:
+    """The same rows with each sentence cut to the room the other columns leave it on this terminal."""
+    if not any(column.key == "message" for column in columns):
+        return rows
+    taken = sum(_finding_column_width(column, rows) for column in columns if column.key != "message")
+    room = width - taken - _finding_frame_width(columns)
+    sentence = max(_FINDING_MESSAGE_FLOOR, min(_FINDING_MESSAGE_WIDTH, room))
+    return [{**row, "message": _truncate(row["message"], sentence)} for row in rows]
+
+
+def _finding_table_width(columns: list[ColumnSpec], rows: list[dict[str, str]]) -> int:
+    """How wide the findings table asks to be: every cell at its own width, the sentence at its floor."""
+    content = sum(
+        _FINDING_MESSAGE_FLOOR if column.key == "message" else _finding_column_width(column, rows) for column in columns
+    )
+    return content + _finding_frame_width(columns)
+
+
+def _finding_column_width(column: ColumnSpec, rows: list[dict[str, str]]) -> int:
+    """How wide one column's own content runs: its heading, or its longest cell where that is longer."""
+    return max([len(column.label), *(len(row[column.key]) for row in rows)])
+
+
+def _finding_frame_width(columns: list[ColumnSpec]) -> int:
+    """What Rich draws around the cells: one vertical per column plus one closing the row, and a space either side."""
+    return 3 * len(columns) + 1
+
+
+def _finding_object_cell(name: str, uid: str, width: int) -> str:
+    """One Object cell cut so the UID survives: the name gives way to a narrow terminal, the UID never does."""
+    return f"{_truncate(name, _finding_object_width(width) - _PARENTHESISED_UID_WIDTH)} ({uid})"
+
+
+def _finding_object_width(width: int) -> int:
+    """How much of one Object cell a terminal of `width` carries: the floor, plus a share of what it adds."""
+    return _FINDING_OBJECT_WIDTH + max(0, width - _NARROW_TERMINAL_WIDTH) // 4
 
 
 def _instance_dimmed(text: str, scope: str) -> str:
@@ -2602,8 +2686,12 @@ _SPOOL_CELL_WIDTH = 30
 
 
 def _truncate(text: str, width: int) -> str:
-    """One reason cut to the width a table cell has for it, with the cut marked rather than hidden."""
-    return text if len(text) <= width else f"{text[: width - 1]}..."
+    """One reason cut to the width a table cell has for it, with the cut marked rather than hidden.
+
+    The ellipsis is spent out of the width rather than added to it, so what comes back is never
+    wider than the cell it was cut for - which is what lets a caller add its own cells up.
+    """
+    return text if len(text) <= width else f"{text[: max(0, width - 3)]}..."
 
 
 def _truncate_path(path: str, width: int) -> str:

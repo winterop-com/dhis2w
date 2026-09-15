@@ -745,8 +745,10 @@ chain in one command.
   value, and the one line that answers it. It opens no connection and reads no
   profile, exits 1 on a build-aborting finding, and takes `--no-fail`, `--json`,
   and an optional project directory. `ig/input/pagecontent/**/*.md` is out of
-  scope on purpose: markdown carries HTML by design. An existing project takes
-  the gate up with one `d2w fhir init --refresh`.
+  that scan on purpose: markdown carries HTML by design. One line of it answers a
+  different question - a page carrying the generated header is how the selection
+  check knows the run it is reading finished. An existing project takes the gate
+  up with one `d2w fhir init --refresh`.
 - **The findings table reads at 80 columns**, which is what a CI log gets and
   `make build` runs this command into one. The file path is cut from the front,
   so what survives is the end that names the file; the resource and the element
@@ -1044,7 +1046,10 @@ NamingSystems declaring them, plus these extensions:
   answers one, in both formats an example lives in - the compiled JSON, and the
   FSH source it was compiled from, which is the only place a hand-authored
   example sits and the only half of the tree a project holds before `make build`
-  runs SUSHI - and the capture UI renders such a question read-only, naming the
+  runs SUSHI. The forms are read in both formats for the same reason: before a
+  compile, the questions a rule computes are on the FSH Questionnaire's own
+  `assigns` slice, which is where the scan reads them. The capture UI renders
+  such a question read-only, naming the
   rule, out of the progress count and out of the submission.
 
 #### Organisation-unit assignment
@@ -1106,8 +1111,10 @@ NamingSystems declaring them, plus these extensions:
   selection only against a tree a run finished writing: a refused run writes the
   foundation target and stops, and reading a selection off that half-written tree
   would say a UID live on the instance - the very object the run refused over -
-  is not on it. The questionnaire target is the evidence the run reached the end;
-  without it the scan says the run did not complete and grades nothing.
+  is not on it. The pages are the evidence the run reached the end - they narrate
+  what every other target wrote, so a run writes them last, and one page carrying
+  the generated header is a tree every entry may be read off. Without one the
+  scan says the run did not complete and grades nothing.
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
   dial coded answers take, and `$generate` draws its Location from it. The
@@ -1842,6 +1849,14 @@ registration form become `Questionnaire` instances.
   exists for - the examples target publishes none for it, and the page states
   that outright where it has to work against it rather than quoting a
   combination the instance answers `E8025` or `E8032` to.
+- **A walk-through only claims an assignment the run proved.** The aggregate and
+  the tracker steps quote an organisation unit only where the run placed one of
+  its own examples there, which is what says the form's DHIS2 assignment holds
+  it. Where it placed none - a tracker program assigned to organisation units
+  below the published `max_level`, say - the page writes the reference as the
+  shape it is and states the fact: this guide publishes no organisation unit the
+  form is assigned to, and DHIS2 refuses a capture from outside one with `E8022`
+  on an aggregate response and `E1029` on a tracker one.
 - **`<Type>-<id>-intro.md` intros** that the IG publisher injects into the
   matching artifact pages - one per Questionnaire, and one per option set or
   organisation unit carrying a DHIS2 description.
@@ -2075,14 +2090,19 @@ semantics `generate` uses.
   data elements, and tracked entity attributes - rather than only the six whose
   codes become identity stems. Codes stay asymmetric on purpose: a data element's
   code is a concept property the publisher escapes, so neither command gates it.
-- **`--details` degrades at 80 columns rather than folding.** The object, its
-  code, and the sentence saying what it costs carry a floor and an ellipsis; the
-  scope, the category and the resource type are dropped in that order when the
-  terminal is too narrow for them - the `findings by category` rollup above the
-  table counts the first two and the Markdown, CSV and PDF reports carry all
-  three. What is left is what a reader acts on, one line per finding: an
-  11-character UID rendered one character to a line names nothing. 80 columns is
-  what a non-TTY pipe gets.
+- **`--details` degrades at 80 columns rather than folding.** Every cell is cut
+  to what the terminal carries before the table is built, so the table asks for
+  no more room than the screen has: nothing folds down the page, nothing is
+  squeezed to a blank stub, and each row is one line. The scope, the category,
+  the resource type and the code are dropped in that order when the terminal is
+  too narrow for them - the `findings by category` rollup above the table counts
+  the first two and the Markdown, CSV and PDF reports carry all four. What is
+  left is what a reader acts on: how bad it is, which object, and why. 80 columns
+  is what a non-TTY pipe gets. The Object cell is cut on its DHIS2 name and never
+  on its UID - the UID is what a reader greps the report files for and types
+  every remedy against, and an 11-character UID rendered one character to a line
+  names nothing - and the sentence saying what a finding costs takes whatever the
+  other columns leave, which makes it the cell a narrow terminal shortens.
 - **The scope and both restrictions keep the error meaning "this build will
   fail"**: a dashboard is never generated and a data element carries its code
   through an escaped surface, so neither is a finding; `<` is the only

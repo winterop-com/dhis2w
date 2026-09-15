@@ -1279,6 +1279,62 @@ def test_validate_details_names_the_object_and_the_reason_at_eighty_columns(
     assert "name carries" in finding_row
 
 
+def _crowded_report() -> FhirValidationReport:
+    """A national instance's report: many findings, and DHIS2 names far longer than any terminal holds."""
+    return FhirValidationReport(
+        object_count=40,
+        findings=[
+            ValidationFinding(
+                severity="warning",
+                scope="selection",
+                category="spaced-code",
+                resource_type="options",
+                uid=f"Op{index:09d}",
+                name=f"Births attended by a traditional birth attendant, option {index}",
+                code=f"a rather long dhis2 code {index}",
+                message=f"code contains spaces, which is not a valid FHIR id stem ({index})",
+            )
+            for index in range(40)
+        ]
+        + [
+            ValidationFinding(
+                severity="warning",
+                scope="selection",
+                category="template-hostile-name",
+                resource_type="organisationUnits",
+                uid="Ou1aaaaaaaa",
+                name="Kids <5",
+                code="OU_K5",
+                message="name carries a character the publisher's template writes unescaped",
+            )
+        ],
+    )
+
+
+def test_validate_details_keeps_every_uid_at_eighty_columns(
+    fhir_project: Path,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The UID is what a reader greps the report files for, so it is never the half a narrow table elides.
+
+    A crowded report is what makes the point: forty findings on DHIS2 names longer than the screen,
+    which is the table at its tightest. Every row carries its whole parenthesised UID, the name in
+    front of it gives way instead, and no row runs past the terminal.
+    """
+    monkeypatch.setenv("COLUMNS", "80")
+    report = _crowded_report()
+    mock = AsyncMock(return_value=report)
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate", "--details"])
+    assert result.exit_code == 0, result.output
+    rows = [line for line in result.stderr.splitlines() if line.startswith("│")]
+    assert rows and all(len(row) <= 80 for row in rows)
+    for finding in report.findings:
+        assert any(f"({finding.uid})" in row for row in rows), f"{finding.uid} is elided on every row"
+    short = next(row for row in rows if "Ou1aaaaaaaa" in row)
+    assert "Kids <5 (Ou1aaaaaaaa)" in short
+
+
 def test_validate_no_fail_and_details(fhir_project: Path) -> None:  # noqa: ARG001
     """`--no-fail` exits 0 despite errors; `--details` lists info rows individually."""
     mock = AsyncMock(return_value=_error_report())

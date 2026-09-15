@@ -274,11 +274,14 @@ class CaptureAttributeOptionComboExample(BaseModel):
 class CaptureFormExample(BaseModel):
     """One selected form worked end to end on the capture page: its Questionnaire and some of its linkIds.
 
-    `organisation_unit_uid` is an organisation unit this very form is assigned to, so the snippet a
-    reader copies is a capture DHIS2 takes: a subject outside the form's assignment is refused with
-    `E1029`. `organisation_unit_reference` is the reference the unit's published Location is pointed
-    at by, and `organisation_unit_name` is empty when the guide read no names - a guide whose
-    registry is another package resolves the unit's stem alone.
+    `organisation_unit_uid` is the organisation unit the walk-through files its capture from.
+    `organisation_unit_assigned` says whether DHIS2 admits a capture there: the run placed one of its
+    own examples at that unit, so the form's DHIS2 assignment holds it. Where it is false the unit is
+    a fall-back the page may quote no claim about - a capture outside a form's assignment is refused
+    with `E1029` - and the page states that fact instead. `organisation_unit_reference` is the
+    reference the unit's published Location is pointed at by, and `organisation_unit_name` is empty
+    when the guide read no names - a guide whose registry is another package resolves the unit's stem
+    alone.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -293,6 +296,7 @@ class CaptureFormExample(BaseModel):
     organisation_unit_uid: str = ""
     organisation_unit_reference: str = ""
     organisation_unit_name: str = ""
+    organisation_unit_assigned: bool = False
     attribute_option_combo: CaptureAttributeOptionComboExample | None = None
     """The combination this form's capture is filed under, absent on a form riding the default category combo."""
 

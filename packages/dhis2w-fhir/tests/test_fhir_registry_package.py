@@ -28,6 +28,7 @@ from dhis2w_fhir.names import StemResolution, StemSubject
 from dhis2w_fhir.notes import GenerateNoteCategory
 from dhis2w_fhir.registry_package import RegistryMissingError
 from dhis2w_fhir.resources.examples import location_reference
+from dhis2w_fhir.resources.examples.schemas import SyntheticPlacement
 from dhis2w_fhir.resources.organisation_units import plan_organisation_unit_stems
 from dhis2w_fhir.resources.organisation_units.naming import location_profile_reference
 from dhis2w_fhir.resources.organisation_units.schemas import (
@@ -227,7 +228,15 @@ def test_the_registry_package_foundation_is_the_slice_its_instances_name() -> No
 def test_the_registry_page_of_a_depending_guide_names_the_package_and_the_capture_page_references_into_it() -> None:
     """The guide read stems alone, so its Registry page states the package and its worked reference is absolute."""
     stems = plan_organisation_unit_stems(_SUBJECTS, "id", registry=_REGISTRY)
-    build = build_page_artifacts(PagesIn(forms=[_FORM]), _REGISTRY_CONFIG, _CANONICAL, organisation_unit_stems=stems)
+    build = build_page_artifacts(
+        PagesIn(forms=[_FORM]),
+        _REGISTRY_CONFIG,
+        _CANONICAL,
+        organisation_unit_stems=stems,
+        # The run placed its own example at the root, which is what lets the page claim the form's
+        # DHIS2 assignment holds it; the reference under test is how that unit is addressed.
+        example_placements={_FORM.uid: SyntheticPlacement(organisation_unit_uids=(_ROOT.uid,))},
+    )
     pages = {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts
     }
@@ -248,7 +257,10 @@ def test_the_registry_page_of_a_depending_guide_names_the_package_and_the_captur
 def test_the_registry_page_of_an_inline_guide_still_tabulates_the_hierarchy() -> None:
     """Nothing about the inline page moved: totals, root, levels, profile pointers, relative worked reference."""
     build = build_page_artifacts(
-        PagesIn(forms=[_FORM], organisation_units=[_ROOT, _DISTRICT]), _INLINE_CONFIG, _CANONICAL
+        PagesIn(forms=[_FORM], organisation_units=[_ROOT, _DISTRICT]),
+        _INLINE_CONFIG,
+        _CANONICAL,
+        example_placements={_FORM.uid: SyntheticPlacement(organisation_unit_uids=(_ROOT.uid,))},
     )
     pages = {
         artifact.relative_path.removeprefix(f"{PAGES_DIRECTORY}/"): artifact.content for artifact in build.artifacts

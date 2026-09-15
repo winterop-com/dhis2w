@@ -270,8 +270,11 @@ The selection is graded only against a tree a run finished writing. A refused
 run - `hostile_names = "refuse"` meeting a DHIS2 name carrying `<` - writes the
 foundation target and stops, and reading a selection off that half-written tree
 would say a UID live on the instance is not on it, when that very object is what
-the run refused over. The questionnaire target is the evidence the run reached
-the end; without it the scan says the run did not complete and grades nothing.
+the run refused over. The pages are the evidence the run reached the end: they
+narrate what every other target wrote, so they are the last thing a run writes,
+and one page under `ig/input/pagecontent/` carrying the generated header is a
+tree every entry may be read off. Without one the scan says the run did not
+complete and grades nothing.
 
 The fifth is a published example answering a question the form's own
 `D2ProgramRule` extension says DHIS2 computes. A rule whose action is `#ASSIGN`
@@ -282,7 +285,10 @@ unanswered, so a finding here is a hand-authored example, or a tree an older
 run wrote. Both formats an example lives in are read - the compiled JSON, and
 the FSH source it was compiled from, which is the only place a hand-authored
 example sits, the file the remedy sends you to, and the only half of the tree a
-project holds before `make build` has run SUSHI:
+project holds before `make build` has run SUSHI. The forms are read in both
+formats for the same reason: a project before its first compile states the
+questions its rules compute on the FSH Questionnaire's own `assigns` slice, so
+the scan answers there too:
 
 ```console
 $ d2w fhir check-artifacts
