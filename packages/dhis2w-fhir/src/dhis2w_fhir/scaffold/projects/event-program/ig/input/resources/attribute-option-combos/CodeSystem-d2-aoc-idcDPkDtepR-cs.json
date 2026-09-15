@@ -14,7 +14,7 @@
   ],
   "name": "D2AOC_idcDPkDtepR_CS",
   "title": "Project",
-  "description": "DHIS2 attribute option combos of category combo Project (idcDPkDtepR). A data set on this combo keys every value it holds by one of them. Concept codes are DHIS2 category option combo UIDs.",
+  "description": "DHIS2 attribute option combos of category combo Project (idcDPkDtepR). A data set on this combo keys every value it holds by one of them, and a program on it keys every event and enrollment it files by one of them. Concept codes are DHIS2 category option combo UIDs.",
   "status": "draft",
   "experimental": true,
   "caseSensitive": true,

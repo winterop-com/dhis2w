@@ -1033,6 +1033,19 @@ NamingSystems declaring them, plus these extensions:
   category pair builds its concepts from. Carried on the `D2COC_CS`
   disaggregation vocabulary as well as on every `D2AOC` pair, so a reader
   holding "Fixed, <1y" can dig into the Fixed and the <1y it was met from.
+- **One `List` per organisation-unit-restricted category option**, named from
+  every combo concept met from it by a repeating `dhis2-organisation-units`
+  concept property valued `List/<id>`. DHIS2 scopes a category option to
+  organisation units and refuses a value keyed to a combo not usable at the unit
+  it was filed from (`E8025`), so the vocabulary publishes the scope: the List
+  holds the units of this project's registry that sit at or under one of the
+  restricted units, which settles DHIS2's descendant rule once at generate time.
+  An option every published unit already sits under narrows nothing and
+  publishes nothing; an option none of them sits under publishes an empty List,
+  which is the vocabulary saying the combo is usable nowhere here. The read is
+  scoped to the category options of the non-default attribute combos the
+  selection rides and carries the published units' `path` on the registry read
+  the run already makes, so it costs one extra request and no hierarchy walk.
 - A category outside `[generate.categories]` drops its axis with a
   selection-gap note rather than coding into a CodeSystem nobody wrote.
 - Nothing at all for a default-combo data set, because absence means the
@@ -1584,6 +1597,11 @@ registration form become `Questionnaire` instances.
   organisation unit this project publishes admits nothing on receipt, so
   `$generate` answers 422 naming that List rather than drafting a capture DHIS2
   would refuse with `E1029`.
+- **A draft names its organisation unit the way the guide's own documents do**:
+  the relative `Location/<id>` where the guide publishes its own registry, the
+  absolute `<registry canonical>/Location/<id>` where a package publishes it.
+  Both post, so what decides it is which spelling a client copying a draft
+  should learn.
 - **Serving, forwarding and checking a depending guide** all find the units
   through one resolver (`dhis2w_fhir.registry_package`): the checkout
   `[generate.organisation_units.registry] path` names, then a `package.tgz` or
@@ -2521,6 +2539,13 @@ in phases that stop at the first level to find an error.
   combo named against a form declaring none grades the same way, because it
   would be stored and silently not written. A coding from another system or
   with no code is refused under either setting.
+- **And the same dial grades where that combo may be filed.** A concept
+  carrying a `dhis2-organisation-units` restriction is usable only at the
+  organisation units every List it names holds, which is DHIS2's own rule for a
+  category option scoped to organisation units; a response filed outside it
+  warns and refuses under `--strict-codes`, in the shape an organisation unit
+  outside the form's assignment is told in and naming the `E8025` the write
+  would earn.
 
 #### Receipts and the spool
 

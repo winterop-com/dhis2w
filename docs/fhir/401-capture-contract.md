@@ -150,6 +150,22 @@ earns `E1055 Default AttributeOptionCombo is not allowed as Program has
 non-default CategoryCombo`. A form of such a program that published no
 vocabulary would be a form nothing could be submitted through.
 
+### Which units a combo may be captured at is per-concept
+
+DHIS2 scopes a category option to organisation units, and a category option
+combo is usable at a unit only where every option composing it is. So a data set
+assigned to the national root still earns `E8025 Attribute option combo ... not
+usable with org unit(s)` for a value keyed to a combo whose options name only
+facilities.
+
+The vocabulary publishes that scope: each combo concept carries one
+`dhis2-organisation-units` property per restricted category option it is met
+from, naming a `List` of the Locations that option admits. A concept naming no
+List is usable wherever the form itself is. The server reads it in both
+directions - `$generate` draws a combo usable at the unit it drew, and a
+received response filed at a unit outside the restriction is graded on the dial
+an organisation unit outside the form's assignment is graded on.
+
 ## `status` is the completeness claim
 
 `QuestionnaireResponse.status` is `1..1` on every one of the five profiles, and
@@ -471,6 +487,8 @@ warning to 422 ([Serve the guide](201-serve.md#coded-answers-lenient-by-default)
   vocabulary;
 - a response carrying no attribute option combo against a form declaring one
   (`E8023` on a data set, `E1055` on a program);
+- a response filed under a combo outside its published organisation-unit
+  restriction (`E8025` on a data value set);
 - a coded answer whose code is in none of the served terminology.
 
 Under strict, the fall-back tiers are switched off too: only the concept code

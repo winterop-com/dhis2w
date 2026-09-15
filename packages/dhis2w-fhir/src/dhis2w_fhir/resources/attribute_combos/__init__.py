@@ -18,6 +18,12 @@ is not the default one.** A default-combo form publishes nothing, its Questionna
 means the default combo, which is what a consumer already assumed. One pair serves every form on
 the same combo, data sets and programs alike, because the pair is the combo's and not the form's.
 
+A pair states one more thing about itself: where each of its concepts may be captured. DHIS2 scopes
+a category option to organisation units, and a combo is usable at a unit only where every option
+composing it is, so each concept names one restriction `List` per restricted option it is met from
+(`dhis2w_fhir.resources.attribute_combos.restrictions`). A concept naming none is usable wherever
+the form itself is.
+
 The pair takes its own naming token (`AOC`) rather than the data dictionary's `COC`. Both
 vocabularies are category option combos, but they answer different questions in different
 places: `D2COC_CS` codes the disaggregation cells of a question, and `D2AOC_<stem>_VS` codes
@@ -52,6 +58,7 @@ from dhis2w_fhir.names import (
 from dhis2w_fhir.r4 import (
     CodeSystem,
     CodeSystemConcept,
+    CodeSystemConceptProperty,
     CodeSystemProperty,
     ConceptMap,
     ConceptMapGroup,
@@ -63,7 +70,15 @@ from dhis2w_fhir.r4 import (
     ValueSetCompose,
     ValueSetInclude,
 )
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    AttributeOptionRestrictionPlan,
+    AttributeOptionRestrictions,
+    attribute_option_restriction_declaration,
+    build_attribute_option_restriction_artifacts,
+)
 from dhis2w_fhir.resources.attribute_combos.schemas import (
+    ATTRIBUTE_COMBO_DIRECTORY,
     AttributeComboIdentity,
     AttributeComboIdentityPlan,
     AttributeComboIn,
@@ -91,7 +106,9 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ATTRIBUTE_COMBO_DIRECTORY",
+    "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
     "AttributeComboBuild",
+    "AttributeOptionRestrictions",
     "attribute_combo_concept_map_file_prefix",
     "attribute_combo_fsh_name",
     "attribute_combo_identities",
@@ -102,9 +119,6 @@ __all__ = [
     "build_attribute_combo_identifier_artifacts",
     "max_attribute_combo_slug_length",
 ]
-
-#: The `ig/input/resources/` subdirectory the attribute-combo pairs own outright - one JSON file per resource.
-ATTRIBUTE_COMBO_DIRECTORY = "attribute-option-combos"
 
 # The longest emitted id is `<id-stem><slug>-cs`/`-vs`, so the slug is bounded against the
 # actual stem and the FHIR id limit.
@@ -160,6 +174,41 @@ class _AttributeComboSystems(BaseModel):
     def concept_map_url(self, concept_map_id: str) -> str:
         """Canonical URL of one emitted ConceptMap."""
         return concept_map_canonical(self.canonical, concept_map_id)
+
+
+class _ConceptProperties(BaseModel):
+    """Every extra property each attribute option combo concept carries, resolved once for the whole run.
+
+    The category axes the combo decomposes over first, then the organisation-unit restrictions its
+    options carry: what the combo *is*, then where it may be captured.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    properties: dict[str, list[CodeSystemConceptProperty]] = Field(default_factory=dict)
+
+    @classmethod
+    def compose(
+        cls,
+        combos: list[AttributeComboIn],
+        decomposition: CategoryDecomposition | None,
+        restrictions: AttributeOptionRestrictionPlan | None,
+    ) -> _ConceptProperties:
+        """Resolve both sources against every attribute option combo the run publishes a concept for."""
+        member_uids = sorted({option.uid for combo in combos for option in combo.options})
+        decomposed = {} if decomposition is None else {uid: decomposition.properties_for(uid) for uid in member_uids}
+        restricted = {} if restrictions is None else {uid: restrictions.properties_for(uid) for uid in member_uids}
+        return cls(
+            properties={
+                uid: [*decomposed.get(uid, []), *restricted.get(uid, [])]
+                for uid in member_uids
+                if decomposed.get(uid) or restricted.get(uid)
+            }
+        )
+
+    def properties_for(self, member_uid: str) -> list[CodeSystemConceptProperty]:
+        """The extra properties one attribute option combo concept carries, or none where it carries none."""
+        return self.properties.get(member_uid, [])
 
 
 class _AttributeComboPair(BaseModel):
@@ -269,6 +318,7 @@ def build_attribute_combo_artifacts(
     *,
     ig_status: IgStatus,
     decomposition: CategoryDecomposition | None = None,
+    restrictions: AttributeOptionRestrictions | None = None,
 ) -> AttributeComboBuild:
     """Build one CodeSystem/ValueSet pair per non-default attribute combo, plus the per-form plan.
 
@@ -279,12 +329,25 @@ def build_attribute_combo_artifacts(
     `decomposition` states what each attribute option combo is composed of, so every concept
     carries one `Coding`-valued property per category axis into that category's own CodeSystem.
     A caller that only wants the plan passes none and the concepts state their own code alone.
+
+    `restrictions` states which organisation units DHIS2 scopes each attribute category option to,
+    which the run publishes as one List per restricted option and names from every concept met from
+    it. A caller passing none publishes no restriction, which reads as a vocabulary usable at every
+    published unit - so the fetch belongs with every run that publishes a served vocabulary.
     """
     build = AttributeComboBuild()
     combos = attribute_combo_sources(sources)
     systems = _AttributeComboSystems.from_config(config, canonical)
     plan = attribute_combo_identities(combos, config)
     by_uid = {combo.uid: combo for combo in combos}
+    restriction_build = (
+        build_attribute_option_restriction_artifacts(sources, restrictions, id_stem=_id_stem(config))
+        if restrictions is not None
+        else None
+    )
+    properties = _ConceptProperties.compose(
+        combos, decomposition, restriction_build.plan if restriction_build is not None else None
+    )
     for identity in plan.identities:
         pair = _build_pair(
             by_uid[identity.uid],
@@ -294,6 +357,7 @@ def build_attribute_combo_artifacts(
             build.notes,
             ig_status=ig_status,
             decomposition=decomposition,
+            properties=properties,
         )
         build.artifacts.append(
             _json_artifact(ATTRIBUTE_COMBO_DIRECTORY, f"CodeSystem-{identity.code_system_id}", pair.code_system)
@@ -301,6 +365,9 @@ def build_attribute_combo_artifacts(
         build.artifacts.append(
             _json_artifact(ATTRIBUTE_COMBO_DIRECTORY, f"ValueSet-{identity.value_set_id}", pair.value_set)
         )
+    if restriction_build is not None:
+        build.artifacts.extend(restriction_build.artifacts)
+        build.notes.extend(restriction_build.notes)
     build.notes.extend(plan.notes)
     build.plan = _combo_plan(sources, plan)
     return build
@@ -408,9 +475,10 @@ def _build_pair(
     *,
     ig_status: IgStatus,
     decomposition: CategoryDecomposition | None = None,
+    properties: _ConceptProperties,
 ) -> _AttributeComboPair:
     """Build the CodeSystem and the ValueSet of one attribute combo, reporting what assignment raised."""
-    concepts = build_concepts(combo, config, notes, member_properties=decomposition)
+    concepts = build_concepts(combo, config, notes, member_properties=properties)
     narrative = _narrative(combo, config, systems, ig_status=ig_status)
     code_system_url = systems.code_system_url(identity.code_system_id)
     code_system = CodeSystem(
@@ -463,7 +531,8 @@ def _narrative(
         title_element=translated_element(name_translations(combo.translations, config.locales)),
         description=flatten_whitespace(
             f"DHIS2 attribute option combos of category combo {combo.name} ({combo.uid}). A data set on this "
-            f"combo keys every value it holds by one of them. Concept codes are DHIS2 {code_kind}."
+            f"combo keys every value it holds by one of them, and a program on it keys every event and "
+            f"enrollment it files by one of them. Concept codes are DHIS2 {code_kind}."
         ),
         status=ig_status,
         experimental=experimental_for_status(ig_status),
@@ -544,8 +613,9 @@ def _declarations(
 ) -> list[CodeSystemProperty]:
     """The CodeSystem-level declaration of every concept property the emitted concepts actually carry.
 
-    The DHIS2 identifier pair first, then one declaration per category axis the combo decomposes
-    over, each carrying that category's name so the vocabulary alone names its own axes.
+    The DHIS2 identifier pair first, then the organisation-unit restriction, then one declaration
+    per category axis the combo decomposes over, each carrying that category's name so the
+    vocabulary alone names its own axes.
     """
     carried = {
         concept_property.code
@@ -558,6 +628,8 @@ def _declarations(
         for declaration in _PROPERTY_DECLARATIONS
         if declaration.code in carried
     ]
+    if ATTRIBUTE_OPTION_RESTRICTION_PROPERTY in carried:
+        declarations.append(attribute_option_restriction_declaration(systems.property_base))
     if decomposition is not None:
         declarations.extend(decomposition.declarations_for(carried))
     return declarations

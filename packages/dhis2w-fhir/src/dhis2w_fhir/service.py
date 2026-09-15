@@ -92,10 +92,15 @@ from dhis2w_fhir.resources.administrative_gender import (
 )
 from dhis2w_fhir.resources.attribute_combos import (
     ATTRIBUTE_COMBO_DIRECTORY,
+    AttributeOptionRestrictions,
     attribute_combo_concept_map_file_prefix,
     build_attribute_combo_artifacts,
     build_attribute_combo_concept_map_artifacts,
     build_attribute_combo_identifier_artifacts,
+)
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    OrganisationUnitPaths,
+    restricted_category_option_uids,
 )
 from dhis2w_fhir.resources.categories import (
     CATEGORY_DIRECTORY,
@@ -252,6 +257,7 @@ if TYPE_CHECKING:
     from dhis2w_client.generated.v43.schemas import (
         Attribute,
         Category,
+        CategoryOption,
         DataElement,
         DataSet,
         DataSetElement,
@@ -1851,7 +1857,10 @@ async def generate_questionnaires(
         # refusal names this target's own offenders rather than the registry's.
         stem_plan = plan_questionnaire_stems(sources, config.naming.source)
         assignments = await fetch_assignment_index(client, sources)
-        published_organisation_unit_stems = await _fetch_published_organisation_unit_stems(client, config)
+        published = await _fetch_published_organisation_units(client, config)
+        restrictions = await fetch_attribute_option_restrictions(
+            client, sources, published=published.stems, units=published.paths
+        )
     progress.complete(f"{len(sources):,} questionnaire target(s)")
     return _emit_questionnaires(
         project,
@@ -1862,7 +1871,8 @@ async def generate_questionnaires(
         categories=categories,
         stem_plan=stem_plan,
         assignments=assignments,
-        published_organisation_unit_stems=published_organisation_unit_stems,
+        published_organisation_unit_stems=published.stems,
+        attribute_option_restrictions=restrictions,
         notes=notes,
         progress=progress,
     )
@@ -1879,6 +1889,7 @@ def _emit_questionnaires(
     stem_plan: QuestionnaireStemPlan,
     assignments: AssignmentIndex,
     published_organisation_unit_stems: StemResolution,
+    attribute_option_restrictions: AttributeOptionRestrictions,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> GenerateReport:
@@ -1915,7 +1926,12 @@ def _emit_questionnaires(
     )
     decomposition = build_category_decomposition(sources, categories, generate, canonical)
     attribute_combo_build = build_attribute_combo_artifacts(
-        sources, generate, canonical, ig_status=ig_status, decomposition=decomposition
+        sources,
+        generate,
+        canonical,
+        ig_status=ig_status,
+        decomposition=decomposition,
+        restrictions=attribute_option_restrictions,
     )
     concept_maps = build_attribute_combo_concept_map_artifacts(sources, generate, canonical, ig_status=ig_status)
     build = build_questionnaire_artifacts(
@@ -2049,7 +2065,7 @@ async def generate_examples(
         sources = screening.screen(sources, notes)
         option_sets = screening.screen(option_sets, notes)
         option_set_plan = await _fetch_option_set_identity_plan(client, config, sources, screening)
-        organisation_unit_stems = await _fetch_published_organisation_unit_stems(client, config)
+        organisation_unit_stems = (await _fetch_published_organisation_units(client, config)).stems
         progress.complete(f"{len(sources):,} questionnaire target(s), {len(option_sets):,} bound option set(s)")
         return await _emit_examples(
             client,
@@ -2208,7 +2224,7 @@ async def generate_load_set(
         sources = await _fetch_questionnaire_sources(client, config, notes)
         option_sets = await _fetch_example_option_sets(client, sources)
         option_set_plan = await _fetch_option_set_identity_plan(client, config, sources, HostileNameGate())
-        organisation_unit_stems = await _fetch_published_organisation_unit_stems(client, config)
+        organisation_unit_stems = (await _fetch_published_organisation_units(client, config)).stems
         capture_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
         assignments = await _fetch_load_set_assignments(client, sources)
     progress.complete(f"{len(sources):,} questionnaire target(s)")
@@ -2970,25 +2986,73 @@ async def _fetch_published_organisation_unit_uids(client: Dhis2Client, config: G
     return frozenset(model.id for model in models if model.id)
 
 
-async def _fetch_published_organisation_unit_stems(client: Dhis2Client, config: GenerateConfig) -> StemResolution:
-    """Resolve the registry selection's identity stems off a light id/code/name read.
+class PublishedOrganisationUnits(BaseModel):
+    """The registry selection read light: the stems its units are published under, and where each one sits."""
+
+    model_config = ConfigDict(frozen=True)
+
+    stems: StemResolution
+    paths: OrganisationUnitPaths = Field(default_factory=OrganisationUnitPaths)
+    """Each published unit's DHIS2 `path`, which is what settles whether a restricted option admits it."""
+
+
+async def _fetch_published_organisation_units(
+    client: Dhis2Client, config: GenerateConfig
+) -> PublishedOrganisationUnits:
+    """Resolve the registry selection's identity stems and hierarchy off one light read.
 
     The same selection filters the registry walk applies, in a projection carrying only what stem
-    resolution reads, and resolved through the very `plan_organisation_unit_stems` call the
-    registry resolves through - so the examples and load-set targets reference exactly the
-    Location ids the registry writes without repeating its full hierarchy walk. The resolution's
-    keys double as the published-unit set, and its fall-back notes belong to the registry
-    target's report rather than to the caller's.
+    resolution reads plus the unit's own `path`, and resolved through the very
+    `plan_organisation_unit_stems` call the registry resolves through - so the examples and load-set
+    targets reference exactly the Location ids the registry writes without repeating its full
+    hierarchy walk. The resolution's keys double as the published-unit set, and its fall-back notes
+    belong to the registry target's report rather than to the caller's.
+
+    The `path` rides the same read rather than a second one: it is one short string per unit, and it
+    is what decides whether an organisation-unit-restricted category option admits a published unit.
     """
     models: list[OrganisationUnit] = await client.resources.organisation_units.list(
-        fields="id,code,name",
+        fields="id,code,name,path",
         filters=_organisation_unit_selection_filters(config) or None,
         paging=False,
     )
     subjects = [
         StemSubject(uid=model.id, code=model.code, label=model.name or model.id) for model in models if model.id
     ]
-    return plan_organisation_unit_stems(subjects, config.naming.source, registry=config.organisation_units.registry)
+    return PublishedOrganisationUnits(
+        stems=plan_organisation_unit_stems(subjects, config.naming.source, registry=config.organisation_units.registry),
+        paths=OrganisationUnitPaths(paths={model.id: model.path for model in models if model.id and model.path}),
+    )
+
+
+async def fetch_attribute_option_restrictions(
+    client: Dhis2Client,
+    sources: list[QuestionnaireSourceIn],
+    *,
+    published: StemResolution,
+    units: OrganisationUnitPaths,
+) -> AttributeOptionRestrictions:
+    """Read which organisation units DHIS2 restricts each attribute category option of the selection to.
+
+    Scoped to the category options composing the non-default attribute combos the selection rides,
+    so the read is proportional to the vocabularies the run publishes rather than to every category
+    option the instance holds. A selection riding only default combos publishes no vocabulary and
+    reads nothing.
+    """
+    option_uids = restricted_category_option_uids(sources)
+    if not option_uids:
+        return AttributeOptionRestrictions(published=published, units=units)
+    models: list[CategoryOption] = await client.resources.category_options.list(
+        fields="id,organisationUnits[id]",
+        filters=[f"id:in:[{','.join(option_uids)}]"],
+        paging=False,
+    )
+    organisation_units = {
+        model.id: frozenset(_reference_uid_list(model.organisationUnits))
+        for model in models
+        if model.id and model.organisationUnits
+    }
+    return AttributeOptionRestrictions(organisation_units=organisation_units, published=published, units=units)
 
 
 def _registry_scale_notes(organisation_unit_count: int) -> list[GenerateNote]:
@@ -3031,7 +3095,7 @@ async def generate_organisation_units(
     if registry is not None:
         progress.step(_FETCH_LABEL, "fetching the published organisation-unit stems")
         async with _instance_connection(profile, client) as client:
-            stems = await _fetch_published_organisation_unit_stems(client, project.config.generate)
+            stems = (await _fetch_published_organisation_units(client, project.config.generate)).stems
         progress.complete(f"{len(stems.stems):,} organisation unit(s) published by {registry.id}")
         return _emit_organisation_unit_dependency(project, registry, stems=stems, notes=[], progress=progress)
     progress.step(_FETCH_LABEL, "fetching organisation units")
@@ -3259,7 +3323,7 @@ async def generate_pages(
         else:
             # The units are another package's; the guide reads the stems its references follow.
             organisation_units = []
-            published_stems = await _fetch_published_organisation_unit_stems(client, config)
+            published_stems = (await _fetch_published_organisation_units(client, config)).stems
     option_sets = _selected_option_sets([_option_set_input(model) for model in models], sources, config, notes)
     screening.decide(sources, option_sets, organisation_units)
     sources = screening.screen(sources, notes)
@@ -3421,6 +3485,7 @@ async def generate_full(
             stem_plan=inputs.questionnaire_stems,
             assignments=inputs.assignments,
             published_organisation_unit_stems=inputs.organisation_unit_stems,
+            attribute_option_restrictions=inputs.attribute_option_restrictions,
             notes=list(inputs.source_notes),
             progress=progress,
         )
@@ -3592,6 +3657,9 @@ class LiveIgInputs(BaseModel):
     assignments: AssignmentIndex = Field(default_factory=AssignmentIndex)
     """The organisation units each selected data set and program is assigned to, read id-only."""
 
+    attribute_option_restrictions: AttributeOptionRestrictions = Field(default_factory=AttributeOptionRestrictions)
+    """Which organisation units DHIS2 restricts each attribute category option of the selection to."""
+
     # W-2: identity-stem plans for the questionnaire and org-unit surfaces, resolved once per fetch.
     questionnaire_stems: QuestionnaireStemPlan
     organisation_unit_stems: StemResolution
@@ -3656,12 +3724,12 @@ async def fetch_live_ig_inputs(
     if read_organisation_units:
         organisation_units = await _fetch_organisation_units(client, config, tally, today, steps)
         level_rows = await _fetch_organisation_unit_levels(client)
-        published_stems: StemResolution | None = None
+        published: PublishedOrganisationUnits | None = None
     else:
         steps.tick("reading the published organisation-unit stems")
         organisation_units = []
         level_rows = []
-        published_stems = await _fetch_published_organisation_unit_stems(client, config)
+        published = await _fetch_published_organisation_units(client, config)
     geometry_notes = tally.to_notes()
     # The one screening a full run takes: the answer is settled over every projection at once, so
     # a run that asks states the whole instance read's count, and each projection then carries its
@@ -3677,12 +3745,17 @@ async def fetch_live_ig_inputs(
     attribute_codes = await resolve_attribute_code_index(client)
     steps.tick("reading the organisation-unit assignments")
     assignments = await fetch_assignment_index(client, sources)
+    organisation_unit_paths = (
+        OrganisationUnitPaths(paths={unit.uid: unit.path for unit in organisation_units})
+        if published is None
+        else published.paths
+    )
     # W-2: the identity stems resolve at the fetch/plan level, so a `source = "code"` refusal
     # raises here - before any target writes a file - and every consumer reads one resolution.
     questionnaire_stems = plan_questionnaire_stems(sources, config.naming.source)
     organisation_unit_stems = (
-        published_stems
-        if published_stems is not None
+        published.stems
+        if published is not None
         else plan_organisation_unit_stems(
             organisation_unit_stem_subjects(organisation_units),
             config.naming.source,
@@ -3698,6 +3771,9 @@ async def fetch_live_ig_inputs(
         organisation_unit_levels=organisation_unit_levels,
         attribute_codes=attribute_codes,
         assignments=assignments,
+        attribute_option_restrictions=await fetch_attribute_option_restrictions(
+            client, sources, published=organisation_unit_stems, units=organisation_unit_paths
+        ),
         questionnaire_stems=questionnaire_stems,
         organisation_unit_stems=organisation_unit_stems,
         notes=[*source_notes, *option_set_notes, *category_notes, *geometry_notes],
@@ -3764,7 +3840,12 @@ async def fetch_live_artifacts(
     )
     decomposition = build_category_decomposition(inputs.sources, inputs.categories, config, canonical)
     attribute_combos = build_attribute_combo_artifacts(
-        inputs.sources, config, canonical, ig_status=ig_status, decomposition=decomposition
+        inputs.sources,
+        config,
+        canonical,
+        ig_status=ig_status,
+        decomposition=decomposition,
+        restrictions=inputs.attribute_option_restrictions,
     )
     questionnaires = build_questionnaire_documents(
         inputs.sources,

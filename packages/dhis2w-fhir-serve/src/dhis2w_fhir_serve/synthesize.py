@@ -29,7 +29,12 @@ own capture path accepts.
 
 The organisation unit a response reports for is part of the seeded draw, not a fixture: the same
 seed names the same unit and different seeds range over the whole admitted set - the form's
-published assignment where it has one, the served registry where it does not. And a `unique`
+published assignment where it has one, the served registry where it does not. The unit and the
+attribute option combo are one draw rather than two, because DHIS2 scopes a category option to
+organisation units and refuses a capture keyed to a combo not usable at the unit it was filed from
+(`E8025`): the combo is drawn from the concepts the published restriction admits at the unit that
+was drawn, and a form whose every combo is restricted away from every unit it admits is refused by
+name rather than drafted. And a `unique`
 tracked entity attribute is never answered with a constant: DHIS2 refuses the second registration
 carrying a repeated unique value with `E1064`, so the answer embeds the response's own minted
 tracked-entity UID - the one value no other generated registration holds - through the same rule
@@ -103,6 +108,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr, ValidationError
 from dhis2w_fhir_serve.capture.index import (
     ASSIGNMENT_REFERENCE_PREFIX,
     QUESTIONNAIRE_RESOURCE_TYPE,
+    CaptureAttributeOptionCombos,
     CaptureIndex,
     CaptureQuestion,
     asked_link_ids,
@@ -195,12 +201,20 @@ def draw_seed() -> int:
     return random.randrange(MAXIMUM_SEED + 1)  # noqa: S311 - a reproducibility handle, not a secret
 
 
-class UnreportableAssignmentError(LookupError):
-    """Raised when a form's published assignment names no organisation unit a response could report from."""
+class UngeneratableCaptureError(LookupError):
+    """Raised when a served form admits no draft this server could write, carrying why it does not."""
 
     def __init__(self, diagnostics: str) -> None:
         super().__init__(diagnostics)
         self.diagnostics = diagnostics
+
+
+class UnreportableAssignmentError(UngeneratableCaptureError):
+    """Raised when a form's published assignment names no organisation unit a response could report from."""
+
+
+class UnusableAttributeOptionComboError(UngeneratableCaptureError):
+    """Raised when no attribute option combo the form declares may be captured at any unit it admits."""
 
 
 class DateWindow(BaseModel):
@@ -247,16 +261,29 @@ def generate_response(
     """
     period = _reporting_period(index, today) if index.form_kind == "aggregate" else None
     window = DateWindow.of_period(period) if period is not None else DateWindow.recent(today)
+    resolvers = CodingResolverSet(store=store)
+    target = capture_target(index, store, resolvers, seed)
     generator = _Generator(
         index=index,
         naming=naming,
-        resolvers=CodingResolverSet(store=store),
+        resolvers=resolvers,
         seed=seed,
         window=window,
-        location_id=_capture_location_id(index, store, seed),
+        location_id=target.location_id,
+        attribute_option_combo=target.attribute_option_combo,
         adopted_pair=adopted_tracker_pair(index, naming, store, spool),
     )
     return generator.build(questionnaire, period)
+
+
+class CaptureTarget(BaseModel):
+    """What a generated response is captured against: the organisation unit, and the combo it is filed under."""
+
+    model_config = ConfigDict(frozen=True)
+
+    location_id: str
+    attribute_option_combo: ResolvedCoding | None = None
+    """The concept drawn out of the form's declared vocabulary, or None where the form declares none."""
 
 
 class TrackerPair(BaseModel):
@@ -331,6 +358,9 @@ class _Generator(BaseModel):
     seed: int
     window: DateWindow
     location_id: str
+    attribute_option_combo: ResolvedCoding | None = None
+    """The concept the response is filed under - usable at `location_id`, or None on a default-combo form."""
+
     adopted_pair: TrackerPair | None = None
     """The spooled registration's pair a generated stage response answers against, or None to mint one."""
 
@@ -416,7 +446,7 @@ class _Generator(BaseModel):
             extensions.append(
                 Extension(
                     url=self.naming.organisation_unit_url,
-                    valueReference=Reference(reference=f"{LOCATION_RESOURCE_TYPE}/{self.location_id}"),
+                    valueReference=Reference(reference=self.naming.location_reference(self.location_id)),
                 )
             )
             if tracker.enrollment_uid is not None:
@@ -439,21 +469,20 @@ class _Generator(BaseModel):
         return extensions
 
     def _attribute_option_combo(self) -> tuple[Extension, ...]:
-        """The combo a submission is filed under, drawn from the vocabulary the form declares - or nothing.
+        """The combo a submission is filed under, as the capture target drew it - or nothing.
 
         A data set or program on the default category combo declares none and its responses carry
-        none, which is what the capture contract expects of them. Where a vocabulary is declared
-        the concept is a real one of the published CodeSystem, carried in the spelling the contract asks for, so a
-        `--strict-codes` server accepts the response its own `$generate` produced. A declared
-        vocabulary this project never published leaves the extension off: inventing a code would
-        make the server warn about its own output, exactly as an unpublished `answerValueSet` does.
+        none, which is what the capture contract expects of them. Where a vocabulary is declared the
+        concept is a real one of the published CodeSystem, carried in the spelling the contract asks
+        for, so a `--strict-codes` server accepts the response its own `$generate` produced. A
+        declared vocabulary this project never published leaves the extension off: inventing a code
+        would make the server warn about its own output, exactly as an unpublished `answerValueSet` does.
         """
         declared = self.index.attribute_option_combos
-        resolver = self.resolvers.for_system(declared.system) if declared and declared.system else None
-        if declared is None or declared.system is None or resolver is None or not resolver.options:
+        if declared is None or declared.system is None or self.attribute_option_combo is None:
             return ()
-        drawn = resolver.options[self._random.randrange(len(resolver.options))]
-        return (Extension(url=self.naming.attribute_option_combo_url, valueCoding=_coding(declared.system, drawn)),)
+        coding = _coding(declared.system, self.attribute_option_combo)
+        return (Extension(url=self.naming.attribute_option_combo_url, valueCoding=coding),)
 
     def _subject(self, tracker: _TrackerContext | None) -> Reference:
         """Who the response is about: the tracked entity of a tracker response, else the reporting unit.
@@ -467,7 +496,7 @@ class _Generator(BaseModel):
                 type=self.index.subject_type,
                 identifier=Identifier(system=self.naming.tracked_entity_system, value=tracker.tracked_entity_uid),
             )
-        return Reference(reference=f"{LOCATION_RESOURCE_TYPE}/{self.location_id}")
+        return Reference(reference=self.naming.location_reference(self.location_id))
 
     def _items(self, items: list[QuestionnaireItem], unique_token: str | None) -> list[QuestionnaireResponseItem]:
         """Mirror the form's item tree in document order, keeping only the branches an asked answer reaches.
@@ -847,24 +876,38 @@ def resolve_period_type(index: CaptureIndex) -> str:
     return index.period_type or DEFAULT_PERIOD_TYPE
 
 
-def _capture_location_id(index: CaptureIndex, store: ResourceStore, seed: int) -> str:
-    """The Location a generated response reports for: a seeded draw across the units the form admits.
+def capture_target(
+    index: CaptureIndex,
+    store: ResourceStore,
+    resolvers: CodingResolverSet,
+    seed: int,
+) -> CaptureTarget:
+    """Where a generated response reports from and what it is filed under - one seeded draw over both.
 
-    The admitted set is the form's published assignment where it has one - a generated response is
-    meant to be postable straight back, and DHIS2 refuses a capture outside the assignment with
-    `E1029` - intersected with the served registry so the drawn unit really exists (the whole
-    assignment stands when the store serves none of it). A form publishing no assignment draws
-    across the whole served registry. The unit is part of the seed's draw like every other value:
-    the same seed names the same unit, and different seeds range over the whole admitted set.
+    The two facts are drawn together because DHIS2 grades them together. The admitted set of units
+    is the form's published assignment where it has one - a generated response is meant to be
+    postable straight back, and DHIS2 refuses a capture outside the assignment with `E1029` -
+    intersected with the served registry so the drawn unit really exists (the whole assignment
+    stands when the store serves none of it). A form publishing no assignment draws across the whole
+    served registry. On top of that, a category option behind an attribute option combo is itself
+    scoped to organisation units, and DHIS2 refuses a capture keyed to a combo not usable at the
+    unit with `E8025` - so the combo is drawn from the concepts usable at the unit that was drawn,
+    and where that unit admits none the draw moves on to the next admitted unit rather than writing
+    a draft the instance would refuse.
 
-    The one form that gets no draw at all is the one whose assignment names no organisation unit
-    this project publishes, because the two halves of the same rule have to agree: such a form
-    admits nothing on receipt, so drawing it a unit would be drafting the very capture the facade
-    then warns about and DHIS2 refuses with `E1029`. It is refused instead, by name.
+    Both draws are the seed's: the same seed names the same unit and the same combo, and different
+    seeds range over the whole admitted set of pairs.
+
+    The two forms that get no draw at all are refused by name. One is the form whose assignment
+    names no organisation unit this project publishes, because the two halves of the same rule have
+    to agree: such a form admits nothing on receipt, so drawing it a unit would be drafting the very
+    capture the facade then warns about. The other is the form no admitted unit may file any of its
+    declared combos at, which is the same refusal one axis over.
 
     A store publishing no registry at all (a project generated without an organisation-unit
     selection) is a different absence, and it falls back to a seeded UID, which the capture contract
-    admits because it checks the reference's shape rather than its target.
+    admits because it checks the reference's shape rather than its target. Nothing is known about
+    where such a unit sits, so the combo is drawn from the whole declared vocabulary.
     """
     assignment = index.assignment
     if assignment is not None and not assignment.location_ids:
@@ -874,9 +917,47 @@ def _capture_location_id(index: CaptureIndex, store: ResourceStore, seed: int) -
         )
     admitted = _admitted_location_ids(index, store)
     generator = random.Random(seed)  # noqa: S311 - a reproducibility handle, not a secret
-    if admitted:
-        return admitted[generator.randrange(len(admitted))]
-    return _shaped_uid(generator)
+    declared = index.attribute_option_combos
+    resolver = resolvers.for_system(declared.system) if declared is not None and declared.system else None
+    options = resolver.options if resolver is not None else ()
+    if not admitted:
+        drawn = options[generator.randrange(len(options))] if options else None
+        return CaptureTarget(location_id=_shaped_uid(generator), attribute_option_combo=drawn)
+    opened = generator.randrange(len(admitted))
+    if declared is None or not options:
+        return CaptureTarget(location_id=admitted[opened])
+    for offset in range(len(admitted)):
+        location_id = admitted[(opened + offset) % len(admitted)]
+        usable = _usable_options(options, declared, location_id)
+        if usable:
+            return CaptureTarget(
+                location_id=location_id, attribute_option_combo=usable[generator.randrange(len(usable))]
+            )
+    raise UnusableAttributeOptionComboError(_unusable_combo_diagnostics(declared, options, len(admitted)))
+
+
+def _usable_options(
+    options: tuple[ResolvedCoding, ...], declared: CaptureAttributeOptionCombos, location_id: str
+) -> tuple[ResolvedCoding, ...]:
+    """The concepts of the declared vocabulary a capture at this organisation unit may be filed under."""
+    reference = f"{LOCATION_RESOURCE_TYPE}/{location_id}"
+    return tuple(
+        option
+        for option in options
+        if (restriction := declared.restriction_for(option.concept_code)) is None or restriction.admits(reference)
+    )
+
+
+def _unusable_combo_diagnostics(
+    declared: CaptureAttributeOptionCombos, options: tuple[ResolvedCoding, ...], admitted_count: int
+) -> str:
+    """Say why no draft could be written for a form whose every combo is restricted away from every unit."""
+    return (
+        f"none of the {len(options)} attribute option combo(s) of `{declared.value_set}` may be captured at any "
+        f"of the {admitted_count} organisation unit(s) this form admits: DHIS2 restricts the category options "
+        f"behind them to organisation units this project publishes none of, and refuses a capture keyed to one "
+        f"of them with E8025"
+    )
 
 
 def _admitted_location_ids(index: CaptureIndex, store: ResourceStore) -> tuple[str, ...]:

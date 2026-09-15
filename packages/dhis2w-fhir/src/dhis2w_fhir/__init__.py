@@ -306,7 +306,9 @@ from dhis2w_fhir.resources.administrative_gender import (
 )
 from dhis2w_fhir.resources.attribute_combos import (
     ATTRIBUTE_COMBO_DIRECTORY,
+    ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
     AttributeComboBuild,
+    AttributeOptionRestrictions,
     attribute_combo_concept_map_file_prefix,
     attribute_combo_fsh_name,
     attribute_combo_identities,
@@ -769,6 +771,7 @@ __all__ = [
     "attribute_combo_identities",
     "attribute_combo_sources",
     "ATTRIBUTE_ID_SUB_EXTENSION",
+    "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
     "ATTRIBUTE_VALUE_CONTEXT_RESOURCE_TYPES",
     "attribute_value_extension_url",
     "attribute_value_extensions",
@@ -779,6 +782,7 @@ __all__ = [
     "AttributeComboIdentityPlan",
     "AttributeComboIn",
     "AttributeComboPlan",
+    "AttributeOptionRestrictions",
     "AttributeValueIn",
     "BASEMAP_DISABLED",
     "basemaps_from_options",

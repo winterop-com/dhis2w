@@ -1447,7 +1447,7 @@ async def test_the_solo_target_reads_the_registry_selection_the_location_guard_c
         if call.request.url.params.get("filter") == "level:le:2"
     ]
     assert len(selection) == 1
-    assert selection[0]["fields"] == "id,code,name"
+    assert selection[0]["fields"] == "id,code,name,path"
     assert selection[0]["paging"] == "false"
 
 

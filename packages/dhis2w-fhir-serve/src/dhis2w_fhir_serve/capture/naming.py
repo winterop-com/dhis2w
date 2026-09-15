@@ -114,6 +114,20 @@ class CaptureNaming(BaseModel):
         """Where this project's organisation units are published - the registry package's canonical, or its own."""
         return self.organisation_unit_authorities[-1] if self.organisation_unit_authorities else ""
 
+    def location_reference(self, location_id: str) -> str:
+        """The reference this project's own documents name one organisation unit by.
+
+        A guide publishing its own registry names a unit by the relative `Location/<id>` a
+        same-package reader resolves; a guide whose registry a separate package publishes names it
+        by the absolute `<registry canonical>/Location/<id>`, because a relative reference does not
+        resolve across an implementation-guide package dependency. It is the rule the generated
+        examples are written under, so a generated draft shows a client the spelling the guide's own
+        documents use rather than a second one that happens to post.
+        """
+        if len(self.organisation_unit_authorities) < 2:
+            return f"{LOCATION_REFERENCE_PREFIX}{location_id}"
+        return f"{self.organisation_unit_authority}/{LOCATION_REFERENCE_PREFIX}{location_id}"
+
     def location_id_named(self, reference: str) -> str | None:
         """The unit a response reference names, or None when this project publishes no unit it could name.
 
