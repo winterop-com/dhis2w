@@ -24,8 +24,8 @@ its own project, in its own throwaway directory, and cleans up after itself.
 - find out whether the guide you already published still describes the instance
 
 ```bash
-d2w -p myserver fhir doctor           # the whole chain, one verdict
-d2w -p myserver fhir doctor --live    # and let the instance judge the output
+d2w fhir doctor -p myserver           # the whole chain, one verdict
+d2w fhir doctor -p myserver --live    # and let the instance judge the output
 cd my-guide && d2w fhir doctor    # and check that guide for drift as well
 ```
 
@@ -358,17 +358,19 @@ it re-reads a seeded sample rather than the instance.
 | (none) | Drift has no flag. It runs whenever the working directory sits in a project, and is skipped with a reason when it does not. |
 | `--no-progress` | Do not narrate each phase as it completes. |
 
-The instance and the JSON output both come from root flags, exactly as they
-do for every other `d2w` command - there is no doctor-local `--profile` and
-no doctor-local `--json`:
+The instance comes from `--profile/-p` on the command, from the root `-p`, or
+from `DHIS2_PROFILE`, whichever is given - the command's own flag wins. The JSON
+output is a root flag, as it is for every other `d2w` command:
 
 ```bash
-d2w -p myserver fhir doctor
+d2w fhir doctor -p myserver             # the profile on the command itself
+d2w -p myserver fhir doctor             # or on the root, as every command takes it
 DHIS2_PROFILE=myserver d2w fhir doctor
-d2w --json -p myserver fhir doctor      # the typed report on stdout, narration on stderr
+d2w --json fhir doctor -p myserver      # the typed report on stdout, narration on stderr
 ```
 
-One instance per run, named the same way everywhere.
+One instance per run, named whichever of the three ways suits the shell you are
+writing.
 
 The narration is one `[k/10]` line per phase as it completes, which is the
 form a redirected log wants:

@@ -266,6 +266,41 @@ token = "d2p_test"
     assert (tmp_path / "reports" / "fhir-doctor-report.md").exists()
 
 
+@respx.mock
+def test_the_doctor_takes_the_profile_on_its_own_command_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`-p` on the subcommand, as its siblings take it - the asymmetry is what produces a failed first try."""
+    config_dir = tmp_path / ".config" / "dhis2"
+    config_dir.mkdir(parents=True)
+    (config_dir / "profiles.toml").write_text(
+        f"""
+default = "elsewhere"
+
+[profiles.elsewhere]
+base_url = "https://elsewhere.example"
+auth = "pat"
+token = "d2p_elsewhere"
+
+[profiles.named]
+base_url = "{_BASE_URL}"
+auth = "pat"
+token = "d2p_test"
+"""
+    )
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config_dir.parent))
+    monkeypatch.delenv("DHIS2_PROFILE", raising=False)
+    monkeypatch.chdir(tmp_path)
+    dialled = respx.get(f"{_BASE_URL}/api/system/info").mock(
+        return_value=httpx.Response(401, json={"message": "Unauthorized"})
+    )
+
+    result = _runner.invoke(build_app(), ["fhir", "doctor", "--no-progress", "-p", "named"])
+
+    assert result.exit_code == 1
+    assert dialled.called
+    assert "named" in result.output
+
+
 #: A whole small instance, in the shapes the generate reads project. One data set, one event program,
 #: one option set, one category, and a two-level registry - enough that every phase after connect has
 #: something real to do, and small enough that the whole run is a couple of seconds.

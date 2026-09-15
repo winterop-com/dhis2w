@@ -149,11 +149,14 @@ def _invoke(arguments: list[str], report: ForwardReport) -> tuple[Any, AsyncMock
     return result, mock
 
 
-def test_a_bare_run_is_a_dry_run_and_says_so_twice(forward_project: Path) -> None:
-    """The mode opens and closes the output, and the table names it too - nothing reads as an import.
+def test_a_bare_run_is_a_dry_run_and_says_so_once_under_the_counts(forward_project: Path) -> None:
+    """The summary's mode row names the posture and one closing banner explains it - nothing reads as an import.
 
     A bare run states no posture at all - the flag is absent, so `[forward] import` decides, which
     is `False` until a project says otherwise - and what the run renders is the report it got back.
+
+    The banner is printed once. Twice is the same forty words above and below the table a reader is
+    trying to read, and the second copy says nothing the first did not.
 
     The run holds a rejection DHIS2 named, which is what makes it exit 1.
     """
@@ -161,9 +164,10 @@ def test_a_bare_run_is_a_dry_run_and_says_so_twice(forward_project: Path) -> Non
     assert result.exit_code == 1, result.output
     assert mock.await_args is not None
     assert mock.await_args.kwargs["import_responses"] is None
-    assert result.output.count("DRY RUN") >= 3
+    assert result.output.count("--import to commit") == 1
+    assert "DRY RUN (validate only)" in result.output
     assert "validate-only" in result.output
-    assert "--import to commit" in result.output
+    assert result.output.index("DRY RUN (validate only)") < result.output.index("--import to commit")
 
 
 def test_the_summary_carries_every_count_the_run_produced(forward_project: Path) -> None:

@@ -255,7 +255,14 @@ class CapturePeriodExample(BaseModel):
 
 
 class CaptureFormExample(BaseModel):
-    """One selected form worked end to end on the capture page: its Questionnaire and some of its linkIds."""
+    """One selected form worked end to end on the capture page: its Questionnaire and some of its linkIds.
+
+    `organisation_unit_uid` is an organisation unit this very form is assigned to, so the snippet a
+    reader copies is a capture DHIS2 takes: a subject outside the form's assignment is refused with
+    `E1029`. `organisation_unit_reference` is the reference the unit's published Location is pointed
+    at by, and `organisation_unit_name` is empty when the guide read no names - a guide whose
+    registry is another package resolves the unit's stem alone.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -266,6 +273,9 @@ class CaptureFormExample(BaseModel):
     subject_type: str = DEFAULT_SUBJECT_RESOURCE_TYPE
     period: CapturePeriodExample | None = None
     links: list[CaptureLinkRow] = Field(default_factory=list)
+    organisation_unit_uid: str = ""
+    organisation_unit_reference: str = ""
+    organisation_unit_name: str = ""
 
 
 class EventStatusRow(BaseModel):
@@ -291,10 +301,8 @@ class ValueLiteralRow(BaseModel):
 class CaptureView(BaseModel):
     """The capture page: the three response contracts, one worked example each, and the answer typing rules.
 
-    `organisation_unit_reference` is the reference the worked unit's published Location is
-    pointed at by, while `organisation_unit_uid` stays the DHIS2 id the prose cites as data.
-    `organisation_unit_name` is empty when the guide read no names - a guide whose registry is
-    another package resolves the unit's stem alone.
+    Each worked example carries the organisation unit its own walk-through files from, because the
+    unit a capture is accepted at is a fact about the form rather than about the guide.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -319,9 +327,6 @@ class CaptureView(BaseModel):
     capture_server: str
     capture_server_id: str
     location_profile: str
-    organisation_unit_uid: str
-    organisation_unit_reference: str
-    organisation_unit_name: str
     tracker_subject_type: str = DEFAULT_SUBJECT_RESOURCE_TYPE
     """The resource type the worked tracker walkthrough names its subject as.
 

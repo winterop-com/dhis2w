@@ -580,7 +580,12 @@ from dhis2w_fhir.resources.questionnaires.schemas import (
     unmapped_tracked_entity_type_notes,
 )
 from dhis2w_fhir.scaffold import build_scaffold_files
-from dhis2w_fhir.scaffold.refresh import preserves_every_line, read_project_scaffold_state, refresh_project
+from dhis2w_fhir.scaffold.refresh import (
+    preserves_every_line,
+    read_project_scaffold_state,
+    refresh_project,
+    settings_lines,
+)
 from dhis2w_fhir.scaffold.schemas import (
     DEFAULT_SUSHI_TIMEOUT_SECONDS,
     InitOptions,
@@ -1332,6 +1337,7 @@ __all__ = [
     "served_identity",
     "ServedIdentity",
     "ServeJwtConfig",
+    "settings_lines",
     "SeverityBreakdown",
     "SITE_PAGE_FILENAMES",
     "source_description",

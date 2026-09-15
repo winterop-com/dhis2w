@@ -61,16 +61,19 @@ organisation unit the values were captured at, and the profile restricts it to
 `{{ capture.location_profile }}`. Every published unit has one; see
 [Registry](registry.html) for the hierarchy and its identifiers.
 
-{% if capture.organisation_unit_uid %}
+{% if capture.aggregate is not none and capture.aggregate.organisation_unit_uid %}
 ```
-"subject": { "reference": "{{ capture.organisation_unit_reference }}" }
+"subject": { "reference": "{{ capture.aggregate.organisation_unit_reference }}" }
 ```
 
-{% if capture.organisation_unit_name %}
-Written out, that is {{ capture.organisation_unit_name }} (`{{ capture.organisation_unit_uid }}`).
+{% if capture.aggregate.organisation_unit_name %}
+Written out, that is {{ capture.aggregate.organisation_unit_name }}
+(`{{ capture.aggregate.organisation_unit_uid }}`), an organisation unit
+**{{ capture.aggregate.name }}** is assigned to - DHIS2 refuses a capture filed from anywhere else.
 
 {% else %}
-That is the DHIS2 organisation unit `{{ capture.organisation_unit_uid }}`.
+That is the DHIS2 organisation unit `{{ capture.aggregate.organisation_unit_uid }}`, one
+**{{ capture.aggregate.name }}** is assigned to - DHIS2 refuses a capture filed from anywhere else.
 
 {% endif %}
 {% endif %}
@@ -197,14 +200,25 @@ tracker enrollment the event belongs to, as the enrollment UID:
 the event was captured at rides on the `{{ capture.organisation_unit_extension }}` extension, as
 a reference to that unit's `{{ capture.location_profile }}`:
 
-{% if capture.organisation_unit_uid %}
+{% if capture.tracker_event is not none and capture.tracker_event.organisation_unit_uid %}
 ```
 "extension": [{
   "url": "{{ capture.canonical }}/StructureDefinition/{{ capture.organisation_unit_extension_id }}",
-  "valueReference": { "reference": "{{ capture.organisation_unit_reference }}" }
+  "valueReference": { "reference": "{{ capture.tracker_event.organisation_unit_reference }}" }
 }]
 ```
 
+{% if capture.tracker_event.organisation_unit_name %}
+Written out, that is {{ capture.tracker_event.organisation_unit_name }}
+(`{{ capture.tracker_event.organisation_unit_uid }}`), an organisation unit the program behind
+**{{ capture.tracker_event.name }}** is assigned to - DHIS2 refuses an event filed from anywhere else.
+
+{% else %}
+That is the DHIS2 organisation unit `{{ capture.tracker_event.organisation_unit_uid }}`, one the
+program behind **{{ capture.tracker_event.name }}** is assigned to - DHIS2 refuses an event filed
+from anywhere else.
+
+{% endif %}
 {% endif %}
 A client obtains both UIDs from DHIS2 itself - `d2w data tracker enrollment list` lists the
 enrollments of a program and the tracked entity each one registers - and resolving them is

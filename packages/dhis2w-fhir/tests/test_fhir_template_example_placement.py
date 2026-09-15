@@ -7,10 +7,16 @@ unit its own form is not assigned to, or keyed to an attribute option combo DHIS
 that organisation unit, is a template that teaches a capture the instance refuses - `E1029` on the
 assignment axis, `E8025` on the combo axis.
 
-Regenerating a payload needs a DHIS2 instance; catching one that drifted must not. Both facts are
-published in the payload itself - the form's assignment List, and one restriction List per restricted
-category option of the combo vocabulary - so this reads the shipped bytes and needs no connection.
-`projects/README.md` says how to regenerate when it fails.
+A tracker corpus has a third rule of the same kind: a stage example answers one enrollment, and only
+a registration example of the same template creates one. DHIS2 refuses an event naming an enrollment
+nothing creates with `E1313`, and the program mismatch behind it with `E1079`. And the capture page
+is the one place in a guide that teaches a reader to build a capture by hand, so the organisation
+unit it quotes is graded exactly as an example's is.
+
+Regenerating a payload needs a DHIS2 instance; catching one that drifted must not. Every fact is
+published in the payload itself - the form's assignment List, one restriction List per restricted
+category option of the combo vocabulary, and the enrollment each example names - so this reads the
+shipped bytes and needs no connection. `projects/README.md` says how to regenerate when it fails.
 """
 
 from __future__ import annotations
@@ -143,3 +149,74 @@ def test_every_bundled_example_is_keyed_to_a_combo_usable_at_its_own_unit(templa
             )
         checked += 1
     assert checked, f"{template.name} publishes no example on a non-default category combo"
+
+
+#: The enrollment a tracker example names, and the tracked entity it belongs to. A registration example
+#: creates the pair; a stage example answers into one the same template created, or into nothing at all.
+_EXAMPLE_ENROLLMENT = re.compile(
+    r'^\* extension\[D2TrackerEnrollment\]\.valueIdentifier\.value = "(?P<enrollment>[^"]+)"$', re.MULTILINE
+)
+
+#: What kind of DHIS2 form one example answers, as the response's own D2FormType code states it.
+_EXAMPLE_FORM_TYPE = re.compile(r"^\* extension\[D2FormType\]\.valueCode = #(?P<kind>\S+)$", re.MULTILINE)
+
+#: The organisation unit the capture page works its aggregate steps against, in the snippet a reader copies.
+_CAPTURE_PAGE_SUBJECT = re.compile(r'^"subject": \{ "reference": "(?P<reference>[^"]+)" \}$', re.MULTILINE)
+
+#: The DHIS2 UID of the form the capture page's aggregate walk-through is worked against.
+_CAPTURE_PAGE_FORM = re.compile(r"^The steps are worked against \*\*.+\*\* \(`(?P<uid>[^`]+)`\)\.$", re.MULTILINE)
+
+
+def _examples_by_kind(root: Path) -> dict[str, list[str]]:
+    """Every published example's FSH, grouped by the DHIS2 form kind its D2FormType states."""
+    grouped: dict[str, list[str]] = {}
+    for path in sorted((root / "fsh/examples").glob("*.fsh")):
+        example = path.read_text(encoding="utf-8")
+        kind = _EXAMPLE_FORM_TYPE.search(example)
+        if kind is not None:
+            grouped.setdefault(kind.group("kind"), []).append(example)
+    return grouped
+
+
+@pytest.mark.parametrize("template", BUNDLED, ids=lambda template: template.name)
+def test_every_bundled_stage_example_answers_an_enrollment_a_registration_example_creates(
+    template: Any,  # noqa: ANN401
+) -> None:
+    """DHIS2 refuses an event naming an enrollment nothing creates with E1313, and the program with E1079."""
+    grouped = _examples_by_kind(_payload_root(template.name))
+    created = {
+        match.group("enrollment")
+        for example in grouped.get("tracker", [])
+        if (match := _EXAMPLE_ENROLLMENT.search(example)) is not None
+    }
+    checked = 0
+    for example in grouped.get("tracker-event", []):
+        answered = _EXAMPLE_ENROLLMENT.search(example)
+        assert answered is not None, f"{template.name}: a stage example names no enrollment at all"
+        assert answered.group("enrollment") in created, (
+            f"{template.name}: a stage example answers enrollment {answered.group('enrollment')}, "
+            f"which no registration example of this template creates"
+        )
+        checked += 1
+    if grouped.get("tracker-event"):
+        assert checked, f"{template.name} publishes no stage example to grade"
+
+
+@pytest.mark.parametrize("template", BUNDLED, ids=lambda template: template.name)
+def test_the_capture_page_of_every_bundled_template_teaches_an_assigned_organisation_unit(
+    template: Any,  # noqa: ANN401
+) -> None:
+    """The page is where a reader is taught to build a capture, so the unit it quotes is one DHIS2 admits."""
+    root = _payload_root(template.name)
+    page = (root / "pagecontent/capture.md").read_text(encoding="utf-8")
+    worked_form = _CAPTURE_PAGE_FORM.search(page)
+    subject = _CAPTURE_PAGE_SUBJECT.search(page)
+    assert worked_form is not None, f"{template.name}: capture.md works no form through the aggregate steps"
+    assert subject is not None, f"{template.name}: capture.md quotes no subject for a reader to copy"
+    declared = _FORM_ASSIGNMENT.search(_form_sources(root).get(worked_form.group("uid"), ""))
+    assert declared is not None, f"{template.name}: the worked form declares no assignment List"
+    members = _list_members(_documents(root / "resources" / ASSIGNMENT_DIRECTORY))[declared.group("list")]
+    assert subject.group("reference") in members, (
+        f"{template.name}: capture.md files from {subject.group('reference')}, which "
+        f"{declared.group('list')} does not hold"
+    )

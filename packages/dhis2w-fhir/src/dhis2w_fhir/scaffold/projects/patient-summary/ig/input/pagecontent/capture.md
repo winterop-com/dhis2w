@@ -54,10 +54,12 @@ organisation unit the values were captured at, and the profile restricts it to
 [Registry](registry.html) for the hierarchy and its identifiers.
 
 ```
-"subject": { "reference": "Location/qhqAxPSTUXp" }
+"subject": { "reference": "Location/ADeZNq1pKsu" }
 ```
 
-Written out, that is Koinadugu (`qhqAxPSTUXp`).
+Written out, that is Durukoro MCHP
+(`ADeZNq1pKsu`), an organisation unit
+**EPI Stock** is assigned to - DHIS2 refuses a capture filed from anywhere else.
 
 **5. Answer one item per `linkId`.** The response mirrors the Questionnaire's item tree, and
 every question is addressed by the `linkId` the Questionnaire gave it. There are exactly two
@@ -169,9 +171,13 @@ a reference to that unit's `D2Location`:
 ```
 "extension": [{
   "url": "http://example.org/fhir/examples/patient-summary/StructureDefinition/d2-organisation-unit",
-  "valueReference": { "reference": "Location/qhqAxPSTUXp" }
+  "valueReference": { "reference": "Location/ADeZNq1pKsu" }
 }]
 ```
+
+Written out, that is Durukoro MCHP
+(`ADeZNq1pKsu`), an organisation unit the program behind
+**Child Programme - Baby Postnatal** is assigned to - DHIS2 refuses an event filed from anywhere else.
 
 A client obtains both UIDs from DHIS2 itself - `d2w data tracker enrollment list` lists the
 enrollments of a program and the tracked entity each one registers - and resolving them is

@@ -100,6 +100,11 @@ line the render produces plus lines of its own is `extended`, and one that is
 neither holds lines the current scaffold does not write and is `diverged`. Both
 are left byte-identical, and `diverged` names no author, because a line the user
 wrote and a scaffold line that has since changed look the same from here.
+`fhir.example.toml` goes through the same three outcomes on a projection of
+itself: `settings_lines` drops every comment and blank line, so the ladder
+grades the keys a reader sets rather than the prose the scaffold writes about
+them. That is what separates a render of an older release - whose settings are
+identical and whose sentences are not - from a file somebody edited.
 `fhir.toml` is skipped before any comparison - it is the user's
 configuration, not a scaffold-managed file. The identity lines sit outside
 `preserves_every_line` altogether: `scaffold/identity.py` keeps a registry of

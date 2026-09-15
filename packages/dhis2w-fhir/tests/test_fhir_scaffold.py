@@ -1340,11 +1340,55 @@ def test_refresh_lands_the_identity_in_the_example_and_keeps_an_option_the_proje
 
     report = refresh_project(tmp_path)
 
-    assert "fhir.example.toml" in report.refreshed_files
+    # A key the project set is a line of its own, so the file is kept and the identity lands on it.
+    assert "fhir.example.toml" in report.refreshed_with_additions_files
     written = example.read_text(encoding="utf-8")
     assert 'profile = "hmis"\n' in written
     assert 'title = "Sierra Leone HMIS FHIR Guide"\n' in written
     assert 'name = "OpenStreetMap"\n' in written
+
+
+def _reword_example_prose(directory: Path) -> str:
+    """Rewrite every comment of `fhir.example.toml`, the way a release's prose pass rewrites them.
+
+    What an older release's render looks like from here: the same tables and the same keys under
+    sentences this scaffold no longer writes, and not one line anybody edited.
+    """
+    example = directory / "fhir.example.toml"
+    reworded = "\n".join(
+        f"# an older release said this about {line.lstrip('# ').split(' ')[0]}"
+        if line.lstrip().startswith("#")
+        else line
+        for line in example.read_text(encoding="utf-8").splitlines()
+    )
+    example.write_text(f"{reworded}\n", encoding="utf-8")
+    return reworded
+
+
+def test_refresh_reads_an_older_releases_example_as_a_render_of_the_scaffold(tmp_path: Path) -> None:
+    """Prose the scaffold re-worded between releases is the scaffold's own, not an edit to blame on a reader."""
+    _write_project(tmp_path)
+    _reword_example_prose(tmp_path)
+
+    report = refresh_project(tmp_path)
+
+    assert "fhir.example.toml" in report.refreshed_files
+    assert "fhir.example.toml" not in report.diverged_files
+    written = (tmp_path / "fhir.example.toml").read_text(encoding="utf-8")
+    assert "an older release said this about" not in written
+    assert written == _by_path()["fhir.example.toml"]
+
+
+def test_refresh_keeps_an_example_whose_settings_the_project_changed(tmp_path: Path) -> None:
+    """A value somebody set is theirs, whatever the prose around it says, so the ladder keeps the file."""
+    _write_project(tmp_path)
+    example = tmp_path / "fhir.example.toml"
+    example.write_text(example.read_text(encoding="utf-8").replace("enabled = false", "enabled = true"), "utf-8")
+
+    report = refresh_project(tmp_path)
+
+    assert "fhir.example.toml" in report.diverged_files
+    assert "enabled = true" in example.read_text(encoding="utf-8")
 
 
 def test_adopt_scaffold_owned_lines_leaves_a_file_the_scaffold_owns_no_line_of(tmp_path: Path) -> None:

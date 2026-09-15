@@ -99,6 +99,34 @@ def test_the_spool_listing_names_every_receipt_under_details(spooled_project: Pa
     assert "broken.json" in result.output
 
 
+def test_the_details_table_keeps_the_form_uid_on_one_line_at_eighty_columns(
+    spooled_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """80 columns is what a pipe gets, and an eleven-character UID one character to a line says nothing."""
+    monkeypatch.setenv("COLUMNS", "80")
+
+    result = _runner.invoke(build_app(), ["fhir", "spool", "--details"])
+
+    assert result.exit_code == 0, result.output
+    # The whole form stem on the receipt's own row, not one character to a line.
+    row = next(line for line in result.output.splitlines() if "queued-1" in line and "│" in line)
+    assert "d2-ds-child-health" in row
+    # The two recoverable columns go before the two that explain a row lose their width.
+    assert "Why it is there" in result.output
+    assert "Received" not in result.output
+    framed = [line for line in result.output.splitlines() if line.startswith(("│", "┃", "┏", "┡", "└"))]
+    assert max(len(line) for line in framed) <= 80
+
+
+def test_the_details_table_shows_every_column_at_a_wide_terminal(spooled_project: Path) -> None:
+    """Nothing is dropped where there is room: the timestamp is a column again."""
+    result = _runner.invoke(build_app(), ["fhir", "spool", "--details"])
+
+    assert result.exit_code == 0, result.output
+    assert "Received" in result.output
+    assert "2026-08-08T09:00:00Z" in result.output
+
+
 def _write_refusal_record(project_root: Path, response_id: str) -> None:
     """The marker a committing drain leaves beside a receipt it refused to translate."""
     record = ForwardRefusalRecord(
