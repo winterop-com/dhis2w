@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 
 import { readResource } from '@/lib/api'
-import { canonicalId, type CodeSystem, type Coding, type ValueSet } from '@/lib/fhir'
+import {
+    canonicalId,
+    type CodeSystem,
+    type CodeSystemConcept,
+    type CodeSystemConceptProperty,
+    type Coding,
+    type ValueSet,
+} from '@/lib/fhir'
 
 /**
  * The options a choice question offers, expanded from the ValueSet it binds.
@@ -29,6 +36,16 @@ import { canonicalId, type CodeSystem, type Coding, type ValueSet } from '@/lib/
 export interface ValueSetOption {
     coding: Coding
     label: string
+    /**
+     * Whatever the concept carries, for the one caller that grades an option rather than listing it.
+     *
+     * An attribute option combination states where and when DHIS2 takes a capture keyed to it on its
+     * own concept - `dhis2-organisation-units`, `dhis2-valid-from`, `dhis2-valid-to` - and the picker
+     * grades each option against the chosen period and organisation unit off exactly these. A choice
+     * question has no use for them; carrying them costs one array reference per option. Empty on an
+     * option enumerated inline by the ValueSet, which is the shape that carries no properties at all.
+     */
+    properties: CodeSystemConceptProperty[]
 }
 
 /**
@@ -155,9 +172,10 @@ async function readExpansion(canonical: string): Promise<ValueSetExpansion> {
 }
 
 /** One concept as an option: the full coding goes on the wire, the display is what a person picks by. */
-function optionOf(system: string, concept: { code: string; display?: string }): ValueSetOption {
+function optionOf(system: string, concept: CodeSystemConcept): ValueSetOption {
     return {
         coding: { system, code: concept.code, ...(concept.display === undefined ? {} : { display: concept.display }) },
         label: concept.display ?? concept.code,
+        properties: concept.property ?? [],
     }
 }

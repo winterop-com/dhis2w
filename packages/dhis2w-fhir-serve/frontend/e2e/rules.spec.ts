@@ -38,6 +38,13 @@ const HAEMOGLOBIN_RULE_CONDITION = '#{DeAncVisNo1} > 99'
 /** How many of them the panel counts - every rule the instance holds for the form, whatever it does. */
 const STAGE_RULE_COUNT = 3
 
+/** The question the ASSIGN rule works out, by the DHIS2 uid its control is keyed on and by its words. */
+const ASSIGNED_QUESTION = 'DeAncBpSys1'
+const ASSIGNED_QUESTION_TEXT = 'ANC systolic blood pressure'
+
+/** How many of the stage's three questions anybody fills in - the third is the one DHIS2 works out. */
+const STAGE_ANSWERABLE_QUESTIONS = 2
+
 /** Open one form and wait for the skeleton, which is what puts the drafted values in the controls. */
 async function openForm(page: Page, questionnaireId: string): Promise<void> {
     const opened = page.waitForResponse((response) => response.url().includes('$generate'))
@@ -122,7 +129,47 @@ test('a form names the DHIS2 program rules its instance enforces after the submi
     // rewrites what a submission carries - DHIS2 computes the value and answers E1307 to a document
     // disagreeing with it - so leaving it out would hide the rule with the most to say about what
     // happens after the submission leaves.
-    await expect(page.getByText(ASSIGNED_PRESSURE_RULE)).toBeVisible()
+    // Exactly, because the rule's name is also inside the sentence the control it computes states
+    // further down the page - two places saying one thing, which is the point of naming the rule.
+    await expect(page.getByText(ASSIGNED_PRESSURE_RULE, { exact: true })).toBeVisible()
+
+    // What each rule does is on its own row, and the ASSIGN rule names the question it works out -
+    // which is the control that takes no answer further down the same page.
+    await expect(page.getByText('Works out an answer')).toBeVisible()
+    await expect(page.getByText('Warns', { exact: true })).toBeVisible()
+    await expect(page.getByText('Refuses the submission', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText(`It works out the answer to ${ASSIGNED_QUESTION_TEXT}, so this form leaves it empty.`),
+    ).toBeVisible()
+})
+
+test('a question this DHIS2 instance works out itself takes no answer and is not counted as one', async ({ page }) => {
+    await openForm(page, STAGE_FORM)
+
+    // Read-only, and saying why in the same sentence the receipt carries: the rule is named because
+    // somebody who wants the value changed has to find it in Maintenance.
+    const computed = page.locator(`#${ASSIGNED_QUESTION}`)
+    await expect(computed).toBeDisabled()
+    await expect(
+        page.getByText(
+            `This DHIS2 instance works this answer out on import, under the program rule ` +
+                `${ASSIGNED_PRESSURE_RULE}. It is sent empty: DHIS2 refuses the whole submission when the ` +
+                `answer is neither empty nor the value it calculated, with E1307.`,
+        ),
+    ).toBeVisible()
+
+    // Two of the three questions, not three: a control nobody can type into is not work left to do,
+    // so it leaves the denominator as well as the numerator.
+    await expect(page.getByText(`0 of ${String(STAGE_ANSWERABLE_QUESTIONS)} questions answered`)).toBeVisible()
+
+    // And a fill draws for the two it asks, leaving the computed one empty - the only value DHIS2
+    // accepts whatever the rule works out.
+    const filled = page.waitForResponse((response) => response.url().includes('$generate'))
+    await page.getByRole('button', { name: 'Fill with test data' }).click()
+    await filled
+    await expect(computed).toHaveValue('')
+    const asked = String(STAGE_ANSWERABLE_QUESTIONS)
+    await expect(page.getByText(`${asked} of ${asked} questions answered`)).toBeVisible()
 })
 
 test('a form its instance holds no rules for says nothing about rules', async ({ page }) => {

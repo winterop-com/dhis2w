@@ -334,7 +334,10 @@ def test_a_registration_outside_the_forms_assignment_warns_by_default(
     accepted = _accept(body, capture_indexes, capture_naming, capture_store)
 
     assert [issue.code for issue in accepted.warnings] == ["business-rule"]
+    # The tracker code, because this is a tracker form: DHIS2 grades the program's assignment on a
+    # tracker import. The aggregate half of DHIS2 grades the data set's and answers `E8022` instead.
     assert "E1029" in _diagnostics(accepted.warnings)
+    assert "E8022" not in _diagnostics(accepted.warnings)
 
 
 @pytest.mark.parametrize("strict_codes", [True])

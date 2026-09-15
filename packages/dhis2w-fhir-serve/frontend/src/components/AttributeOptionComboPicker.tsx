@@ -8,11 +8,25 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { useValueSetOptions } from '@/hooks/use-valueset-options'
+import { useComboRestrictionMembers } from '@/hooks/use-combo-restrictions'
+import { useValueSetOptions, type ValueSetOption } from '@/hooks/use-valueset-options'
+import {
+    attributeOptionComboRestrictionOf,
+    gradeAttributeOptionCombo,
+    periodSpan,
+    UNRESTRICTED_COMBO,
+    type AttributeOptionComboGrade,
+} from '@/lib/attributecombos'
 import { attributeOptionComboLabel, type Coding } from '@/lib/fhir'
 
 /** The one control on a capture form whose id is fixed, so its label and its trigger can find each other. */
 const CONTROL_ID = 'attribute-option-combo'
+
+/** One combination on offer, beside whether this DHIS2 instance takes a capture under it. */
+interface GradedOption {
+    option: ValueSetOption
+    grade: AttributeOptionComboGrade
+}
 
 /**
  * Which attribute option combo a whole submission is filed under.
@@ -46,12 +60,24 @@ const CONTROL_ID = 'attribute-option-combo'
  * with the reason where this DHIS2 instance takes no such capture. The line under the control says
  * so once a choice is made, because a control that looks identical before and after would be
  * claiming a random draw and a person's decision are the same fact.
+ *
+ * WHY THE UNUSABLE ONES ARE SHOWN RATHER THAN HIDDEN. DHIS2 opens a category option for a calendar
+ * window and scopes it to organisation units, so a third of this vocabulary can be closed for the
+ * period on screen. A control that silently dropped those would leave a person hunting for a
+ * combination they know exists; one that offered them unmarked would let them pick a submission the
+ * server beside it refuses to draw for. So every combination the form declares is listed, and the
+ * ones DHIS2 takes no capture under for the chosen period and organisation unit say which of the
+ * two rules they fall outside and take no choice.
  */
 export function AttributeOptionComboPicker({
     canonical,
     selected,
     disabled = false,
     chosen = false,
+    periodIso = null,
+    periodType = null,
+    unitId = null,
+    unitName = null,
     onChange,
 }: {
     /** The ValueSet the form declares its combos on - `d2-attribute-option-combos`, valueCanonical. */
@@ -67,10 +93,37 @@ export function AttributeOptionComboPicker({
     disabled?: boolean
     /** True once somebody has picked here, which is what makes the selection survive a refill. */
     chosen?: boolean
+    /** The DHIS2 period identifier the submission reports for, which decides the date axis. */
+    periodIso?: string | null
+    /** The DHIS2 period type that identifier reads as, without which the days it covers are unknown. */
+    periodType?: string | null
+    /** The organisation unit the submission reports from, which decides the organisation-unit axis. */
+    unitId?: string | null
+    /** What that organisation unit is called, so a refusal names a place rather than an id. */
+    unitName?: string | null
     onChange: (coding: Coding) => void
 }) {
     const expansion = useValueSetOptions(canonical)
     const label = attributeOptionComboLabel(expansion.title)
+    const restrictions = expansion.options.map((option) => attributeOptionComboRestrictionOf(option.properties))
+    const { listMembers } = useComboRestrictionMembers(restrictions.flatMap((restriction) => restriction.listIds))
+    const span = periodIso === null ? null : periodSpan(periodIso, periodType)
+    const graded: GradedOption[] = expansion.options.map((option, index) => ({
+        option,
+        grade: gradeAttributeOptionCombo(restrictions[index] ?? UNRESTRICTED_COMBO, {
+            span,
+            unitId,
+            unitName,
+            listMembers,
+        }),
+    }))
+    // A combination chosen before the period or the organisation unit moved under it. Saying nothing
+    // would leave a person filing under a combination this DHIS2 instance no longer takes, on a
+    // screen that shows the choice they made and none of what has happened to it since.
+    const chosenGrade =
+        selected?.code === undefined
+            ? null
+            : (graded.find((candidate) => candidate.option.coding.code === selected.code)?.grade ?? null)
 
     return (
         <div className="bg-card text-card-foreground grid gap-2 rounded-lg border p-4">
@@ -98,12 +151,19 @@ export function AttributeOptionComboPicker({
                         <SelectValue placeholder={placeholder(expansion.loading, expansion.options.length)} />
                     </SelectTrigger>
                     <SelectContent>
-                        {expansion.options.map((option) => (
-                            <SelectItem key={option.coding.code ?? option.label} value={option.coding.code ?? ''}>
+                        {graded.map(({ option, grade }) => (
+                            <SelectItem
+                                key={option.coding.code ?? option.label}
+                                value={option.coding.code ?? ''}
+                                disabled={!grade.usable}
+                            >
                                 <span>{option.label}</span>
                                 <span className="machine-identifier text-[10px]">
                                     {option.coding.code}
                                 </span>
+                                {grade.reason !== null && (
+                                    <span className="text-muted-foreground text-xs">{grade.reason}</span>
+                                )}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -113,6 +173,13 @@ export function AttributeOptionComboPicker({
                 )}
             </div>
 
+            {chosenGrade !== null && !chosenGrade.usable && (
+                <p className="text-destructive text-xs">
+                    This DHIS2 instance takes no capture under the attribute option combination
+                    chosen here, for the period and organisation unit now on this form.{' '}
+                    {chosenGrade.reason}. Choose another one.
+                </p>
+            )}
             {chosen && (
                 <p className="text-muted-foreground text-xs">
                     Filling this form with test data keeps this attribute option combination and

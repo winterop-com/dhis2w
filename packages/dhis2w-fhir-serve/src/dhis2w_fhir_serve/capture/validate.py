@@ -160,6 +160,20 @@ UNHELD_UNIT_REFUSAL_CODES: dict[FormKind, str] = {
     "tracked-entity": "E1049",
 }
 
+#: What DHIS2 answers a capture filed at an organisation unit the form is not assigned to, per form
+#: kind, read off 2.43's own validate-only answers. The two halves of DHIS2 grade one fact under two
+#: names: a tracker or event import grades the program's assignment and answers `E1029`, while an
+#: aggregate import grades the data set's and answers `E8022 Data set ... not usable with org
+#: unit(s)`. Naming the tracker code on an aggregate receipt sends a reader looking up a code that
+#: import never emits.
+UNASSIGNED_UNIT_REFUSAL_CODES: dict[FormKind, str] = {
+    "aggregate": "E8022",
+    "event": "E1029",
+    "tracker": "E1029",
+    "tracker-event": "E1029",
+    "tracked-entity": "E1029",
+}
+
 #: The resource type a capture request carries, and what a client posting a Bundle is told instead.
 QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE = "QuestionnaireResponse"
 BUNDLE_RESOURCE_TYPE = "Bundle"
@@ -930,8 +944,9 @@ def _assignment_issues(
     """Grade the organisation unit a response reports for against what the form admits.
 
     A form that publishes an assignment List admits the units that List names, and a unit outside it
-    is exactly what DHIS2 refuses at forward time with `E1029`: a warning on the receipt by default,
-    a refusal under `--strict-codes`, the dial a coded answer grades on.
+    is exactly what DHIS2 refuses at forward time - `E1029` on a tracker or event import, `E8022` on
+    an aggregate one, per `UNASSIGNED_UNIT_REFUSAL_CODES`: a warning on the receipt by default, a
+    refusal under `--strict-codes`, the dial a coded answer grades on.
 
     A form that publishes none is assigned everywhere, which means every organisation unit this
     server publishes - not every string shaped like a reference. So the same unit is graded against
@@ -951,7 +966,10 @@ def _assignment_issues(
     assignment = index.assignment
     if assignment is None or assignment.admits(reported.reference):
         return published
-    return (*published, _assignment_issue(assignment, reported.reference, reported.expression, strict=strict))
+    return (
+        *published,
+        _assignment_issue(assignment, reported.reference, reported.expression, form_kind, strict=strict),
+    )
 
 
 def _published_unit_issues(
@@ -1011,7 +1029,9 @@ def _unreportable_unit_clause(form_kind: FormKind) -> str:
     return f"DHIS2 refuses a capture there with {code}"
 
 
-def _assignment_issue(assignment: CaptureAssignment, reference: str, expression: str, *, strict: bool) -> CaptureIssue:
+def _assignment_issue(
+    assignment: CaptureAssignment, reference: str, expression: str, form_kind: FormKind, *, strict: bool
+) -> CaptureIssue:
     """What a client is told when it names an organisation unit the form is not assigned to."""
     return CaptureIssue(
         severity="error" if strict else "warning",
@@ -1019,9 +1039,17 @@ def _assignment_issue(assignment: CaptureAssignment, reference: str, expression:
         expression=expression,
         diagnostics=(
             f"`{reference}` is not in the form's organisation-unit assignment "
-            f"(`{ASSIGNMENT_REFERENCE_PREFIX}{assignment.list_id}`); DHIS2 refuses a capture there with E1029"
+            f"(`{ASSIGNMENT_REFERENCE_PREFIX}{assignment.list_id}`); {_unassigned_unit_clause(form_kind)}"
         ),
     )
+
+
+def _unassigned_unit_clause(form_kind: FormKind) -> str:
+    """What DHIS2 answers a capture filed outside the form's assignment, in that kind's words."""
+    code = UNASSIGNED_UNIT_REFUSAL_CODES.get(form_kind)
+    if code is None:
+        return "DHIS2 refuses a capture at an organisation unit the form is not assigned to"
+    return f"DHIS2 refuses a capture there with {code}"
 
 
 def _restriction_issue(
@@ -1481,7 +1509,9 @@ class _ItemValidator(BaseModel):
             return
         if assignment.admits(reference):
             return
-        self._issues.append(_assignment_issue(assignment, reference, expression, strict=self.strict))
+        self._issues.append(
+            _assignment_issue(assignment, reference, expression, self.index.form_kind, strict=self.strict)
+        )
 
     def _temporal(self, question: CaptureQuestion, answer: QuestionnaireResponseAnswer) -> None:
         """Check a date, dateTime, or time answer against the R4 primitive it is written as."""

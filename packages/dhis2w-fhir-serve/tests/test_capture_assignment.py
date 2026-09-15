@@ -234,7 +234,11 @@ def test_a_subject_outside_the_assignment_is_a_warning_by_default(
     assert noted[0].expression == "QuestionnaireResponse.subject.reference"
     assert noted[0].diagnostics is not None
     assert f"`{_ADMITTED_LOCATION}` is not in the form's organisation-unit assignment" in noted[0].diagnostics
-    assert "E1029" in noted[0].diagnostics
+    # The aggregate code, because this is an aggregate form. DHIS2 grades the data set's assignment
+    # on an aggregate import and answers `E8022 Data set ... not usable with org unit(s)`; `E1029`
+    # is what the tracker half answers, and naming it here would point at an import that never runs.
+    assert "E8022" in noted[0].diagnostics
+    assert "E1029" not in noted[0].diagnostics
 
 
 def test_a_form_with_an_assignment_also_grades_whether_the_guide_publishes_the_unit(

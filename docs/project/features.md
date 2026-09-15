@@ -1019,16 +1019,19 @@ NamingSystems declaring them, plus these extensions:
   `programRuleVariables` to a question the same form asks.
 - **Every rule it cannot read whole is published whole instead** on
   `D2ProgramRule`, never half-translated.
-- **A question an `ASSIGN` rule computes is published as computed and left
-  empty.** The rule's `assigns` sub-extensions name each question DHIS2
-  calculates the answer to, so a client can join the rule to the item on its own
-  form; the examples target and `d2w fhir generate load-set` answer none of
-  them, and `d2w fhir generate` raises a note per form naming the rules and the
-  questions. DHIS2 refuses a payload whose answer is neither empty nor
-  byte-equal to the value it calculated (`E1307`), and a calculated value can be
-  one no answer expresses at all, so no answer is the only answer that always
-  lands. `d2w fhir check-artifacts` files a warning-level finding for a
-  published example that answers one.
+- **A rule whose action is `ASSIGN` is published with the questions it
+  computes, and every emitter leaves those questions empty.** The rule's
+  `assigns` sub-extensions name each question DHIS2 calculates the answer to, so
+  a client can join the rule to the item on its own form; the question itself
+  carries no marking, because the fact belongs to the rule. The examples target
+  and `d2w fhir generate load-set` answer none of them, and `d2w fhir generate`
+  raises a note per form naming the rules and the questions. DHIS2 refuses a
+  payload whose answer is neither empty nor byte-equal to the value it
+  calculated (`E1307`), and a calculated value can be one no answer expresses at
+  all, so no answer is the only answer that always lands. `d2w fhir
+  check-artifacts` files a warning-level finding for a published example that
+  answers one, and the capture UI renders such a question read-only, naming the
+  rule, out of the progress count and out of the submission.
 
 #### Organisation-unit assignment
 
@@ -1088,7 +1091,10 @@ NamingSystems declaring them, plus these extensions:
   why `enabled = false` is the switch that publishes none.
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
-  dial coded answers take, and `$generate` draws its Location from it.
+  dial coded answers take, and `$generate` draws its Location from it. The
+  finding names the code that kind's import really answers: the two halves of
+  DHIS2 grade one fact under two names, `E8022 Data set ... not usable with org
+  unit(s)` on an aggregate import and `E1029` on a tracker or event one.
 - **A form publishing no assignment is graded against the served registry.**
   "Assigned everywhere" is every organisation unit this server publishes, not
   every string shaped like a reference, so a unit the registry does not hold
@@ -3121,10 +3127,13 @@ control per R4 item type.
   nothing is stated rather than dropped from the submission.
 - **A repeating `D2ProgramRule` declaration** is read off the form and stated
   where the form describes itself - *This DHIS2 instance enforces N more rules
-  when the submission is imported* - each rule's name and DHIS2 description
-  listed behind a `details` fold with its uid and machine condition kept mono
-  inside it, since a program rule is an instance-side expression this server
-  can name but never evaluate.
+  when the submission is imported* - each rule's name, what it does to a
+  submission (*Warns*, *Refuses the submission*, *Works out an answer*) and its
+  DHIS2 description listed behind a `details` fold with its uid and machine
+  condition kept mono inside it, since a program rule is an instance-side
+  expression this server can name but never evaluate. A rule whose action is
+  `ASSIGN` also names the questions it computes, which are the controls that
+  take no answer further down the same page.
 - **Every question is labelled with the DHIS2 uid it is known by**, and a
   **Fill with test data** button reads `$generate` and pours its answers into
   the form to be edited rather than posting them blind. The seed rides beside
@@ -3185,6 +3194,18 @@ control per R4 item type.
   refusal to render a form until the combo is chosen. **Fill with test data**
   still adopts the fresh draw, because that is the server proposing a whole
   submission.
+- **The combos DHIS2 takes no capture under are listed and disabled, with the
+  reason on the row.** The vocabulary states each combo's calendar window
+  (`dhis2-valid-from` / `dhis2-valid-to`) and its organisation-unit restriction
+  (`dhis2-organisation-units`, one published `List` per restricted category
+  option) on the concepts themselves, so the picker grades every option against
+  the period and the organisation unit currently on the form: *Closed on
+  2016-10-01*, *Not open until 2017-01-01*, *Not capturable at Njandama MCHP*.
+  A choice made before the period or the unit moved under it is flagged under
+  the control rather than silently kept. Options are marked rather than dropped,
+  and a period type whose date arithmetic this app does not hold - the offset
+  weeks, the financial years - grades nothing on the date axis, as does a
+  restriction `List` this guide publishes nothing for.
 - **A form this DHIS2 instance takes no capture for says so, in the server's own
   words.** Where `$generate` answers 422 - every attribute option combo
   restricted away from every organisation unit the form admits, or closed for

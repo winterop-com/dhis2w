@@ -32,9 +32,12 @@ import {
     answersReducer,
     answerBreaches,
     buildQuestionnaireResponse,
+    clearedComputedAnswers,
     clearedEntityLevelAnswers,
     clearedHiddenAnswers,
     collectsIncidentDate,
+    computedQuestionNote,
+    computedQuestions,
     dateTimeInputValue,
     enabledLinkIds,
     entityLevelLinkIds,
@@ -51,6 +54,7 @@ import {
     openedReportingUnit,
     programRulesOf,
     questionCodeSystemIds,
+    questionProgress,
     refilledAttributeOptionCombo,
     refilledEnrollment,
     refilledReportingUnit,
@@ -90,6 +94,7 @@ import {
     type DisaggregationFacet,
     type FormBlock,
     type FormKeyPress,
+    type ProgramRule,
     type QuestionnaireSpec,
 } from '@/lib/questionnaire'
 import { carriesUnitOnExtension, reportingUnitOf, type OrgUnitChoice } from '@/lib/orgunits'
@@ -920,6 +925,124 @@ describe('the program rules a form declares', () => {
     it('reads no rule off a form that declares none, and none off no form', () => {
         expect(programRulesOf(temporalQuestionnaire)).toEqual([])
         expect(programRulesOf(null)).toEqual([])
+    })
+
+    it('reads every question an ASSIGN rule names, and nothing off the rules that name none', () => {
+        const form: Questionnaire = {
+            resourceType: 'Questionnaire',
+            status: 'active',
+            extension: [
+                ruleExtension([
+                    { url: 'rule', valueId: 'PrRuleAsg01' },
+                    { url: 'name', valueString: 'The systolic blood pressure is worked out from the visit number' },
+                    { url: 'condition', valueString: 'true' },
+                    { url: 'action', valueCode: 'ASSIGN' },
+                    { url: 'assigns', valueId: 'DeAncBpSys1' },
+                    { url: 'assigns', valueId: 'DeAncBpDia1' },
+                ]),
+                ruleExtension([
+                    { url: 'rule', valueId: 'PrRuleOrd01' },
+                    { url: 'name', valueString: 'A visit is filed in the order it happened' },
+                    { url: 'condition', valueString: 'd2:hasValue(#{DeAncVisNo1})' },
+                    { url: 'action', valueCode: 'SHOWWARNING' },
+                ]),
+            ],
+        }
+
+        const rules = programRulesOf(form)
+
+        expect(rules[0].assigns).toEqual(['DeAncBpSys1', 'DeAncBpDia1'])
+        expect(rules[1].assigns).toEqual([])
+    })
+})
+
+describe('the questions a DHIS2 instance answers itself', () => {
+    const assignRule = (ruleUid: string, name: string, assigns: string[]): ProgramRule => ({
+        ruleUid,
+        name,
+        description: null,
+        condition: 'true',
+        action: 'ASSIGN',
+        assigns,
+    })
+
+    it('keys every rule that names a question by that question', () => {
+        const first = assignRule('PrRuleAsg01', 'The systolic pressure is worked out', ['DeAncBpSys1'])
+        const second = assignRule('PrRuleAsg02', 'So is the diastolic', ['DeAncBpSys1', 'DeAncBpDia1'])
+
+        const computed = computedQuestions([first, second])
+
+        expect(computed.get('DeAncBpSys1')).toEqual([first, second])
+        expect(computed.get('DeAncBpDia1')).toEqual([second])
+        expect(computed.has('DeAncVisNo1')).toBe(false)
+    })
+
+    it('names the rule in the sentence the control states, and what DHIS2 does about a value', () => {
+        const note = computedQuestionNote([assignRule('PrRuleAsg01', 'The systolic pressure is worked out', ['x'])])
+
+        expect(note).toBe(
+            'This DHIS2 instance works this answer out on import, under the program rule The systolic ' +
+                'pressure is worked out. It is sent empty: DHIS2 refuses the whole submission when the ' +
+                'answer is neither empty nor the value it calculated, with E1307.',
+        )
+    })
+
+    it('names both rules when two of them compute one question', () => {
+        const note = computedQuestionNote([
+            assignRule('PrRuleAsg01', 'First rule', ['x']),
+            assignRule('PrRuleAsg02', 'Second rule', ['x']),
+        ])
+
+        expect(note).toContain('under the program rules First rule and Second rule.')
+    })
+
+    it('drops an answer that reached a computed question, and leaves every other answer alone', () => {
+        const answers: AnswerState = {
+            DeAncBpSys1: [{ text: '120', coding: null, reference: null }],
+            DeAncVisNo1: [{ text: '2', coding: null, reference: null }],
+        }
+        const computed = computedQuestions([assignRule('PrRuleAsg01', 'Worked out', ['DeAncBpSys1'])])
+
+        expect(clearedComputedAnswers(answers, computed)).toEqual({
+            DeAncVisNo1: [{ text: '2', coding: null, reference: null }],
+        })
+    })
+
+    it('hands back the very state it was given when nothing is computed', () => {
+        const answers: AnswerState = { DeAncVisNo1: [{ text: '2', coding: null, reference: null }] }
+
+        expect(clearedComputedAnswers(answers, computedQuestions([]))).toBe(answers)
+    })
+})
+
+describe('how far through a form somebody is', () => {
+    const form: Questionnaire = {
+        resourceType: 'Questionnaire',
+        status: 'active',
+        item: [
+            { linkId: 'DeAncVisNo1', type: 'integer', text: 'Visit number' },
+            { linkId: 'DeAncBpSys1', type: 'integer', text: 'Systolic blood pressure' },
+            { linkId: 'DeAncHb0001', type: 'decimal', text: 'Haemoglobin' },
+        ],
+    }
+    const spec = flattenQuestionnaire(form)
+    const answered: AnswerState = { DeAncVisNo1: [{ text: '2', coding: null, reference: null }] }
+
+    it('counts every question the form asks when nothing is exempt', () => {
+        expect(questionProgress(spec, answered)).toEqual({ answered: 1, asked: 3 })
+    })
+
+    it('counts neither half of a question this DHIS2 instance answers itself', () => {
+        // The whole of the finding: a control nobody can type into is not work left to do, so it
+        // leaves the denominator as well as the numerator. Counting it told a person their form was
+        // one question short and gave them no way to answer it.
+        expect(questionProgress(spec, answered, new Set(['DeAncBpSys1']))).toEqual({ answered: 1, asked: 2 })
+    })
+
+    it('leaves an exempt question that somehow carries an answer out of the count either way', () => {
+        const carried: AnswerState = { ...answered, DeAncBpSys1: [{ text: '120', coding: null, reference: null }] }
+
+        expect(questionProgress(spec, carried, new Set(['DeAncBpSys1']))).toEqual({ answered: 1, asked: 2 })
     })
 })
 

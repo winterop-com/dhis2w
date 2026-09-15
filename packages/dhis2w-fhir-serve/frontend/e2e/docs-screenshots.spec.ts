@@ -56,6 +56,9 @@ const AGGREGATE_FORM = 'BfMAe6Itzgt'
 /** The aggregate form whose data set rides a non-default category combo, so both pickers render. */
 const ATTRIBUTE_COMBO_FORM = 'TuL8IOPzpHh'
 
+/** The tracker stage whose instance holds three program rules, one of which computes a question. */
+const STAGE_FORM = 'PsAncVisit1'
+
 /** The data-element dictionary - the longest code system this guide publishes, at 70 concepts. */
 const DATA_ELEMENT_CODE_SYSTEM = 'd2-de-cs'
 
@@ -361,6 +364,23 @@ test.describe('docs screenshots', () => {
         await fillFromSeed(page, 9102)
 
         await shoot(page, 'form-fill')
+    })
+
+    test('a question this DHIS2 instance works out itself, under the rules panel that names it', async ({ page }) => {
+        await openForm(page, STAGE_FORM)
+
+        // The panel open, because the shot is about the two ends of one fact meeting: the rule says
+        // which question it computes, and the control says which rule computes it.
+        await page
+            .getByText('This DHIS2 instance enforces 3 further rules on import, beyond the ones this form checks')
+            .click()
+        await expect(page.getByText('Works out an answer')).toBeVisible()
+        await fillFromSeed(page, 9104)
+        // The control itself has to be in frame beside the rule that names it: the shot is the two
+        // halves meeting, and a shot of the panel alone would be a shot of a list of rules.
+        await page.locator('#DeAncBpSys1').scrollIntoViewIfNeeded()
+
+        await shoot(page, 'computed-question')
     })
 
     test('the reporting period listbox, open on the periods the data set reports in', async ({ page }) => {
