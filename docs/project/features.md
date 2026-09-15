@@ -982,6 +982,15 @@ NamingSystems declaring them, plus these extensions:
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
   dial coded answers take, and `$generate` draws its Location from it.
+- **A form publishing no assignment is graded against the served registry.**
+  "Assigned everywhere" is every organisation unit this server publishes, not
+  every string shaped like a reference, so a unit the registry does not hold
+  takes the same dial - a warning on the receipt, a refusal under
+  `--strict-codes` - naming the `E1011` or `E1049` DHIS2 answers a capture filed
+  at a unit it does not hold. The guide's own worked exemplar is refused whatever
+  the dial says: it illustrates the organisation-unit profile and stands for no
+  place on any instance. A project publishing no registry at all states no set to
+  check against, and the reference's shape is all that is graded.
 
 #### Attribute option combos
 
@@ -1573,7 +1582,9 @@ registration form become `Questionnaire` instances.
   starting banner and at the service base, and refuses a posted
   QuestionnaireResponse with the same sentence the capture UI shows: "This
   project is a package: it publishes organisation units for guides to depend on,
-  and no form. Captures are made in a guide that depends on it, not here."
+  and no form. Captures are made in a guide that depends on it, not here." It
+  answers `GET /Questionnaire` the same 404 it answers `GET /Specimen`, because
+  the CapabilityStatement is the route table and it declares neither.
 - **`d2w fhir check-artifacts` reports a dangling registry reference** as a
   finding of the new `registry` kind, comparing the `<canonical>/Location/<id>`
   references already on disk - in compiled JSON and in generated FSH - against
@@ -1846,6 +1857,25 @@ bound to loopback by default that loads the project once at startup.
   served. Under `substitute` a form is served under the name the compiled guide
   publishes it under; under `refuse` and unset a live serve is byte-true and
   aborts over no name, because serving is not generating.
+- **A worked example is held, and published by nothing.** A guide compiles an
+  exemplar beside its registry profiles - the `Usage: #example` Location and
+  Organization that show what a published organisation unit looks like - and its
+  own `ImplementationGuide` resource names them on `definition.resource[]`
+  (`exampleBoolean`, `exampleCanonical`). The store reads that and keeps them out
+  of what it publishes: out of every searchset, out of every count, out of the
+  units `$generate` draws a place to report from, and out of what a capture may
+  name. So `GET /Location?_count=0` on a compiled guide answers the number
+  `d2w fhir generate` wrote, exactly as a `--live` run does. Each example stays
+  readable at its own `GET /{type}/{id}`, because the guide's published pages
+  link to it there.
+- **`/metadata` is the route table.** A resource type the statement declares no
+  interaction for answers 404 naming `/metadata`, rather than an empty searchset
+  that would read as "this guide published none of those" - so a package
+  publishing organisation units answers `Questionnaire` the way it answers
+  `Specimen`. The declared set is the read types this project actually publishes:
+  `Questionnaire`, `CodeSystem`, `ValueSet`, `Location`, `Organization`, `List`,
+  `ConceptMap`, `NamingSystem`, and the guide's own conformance resources, plus
+  `QuestionnaireResponse` where the project receives one.
 - **Four CodeSystem/ValueSet pairs the foundation FSH declares** are included -
   form type, period type, organisation-unit levels, and the organisation-unit
   code list `[generate.organisation_units] terminology` turns on - each built
@@ -3145,7 +3175,10 @@ control per R4 item type.
 - **One organisation unit published as two Locations** - the registry instance
   and the curated profile exemplar a generated IG ships beside it, both
   claiming the same uid - is deduplicated by that identifier in favour of the
-  instance the hierarchy hangs off, so a root is never listed twice.
+  instance the hierarchy hangs off, so a root is never listed twice. The server
+  answers no exemplar in the first place, on the guide's own word about which of
+  its instances are examples; this is the screen's guard against a guide that
+  states nothing, and the count the page shows is what `GET /Location` answered.
 
 #### Tracked entities
 

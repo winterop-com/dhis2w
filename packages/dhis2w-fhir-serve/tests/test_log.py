@@ -27,18 +27,16 @@ STARTING_LINE = re.compile(
     r"(?P<declared>\d+) resource types declared at /metadata"
 )
 
-#: Two resource types the store holds and the FHIR surface answers no interaction for - a generated
-#: guide publishes a NamingSystem per identifier namespace and a StructureMap beside them, and
-#: neither is ever read back. Two of them, so the store's type count and the statement's differ by
-#: more than the QuestionnaireResponse entry the statement declares and the store holds none of.
+#: Two resource types the store holds and the FHIR surface answers no interaction for - a project is
+#: free to write a StructureMap or a Measure into its own tree, and neither is ever read back here.
+#: Two of them, so the store's type count and the statement's differ by more than the
+#: QuestionnaireResponse entry the statement declares and the store holds none of.
 UNSERVED_RESOURCES = (
     {
-        "resourceType": "NamingSystem",
-        "id": "d2-option-id-ns",
-        "status": "active",
-        "kind": "identifier",
-        "date": "2026-01-01",
-        "uniqueId": [{"type": "uri", "value": "http://dhis2.org/fhir/id/option"}],
+        "resourceType": "Measure",
+        "id": "d2-coverage-measure",
+        "url": "http://example.org/fhir/Measure/d2-coverage-measure",
+        "status": "draft",
     },
     {
         "resourceType": "StructureMap",
@@ -84,9 +82,9 @@ async def test_the_starting_line_counts_what_it_says_it_counts(
 ) -> None:
     """The store's types and the statement's are two counts of two things, and the line names each.
 
-    The store holds a NamingSystem and a StructureMap here, which no interaction of this server
-    answers, so the two numbers differ - which is the case that makes a line saying only the first
-    read as a contradiction of a `/metadata` saying only the second.
+    The store holds a Measure and a StructureMap here, which no interaction of this server answers,
+    so the two numbers differ - which is the case that makes a line saying only the first read as a
+    contradiction of a `/metadata` saying only the second.
     """
     _write_unserved_resources(compiled_project)
     app = create_app(ServeSettings(project_dir=compiled_project.project_root))

@@ -190,13 +190,20 @@ def test_a_bundle_is_refused_with_the_one_response_per_request_rule(
     assert "one QuestionnaireResponse per request" in _diagnostics(rejection.issues)
 
 
+@pytest.mark.parametrize("resource_type", ["Patient", "OperationOutcome"])
 def test_another_resource_type_is_refused(
-    capture_indexes: CaptureIndexCache, capture_naming: CaptureNaming, capture_store: ResourceStore
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+    resource_type: str,
 ) -> None:
-    rejection = _refuse({"resourceType": "Patient"}, capture_indexes, capture_naming, capture_store)
+    """The refusal names both types without an article in front of either, whatever they begin with."""
+    rejection = _refuse({"resourceType": resource_type}, capture_indexes, capture_naming, capture_store)
 
     assert rejection.http_status == 400
-    assert "not a `Patient`" in _diagnostics(rejection.issues)
+    assert f"this endpoint receives a QuestionnaireResponse; `resourceType` is `{resource_type}`" in _diagnostics(
+        rejection.issues
+    )
 
 
 def test_a_body_naming_no_resource_type_is_told_so_without_a_python_none(

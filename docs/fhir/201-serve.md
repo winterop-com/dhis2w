@@ -381,11 +381,23 @@ compile it and a live run over it serves them too
 stored-response count is the spool on disk, which both modes read the same way.
 
 The two type counts are two different things and the line says which is which.
-What the store holds includes types this server answers no interaction for - the
-NamingSystems a build writes, a StructureMap - and what `/metadata` declares
-includes QuestionnaireResponse, which the store holds none of until a receipt
-arrives. The CapabilityStatement's own description states the same pair, so
-neither number can be read as a contradiction of the other.
+What the store holds includes types this server answers no interaction for - a
+StructureMap, a Measure a project wrote beside its forms - and what `/metadata`
+declares includes QuestionnaireResponse, which the store holds none of until a
+receipt arrives. The CapabilityStatement's own description states the same pair,
+so neither number can be read as a contradiction of the other. **What
+`/metadata` declares is also the route table**: a type it declares no
+interaction for answers 404, rather than an empty searchset that would read as
+"this guide published none of those".
+
+Neither count includes the guide's worked examples. A guide compiles an exemplar
+beside its profiles - a `Usage: #example` Location and Organization showing what
+a published organisation unit looks like - and its own `ImplementationGuide`
+resource says which instances those are. This server reads that, and publishes
+none of them: they are in no searchset, in no count, and in nothing a form may be
+reported at. Each is still readable at its own address - `GET
+/Location/d2-location-example` - because the guide's published pages link to it
+there.
 
 ## Serve from a synced copy { #serve-from-a-synced-copy }
 

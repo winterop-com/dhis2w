@@ -1,10 +1,14 @@
-"""Capture against a form's published organisation-unit assignment, on both positions of the dial.
+"""Capture against what a form admits as a place to report from, on both positions of the dial.
 
-The assignment artifact is optional by design, so the cases that matter are the three the design
-turns on: no artifact means the whole registry and nothing is checked, an in-assignment unit is
-silent, and an out-of-assignment unit warns by default and refuses under `--strict-codes` - the
-same grading a coded answer takes, because both describe drift between a client and the instance
-rather than a malformed submission.
+The assignment artifact is optional by design, so the cases that matter are the ones the design
+turns on: an in-assignment unit is silent, and an out-of-assignment unit warns by default and
+refuses under `--strict-codes` - the same grading a coded answer takes, because both describe drift
+between a client and the instance rather than a malformed submission.
+
+A form publishing no assignment is assigned everywhere, and everywhere is the registry this server
+publishes. So the same unit is graded against that instead: a unit the registry does not hold takes
+the same dial, and the guide's own worked example - which stands for no place on any instance - is
+refused whatever the dial says.
 """
 
 from __future__ import annotations
@@ -110,16 +114,91 @@ def _assignment_issues(issues: tuple[CaptureIssue, ...]) -> tuple[CaptureIssue, 
     return tuple(issue for issue in issues if issue.code == "business-rule")
 
 
+#: The guide's own worked example of the organisation-unit profile, which publishes no unit.
+_EXEMPLAR_LOCATION = "Location/d2-location-example"
+
+#: A shaped reference to no unit of this registry at all.
+_UNPUBLISHED_LOCATION = "Location/NowhereNear"
+
+
 def test_a_form_publishing_no_assignment_is_scoped_to_the_whole_registry(
     aggregate_response: dict[str, Any],
     capture_indexes: CaptureIndexCache,
     capture_naming: CaptureNaming,
     capture_store: ResourceStore,
 ) -> None:
-    """Absence means every published unit may report the form, which is what a client already assumed."""
-    aggregate_response["subject"] = {"reference": "Location/NowhereNear"}
+    """Absence means every published unit may report the form, and every published unit is silent."""
+    aggregate_response["subject"] = {"reference": "Location/O6uvpzGd5pu"}
 
     accepted = _accept(aggregate_response, capture_indexes, capture_naming, capture_store)
+
+    assert _assignment_issues(accepted.warnings) == ()
+
+
+@pytest.mark.parametrize("strict_codes", [False, True])
+def test_a_form_publishing_no_assignment_still_grades_a_unit_the_registry_does_not_hold(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+    strict_codes: bool,
+) -> None:
+    """ "Assigned everywhere" is every unit this server publishes, not every string shaped like one."""
+    aggregate_response["subject"] = {"reference": _UNPUBLISHED_LOCATION}
+
+    if strict_codes:
+        issues = _assignment_issues(
+            _errors(_refuse(aggregate_response, capture_indexes, capture_naming, capture_store, strict_codes=True))
+        )
+    else:
+        issues = _assignment_issues(
+            _accept(aggregate_response, capture_indexes, capture_naming, capture_store).warnings
+        )
+
+    assert len(issues) == 1
+    assert issues[0].expression == "QuestionnaireResponse.subject.reference"
+    assert issues[0].diagnostics is not None
+    assert f"`{_UNPUBLISHED_LOCATION}` is not among the organisation units this server publishes" in (
+        issues[0].diagnostics
+    )
+
+
+@pytest.mark.parametrize("strict_codes", [False, True])
+def test_a_form_publishing_no_assignment_refuses_the_guides_own_worked_example(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+    strict_codes: bool,
+) -> None:
+    """The exemplar illustrates the profile and stands for no place, so no dial position stores a capture at it."""
+    aggregate_response["subject"] = {"reference": _EXEMPLAR_LOCATION}
+
+    rejection = _refuse(aggregate_response, capture_indexes, capture_naming, capture_store, strict_codes=strict_codes)
+
+    assert rejection.http_status == 422
+    refused = _assignment_issues(_errors(rejection))
+    assert len(refused) == 1
+    assert refused[0].expression == "QuestionnaireResponse.subject.reference"
+    assert refused[0].diagnostics is not None
+    assert f"`{_EXEMPLAR_LOCATION}` is a worked example of this guide, not a published organisation unit" in (
+        refused[0].diagnostics
+    )
+
+
+def test_a_project_publishing_no_registry_grades_the_reference_shape_alone(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """With no organisation unit published there is no set to check against, and none is invented."""
+    without_registry = ResourceStore(
+        entries=tuple(entry for entry in capture_store.entries if entry.resource_type != "Location")
+    )
+    aggregate_response["subject"] = {"reference": _UNPUBLISHED_LOCATION}
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, without_registry)
 
     assert _assignment_issues(accepted.warnings) == ()
 
@@ -394,6 +473,35 @@ def test_an_organisation_unit_answer_written_absolutely_is_read_as_the_unit_it_n
     accepted = _accept(_temporal_response(_ADMITTED_LOCATION_ABSOLUTE), capture_indexes, capture_naming, store)
 
     assert _assignment_issues(accepted.warnings) == ()
+
+
+def test_an_organisation_unit_answer_on_an_unassigned_form_is_graded_against_the_registry(
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """The form publishes no assignment, so the answer is graded against what the server publishes."""
+    accepted = _accept(_temporal_response(_UNPUBLISHED_LOCATION), capture_indexes, capture_naming, capture_store)
+
+    noted = _assignment_issues(accepted.warnings)
+    assert len(noted) == 1
+    assert noted[0].severity == "warning"
+    assert noted[0].expression == "QuestionnaireResponse.item.where(linkId='DeVisitUnit1')"
+
+
+def test_an_organisation_unit_answer_naming_the_worked_example_is_refused(
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """The exemplar is no more reportable as an answer than it is as the subject of the submission."""
+    rejection = _refuse(_temporal_response(_EXEMPLAR_LOCATION), capture_indexes, capture_naming, capture_store)
+
+    refused = _assignment_issues(_errors(rejection))
+    assert len(refused) == 1
+    assert refused[0].expression == "QuestionnaireResponse.item.where(linkId='DeVisitUnit1')"
+    assert refused[0].diagnostics is not None
+    assert "E1011" in refused[0].diagnostics
 
 
 def test_a_subject_naming_a_location_under_another_authority_is_refused(

@@ -107,13 +107,17 @@ async def test_metadata_still_wins(ui_client: httpx2.AsyncClient) -> None:
         "/Questionnaire/d2-pr-anc-visit-q",
         "/QuestionnaireResponse",
         "/CodeSystem",
-        "/ValueSet",
         "/Organization",
-        "/Location",
+        "/StructureDefinition",
     ],
 )
 async def test_fhir_reads_still_win(ui_client: httpx2.AsyncClient, path: str) -> None:
-    """Every read the facade answers is still answered as FHIR with the UI mounted."""
+    """Every read the facade answers is still answered as FHIR with the UI mounted.
+
+    The paths are the types this project publishes, which is the set its `/metadata` declares: a type
+    it publishes none of is a type it declares no interaction for, and the read catch-all answers 404
+    for it whether or not the UI is mounted.
+    """
     response = await ui_client.get(path)
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/fhir+json")

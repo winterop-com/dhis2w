@@ -1,9 +1,11 @@
 """Read and search over what the facade serves: `GET /{type}/{id}` and `GET /{type}`.
 
 These two routes match any path of their shape, so they mount last - every fixed path the facade
-serves is registered ahead of them. A type outside the served set is refused here rather than
-falling through to a bare 404, so a client learns the difference between "this server does not
-serve Specimen" and "there is no Questionnaire with that id".
+serves is registered ahead of them. A type this process declares no interaction for at `/metadata` is
+refused here rather than falling through to a bare 404, so a client learns the difference between
+"this server does not serve Specimen" and "there is no Questionnaire with that id". The statement is
+the route table: what it declares is what these two answer, and a package publishing organisation
+units answers `Questionnaire` the same 404 it answers `Specimen`.
 
 The two catch-alls answer from three sources. Every definitional resource comes from the store,
 byte-faithful to what the IG published - ConceptMap included, which is read here as a document and
@@ -46,7 +48,7 @@ result set from DHIS2 is shaped exactly like one from the store.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 from dhis2w_fhir.r4 import Bundle, BundleEntry, BundleEntrySearch, BundleLink, JsonResource
@@ -57,7 +59,7 @@ from starlette.datastructures import QueryParams
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from dhis2w_fhir_serve.capability import QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE, SERVED_READ_RESOURCE_TYPES
+from dhis2w_fhir_serve.capability import QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE
 from dhis2w_fhir_serve.errors import FHIR_JSON_MEDIA_TYPE, BadSearchError, NotFoundError, NotServedError
 from dhis2w_fhir_serve.routes.context import serve_context
 from dhis2w_fhir_serve.spool import (
@@ -72,8 +74,8 @@ from dhis2w_fhir_serve.spool import (
 )
 from dhis2w_fhir_serve.store import IdentifierToken, SearchQuery
 
-#: Every resource type the facade answers a read or a search for.
-SERVED_RESOURCE_TYPES = (*SERVED_READ_RESOURCE_TYPES, QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE)
+if TYPE_CHECKING:
+    from dhis2w_fhir_serve.runtime import ServeContext
 
 router = APIRouter()
 
@@ -176,7 +178,7 @@ async def search_resource_type(request: Request, resource_type: str) -> Response
     context = serve_context(request)
     if resource_type in register_resource_types(request):
         return await search_register(request, resource_type)
-    _require_served(resource_type)
+    _require_served(resource_type, context)
     service_base = base_url(request)
     if resource_type == QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE:
         return await _search_receipts(request, context.spool, service_base)
@@ -266,7 +268,7 @@ async def read_resource(request: Request, resource_type: str, resource_id: str) 
     context = serve_context(request)
     if resource_type in register_resource_types(request):
         return await read_registered_entity(request, resource_type, resource_id)
-    _require_served(resource_type)
+    _require_served(resource_type, context)
     if resource_type == QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE:
         receipt = await run_in_threadpool(context.spool.get, resource_id)
         if receipt is None:
@@ -278,9 +280,16 @@ async def read_resource(request: Request, resource_type: str, resource_id: str) 
     return JSONResponse(content=entry.body, media_type=FHIR_JSON_MEDIA_TYPE)
 
 
-def _require_served(resource_type: str) -> None:
-    """Refuse a resource type the facade does not serve, whatever the store happens to hold."""
-    if resource_type not in SERVED_RESOURCE_TYPES:
+def _require_served(resource_type: str, context: ServeContext) -> None:
+    """Refuse a resource type this process does not declare at `/metadata`.
+
+    The statement is the contract, so it is also the route table: a type it declares no interaction
+    for is answered 404 here rather than as an empty searchset, which would tell a client the guide
+    published none of something it never serves at all. Which types those are is a property of the
+    project - a package publishing organisation units declares no Questionnaire and answers none -
+    so the set is read off the running context rather than fixed in this module.
+    """
+    if resource_type not in context.declared_resource_types:
         raise NotServedError(resource_type)
 
 

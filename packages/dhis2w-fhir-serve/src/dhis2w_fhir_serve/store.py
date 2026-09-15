@@ -16,6 +16,17 @@ indexing. They ride the compiled tree like everything else, and `load_compiled_c
 reads them out of it on their own so that a live store - built from a DHIS2 instance, holding no
 definitional layer of its own - hosts the same guide the compiled one does.
 
+AN EXAMPLE IS NOT A PUBLISHED RESOURCE. A guide writes worked instances beside its profiles -
+`Usage: #example` in FSH - so a reader of the published pages can see what one looks like, and SUSHI
+compiles them into the same directory as everything else. The guide's own `ImplementationGuide`
+resource is what tells the two apart: each entry of `definition.resource[]` states `exampleBoolean`
+or `exampleCanonical` for an instance that illustrates a profile rather than publishing a fact. Those
+instances land in `example_entries` and are held out of `entries`, so no search, no count, and no
+capture ever takes the exemplar organisation unit for a place a form may be reported at - which is
+what the instance behind a served guide would refuse the capture for. They stay readable at their own
+`GET /{type}/{id}`, because the guide's published pages link to them by that address and a link the
+guide writes has to resolve.
+
 This module knows nothing about DHIS2 - a live store is built elsewhere and lands in the same
 `ResourceStore` shape.
 """
@@ -29,7 +40,7 @@ from pathlib import Path
 from typing import Any
 
 from dhis2w_fhir.config import FhirProject
-from dhis2w_fhir.r4 import ConceptMap
+from dhis2w_fhir.r4 import ConceptMap, Reference
 from dhis2w_fhir.registry_package import load_registry_documents
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError
 
@@ -40,6 +51,9 @@ COMPILED_RESOURCES_RELATIVE_PATH = "fsh-generated/resources"
 
 #: The resource type `$translate` reads its mappings from.
 CONCEPT_MAP_RESOURCE_TYPE = "ConceptMap"
+
+#: The resource type a guide states its own contents on, and where the examples among them are named.
+IMPLEMENTATION_GUIDE_RESOURCE_TYPE = "ImplementationGuide"
 
 #: The conformance resources a compiled guide publishes, which a served project hosts read-only.
 #:
@@ -104,6 +118,56 @@ class StoreEntry(BaseModel):
     """
 
 
+class ImplementationGuideResource(BaseModel):
+    """One resource an `ImplementationGuide` lists, and whether the guide calls it an example.
+
+    R4 spells the answer two ways on the same element: `exampleBoolean` says "this illustrates
+    something" and `exampleCanonical` says which profile it illustrates. Either one names an example,
+    and `exampleBoolean = false` - which SUSHI writes on every published instance - names none.
+    """
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    reference: Reference | None = None
+    example_boolean: bool | None = Field(default=None, alias="exampleBoolean")
+    example_canonical: str | None = Field(default=None, alias="exampleCanonical")
+
+    def is_example(self) -> bool:
+        """Whether the guide states this entry illustrates a profile rather than publishing a fact."""
+        return self.example_boolean is True or self.example_canonical is not None
+
+
+class ImplementationGuideDefinition(BaseModel):
+    """What a guide states it contains, of which this server reads the resource list alone."""
+
+    model_config = ConfigDict(extra="allow")
+
+    resource: tuple[ImplementationGuideResource, ...] = ()
+
+
+class ImplementationGuideContents(BaseModel):
+    """A guide's own statement of what it published, read for the examples among them.
+
+    `extra="allow"` throughout: an `ImplementationGuide` carries pages, dependencies, parameters and
+    a template this server has no use for, and a guide is served byte-faithfully whatever else it
+    holds. Only `definition.resource[]` is read here.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    definition: ImplementationGuideDefinition | None = None
+
+    def example_references(self) -> tuple[str, ...]:
+        """Every `{type}/{id}` reference the guide declares as an example, in the order it lists them."""
+        if self.definition is None:
+            return ()
+        return tuple(
+            declared.reference.reference
+            for declared in self.definition.resource
+            if declared.is_example() and declared.reference is not None and declared.reference.reference
+        )
+
+
 class SearchQuery(BaseModel):
     """The search parameters the facade supports, in FHIR's combination semantics.
 
@@ -131,9 +195,12 @@ class StoreSummary(BaseModel):
 
     counts_by_type: dict[str, int] = Field(default_factory=dict)
 
+    example_count: int = 0
+    """How many worked examples the guide holds beside what it publishes - counted by none of the types above."""
+
     @property
     def total(self) -> int:
-        """Total resources across every type."""
+        """Total published resources across every type."""
         return sum(self.counts_by_type.values())
 
 
@@ -143,34 +210,56 @@ class ResourceStore(BaseModel):
     The entry tuple is the load order - compiled resources first, then the predefined tree - and
     the indexes are built once in `model_post_init`. When both trees carry the same
     `(resourceType, id)` the first one loaded wins, so a compiled resource is never shadowed.
+
+    `example_entries` is the guide's worked examples, held apart from what it publishes. Every
+    reader of this store - a search, a count, `$generate` drawing a unit to report at, the register
+    index, the terminology reads - walks `entries` and therefore sees the published set alone. A
+    direct read by id reaches both, so a link on the guide's own pages resolves.
     """
 
     model_config = ConfigDict(frozen=True)
 
     entries: tuple[StoreEntry, ...] = ()
+    example_entries: tuple[StoreEntry, ...] = ()
 
     _by_type_and_id: dict[tuple[str, str], StoreEntry] = PrivateAttr(default_factory=dict)
     _by_canonical: dict[str, StoreEntry] = PrivateAttr(default_factory=dict)
+    _served_keys: frozenset[tuple[str, str]] = PrivateAttr(default=frozenset())
+    _served_types: frozenset[str] = PrivateAttr(default=frozenset())
     _concept_maps: tuple[ConceptMap, ...] = PrivateAttr(default=())
 
     def model_post_init(self, context: Any, /) -> None:
         """Build the read indexes (private attributes stay settable on a frozen model)."""
-        for entry in self.entries:
+        for entry in (*self.entries, *self.example_entries):
             self._by_type_and_id.setdefault((entry.resource_type, entry.resource_id), entry)
             if entry.canonical_url is not None:
                 self._by_canonical.setdefault(entry.canonical_url, entry)
+        self._served_keys = frozenset((entry.resource_type, entry.resource_id) for entry in self.entries)
+        self._served_types = frozenset(entry.resource_type for entry in self.entries)
         self._concept_maps = self._parse_concept_maps()
 
     def by_type_and_id(self, resource_type: str, resource_id: str) -> StoreEntry | None:
-        """The resource a `GET /{type}/{id}` read resolves to, or None."""
+        """The resource a `GET /{type}/{id}` read resolves to, example instances included, or None."""
         return self._by_type_and_id.get((resource_type, resource_id))
+
+    def serves(self, resource_type: str, resource_id: str) -> bool:
+        """Whether the store publishes that resource, which an example instance it merely holds is not."""
+        return (resource_type, resource_id) in self._served_keys
+
+    def publishes_any(self, resource_type: str) -> bool:
+        """Whether the store publishes any resource of that type, which is what makes it a set to check against."""
+        return resource_type in self._served_types
 
     def by_canonical(self, canonical_url: str) -> StoreEntry | None:
         """The resource a canonical url resolves to, whatever its type, or None."""
         return self._by_canonical.get(canonical_url)
 
     def search(self, resource_type: str, query: SearchQuery) -> tuple[StoreEntry, ...]:
-        """Every resource of `resource_type` matching the query, in load order."""
+        """Every published resource of `resource_type` matching the query, in load order.
+
+        A worked example never matches, whatever the query: a searchset is what the guide publishes,
+        and an example instance is an illustration of a profile.
+        """
         candidates = [entry for entry in self.entries if entry.resource_type == resource_type]
         if query.is_empty():
             return tuple(candidates)
@@ -181,13 +270,13 @@ class ResourceStore(BaseModel):
         return self._concept_maps
 
     def types_present(self) -> tuple[str, ...]:
-        """Every resource type the store holds, sorted."""
+        """Every resource type the store publishes, sorted."""
         return tuple(sorted({entry.resource_type for entry in self.entries}))
 
     def summary(self) -> StoreSummary:
-        """Resource counts per type."""
+        """Resource counts per type, over what the store publishes and not over its worked examples."""
         counts = Counter(entry.resource_type for entry in self.entries)
-        return StoreSummary(counts_by_type=dict(sorted(counts.items())))
+        return StoreSummary(counts_by_type=dict(sorted(counts.items())), example_count=len(self.example_entries))
 
     def _parse_concept_maps(self) -> tuple[ConceptMap, ...]:
         """Parse the stored ConceptMaps once, at load, so `$translate` reads models rather than documents.
@@ -238,6 +327,10 @@ def load_compiled_store(project: FhirProject, *, registry_package: Path | None =
     names - and a guide that can reach neither refuses rather than serving a hierarchy of nothing.
     A guide publishing its registry inline reads it out of its own predefined tree as always, and
     `registry_package` means nothing to it.
+
+    The worked examples the guide compiled beside its profiles are held apart from what it publishes,
+    on the guide's own word: `definition.resource[]` of the compiled `ImplementationGuide` is what
+    states which instance illustrates a profile. See this module's opening note.
     """
     compiled_directory = project.ig_directory / "fsh-generated" / "resources"
     compiled_paths = sorted(compiled_directory.glob("*.json")) if compiled_directory.is_dir() else []
@@ -249,7 +342,52 @@ def load_compiled_store(project: FhirProject, *, registry_package: Path | None =
 
     entries = [_read_entry(path, project.project_root) for path in [*compiled_paths, *predefined_paths]]
     entries.extend(registry_entries(project, package=registry_package))
-    return ResourceStore(entries=tuple(entries))
+    examples = _declared_example_keys(entries)
+    if examples:
+        logger.info(
+            "%d worked example(s) the implementation guide declares are held out of what it publishes: %s",
+            len(examples),
+            ", ".join(f"{resource_type}/{resource_id}" for resource_type, resource_id in sorted(examples)),
+        )
+    return ResourceStore(
+        entries=tuple(entry for entry in entries if (entry.resource_type, entry.resource_id) not in examples),
+        example_entries=tuple(entry for entry in entries if (entry.resource_type, entry.resource_id) in examples),
+    )
+
+
+def _declared_example_keys(entries: list[StoreEntry]) -> frozenset[tuple[str, str]]:
+    """Every instance the loaded `ImplementationGuide` names as an example, keyed as the read index keys them.
+
+    A guide that states nothing - a project served before its first build wrote one, a store built
+    from an instance - declares no example, and everything it holds is published. A guide resource
+    this server cannot read costs its own declarations and is named in the log, on the same terms an
+    unreadable ConceptMap costs its own mappings: one malformed document never decides what a whole
+    store publishes.
+    """
+    keys: set[tuple[str, str]] = set()
+    for entry in entries:
+        if entry.resource_type != IMPLEMENTATION_GUIDE_RESOURCE_TYPE:
+            continue
+        try:
+            guide = ImplementationGuideContents.model_validate(entry.body)
+        except ValidationError as error:
+            logger.warning("%s: ImplementationGuide states contents this server cannot read (%s)", entry.source, error)
+            continue
+        keys.update(key for key in map(_reference_key, guide.example_references()) if key is not None)
+    return frozenset(keys)
+
+
+def _reference_key(reference: str) -> tuple[str, str] | None:
+    """One `{type}/{id}` reference as the pair the read index is keyed by, relative or absolute alike.
+
+    A guide publishing its own contents writes `Location/<id>`, and one writing a resource under the
+    canonical it will be published at writes `<canonical>/Location/<id>`. Both name one resource, so
+    the last two segments are the pair either way.
+    """
+    segments = [segment for segment in reference.split("/") if segment]
+    if len(segments) < 2:
+        return None
+    return segments[-2], segments[-1]
 
 
 def registry_entries(project: FhirProject, *, package: Path | None = None) -> tuple[StoreEntry, ...]:
@@ -297,7 +435,9 @@ def builtin_conformance_entries() -> tuple[StoreEntry, ...]:
 
 def attach_builtin_conformance(store: ResourceStore) -> ResourceStore:
     """The store with the package's own conformance resources appended, whichever mode built it."""
-    return ResourceStore(entries=(*store.entries, *builtin_conformance_entries()))
+    return ResourceStore(
+        entries=(*store.entries, *builtin_conformance_entries()), example_entries=store.example_entries
+    )
 
 
 def load_compiled_conformance_entries(project: FhirProject) -> tuple[StoreEntry, ...]:

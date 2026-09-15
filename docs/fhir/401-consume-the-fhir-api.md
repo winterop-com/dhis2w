@@ -156,22 +156,31 @@ method it refuses. `GET /` is the capture UI's under `--ui`
 
 ## Reads and searches
 
-Eleven definitional types are served. Seven are the published content -
+Twelve definitional types are served. Eight are the published content -
 `Questionnaire`, `CodeSystem`, `ValueSet`, `Location`, `Organization`, `List`,
-and `ConceptMap` - and four are the guide's own conformance resources,
-`StructureDefinition`, `ImplementationGuide`, `OperationDefinition`, and the
-requirements `CapabilityStatement` that `/metadata` instantiates, hosted
-so that a canonical found on a served resource resolves against the server that
-served it ([the guide's own definitions](201-serve.md#the-guides-own-definitions-are-served)).
+`ConceptMap`, and `NamingSystem`, which declares the identifier systems every
+served resource carries its identifiers on - and four are the guide's own
+conformance resources, `StructureDefinition`, `ImplementationGuide`,
+`OperationDefinition`, and the requirements `CapabilityStatement` that
+`/metadata` instantiates, hosted so that a canonical found on a served resource
+resolves against the server that served it
+([the guide's own definitions](201-serve.md#the-guides-own-definitions-are-served)).
 Beside them is `QuestionnaireResponse`, the one type the facade also receives,
 and, under `--live` only, whichever resources
 [the register](#the-register-what-the-instance-holds-one-resource-per-tracked-entity-type)
-publishes. Anything else is refused with an OperationOutcome saying so, rather
-than a bare 404 that would read as "no such resource":
+publishes.
+
+**A type is served where this project publishes one, and `/metadata` is the
+list.** A project holding no `ConceptMap` declares none and answers none; a
+package publishing organisation units declares no `Questionnaire` and answers
+none. Anything the statement does not declare is refused with an
+OperationOutcome saying so, rather than with a bare 404 that would read as "no
+such resource" or an empty searchset that would read as "this guide published
+none of those":
 
 ```console
 $ curl -s localhost:8389/Observation/abc
-{"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"not-supported","diagnostics":"this server does not serve the resource type `Observation`"}]}
+{"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"not-supported","diagnostics":"this server does not serve the resource type `Observation`; `GET /metadata` names every type it does"}]}
 ```
 
 A read is byte-faithful to what the project published; a missing id names

@@ -174,10 +174,11 @@ export interface OrgUnitTree {
     /** How many of them name a parent this project never published. */
     orphanCount: number
     /**
-     * How many published Locations were a second copy of a unit already in the tree.
+     * How many served Locations were a second copy of a unit already in the tree.
      *
-     * Not an error and not rendered: it is the documentation exemplar the IG publishes beside the
-     * registry profiles. Kept as a number so the fold can be tested for having done the dropping.
+     * Not an error and not rendered: it is the documentation exemplar an IG compiles beside the
+     * registry profiles, in a store that did not hold it out of what it publishes. Kept as a number
+     * so the fold can be tested for having done the dropping.
      */
     duplicateCount: number
 }
@@ -338,8 +339,13 @@ export function buildOrgUnitTree(locations: Location[]): OrgUnitTree {
  * example the publisher can validate against - `registry-examples.fsh`, built from the selection's
  * own root unit. The exemplar therefore carries that unit's real DHIS2 uid on the real
  * `{base}/id/org-unit` system, under a different resource id (`d2-location-example`) and with no
- * `partOf`. The facade serves everything the project published, so a tree folded from `partOf`
- * alone sees two Sierra Leones: the real root, and a second one that hangs off nothing.
+ * `partOf`. A tree folded from `partOf` alone would then see two Sierra Leones: the real root, and
+ * a second one that hangs off nothing.
+ *
+ * The facade answers no exemplar of its own accord - a guide's `ImplementationGuide` says which of
+ * its instances are examples, and what it calls an example is published by nothing. This fold is
+ * what a guide that states nothing costs: a store built from a bundle somebody else assembled, or
+ * from a guide compiled before its own resource listed its contents, still renders one root.
  *
  * WHY IT IS NOT AN ID BLACKLIST. `d2-location-example` is what today's emitter happens to name it,
  * derived from a profile id that the naming tokens can change. What is invariant is the claim the

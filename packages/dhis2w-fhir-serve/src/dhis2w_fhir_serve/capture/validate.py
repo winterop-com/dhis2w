@@ -11,16 +11,22 @@ so one round trip reports every problem at that level rather than one at a time.
                             invariants that kind's profile pins (422).
     2. Resolve the form   - the questionnaire canonical, its served Questionnaire, its index, and
                             the resource type that form declares its subject is (422).
-    3. Read the assignment - the organisation unit the response reports for, against the form's List (422).
+    3. Read the assignment - the organisation unit the response reports for, against the form's List,
+                            and against the served registry where the form publishes none (422).
     4. Read the third key - the attribute option combo, against the vocabulary the form declares (422).
     5. Read the period    - an aggregate response's ISO period, its type, and the range it claims (422).
     6. Walk the answers   - every item against the index: link ids, cardinality, types, terminology (422).
 
 Four of those grade against the strictness dial rather than absolutely. A coded answer in a
-spelling the contract does not ask for, an organisation unit outside the form's published
-assignment, an attribute option combo that disagrees with what the form declares, and a subject
-typed as a resource the form is not answered about are all warnings by default and refusals under
-`--strict-codes`.
+spelling the contract does not ask for, an organisation unit outside what the form admits - its
+published assignment, or the served registry where it publishes none - an attribute option combo
+that disagrees with what the form declares, and a subject typed as a resource the form is not
+answered about are all warnings by default and refusals under `--strict-codes`.
+
+One organisation unit is refused whatever the dial says: the guide's own worked example. A guide
+compiles an exemplar organisation unit beside its profiles to show what one looks like, and it
+stands for no place on any instance - `dhis2w_fhir_serve.store` holds those out of what a guide
+publishes, and a submission that reports at one is reporting from nowhere.
 
 Phase 1 is where the tracker registration contract is read, and it is the one contract whose
 identifiers the client mints: the enrollment its extension names, and - unless the response states
@@ -84,6 +90,7 @@ from pydantic import BaseModel, ConfigDict, PrivateAttr, ValidationError
 from dhis2w_fhir_serve.capture.index import (
     ASSIGNMENT_REFERENCE_PREFIX,
     FORM_KINDS,
+    LOCATION_RESOURCE_TYPE,
     CaptureAssignment,
     CaptureAttributeOptionCombos,
     CaptureBound,
@@ -130,6 +137,23 @@ ENTERED_IN_ERROR_STATUS = "entered-in-error"
 #: How a refusal names the `fhir.toml` key that decides each, spelled as the table and the key.
 CORRECTIONS_CONFIG_KEY = "[forward] corrections"
 WITHDRAWALS_CONFIG_KEY = "[forward] withdrawals"
+
+#: Where a submission names the organisation unit it reports for, as FHIRPath into the response: a
+#: program capture carries it on the `D2OrganisationUnit` extension, and every other kind is subject
+#: to the unit itself.
+UNIT_EXTENSION_EXPRESSION = "QuestionnaireResponse.extension"
+UNIT_SUBJECT_EXPRESSION = "QuestionnaireResponse.subject.reference"
+
+#: What DHIS2 answers a capture filed at an organisation unit it does not hold, per form kind, read
+#: off 2.43's own validate-only answers: an event names the unit it could not find on the event, and
+#: a registration names it on the tracked entity. An aggregate import states the unit in the conflict
+#: it writes rather than under a code of its own, so that kind names none and says so in words.
+UNHELD_UNIT_REFUSAL_CODES: dict[FormKind, str] = {
+    "event": "E1011",
+    "tracker": "E1049",
+    "tracker-event": "E1011",
+    "tracked-entity": "E1049",
+}
 
 #: The resource type a capture request carries, and what a client posting a Bundle is told instead.
 QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE = "QuestionnaireResponse"
@@ -233,11 +257,11 @@ def validate_response(
     index = _resolve_index(response.questionnaire or "", form_kind, indexes, naming, store)
     _settle(_subject_type_issues(response, index, form_kind, strict=strict_codes), warnings)
     _settle(_incident_date_issues(response, index, naming, form_kind), warnings)
-    _settle(_assignment_issues(response, index, naming, form_kind, strict=strict_codes), warnings)
+    _settle(_assignment_issues(response, index, naming, form_kind, store, strict=strict_codes), warnings)
     _settle(_attribute_option_combo_issues(response, index, naming, resolvers, strict=strict_codes), warnings)
     if form_kind == "aggregate":
         _settle(_period_issues(response, naming), warnings)
-    items = _ItemValidator(index=index, naming=naming, resolvers=resolvers, strict=strict_codes)
+    items = _ItemValidator(index=index, naming=naming, resolvers=resolvers, store=store, strict=strict_codes)
     _settle(items.run(response), warnings)
 
     return ValidatedCapture(
@@ -277,7 +301,7 @@ def _read_response(payload: dict[str, Any]) -> QuestionnaireResponse:
             400,
             "invalid",
             "resourceType",
-            f"this endpoint receives a {QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE}, not a `{resource_type}`",
+            f"this endpoint receives a {QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE}; `resourceType` is `{resource_type}`",
         )
     try:
         return QuestionnaireResponse.model_validate(payload)
@@ -749,35 +773,116 @@ def _subject_type_issues(
     )
 
 
+class _ReportedUnit(BaseModel):
+    """Where one submission names the organisation unit it reports for, and the element it named it on."""
+
+    model_config = ConfigDict(frozen=True)
+
+    reference: str | None = None
+    expression: str
+
+
+def _reported_unit(response: QuestionnaireResponse, naming: CaptureNaming, form_kind: FormKind) -> _ReportedUnit:
+    """Read the organisation unit a submission reports for off the element its form kind carries it on.
+
+    A reference stated as an empty string names nothing, and reads here as the absence it is: what
+    the profile requires of the element is phase 1's to grade, and this phase grades a named unit.
+    """
+    if form_kind in ("tracker", "tracker-event"):
+        extensions = _extensions(response, naming.organisation_unit_url)
+        carried = extensions[0].valueReference if extensions else None
+        named = carried.reference if carried is not None else None
+        return _ReportedUnit(reference=named or None, expression=UNIT_EXTENSION_EXPRESSION)
+    subject = response.subject
+    named = subject.reference if subject is not None else None
+    return _ReportedUnit(reference=named or None, expression=UNIT_SUBJECT_EXPRESSION)
+
+
 def _assignment_issues(
     response: QuestionnaireResponse,
     index: CaptureIndex,
     naming: CaptureNaming,
     form_kind: FormKind,
+    store: ResourceStore,
     *,
     strict: bool,
 ) -> tuple[CaptureIssue, ...]:
-    """Grade the organisation unit a response reports for against the form's published assignment.
+    """Grade the organisation unit a response reports for against what the form admits.
 
-    A form that publishes no assignment List is scoped to the whole registry, which is what a
-    consumer without the artifact already assumed - so an absent assignment checks nothing. Where
-    one is published, a unit outside it is exactly what DHIS2 refuses at forward time with
-    `E1029`, and it grades on the same dial a coded answer does: a warning on the receipt by
-    default, a refusal under `--strict-codes`.
+    A form that publishes an assignment List admits the units that List names, and a unit outside it
+    is exactly what DHIS2 refuses at forward time with `E1029`: a warning on the receipt by default,
+    a refusal under `--strict-codes`, the dial a coded answer grades on.
+
+    A form that publishes none is assigned everywhere, which means every organisation unit this
+    server publishes - not every string shaped like a reference. So the same unit is graded against
+    the served registry instead, by `_published_unit_issues`.
     """
+    reported = _reported_unit(response, naming, form_kind)
+    if reported.reference is None:
+        return ()
     assignment = index.assignment
     if assignment is None:
+        return _published_unit_issues(reported, naming, store, form_kind, strict=strict)
+    if assignment.admits(reported.reference):
         return ()
-    if form_kind in ("tracker", "tracker-event"):
-        extensions = _extensions(response, naming.organisation_unit_url)
-        reference = extensions[0].valueReference if extensions else None
-        expression = "QuestionnaireResponse.extension"
-    else:
-        reference = response.subject
-        expression = "QuestionnaireResponse.subject.reference"
-    if reference is None or not reference.reference or assignment.admits(reference.reference):
+    return (_assignment_issue(assignment, reported.reference, reported.expression, strict=strict),)
+
+
+def _published_unit_issues(
+    reported: _ReportedUnit,
+    naming: CaptureNaming,
+    store: ResourceStore,
+    form_kind: FormKind,
+    *,
+    strict: bool,
+) -> tuple[CaptureIssue, ...]:
+    """Grade one organisation unit reference against the registry this server publishes.
+
+    THE TWO ANSWERS ARE DIFFERENT FACTS AND ARE GRADED DIFFERENTLY. A reference naming one of the
+    guide's own worked examples names a place that exists nowhere - the exemplar illustrates the
+    organisation-unit profile and stands for no unit of any instance - so it is refused outright,
+    whatever the dial says. A reference naming a unit this guide simply does not publish may still be
+    a real unit of the instance behind it, narrower selections being what `[generate.organisation_units]`
+    is for, so it is graded on the dial an assignment grades on.
+
+    A project that publishes no organisation-unit registry at all states no set to check against, and
+    the capture contract then grades the reference's shape alone - which is the same absence
+    `$generate` answers by minting a shaped UID to report at.
+    """
+    if not store.publishes_any(LOCATION_RESOURCE_TYPE):
         return ()
-    return (_assignment_issue(assignment, reference.reference, expression, strict=strict),)
+    reference = reported.reference or ""
+    location_id = naming.location_id_named(reference)
+    if location_id is None or store.serves(LOCATION_RESOURCE_TYPE, location_id):
+        return ()
+    if store.by_type_and_id(LOCATION_RESOURCE_TYPE, location_id) is not None:
+        return (
+            _error(
+                "business-rule",
+                reported.expression,
+                f"`{reference}` is a worked example of this guide, not a published organisation unit; "
+                f"{_unreportable_unit_clause(form_kind)}",
+            ),
+        )
+    return (
+        CaptureIssue(
+            severity="error" if strict else "warning",
+            code="business-rule",
+            expression=reported.expression,
+            diagnostics=(
+                f"`{reference}` is not among the organisation units this server publishes; "
+                f"{_unreportable_unit_clause(form_kind)}"
+            ),
+        ),
+    )
+
+
+def _unreportable_unit_clause(form_kind: FormKind) -> str:
+    """What DHIS2 answers a capture filed at an organisation unit it does not hold, in that kind's words."""
+    code = UNHELD_UNIT_REFUSAL_CODES.get(form_kind)
+    if code is None:
+        return "DHIS2 refuses a data value set filed at an organisation unit it does not hold"
+    return f"DHIS2 refuses a capture there with {code}"
 
 
 def _assignment_issue(assignment: CaptureAssignment, reference: str, expression: str, *, strict: bool) -> CaptureIssue:
@@ -1003,6 +1108,9 @@ class _ItemValidator(BaseModel):
     index: CaptureIndex
     naming: CaptureNaming
     resolvers: CodingResolverSet
+    store: ResourceStore
+    """What the guide publishes, which an ORGANISATION_UNIT answer on an unassigned form is graded against."""
+
     strict: bool
 
     @property
@@ -1140,13 +1248,16 @@ class _ItemValidator(BaseModel):
         self._coding(question, answer, selections)
 
     def _reference(self, question: CaptureQuestion, answer: QuestionnaireResponseAnswer) -> None:
-        """Grade an ORGANISATION_UNIT answer: the authority it names its unit under, then the form's assignment.
+        """Grade an ORGANISATION_UNIT answer: the authority it names its unit under, then what the form admits.
 
         An answer naming a Location under an authority this project publishes nothing under is
         refused outright, because the id it carries belongs to somebody else's registry and would
         otherwise be read as a unit of this one. An answer naming something that is no Location at
         all is left to the question's own binding, which is what grades a reference to anything else
         DHIS2 stores.
+
+        What the form admits is graded exactly as the unit the response reports for is: the published
+        assignment where the form has one, and the served registry where it has none.
         """
         reference = answer.valueReference.reference if answer.valueReference else None
         if reference is None:
@@ -1157,7 +1268,13 @@ class _ItemValidator(BaseModel):
             self._issues.append(unserved)
             return
         assignment = self.assignment
-        if assignment is None or assignment.admits(reference):
+        if assignment is None:
+            answered = _ReportedUnit(reference=reference, expression=expression)
+            self._issues.extend(
+                _published_unit_issues(answered, self.naming, self.store, self.index.form_kind, strict=self.strict)
+            )
+            return
+        if assignment.admits(reference):
             return
         self._issues.append(_assignment_issue(assignment, reference, expression, strict=self.strict))
 

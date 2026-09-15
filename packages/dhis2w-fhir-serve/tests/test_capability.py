@@ -191,6 +191,30 @@ def test_concept_map_joins_the_read_types_when_the_store_holds_maps(compiled_pro
     assert [operation.name for operation in concept_map.operation or []] == ["translate"]
 
 
+def test_naming_system_joins_the_read_types_when_the_store_holds_identifier_systems(
+    compiled_project: FhirProject,
+) -> None:
+    """Every identifier a served resource carries names a system, and this is where a client reads one."""
+    with_systems = StoreSummary(counts_by_type={**FULL_SUMMARY.counts_by_type, "NamingSystem": 9})
+
+    capability = _capability(compiled_project, with_systems)
+
+    assert capability.rest is not None
+    resources = capability.rest[0].resource or []
+    naming_system = next(resource for resource in resources if resource.type == "NamingSystem")
+    assert [interaction.code for interaction in naming_system.interaction or []] == ["read", "search-type"]
+    assert naming_system.operation is None
+    assert "identifier system this guide mints identifiers under" in (naming_system.documentation or "")
+
+
+def test_a_store_holding_no_identifier_system_declares_no_naming_system(compiled_project: FhirProject) -> None:
+    """A type the store holds none of is a type the statement declares nothing about, this one included."""
+    capability = _capability(compiled_project, FULL_SUMMARY)
+
+    assert capability.rest is not None
+    assert "NamingSystem" not in [resource.type for resource in capability.rest[0].resource or []]
+
+
 def test_a_store_without_maps_declares_neither_the_read_type_nor_the_operation(
     compiled_project: FhirProject,
 ) -> None:

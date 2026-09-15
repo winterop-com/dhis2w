@@ -77,13 +77,20 @@ class NotFoundError(ServeError):
 
 
 class NotServedError(ServeError):
-    """The facade serves a fixed set of resource types, and this is not one of them."""
+    """The resource type is one this process declares no interaction for, so it answers none.
+
+    Which types those are is the project's to decide rather than this package's - a guide publishing
+    forms serves Questionnaire and a package publishing organisation units does not - so the refusal
+    points at the document that names the set rather than reciting it.
+    """
 
     status_code = 404
     issue_code = "not-supported"
 
     def __init__(self, resource_type: str) -> None:
-        super().__init__(f"this server does not serve the resource type `{resource_type}`")
+        super().__init__(
+            f"this server does not serve the resource type `{resource_type}`; `GET /metadata` names every type it does"
+        )
         self.resource_type = resource_type
 
 
