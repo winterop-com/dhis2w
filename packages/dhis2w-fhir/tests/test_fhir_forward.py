@@ -27,7 +27,11 @@ from dhis2w_fhir import (
     AttributeCodeIndex,
     CodedAnswerMode,
     ForwardCompletenessKind,
+    ForwardImportIssue,
+    ForwardImportOutcome,
+    ForwardOutcome,
     ForwardOutcomeKind,
+    ForwardReport,
     GenerateConfig,
     OptionSetIn,
     OverwritePosture,
@@ -1288,6 +1292,80 @@ async def test_one_rule_worded_two_ways_is_still_one_cause_of_the_run(forward_pr
     assert reasons["E1079"].reason == (
         "Event: `...`, program: `...` is different from program defined in enrollment `...`."
     )
+
+
+def _rejected_on_combo(response_id: str, combo: str) -> ForwardOutcome:
+    """One response DHIS2 refused with `E8025`, worded the way `/api/dataValueSets` words it."""
+    return ForwardOutcome(
+        response_id=response_id,
+        spool_path=f".serve/responses/rejected/{response_id}.json",
+        kind=ForwardOutcomeKind.REJECTED,
+        import_outcome=ForwardImportOutcome(
+            status="ERROR",
+            issues=(
+                ForwardImportIssue(
+                    error_code="E8025",
+                    subject="BfMAe6Itzgt",
+                    message=f"Attribute option combo {combo} not usable with org unit(s): `[{_ROOT_ORG_UNIT}]`",
+                ),
+            ),
+        ),
+    )
+
+
+def test_three_rejections_on_three_combos_roll_up_into_a_row_that_names_none_of_them() -> None:
+    """DHIS2 leaves the combo bare in `E8025`, and a row standing for three responses may not name one.
+
+    The sentence carries two identifiers and DHIS2 quotes only the second, so the roll-up reads both
+    the same way: the row says which rule refused, and the three combos stay on the three reports.
+    """
+    report = ForwardReport(
+        project_root=Path("."),
+        dry_run=True,
+        coded_answer_mode=CodedAnswerMode.LENIENT,
+        outcomes=(
+            _rejected_on_combo("one", "jsxBTh3eFsg"),
+            _rejected_on_combo("two", "ranftQIH5M9"),
+            _rejected_on_combo("three", "XjgA9fJK6bX"),
+        ),
+    )
+
+    reasons = report.rejection_reasons
+
+    assert [reason.error_code for reason in reasons] == ["E8025"]
+    assert reasons[0].responses == 3
+    assert reasons[0].reason == "Attribute option combo `...` not usable with org unit(s): `...`"
+    assert [outcome.import_outcome.issues[0].message for outcome in report.rejected] == [  # type: ignore[union-attr]
+        f"Attribute option combo {combo} not usable with org unit(s): `[{_ROOT_ORG_UNIT}]`"
+        for combo in ("jsxBTh3eFsg", "ranftQIH5M9", "XjgA9fJK6bX")
+    ]
+
+
+def test_an_eleven_character_word_of_the_sentence_survives_the_roll_up() -> None:
+    """A UID is eleven random characters and `DataElement` is English, so only one of them generalises."""
+    report = ForwardReport(
+        project_root=Path("."),
+        dry_run=True,
+        coded_answer_mode=CodedAnswerMode.LENIENT,
+        outcomes=(
+            ForwardOutcome(
+                response_id="one",
+                spool_path=".serve/responses/rejected/one.json",
+                kind=ForwardOutcomeKind.REJECTED,
+                import_outcome=ForwardImportOutcome(
+                    status="ERROR",
+                    issues=(
+                        ForwardImportIssue(
+                            error_code="E1302",
+                            message="DataElement qrur9Dvnyt5 is not valid: dataElement value",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    assert report.rejection_reasons[0].reason == "DataElement `...` is not valid: dataElement value"
 
 
 #: The data set on a non-default attribute category combo, whose every value carries a third key.

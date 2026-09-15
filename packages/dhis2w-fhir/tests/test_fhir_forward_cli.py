@@ -313,6 +313,25 @@ def test_the_completeness_flag_reaches_the_service_both_ways(forward_project: Pa
     assert on.await_args.kwargs["register_completeness"] is True
 
 
+def test_the_registry_package_reaches_the_service_as_the_path_it_was_named_by(forward_project: Path) -> None:
+    """The refusal a guide with no reachable registry prints names this flag, so the flag has to exist.
+
+    Both halves of the drain read it - the guide off disk and the guide built off the instance - so it
+    is the drain that is handed the package rather than either reader.
+    """
+    package = forward_project / "package.tgz"
+    _, mock = _invoke(["--no-progress", "--registry-package", str(package)], _report(forward_project))
+    assert mock.await_args is not None
+    assert mock.await_args.kwargs["registry_package"] == package
+
+
+def test_a_run_naming_no_registry_package_hands_the_service_none(forward_project: Path) -> None:
+    """A guide whose `path` checkout answers needs no flag, and a guess would shadow that checkout."""
+    _, mock = _invoke(["--no-progress"], _report(forward_project))
+    assert mock.await_args is not None
+    assert mock.await_args.kwargs["registry_package"] is None
+
+
 def test_the_import_flag_reaches_the_service_both_ways(forward_project: Path) -> None:
     """`--import` and `--dry-run` are both statements, and the run has to tell them from silence."""
     _, importing = _invoke(["--no-progress", "--import"], _report(forward_project, dry_run=False))
