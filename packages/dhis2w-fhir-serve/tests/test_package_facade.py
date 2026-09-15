@@ -19,8 +19,9 @@ import pytest
 from dhis2w_fhir.config import FhirProject, load_fhir_config
 from dhis2w_fhir_serve.app import create_app
 from dhis2w_fhir_serve.capability import QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE
-from dhis2w_fhir_serve.errors import package_statement
+from dhis2w_fhir_serve.errors import ORGANISATION_UNIT_PACKAGE_SUBJECT, package_statement
 from dhis2w_fhir_serve.settings import ServeSettings
+from dhis2w_fhir_serve.ui import frontend_source_directory
 from fastapi import FastAPI
 
 BASE_URL = "http://package.test"
@@ -151,6 +152,28 @@ async def test_a_submission_is_refused_with_the_package_sentence(package_client:
 def test_the_sentence_spells_the_organisation_units_out() -> None:
     """The token `organisation-units` is the machine spelling; a sentence a person reads says the words."""
     assert "it publishes organisation units for guides to depend on, and no form" in PACKAGE_SENTENCE
+
+
+def test_the_capture_ui_says_the_same_sentence_the_endpoint_says() -> None:
+    """One project, one sentence: the screens and the endpoint tell a reader the same thing about it.
+
+    The capture UI composes the statement itself rather than lifting it out of a refusal, because the
+    screens that say it are the ones that make no refused read - so the words live on both sides and
+    this is what holds them together. Skipped on a wheel, which carries no frontend checkout.
+    """
+    frontend = frontend_source_directory()
+    if frontend is None:
+        pytest.skip("no frontend checkout beside the bundle")
+
+    source = (frontend / "src" / "lib" / "uiconfig.ts").read_text(encoding="utf-8")
+
+    # The subject is a value on the TypeScript side, so the sentence is asserted as the two runs of
+    # words around it - which is every word either side authors.
+    before, after = PACKAGE_SENTENCE.split(ORGANISATION_UNIT_PACKAGE_SUBJECT, 1)
+    assert before in source
+    assert ORGANISATION_UNIT_PACKAGE_SUBJECT in source
+    for clause in after.split(". "):
+        assert clause.strip(". ") in source
 
 
 @pytest.mark.parametrize("resource_type", ["Questionnaire", "QuestionnaireResponse", "Measure", "Bundle"])

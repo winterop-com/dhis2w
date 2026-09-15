@@ -229,6 +229,69 @@ export const NO_REGISTER_OFFERED: TrackedEntitiesSettings = {
 /** The FHIR resource a DHIS2 tracked entity type is served as when the guide maps it to nothing. */
 export const PEOPLE_RESOURCE_TYPE = 'Patient'
 
+/** The one `[ig] publishes` value there is, as the wire spells it - a machine token, never prose. */
+export const ORGANISATION_UNIT_PACKAGE = 'organisation-units'
+
+/** What that package publishes, in the words a sentence a person reads uses. */
+export const ORGANISATION_UNIT_PACKAGE_SUBJECT = 'organisation units'
+
+/**
+ * Whether this server serves a package rather than a guide.
+ *
+ * A package holds no Questionnaire and never will - `[ig] publishes` is how a project says its shape
+ * is to have no forms at all - so this is what every capture screen asks before it offers anything.
+ * The server settles it: `/facade/uiconfig` carries `publishes` off the served project, and the
+ * CapabilityStatement at `/metadata` declares no `QuestionnaireResponse` for the same project, so the
+ * two agree by construction and this app reads the one that is a value rather than an absence.
+ *
+ * Silence is a guide, which is the right reading of a settings read that has not landed: a guide is
+ * what nearly every project is, and a screen that assumed a package would take the forms away from
+ * somebody who has them.
+ */
+export function isPackage(config: UiConfig): boolean {
+    return (config.publishes ?? null) !== null
+}
+
+/**
+ * Whether this server serves forms at all - the condition every capture page is offered under.
+ *
+ * The plain reading of `isPackage`, named for what a navigation entry asks rather than for what the
+ * project is: a page that fills a form in, lists what came back, or runs an expression over a
+ * captured document leads somewhere on a guide and nowhere on a package.
+ */
+export function servesForms(config: UiConfig): boolean {
+    return !isPackage(config)
+}
+
+/**
+ * What this package publishes, in prose, or null when this server serves a guide.
+ *
+ * A content value with no prose spelling is stated as it stands, which is the same fall-back
+ * `dhis2w_fhir_serve.errors.package_subject` takes: a token nobody has written words for is still
+ * more useful in the sentence than nothing.
+ */
+export function packageSubject(config: UiConfig): string | null {
+    const publishes = config.publishes ?? null
+    if (publishes === null) return null
+    return publishes === ORGANISATION_UNIT_PACKAGE ? ORGANISATION_UNIT_PACKAGE_SUBJECT : publishes
+}
+
+/**
+ * The one sentence this app says about a package, wherever it has to say it.
+ *
+ * Word for word what `dhis2w_fhir_serve.errors.package_statement` answers a client with, so a person
+ * who met the screens and a client that met the endpoint are told the same thing about the same
+ * project. Both sides assert it.
+ */
+export function packageStatement(config: UiConfig): string | null {
+    const subject = packageSubject(config)
+    if (subject === null) return null
+    return (
+        `This project is a package: it publishes ${subject} for guides to depend on, and no form. ` +
+        'Captures are made in a guide that depends on it, not here.'
+    )
+}
+
 /**
  * What this run offers about the instance's tracked entities, with silence read as offering none.
  *

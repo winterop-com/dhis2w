@@ -82,9 +82,9 @@ async def test_each_form_kind_is_created_and_then_served_from_its_location(
 
     assert read.status_code == 200
     assert read.json() == {**body, "id": response_id}
-    assert created.json()["issue"][0]["diagnostics"] == (
-        f"stored response {response_id}; a stored response is the submission as received - "
-        "a receipt, not a live view of DHIS2 data"
+    assert created.json()["issue"][0]["diagnostics"].startswith(f"stored response {response_id}, holding ")
+    assert created.json()["issue"][0]["diagnostics"].endswith(
+        "; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"
     )
     assert _spooled(capture_project, response_id)["form_kind"] == form_kind
 

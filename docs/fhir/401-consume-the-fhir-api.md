@@ -1485,10 +1485,10 @@ HTTP/1.1 201 Created
 date: Mon, 10 Aug 2026 19:43:24 GMT
 server: uvicorn
 location: http://localhost:8389/QuestionnaireResponse/d78a53c1afe54f09aeb104d0fd1844c2
-content-length: 252
+content-length: 367
 content-type: application/fhir+json
 
-{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response d78a53c1afe54f09aeb104d0fd1844c2; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
+{"resourceType":"OperationOutcome","issue":[{"severity":"information","code":"informational","diagnostics":"stored response d78a53c1afe54f09aeb104d0fd1844c2, holding Child Health (BfMAe6Itzgt), reported from organisation unit Sierra Leone (ImspTQPwCqd), for period 202608; a stored response is the submission as received - a receipt, not a live view of DHIS2 data"}]}
 ```
 
 Validation runs in phases, and the phase that finds an error is the last one

@@ -2265,8 +2265,9 @@ def serve_command(
 
     Host, port, authentication, strict codes, the UI, and basemaps come from `\[serve]` unless a flag beats them.
 
-    Two more `\[serve]` keys have no flag: `capture = false` serves the guide and receives nothing, and
-    `spool_dir` says where the receipts live - the same directory `d2w fhir forward` drains.
+    Two more `\[serve]` keys have no flag, and are set in fhir.toml alone: `capture = false` serves
+    the guide and receives nothing, and `spool_dir` says where the receipts live - the same directory
+    `d2w fhir forward` drains, which is why one project states it once rather than per invocation.
     """
     try:
         from dhis2w_fhir_serve import ServeAuthConfigurationError, ServeSettings, configure_logging, create_app
@@ -3088,8 +3089,11 @@ def forward_command(
 
     The posture comes from `\[forward]` in fhir.toml - `import`, `register_completeness`,
     `overwrites`, `corrections`, and `withdrawals` - unless a flag here overrides it for this run,
-    and from the defaults above when the file states none. Which spool is drained is
-    `\[serve] spool_dir`, the same key the server writes receipts under.
+    and from the defaults above when the file states none.
+
+    Which spool is drained has no flag: it is `\[serve] spool_dir` in fhir.toml, the same key the
+    server writes receipts under, so a project that moves its receipt tree moves it for both halves
+    of the loop at once.
 
     `corrections` and `withdrawals` are the deployment's posture towards a submission that names what
     it amends or retracts, and the run states them rather than acting on them: a drain imports, and

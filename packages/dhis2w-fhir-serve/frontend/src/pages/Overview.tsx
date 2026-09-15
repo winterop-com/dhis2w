@@ -33,6 +33,7 @@ import {
     type SpoolCounts,
     type SpoolResponseSummary,
 } from '@/lib/spool'
+import { packageStatement, servesForms, type UiConfig } from '@/lib/uiconfig'
 import { cn, countedNoun, formatCount } from '@/lib/utils'
 
 /**
@@ -58,7 +59,13 @@ import { cn, countedNoun, formatCount } from '@/lib/utils'
  */
 export function Overview() {
     const { listing, loading: spoolLoading, error: spoolError } = useSpool()
-    const forms = useFhirSearch<Questionnaire>('Questionnaire')
+    // A package publishes no Questionnaire and the server answers the search 404, so the read is
+    // not made at all: a red card about a refused read would say this server is broken, where what
+    // it is is a project with no forms in it. The read waits for the settings rather than racing
+    // them - a request sent before the answer arrives is the very 404 this is here to avoid.
+    const { config, loading: configLoading } = useUiConfig()
+    const servingForms = !configLoading && servesForms(config)
+    const forms = useFhirSearch<Questionnaire>('Questionnaire', {}, servingForms)
     const { reachability, capability, checking } = useServerStatus()
 
     useEffect(() => {
@@ -68,10 +75,11 @@ export function Overview() {
     // The three sections of this page as one line: what arrived, what a capture can be started
     // from, and how much of a FHIR server is behind both. The types come off the same
     // CapabilityStatement the identity strip reads, and are said as "served" because that is what
-    // the REST block enumerates - the same set the Server page's table lists.
+    // the REST block enumerates - the same set the Server page's table lists. A package stores no
+    // receipt and publishes no form, so the left half is two counts of nothing and is left unsaid.
     const servedTypes = capability?.rest?.[0]?.resource?.length ?? 0
     useStatusLine(
-        spoolLoading || forms.loading
+        !servingForms || spoolLoading || forms.loading
             ? null
             : `${countedNoun(listing.total, 'receipt')} - ${countedNoun(forms.resources.length, 'form')} served`,
         capability === null ? null : countedNoun(servedTypes, 'resource type'),
@@ -81,21 +89,30 @@ export function Overview() {
         <>
             <PageHeader
                 title="Overview"
-                description="What this server holds right now: the receipts not yet sent to DHIS2, the forms a capture starts from, and the implementation guide behind both."
+                description={
+                    servesForms(config)
+                        ? 'What this server holds right now: the receipts not yet sent to DHIS2, the forms a capture starts from, and the implementation guide behind both.'
+                        : 'What this server holds right now: what this package publishes, and the implementation guide behind it.'
+                }
             />
 
             <div className="space-y-8">
-                <SpoolPulse
-                    counts={listing.counts}
-                    total={listing.total}
-                    responses={listing.responses}
-                    loading={spoolLoading}
-                    error={spoolError}
-                />
+                {/* A package receives nothing and stores no receipt, so there is no queue to
+                    report on - five tiles reading 0 would describe a loop this project is not in. */}
+                {servesForms(config) && (
+                    <SpoolPulse
+                        counts={listing.counts}
+                        total={listing.total}
+                        responses={listing.responses}
+                        loading={spoolLoading}
+                        error={spoolError}
+                    />
+                )}
                 <CaptureSection
                     questionnaires={forms.resources}
-                    loading={forms.loading}
+                    loading={configLoading || forms.loading}
                     error={forms.error}
+                    config={config}
                 />
                 <ServerIdentity
                     capability={capability}
@@ -318,33 +335,41 @@ function CaptureSection({
     questionnaires,
     loading,
     error,
+    config,
 }: {
     questionnaires: Questionnaire[]
     loading: boolean
     error: string | null
+    config: UiConfig
 }) {
     const slice = formSlice(questionnaires, QUICK_ENTRY_FORMS)
     // A package publishes no Questionnaire and never will, so the empty state says that rather
-    // than advising a generate that would produce none.
-    const { config } = useUiConfig()
-    const publishes = config.publishes ?? null
+    // than advising a generate that would produce none - in the server's own words, and leading to
+    // the hierarchy, which is the page a package really has.
+    const statement = packageStatement(config)
 
     return (
         <section className="space-y-3">
             <SectionHeading
-                title="Capture a response"
-                description="Every Questionnaire this server publishes is a form you can fill in and post back."
+                title={statement === null ? 'Capture a response' : 'Forms'}
+                description={
+                    statement === null
+                        ? 'Every Questionnaire this server publishes is a form you can fill in and post back.'
+                        : 'A capture is made against a Questionnaire, and this project publishes none.'
+                }
             />
             <PageState
                 loading={loading}
                 error={error}
                 empty={slice.total === 0}
                 emptyMessage={
-                    publishes ? (
+                    statement !== null ? (
                         <>
-                            This project is a package: it publishes {publishes} for guides to
-                            depend on, and no form. Captures are made in a guide that depends on it,
-                            not here.
+                            {statement}{' '}
+                            <Link to="/organisation-units" className="interactive-link">
+                                Open the hierarchy
+                            </Link>
+                            .
                         </>
                     ) : (
                         <>

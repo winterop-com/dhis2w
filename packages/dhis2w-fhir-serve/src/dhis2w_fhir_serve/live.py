@@ -70,6 +70,7 @@ from typing import TYPE_CHECKING, Any
 
 from dhis2w_core.client_context import open_client
 from dhis2w_fhir import (
+    bound_option_set_uids,
     build_category_artifacts,
     build_category_concept_map_artifacts,
     build_category_identifier_artifacts,
@@ -117,8 +118,10 @@ if TYPE_CHECKING:
     from dhis2w_client import Dhis2Client
     from dhis2w_fhir.config import FhirProject, GenerateConfig
     from dhis2w_fhir.r4 import CodeSystem, ConceptMap, Questionnaire, ValueSet
+    from dhis2w_fhir.resources.option_sets.schemas import OptionSetIn
     from dhis2w_fhir.resources.organisation_units import OrganisationUnitTerminologyBuild
     from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitIn, OrganisationUnitLevelNames
+    from dhis2w_fhir.resources.questionnaires.schemas import QuestionnaireSourceIn
     from dhis2w_fhir.status import IgStatus
 
     from dhis2w_fhir_serve.settings import ServeSettings
@@ -166,6 +169,14 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
     A guide whose organisation units another package publishes reads them out of that package and
     leaves the instance's hierarchy unwalked, which is the module docstring's last paragraph and the
     one place a live store serves documents it did not build.
+
+    EVERY PLAN THE FETCH RESOLVED IS HANDED TO THE BUILDER THAT NEEDS IT. `LiveIgInputs` carries the
+    attribute-option restrictions, the questionnaire stem plan, and the organisation-unit stem
+    resolution, and each one is passed on rather than left to a builder's own fall-back: a builder
+    handed no restriction publishes a combo vocabulary that reads as usable at every published unit,
+    and two stem resolutions of the same selection are two answers where the guide has one. The
+    twin of this function is `dhis2w_fhir.service.generate_full`, which builds the same artifacts off
+    the same fetch onto disk, and `tests/test_live_parity.py` holds the two to the same artifact set.
     """
     config = project.config.generate
     canonical = project.config.ig.canonical
@@ -183,7 +194,12 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
     )
     decomposition = build_category_decomposition(inputs.sources, inputs.categories, config, canonical)
     attribute_combos = build_attribute_combo_artifacts(
-        inputs.sources, config, canonical, ig_status=ig_status, decomposition=decomposition
+        inputs.sources,
+        config,
+        canonical,
+        ig_status=ig_status,
+        decomposition=decomposition,
+        restrictions=inputs.attribute_option_restrictions,
     )
     questionnaires = build_questionnaire_documents(
         inputs.sources,
@@ -192,7 +208,8 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
         ig_status=ig_status,
         option_set_plan=inputs.option_set_plan,
         attribute_codes=inputs.attribute_codes,
-        option_sets=inputs.option_sets,
+        option_sets=_bound_option_sets(inputs.sources, inputs.option_sets),
+        stem_plan=inputs.questionnaire_stems,
         assignments=assignments.plan,
         attribute_combos=attribute_combos.plan,
     )
@@ -233,6 +250,7 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
                     canonical,
                     attribute_codes=inputs.attribute_codes,
                     level_names=inputs.organisation_unit_levels,
+                    stems=inputs.organisation_unit_stems,
                 ),
             )
         ),
@@ -281,6 +299,18 @@ async def build_live_store(project: FhirProject, settings: ServeSettings, client
             registry.version,
         )
     return ResourceStore(entries=tuple(entries))
+
+
+def _bound_option_sets(sources: list[QuestionnaireSourceIn], option_sets: list[OptionSetIn]) -> list[OptionSetIn]:
+    """The option sets the served forms bind a question to - the slice a questionnaire document reads.
+
+    The narrowing the generate path takes, taken here for the same reason: the concept code a
+    program rule's coded `enableWhen` names is resolved out of the sets the forms really bind, so a
+    rule naming an option of a set no served form binds is stated as its untranslated `D2ProgramRule`
+    form in both stores rather than resolved in one of them.
+    """
+    bound = frozenset(bound_option_set_uids(sources))
+    return [option_set for option_set in option_sets if option_set.uid in bound]
 
 
 def _serving_gate(config: GenerateConfig) -> HostileNameGate | None:

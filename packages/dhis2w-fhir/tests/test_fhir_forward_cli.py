@@ -721,3 +721,18 @@ def test_the_run_names_a_marked_submission_posture_only_where_one_is_stated(forw
     assert "corrections" in stated.output
     assert "withdrawals" in stated.output
     assert "retract" in stated.output
+
+
+def test_both_halves_of_the_loop_say_the_spool_is_named_in_fhir_toml_and_nowhere_else() -> None:
+    """Which spool is written and which spool is drained is one key, and neither command takes a flag for it.
+
+    `\\[serve] spool_dir` is where the receipt tree lives, and the server and the drain resolve it
+    through one function so a project that moved its tree moved it for both. That makes it a fact
+    about the project rather than about one invocation, which is why there is no flag - and a help
+    text that named the key beside a page of flags left a reader looking for one.
+    """
+    for command in ("serve", "forward"):
+        help_text = " ".join(_runner.invoke(build_app(), ["fhir", command, "--help"]).output.split())
+        assert "spool_dir" in help_text
+        assert "no flag" in help_text
+        assert "--spool-dir" not in help_text

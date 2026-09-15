@@ -49,7 +49,12 @@ from dhis2w_fhir_serve.capability import QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE
 from dhis2w_fhir_serve.capture.index import CaptureIndexCache
 from dhis2w_fhir_serve.capture.naming import CaptureNaming
 from dhis2w_fhir_serve.capture.outcome import CaptureIssue, CaptureRejection, rejection_outcome, success_outcome
-from dhis2w_fhir_serve.capture.validate import CaptureLifecyclePostures, ValidatedCapture, validate_response
+from dhis2w_fhir_serve.capture.validate import (
+    CaptureLifecyclePostures,
+    CaptureSubject,
+    ValidatedCapture,
+    validate_response,
+)
 from dhis2w_fhir_serve.errors import (
     FHIR_JSON_MEDIA_TYPE,
     CaptureDisabledError,
@@ -146,7 +151,7 @@ async def create_questionnaire_response(request: Request) -> Response:
     # the directory - blocking work the facade must not do inline, since the point of the fsyncs is
     # that they wait for the device.
     await run_in_threadpool(context.spool.save, envelope)
-    return _created(request, envelope.response_id, validated.warnings)
+    return _created(request, envelope.response_id, validated.subject, validated.warnings)
 
 
 def _require_json_body(request: Request) -> None:
@@ -195,12 +200,16 @@ def _receipt(validated: ValidatedCapture, request: Request) -> StoredResponseEnv
     )
 
 
-def _created(request: Request, response_id: str, warnings: tuple[CaptureIssue, ...]) -> Response:
-    """Answer an accepted capture: 201, where the receipt is served from, and what the server had to note."""
+def _created(
+    request: Request, response_id: str, subject: CaptureSubject, warnings: tuple[CaptureIssue, ...]
+) -> Response:
+    """Answer an accepted capture: 201, where the receipt is served from, what it holds, and what was noted."""
     base_url = str(request.base_url).rstrip("/")
     return JSONResponse(
         status_code=201,
-        content=success_outcome(response_id, warnings).model_dump(mode="json", exclude_none=True, by_alias=True),
+        content=success_outcome(response_id, subject, warnings).model_dump(
+            mode="json", exclude_none=True, by_alias=True
+        ),
         media_type=FHIR_JSON_MEDIA_TYPE,
         headers={"Location": f"{base_url}/{QUESTIONNAIRE_RESPONSE_RESOURCE_TYPE}/{response_id}"},
     )
