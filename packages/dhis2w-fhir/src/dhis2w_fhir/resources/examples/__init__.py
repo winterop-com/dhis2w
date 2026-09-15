@@ -158,6 +158,7 @@ __all__ = [
     "location_stem",
     "registration_identities",
     "response_status_code",
+    "synthetic_period",
     "zoned_date_time",
 ]
 
@@ -899,7 +900,7 @@ def _synthetic_response(
     """
     organisation_unit_uid = capture.organisation_unit_uid
     generator = random.Random(derived_seed(source.uid, ordinal, salt))  # noqa: S311 - illustrative values, not a secret
-    period = _synthetic_period(source, today)
+    period = synthetic_period(source, today)
     window = _SyntheticWindow.of_period(period) if period is not None else _SyntheticWindow.recent(today)
     instance_id = f"{source.uid}-example-{ordinal}"
     authored: str | None = None
@@ -1117,8 +1118,13 @@ def synthetic_uid(generator: random.Random) -> str:
     return f"{leading}{trailing}"
 
 
-def _synthetic_period(source: QuestionnaireSourceIn, today: datetime.date) -> PeriodValue | None:
-    """The newest completed period of a data set's period type; None for an event program."""
+def synthetic_period(source: QuestionnaireSourceIn, today: datetime.date) -> PeriodValue | None:
+    """The newest completed period of a data set's period type; None for an event program.
+
+    The period a generated example reports for, which is also the period its attribute option combo
+    is drawn against: DHIS2 refuses a capture whose combo window does not cover the whole period it
+    reports for, so the caller placing an example asks this before choosing the combo.
+    """
     if source.kind != "aggregate" or not source.period_type:
         return None
     isos = recent_periods(source.period_type, 1, today)

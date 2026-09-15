@@ -53,6 +53,7 @@ from dhis2w_fhir.writer import JsonArtifact, JsonBuild
 if TYPE_CHECKING:
     from collections.abc import Collection
 
+    from dhis2w_fhir.period.schemas import PeriodValue
     from dhis2w_fhir.resources.questionnaires.schemas import QuestionnaireSourceIn
 
 __all__ = [
@@ -61,18 +62,23 @@ __all__ = [
     "ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE",
     "ATTRIBUTE_OPTION_VALID_FROM_PROPERTY",
     "ATTRIBUTE_OPTION_VALID_TO_PROPERTY",
+    "UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "AttributeOptionRestrictionBuild",
     "AttributeOptionRestrictionPlan",
     "AttributeOptionRestrictions",
     "CategoryOptionValidity",
     "OrganisationUnitPaths",
+    "UntimelyAttributeOptionCombosSummary",
     "UnusableAttributeOptionCombosSummary",
     "UsableAttributeOptionCombos",
     "attribute_option_restriction_declaration",
     "attribute_option_validity_declarations",
     "build_attribute_option_restriction_artifacts",
+    "narrowest_window",
     "restricted_category_option_uids",
+    "untimely_attribute_option_combo_message",
+    "untimely_attribute_option_combos_summary",
     "unusable_attribute_option_combo_message",
     "unusable_attribute_option_combos_summary",
 ]
@@ -164,9 +170,15 @@ class CategoryOptionValidity(BaseModel):
 
     def covers(self, start_date: datetime.date, end_date: datetime.date) -> bool:
         """Whether a capture reporting for this span falls inside the window, both ends inclusive."""
-        if self.valid_from is not None and self.valid_from > start_date:
-            return False
-        return not (self.valid_to is not None and self.valid_to < end_date)
+        return not self.opens_after(start_date) and not self.closed_before(end_date)
+
+    def opens_after(self, start_date: datetime.date) -> bool:
+        """Whether the window opens later than this day, which is what refuses a capture beginning before it."""
+        return self.valid_from is not None and self.valid_from > start_date
+
+    def closed_before(self, end_date: datetime.date) -> bool:
+        """Whether the window closed earlier than this day, which is what refuses a capture running past it."""
+        return self.valid_to is not None and self.valid_to < end_date
 
 
 class AttributeOptionRestrictions(BaseModel):
@@ -207,15 +219,28 @@ UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY = (
 )
 
 
-class UsableAttributeOptionCombos(BaseModel):
-    """Which attribute option combos a capture at each published organisation unit may be filed under.
+#: The one line answering a form whose every attribute option combo has closed, stated identically wherever
+#: the fact is reported - `d2w fhir generate` closes a run with it and `d2w fhir check-artifacts` files it as a
+#: finding's remedy. Unlike the unit axis, no fhir.toml setting reaches this one: the window is DHIS2 metadata.
+UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY = (
+    "A category option's window is DHIS2 metadata - `startDate` and `endDate` on the category option - and "
+    "fhir.toml has no setting that widens it. Reopen the category options in DHIS2, or narrow the form "
+    "selection in fhir.toml to the forms whose attribute option combos are still open, then run "
+    "`d2w fhir generate` again."
+)
 
-    The restriction index read the way both consumers of it ask: DHIS2 refuses a capture keyed to a
-    combo whose category options are scoped away from the organisation unit it was filed from
-    (`E8025`), so the examples target places a response and the questionnaires target grades a form
-    against the same question - which combos, at which unit. The ancestor rule is resolved once per
-    category option here rather than per combo per unit, because a national registry has thousands
-    of units and a category combo has dozens of combos met from a handful of options.
+
+class UsableAttributeOptionCombos(BaseModel):
+    """Which attribute option combos a capture at each published organisation unit, for a period, may be filed under.
+
+    The restriction index read the way both consumers of it ask, and on both axes DHIS2 grades: it
+    refuses a capture keyed to a combo whose category options are scoped away from the organisation
+    unit it was filed from (`E8025`), and one whose window does not cover the whole period it reports
+    for (`E8032`). So the examples target places a response and the questionnaires target grades a
+    form against the same question - which combos, at which unit, for which period. The ancestor rule
+    is resolved once per category option here rather than per combo per unit, because a national
+    registry has thousands of units and a category combo has dozens of combos met from a handful of
+    options.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -227,6 +252,13 @@ class UsableAttributeOptionCombos(BaseModel):
     assigned to no organisation unit: every published unit may capture under it.
     """
 
+    validity: dict[str, CategoryOptionValidity] = Field(default_factory=dict)
+    """The calendar window each dated category option is open for, by category option UID.
+
+    An option absent from the index states neither date, which is what DHIS2 answers for an option
+    open from the beginning and never closed: a capture for any period may be keyed under it.
+    """
+
     @classmethod
     def of(cls, restrictions: AttributeOptionRestrictions) -> UsableAttributeOptionCombos:
         """Resolve every restricted category option's descendants against the published registry, once."""
@@ -235,11 +267,19 @@ class UsableAttributeOptionCombos(BaseModel):
                 option_uid: restrictions.units.under(restricted_to)
                 for option_uid, restricted_to in restrictions.organisation_units.items()
                 if restricted_to
-            }
+            },
+            validity=dict(restrictions.validity),
         )
 
-    def usable_at(self, source: QuestionnaireSourceIn, organisation_unit_uid: str) -> tuple[str, ...]:
-        """The option combos of this form's category combo a capture at this organisation unit may be filed under.
+    def usable_at(
+        self, source: QuestionnaireSourceIn, organisation_unit_uid: str, *, period: PeriodValue | None
+    ) -> tuple[str, ...]:
+        """The option combos of this form's category combo a capture here, for this period, may be filed under.
+
+        Both axes at once, because DHIS2 grades both: a combo scoped away from the organisation unit
+        is refused with `E8025`, and one whose window does not cover the whole period the capture
+        reports for with `E8032`. `period` None is a capture reporting for no period at all - an
+        event, an enrollment - which leaves the date axis nothing to grade and the unit axis alone.
 
         A form on the default category combo, or on one the run publishes no vocabulary for, declares
         no combo at all and the answer is empty - such a capture carries no combo and DHIS2 keys it
@@ -252,6 +292,7 @@ class UsableAttributeOptionCombos(BaseModel):
             option_combo.uid
             for option_combo in combo.option_combos
             if self.admits(organisation_unit_uid, option_combo.category_option_uids)
+            and self.covers(option_combo.category_option_uids, period)
         )
 
     def admits(self, organisation_unit_uid: str, category_option_uids: Collection[str]) -> bool:
@@ -261,6 +302,16 @@ class UsableAttributeOptionCombos(BaseModel):
             for option_uid in category_option_uids
             if (admitted := self.admissions.get(option_uid)) is not None
         )
+
+    def covers(self, category_option_uids: Collection[str], period: PeriodValue | None) -> bool:
+        """Whether a capture reporting for this period may be filed under a combo met from these category options."""
+        if period is None:
+            return True
+        return self.window_of(category_option_uids).covers(period.start_date, period.end_date)
+
+    def window_of(self, category_option_uids: Collection[str]) -> CategoryOptionValidity:
+        """The window a combo met from these category options is open for - the narrowest of theirs."""
+        return narrowest_window(self.validity, category_option_uids)
 
 
 class UnusableAttributeOptionCombosSummary(BaseModel):
@@ -283,6 +334,26 @@ class UnusableAttributeOptionCombosSummary(BaseModel):
 
     max_level: int | None = None
     """The `[generate.organisation_units] max_level` in force, which is what usually narrows the registry."""
+
+
+class UntimelyAttributeOptionCombosSummary(BaseModel):
+    """The published forms every attribute option combo of theirs has closed for: no period they report is inside one.
+
+    The date axis's own answer to the unit axis's `UnusableAttributeOptionCombosSummary`, counted in
+    forms for the same reason: the form is what a capture client is refused at, and what `$generate`
+    answers 422 for. A form lands here only when every combo it declares closed before the end of the
+    period it reports now, which is the first of the periods it still reports - DHIS2 refuses a
+    capture the window does not cover entirely, and a window that ends before this period ends is
+    before every later one too.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    form_count: int
+    """How many published Questionnaires declare a combo vocabulary closed for every period they report."""
+
+    forms: list[str]
+    """The forms themselves, as `name (uid)`, sorted."""
 
 
 class AttributeOptionRestrictionPlan(BaseModel):
@@ -351,6 +422,41 @@ def unusable_attribute_option_combo_message(summary: UnusableAttributeOptionComb
         f"DHIS2 instance accepts and the restriction Lists beside their vocabulary name no organisation unit "
         f"that may report them{narrowed}. The forms are: {', '.join(summary.forms)}"
     )
+
+
+def untimely_attribute_option_combos_summary(forms: list[str]) -> UntimelyAttributeOptionCombosSummary | None:
+    """Summarise the forms every attribute option combo of theirs has closed for, or None when none has."""
+    if not forms:
+        return None
+    return UntimelyAttributeOptionCombosSummary(form_count=len(forms), forms=sorted(forms))
+
+
+def untimely_attribute_option_combo_message(summary: UntimelyAttributeOptionCombosSummary) -> str:
+    """The note one run files about the forms every attribute option combo of theirs has closed for."""
+    return (
+        f"{summary.form_count} published form(s) declare attribute option combos DHIS2 has closed: no attribute "
+        f"option combo of the form is valid for any period it reports, so no capture for them can be keyed to a "
+        f"combo this DHIS2 instance accepts. The forms are: {', '.join(summary.forms)}"
+    )
+
+
+def narrowest_window(
+    validity: dict[str, CategoryOptionValidity], category_option_uids: Collection[str]
+) -> CategoryOptionValidity:
+    """The window a combo met from these category options is open for - the latest start, the earliest end.
+
+    DHIS2's own `CategoryOptionCombo` date range, and the one rule every consumer of the date axis
+    reads: the vocabulary emitter narrows a concept's published window by it, the examples target
+    keys a response by it, and `d2w fhir check-artifacts` reads it back off the published properties.
+    An option stating neither date narrows nothing, so a combo met from such options alone is open
+    for every period there is.
+    """
+    window = CategoryOptionValidity()
+    for option_uid in category_option_uids:
+        stated = validity.get(option_uid)
+        if stated is not None:
+            window = window.narrowed_by(stated)
+    return window
 
 
 def attribute_option_restriction_declaration(property_base: str) -> CodeSystemProperty:
@@ -443,16 +549,11 @@ def _windows(
     compositions: dict[str, list[str]], validity: dict[str, CategoryOptionValidity]
 ) -> dict[str, CategoryOptionValidity]:
     """The narrowest window each attribute option combo is open for, over the options it is met from."""
-    windows: dict[str, CategoryOptionValidity] = {}
-    for option_combo_uid, composition in compositions.items():
-        window = CategoryOptionValidity()
-        for option_uid in composition:
-            stated = validity.get(option_uid)
-            if stated is not None:
-                window = window.narrowed_by(stated)
-        if window.stated:
-            windows[option_combo_uid] = window
-    return windows
+    windows = {
+        option_combo_uid: narrowest_window(validity, composition)
+        for option_combo_uid, composition in compositions.items()
+    }
+    return {option_combo_uid: window for option_combo_uid, window in windows.items() if window.stated}
 
 
 def _later(left: datetime.date | None, right: datetime.date | None) -> datetime.date | None:

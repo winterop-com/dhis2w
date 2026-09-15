@@ -479,7 +479,7 @@ response that did would not be a response to this form. The note names each
 one as `<data element>.<category option combo>` and counts the rest, and the
 same note is raised by every target that reads the form.
 
-### Three outcomes the notes do not carry
+### Four outcomes the notes do not carry
 
 A national instance raises several hundred terminology notes per run, and a form
 nobody can submit would be lost among them. So when an organisation-unit
@@ -489,17 +489,20 @@ line of its own:
 ```text
 warning: 29 published form(s) carry an empty organisation-unit assignment under
 [generate.organisation_units] max_level 2: no organisation unit may report them,
-and the facade refuses to draft a response for one. Widen the organisation-unit
-selection - raise `[generate.organisation_units] max_level`, or set its `root`
-higher up the hierarchy - or narrow the form selection in fhir.toml to the forms
-those organisation units report, then run `d2w fhir generate` again.
+and the facade refuses to draft a response for one. The assignment hangs on:
+Child Programme (IpHINAT79UW), EPI Stock (TuL8IOPzpHh). Widen the
+organisation-unit selection - raise `[generate.organisation_units] max_level`, or
+set its `root` higher up the hierarchy - or narrow the form selection in
+fhir.toml to the forms those organisation units report, then run
+`d2w fhir generate` again.
 ```
 
 The count is of published Questionnaires, which is what a capture client is
 refused at - a tracker program's stages each publish a form and share their
 program's one `List` - so this line, the facade's 422 and
 `d2w fhir check-artifacts` all state one number, and all three prescribe the
-same two selections.
+same two selections. The names beside it are the data sets and programs DHIS2
+hangs the assignment on, because that is the object a reader reassigns.
 [Choosing a max-level](201-set-up-a-project.md#choosing-a-max-level) carries the
 trade-off that usually produces it.
 
@@ -531,7 +534,35 @@ connection asks the same question. The examples target publishes no example for
 such a form: there is no capture DHIS2 would take, so drafting one would be
 publishing the very response the facade then refuses.
 
-The third is a selection entry that matched nothing. A UID no longer on the
+The third is that same form one axis further over: one DHIS2 has closed every
+combo of. A category option is scoped to a calendar window as well, and DHIS2
+refuses a capture the window does not cover entirely with `E8032` - so a form
+whose every declared combo closed before the period it reports now, which is the
+newest completed period of its own period type and therefore before every later
+period too, is a form nobody can submit. The run already wrote the windows that
+prove it, so it closes with the fact:
+
+```text
+warning: 2 published form(s) declare attribute option combos DHIS2 has closed:
+no attribute option combo of the form is valid for any period it reports, so no
+capture for one of them can be keyed to a combo this DHIS2 instance accepts, and
+the facade refuses to draft a response for one. They are: EPI Stock
+(TuL8IOPzpHh), Life-Saving Commodities (ULowA8V3ucd). A category option's window
+is DHIS2 metadata - `startDate` and `endDate` on the category option - and
+fhir.toml has no setting that widens it. Reopen the category options in DHIS2, or
+narrow the form selection in fhir.toml to the forms whose attribute option combos
+are still open, then run `d2w fhir generate` again.
+```
+
+Unlike the other two, no `fhir.toml` dial reaches this one, and the line says so
+rather than implying one: the window lives on the DHIS2 category option.
+`d2w fhir check-artifacts` files the same fact as a warning-level finding, read
+off the windows the vocabulary publishes and the period type the Questionnaire
+declares, so a build machine with no DHIS2 connection asks the same question. The
+examples target keys an example to a combo still open for the period it reports,
+and publishes no example at all for a form none of whose combos is.
+
+The fourth is a selection entry that matched nothing. A UID no longer on the
 instance - an object renamed, deleted, or never there - costs the guide a whole
 form, its examples and its page, so the run closes with that line of its own
 too, naming every UID the instance answered nothing for:

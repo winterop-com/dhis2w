@@ -8,13 +8,18 @@ a finding that carries the file and the element rather than a count.
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import TYPE_CHECKING, Any
 
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_fhir import validation
 from dhis2w_fhir.config import load_project
-from dhis2w_fhir.resources.attribute_combos.restrictions import ATTRIBUTE_OPTION_RESTRICTION_PROPERTY
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+    ATTRIBUTE_OPTION_VALID_FROM_PROPERTY,
+    ATTRIBUTE_OPTION_VALID_TO_PROPERTY,
+)
 from dhis2w_fhir.validation import artifacts
 from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
 from dhis2w_fhir.writer import GENERATED_HEADER
@@ -541,6 +546,96 @@ def test_a_concept_restricted_by_two_lists_needs_one_unit_on_both(project_root: 
     _write_combo_vocabulary(project_root, restricted_to=["ImspTQPwCqd"], other_restricted_to=["O6uvpzGd5pu"])
     _write_form_on_a_combo(project_root, "epi-stock")
     assert _report(project_root).finding_count == 0
+
+
+#: The day these date-axis tests read "now" as, so a window years behind it is one no period reaches back to.
+_TODAY = date(2026, 3, 14)
+
+
+def _write_dated_combo_vocabulary(root: Path, *, windows: list[tuple[str | None, str | None]]) -> None:
+    """Write one attribute-combo vocabulary whose concepts state the calendar windows they are open for."""
+    directory = root / "ig/input/resources/attribute-option-combos"
+    directory.mkdir(parents=True, exist_ok=True)
+    system = "http://example.org/fhir/CodeSystem/d2-aoc-idcDPkDtepR-cs"
+    concepts: list[dict[str, Any]] = []
+    for ordinal, (valid_from, valid_to) in enumerate(windows):
+        stated = [
+            {"code": code, "valueDateTime": value}
+            for code, value in (
+                (ATTRIBUTE_OPTION_VALID_FROM_PROPERTY, valid_from),
+                (ATTRIBUTE_OPTION_VALID_TO_PROPERTY, valid_to),
+            )
+            if value is not None
+        ]
+        concepts.append({"code": f"combo{ordinal}", "property": stated} if stated else {"code": f"combo{ordinal}"})
+    _write_resource(
+        directory / "CodeSystem-d2-aoc-idcDPkDtepR-cs.json",
+        {
+            "resourceType": "CodeSystem",
+            "id": "d2-aoc-idcDPkDtepR-cs",
+            "url": system,
+            "name": "D2AOC_idcDPkDtepR_CS",
+            "status": "draft",
+            "content": "complete",
+            "concept": concepts,
+        },
+    )
+    _write_resource(
+        directory / "ValueSet-d2-aoc-idcDPkDtepR-vs.json",
+        {
+            "resourceType": "ValueSet",
+            "id": "d2-aoc-idcDPkDtepR-vs",
+            "url": "http://example.org/fhir/ValueSet/d2-aoc-idcDPkDtepR-vs",
+            "name": "D2AOC_idcDPkDtepR_VS",
+            "status": "draft",
+            "compose": {"include": [{"system": system}]},
+        },
+    )
+
+
+def _write_form_reporting_on(root: Path, stem: str, period_type: str | None) -> None:
+    """Write one generated Questionnaire binding the combo vocabulary, declaring the period type it reports on."""
+    declaration = f"* extension[D2PeriodType].valueCode = #{period_type}\n" if period_type is not None else ""
+    _write_generated_fsh(
+        root / f"ig/input/fsh/foundation/{stem}.fsh",
+        f"Instance: Q{stem}\nInstanceOf: Questionnaire\n"
+        f"{declaration}"
+        "* extension[D2AttributeOptionCombos].valueCanonical = Canonical(D2AOC_idcDPkDtepR_VS)\n",
+    )
+
+
+def test_a_form_whose_every_combo_has_closed_is_a_warning(project_root: Path) -> None:
+    """Every concept of the vocabulary closed years ago, so every capture for the monthly form earns E8032."""
+    _write_dated_combo_vocabulary(project_root, windows=[(None, "2016-10-01"), ("2015-01-01", "2016-04-01")])
+    _write_form_reporting_on(project_root, "epi-stock", "Monthly")
+
+    report = check_publishable_artifacts(load_project(project_root), today=_TODAY)
+
+    finding = report.findings[0]
+    assert finding.kind == "attribute-option-combo"
+    assert finding.severity == "warning"
+    assert finding.resource_id == "epi-stock"
+    assert finding.value == "D2AOC_idcDPkDtepR_VS"
+    assert "startDate" in finding.remedy
+    assert "no setting that widens it" in finding.remedy
+    assert report.build_aborting_count == 0
+    assert report.warning_count == 1
+
+
+def test_one_combo_still_open_is_a_vocabulary_somebody_may_file_under(project_root: Path) -> None:
+    """One concept DHIS2 has not closed is a form somebody may submit, whatever the others say."""
+    _write_dated_combo_vocabulary(project_root, windows=[(None, "2016-10-01"), ("2015-01-01", None)])
+    _write_form_reporting_on(project_root, "epi-stock", "Monthly")
+
+    assert check_publishable_artifacts(load_project(project_root), today=_TODAY).finding_count == 0
+
+
+def test_a_form_declaring_no_period_type_is_left_off_the_date_axis(project_root: Path) -> None:
+    """An event program's capture reports for no period, so a closed window has nothing to refuse it by."""
+    _write_dated_combo_vocabulary(project_root, windows=[(None, "2016-10-01"), ("2015-01-01", "2016-04-01")])
+    _write_form_reporting_on(project_root, "malaria-case", None)
+
+    assert check_publishable_artifacts(load_project(project_root), today=_TODAY).finding_count == 0
 
 
 #: A guide selecting two data sets by UID: one the published tree carries, one it carries nowhere.

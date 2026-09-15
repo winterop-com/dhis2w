@@ -42,7 +42,10 @@ from dhis2w_fhir import (
 )
 from dhis2w_fhir.doctor import DEFAULT_ORACLE_SAMPLES
 from dhis2w_fhir.notes import GenerateNoteCategory
-from dhis2w_fhir.resources.attribute_combos.restrictions import UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY
+from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
+    UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
+)
 from dhis2w_fhir.resources.questionnaires.assignments import EMPTY_ASSIGNMENT_REMEDY
 from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 
@@ -1121,6 +1124,7 @@ def _render_generate_report(
         _hint("note", note.message)
     _render_empty_assignments(report)
     _render_unusable_attribute_option_combos(report)
+    _render_untimely_attribute_option_combos(report)
 
 
 def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
@@ -1129,6 +1133,10 @@ def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
     Its own line at the end of the run, rather than one note among the several hundred a national
     instance raises: a form nobody can submit is not a detail of the terminology, and a reader who
     chose `max_level` to keep a build small has no other way to learn what it cost.
+
+    The line names the data sets and programs the assignment hangs on, the way the combo warnings
+    name their forms: a count alone sends a reader to the notes file for the one fact that decides
+    what to do next - whether the object they came for is the one nobody may report.
     """
     if not isinstance(report, GenerateReport) or report.empty_assignments is None:
         return
@@ -1140,7 +1148,7 @@ def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
         "warning",
         f"{summary.form_count} published form(s) carry an empty organisation-unit assignment{narrowed}: no "
         f"organisation unit may report them, and the facade refuses to draft a response for one. "
-        f"{EMPTY_ASSIGNMENT_REMEDY}",
+        f"The assignment hangs on: {', '.join(summary.containers)}. {EMPTY_ASSIGNMENT_REMEDY}",
         style="yellow",
     )
 
@@ -1168,6 +1176,30 @@ def _render_unusable_attribute_option_combos(report: GenerateReport | LoadSetRep
         f"organisation unit that may report them{narrowed}: no capture for one of them can be keyed to a combo "
         f"this DHIS2 instance accepts, and the facade refuses to draft a response for one. "
         f"They are: {', '.join(summary.forms)}. {UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY}",
+        style="yellow",
+    )
+
+
+def _render_untimely_attribute_option_combos(report: GenerateReport | LoadSetReport) -> None:
+    """Say out loud that a run published forms every attribute option combo of theirs has closed for.
+
+    The date axis's own line, for the reason the unit axis has one: DHIS2 scopes a category option
+    to a calendar window as well as to organisation units, refuses a capture the window does not
+    cover entirely, and a form whose every combo closed before the periods it reports is as dead as
+    one restricted away from every organisation unit.
+
+    The line names the forms, and its remedy says plainly where the fix is: a category option's
+    window is DHIS2 metadata, and no fhir.toml setting reaches it.
+    """
+    if not isinstance(report, GenerateReport) or report.untimely_attribute_option_combos is None:
+        return
+    summary = report.untimely_attribute_option_combos
+    _hint(
+        "warning",
+        f"{summary.form_count} published form(s) declare attribute option combos DHIS2 has closed: no attribute "
+        f"option combo of the form is valid for any period it reports, so no capture for one of them can be "
+        f"keyed to a combo this DHIS2 instance accepts, and the facade refuses to draft a response for one. "
+        f"They are: {', '.join(summary.forms)}. {UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY}",
         style="yellow",
     )
 
@@ -1340,6 +1372,7 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
     _render_full_notes(outcomes, generation, details=details)
     _render_empty_assignments(report.questionnaires)
     _render_unusable_attribute_option_combos(report.questionnaires)
+    _render_untimely_attribute_option_combos(report.questionnaires)
     _render_selection_mismatches(outcomes)
 
 

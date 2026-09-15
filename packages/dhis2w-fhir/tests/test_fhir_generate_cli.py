@@ -15,6 +15,7 @@ from dhis2w_fhir import (
     GenerateReport,
     GenerateSubject,
     LoadSetReport,
+    UntimelyAttributeOptionCombosSummary,
     UnusableAttributeOptionCombosSummary,
 )
 from dhis2w_fhir.config import HostileNamePosture
@@ -381,6 +382,64 @@ def test_a_run_whose_combos_are_all_usable_carries_no_warning(fhir_project: Path
         result = _runner.invoke(build_app(), ["fhir", "generate"])
     assert result.exit_code == 0, result.output
     assert "restricts away" not in result.stderr
+
+
+def _untimely_combo_report(project_root: Path, **overrides: object) -> GenerateFullReport:
+    """The seven-target report of a run whose forms declare combos DHIS2 closed before the periods they report."""
+    report = _noted_report(project_root)
+    defaults: dict[str, object] = {"form_count": 2, "forms": ["EPI Stock (TuL8IOPzpHh)"]}
+    defaults.update(overrides)
+    report.questionnaires.untimely_attribute_option_combos = UntimelyAttributeOptionCombosSummary.model_validate(
+        defaults
+    )
+    return report
+
+
+def test_a_run_that_published_forms_closed_on_the_date_axis_says_so_on_its_own_line(fhir_project: Path) -> None:
+    """A combo DHIS2 has closed is as dead as one restricted away, and the run says which forms it cost."""
+    mock = AsyncMock(return_value=_untimely_combo_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "warning: 2 published form(s) declare attribute option combos DHIS2 has closed" in result.stderr
+    assert "no attribute option combo of the form is valid for any period it reports" in result.stderr
+    # The line names the forms: a count alone leaves the one fact a reader acts on in the notes file.
+    assert "They are: EPI Stock (TuL8IOPzpHh)" in result.stderr
+    # No fhir.toml setting reaches a category option's window, and the remedy says so rather than implying one.
+    assert "startDate" in result.stderr
+    assert "no setting that widens it" in result.stderr
+
+
+def test_the_closed_combo_warning_names_every_form_it_counted(fhir_project: Path) -> None:
+    """Two forms is two names - the warning is what a reader reads, and the notes file is not on screen."""
+    forms = ["EPI Stock (TuL8IOPzpHh)", "Life-Saving Commodities (ULowA8V3ucd)"]
+    mock = AsyncMock(return_value=_untimely_combo_report(fhir_project, forms=forms))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    for form in forms:
+        assert form in result.stderr
+
+
+def test_a_run_whose_combos_are_all_open_carries_no_date_axis_warning(fhir_project: Path) -> None:
+    """The line states an exception, so an ordinary run does not carry a reassurance nobody asked for."""
+    mock = AsyncMock(return_value=_noted_report(fhir_project))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "DHIS2 has closed" not in result.stderr
+
+
+def test_the_empty_assignment_warning_names_the_data_sets_and_programs_it_counted(fhir_project: Path) -> None:
+    """The containers are what a reader reassigns in DHIS2, and a count alone leaves them in the notes file."""
+    containers = ["Child Programme (IpHINAT79UW)", "EPI Stock (TuL8IOPzpHh)"]
+    mock = AsyncMock(return_value=_unreportable_forms_report(fhir_project, containers=containers))
+    with patch("dhis2w_fhir.service.generate_full", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+    assert result.exit_code == 0, result.output
+    assert "The assignment hangs on:" in result.stderr
+    for container in containers:
+        assert container in result.stderr
 
 
 def _unmatched_selection_report(project_root: Path) -> GenerateFullReport:

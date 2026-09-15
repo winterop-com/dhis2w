@@ -108,7 +108,8 @@ selected forms are assigned to. Two ways to read it off a project you already
 have:
 
 - `d2w fhir generate` closes with a warning naming how many published forms
-  carry an empty organisation-unit assignment and the `max_level` in force.
+  carry an empty organisation-unit assignment, the data sets and programs the
+  assignment hangs on, and the `max_level` in force.
 - `d2w fhir check-artifacts` reports the same forms as warning-level findings,
   offline, one per form.
 

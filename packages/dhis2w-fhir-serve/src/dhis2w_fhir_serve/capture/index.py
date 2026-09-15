@@ -38,6 +38,7 @@ from dhis2w_fhir.r4 import (
     ResourceList,
     ValueSet,
 )
+from dhis2w_fhir.resources.attribute_combos.restrictions import CategoryOptionValidity
 from dhis2w_fhir.resources.questionnaires.schemas import CAPTURED_FORM_KINDS, FormKind
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError
 
@@ -325,10 +326,14 @@ class CaptureComboRestriction(BaseModel):
 
         DHIS2's own rule, read off 2.43 with validate-only posts: the whole period has to sit inside
         the window, so a period beginning on the very day an option closes is already outside it.
+        The rule itself lives in `dhis2w-fhir`, where the generator applies it to publish the window
+        and to key an example by it, so a served capture and a generated one are graded by one test.
         """
-        if self.valid_from is not None and self.valid_from > start_date:
-            return False
-        return not (self.valid_to is not None and self.valid_to < end_date)
+        return self.validity().covers(start_date, end_date)
+
+    def validity(self) -> CategoryOptionValidity:
+        """The window as the generator states it, which is what carries the rule this facade grades by."""
+        return CategoryOptionValidity(valid_from=self.valid_from, valid_to=self.valid_to)
 
     def window(self) -> str:
         """The window spelled the way a refusal names it back to a client - an open end says so."""
