@@ -44,11 +44,20 @@ const CONTROL_ID = 'attribute-option-combo'
 export function AttributeOptionComboPicker({
     canonical,
     selected,
+    disabled = false,
     onChange,
 }: {
     /** The ValueSet the form declares its combos on - `d2-attribute-option-combos`, valueCanonical. */
     canonical: string
     selected: Coding | null
+    /**
+     * True on a form this DHIS2 instance accepts no capture for, whichever combo is named.
+     *
+     * The control still shows what the vocabulary holds - the choices are worth reading - but it
+     * takes no choice, because every one of them names a submission the instance refuses. The page
+     * says why above it, in the server's own words.
+     */
+    disabled?: boolean
     onChange: (coding: Coding) => void
 }) {
     const expansion = useValueSetOptions(canonical)
@@ -70,7 +79,7 @@ export function AttributeOptionComboPicker({
             <div className="flex items-center gap-2">
                 <Select
                     value={selected?.code ?? ''}
-                    disabled={expansion.loading || expansion.options.length === 0}
+                    disabled={disabled || expansion.loading || expansion.options.length === 0}
                     onValueChange={(code) => {
                         const option = expansion.options.find((candidate) => candidate.coding.code === code)
                         if (option !== undefined) onChange(option.coding)

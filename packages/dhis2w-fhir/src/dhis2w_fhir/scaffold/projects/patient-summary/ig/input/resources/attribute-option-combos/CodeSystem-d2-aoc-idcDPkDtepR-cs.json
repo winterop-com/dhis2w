@@ -33,6 +33,18 @@
       "uri": "http://dhis2.org/fhir/property/dhis2-organisation-units",
       "description": "List of the organisation units a category option of this combo is restricted to. A capture is refused unless its organisation unit is on every List the concept names.",
       "type": "string"
+    },
+    {
+      "code": "dhis2-valid-from",
+      "uri": "http://dhis2.org/fhir/property/dhis2-valid-from",
+      "description": "First day this combo is open for. A capture is refused unless the whole period it reports for falls on or after it.",
+      "type": "dateTime"
+    },
+    {
+      "code": "dhis2-valid-to",
+      "uri": "http://dhis2.org/fhir/property/dhis2-valid-to",
+      "description": "Last day this combo is open for. A capture is refused unless the whole period it reports for falls on or before it.",
+      "type": "dateTime"
     }
   ],
   "concept": [
@@ -47,6 +59,10 @@
         {
           "code": "dhis2-organisation-units",
           "valueString": "List/d2-aoc-i4Nbp8S2G6A-org-units"
+        },
+        {
+          "code": "dhis2-valid-from",
+          "valueDateTime": "2016-04-01"
         }
       ]
     },
@@ -75,6 +91,10 @@
         {
           "code": "dhis2-organisation-units",
           "valueString": "List/d2-aoc-OUUdG3sdOqb-org-units"
+        },
+        {
+          "code": "dhis2-valid-to",
+          "valueDateTime": "2016-10-01"
         }
       ]
     },

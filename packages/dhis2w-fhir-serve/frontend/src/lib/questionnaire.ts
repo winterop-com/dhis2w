@@ -1104,17 +1104,22 @@ export function openedReportingUnit(
 }
 
 /**
- * The reporting unit after "fill with test data": what the fresh draw states, else what is chosen.
+ * The reporting unit after "fill with test data": what is chosen, else what the fresh draw states.
  *
- * The other order, because a refill is the server proposing a whole submission - envelope included
- * - and a draw that states no unit leaves the selection alone rather than emptying a control the
- * person had already answered.
+ * A CHOICE ALREADY MADE ALWAYS WINS, the rule the combo beside it follows: taking a required choice
+ * away from a person who had already made one is the one outcome worse than not refilling at all.
+ * The refill asks the server for a draft drawn AT the chosen organisation unit - `$generate`'s
+ * `subject` parameter - so the draw's own organisation unit is the chosen one and the combo beside
+ * it is one the instance accepts there. `chosen` is what says a person made the choice; the draw
+ * stands where nobody has.
  */
 export function refilledReportingUnit(
     current: Reference | null,
     envelope: QuestionnaireResponse | null,
     questionnaire: Questionnaire | null,
+    chosen: boolean = false,
 ): Reference | null {
+    if (chosen && current !== null) return current
     if (envelope === null || questionnaire === null) return current
     return reportingUnitOf(envelope, formTypeOf(questionnaire)) ?? current
 }

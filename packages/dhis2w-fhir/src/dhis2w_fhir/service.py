@@ -99,6 +99,7 @@ from dhis2w_fhir.resources.attribute_combos import (
     build_attribute_combo_identifier_artifacts,
 )
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
+    CategoryOptionValidity,
     OrganisationUnitPaths,
     UnusableAttributeOptionCombosSummary,
     UsableAttributeOptionCombos,
@@ -3170,18 +3171,22 @@ async def fetch_attribute_option_restrictions(
     published: StemResolution,
     units: OrganisationUnitPaths,
 ) -> AttributeOptionRestrictions:
-    """Read which organisation units DHIS2 restricts each attribute category option of the selection to.
+    """Read both axes DHIS2 scopes each attribute category option of the selection on: units, and dates.
 
     Scoped to the category options composing the non-default attribute combos the selection rides,
     so the read is proportional to the vocabularies the run publishes rather than to every category
     option the instance holds. A selection riding only default combos publishes no vocabulary and
     reads nothing.
+
+    One read carries both axes. `organisationUnits` is what `E8025` grades a capture's organisation
+    unit against, and `startDate` / `endDate` are what `E8032` grades its period against, so the
+    projection names all three and a run pays for one request either way.
     """
     option_uids = restricted_category_option_uids(sources)
     if not option_uids:
         return AttributeOptionRestrictions(published=published, units=units)
     models: list[CategoryOption] = await client.resources.category_options.list(
-        fields="id,organisationUnits[id]",
+        fields="id,organisationUnits[id],startDate,endDate",
         filters=[f"id:in:[{','.join(option_uids)}]"],
         paging=False,
     )
@@ -3190,7 +3195,20 @@ async def fetch_attribute_option_restrictions(
         for model in models
         if model.id and model.organisationUnits
     }
-    return AttributeOptionRestrictions(organisation_units=organisation_units, published=published, units=units)
+    validity = {
+        model.id: window for model in models if model.id and (window := _category_option_validity(model)).stated
+    }
+    return AttributeOptionRestrictions(
+        organisation_units=organisation_units, validity=validity, published=published, units=units
+    )
+
+
+def _category_option_validity(model: CategoryOption) -> CategoryOptionValidity:
+    """The calendar window one category option is open for, as the two timestamps DHIS2 states it with."""
+    return CategoryOptionValidity(
+        valid_from=None if model.startDate is None else model.startDate.date(),
+        valid_to=None if model.endDate is None else model.endDate.date(),
+    )
 
 
 def _registry_scale_notes(organisation_unit_count: int) -> list[GenerateNote]:

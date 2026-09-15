@@ -23,7 +23,7 @@
 import { answerValue, type AnswerValue } from '@/lib/answers'
 import { attributeOptionComboLabel, attributeOptionComboOf, canonicalId, conceptDisplay, enrolledAtOf, incidentAtOf, trackedEntityOf, trackerEnrollmentOf, type CodeSystem, type Questionnaire, type QuestionnaireResponse, type QuestionnaireResponseItem } from '@/lib/fhir'
 import { DEFAULT_DATE_LABELS, type DateLabels, type ProgramRule, type QuestionnaireSpec } from '@/lib/questionnaire'
-import { formatInstant, TRACKED_ENTITY_FACT_LABEL, TRACKER_ENROLLMENT_FACT_LABEL, type SpoolRejectionIssue, type SpoolResponseSummary } from '@/lib/spool'
+import { formatDay, TRACKED_ENTITY_FACT_LABEL, TRACKER_ENROLLMENT_FACT_LABEL, type SpoolRejectionIssue, type SpoolResponseSummary } from '@/lib/spool'
 
 /**
  * The DHIS2 error code a rejection carries when a program rule refused the import.
@@ -260,10 +260,12 @@ export function attributeOptionComboFact(
  * Reading all four from one place also means a receipt the spool has no row for still states its
  * whole tracker context, the same way the attribute option combo does.
  *
- * The dates read as local time rather than as the stored instant, because an enrollment date is
- * something a person checks against a calendar; the two uids stay mono, because they are handles
- * to type into DHIS2. Absence is ordinary throughout - an aggregate response has none of these,
- * and a program that displays no incident date generates responses that carry three of the four.
+ * The dates read as calendar days and not as instants, because that is what DHIS2 holds them as:
+ * the capture profiles spell both as `dateTime`, so a drafted one carries an hour and a minute no
+ * register ever recorded, and showing them would state a precision nobody has. The two uids stay
+ * mono, because they are handles to type into DHIS2. Absence is ordinary throughout - an aggregate
+ * response has none of these, and a program that displays no incident date generates responses that
+ * carry three of the four.
  *
  * THE DATES ARE LABELLED BY THE FORM, not by this module. A DHIS2 programme renames the dates it
  * collects - an antenatal programme's enrollment date is "Date first seen" - and the capture screen
@@ -283,10 +285,10 @@ export function trackerContextFacts(
     if (trackedEntity !== null) facts.push({ label: TRACKED_ENTITY_FACT_LABEL, value: trackedEntity, mono: true })
     if (enrollment !== null) facts.push({ label: TRACKER_ENROLLMENT_FACT_LABEL, value: enrollment, mono: true })
     if (enrolledAt !== null) {
-        facts.push({ label: labels.enrollmentDate, value: formatInstant(enrolledAt), mono: false })
+        facts.push({ label: labels.enrollmentDate, value: formatDay(enrolledAt), mono: false })
     }
     if (incidentAt !== null) {
-        facts.push({ label: labels.incidentDate, value: formatInstant(incidentAt), mono: false })
+        facts.push({ label: labels.incidentDate, value: formatDay(incidentAt), mono: false })
     }
     return facts
 }

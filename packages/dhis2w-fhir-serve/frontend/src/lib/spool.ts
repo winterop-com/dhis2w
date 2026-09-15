@@ -321,6 +321,39 @@ export function formatInstant(instant: string): string {
 }
 
 /**
+ * One calendar day as a person reads it - the day the value states, and no time of day.
+ *
+ * FOR THE FACTS DHIS2 HOLDS AS DATES. An enrollment date and the date of the incident it follows
+ * are calendar days on the instance, whatever precision the R4 element they ride carries: the
+ * capture profiles spell both as `dateTime`, so a draft fills in an hour and a minute nobody ever
+ * recorded. Rendering them with that hour states a precision no register holds, and reading "07:00
+ * PM" on a date of birth is how a reader finds out. An instant that really is one - when a receipt
+ * arrived, when an event happened - keeps `formatInstant` and its clock.
+ *
+ * The day is read out of the string's own fields, so this never moves a value across midnight the
+ * way a zone conversion can; a value the rule cannot read is shown verbatim, for the same reason.
+ */
+export function formatDay(value: string): string {
+    const fields = WALL_CLOCK_FIELDS.exec(value)
+    if (fields === null) return value
+    const [, year, month, day] = fields
+    const wallClock = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+    if (
+        wallClock.getUTCFullYear() !== Number(year) ||
+        wallClock.getUTCMonth() !== Number(month) - 1 ||
+        wallClock.getUTCDate() !== Number(day)
+    ) {
+        return value
+    }
+    return wallClock.toLocaleDateString(undefined, {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    })
+}
+
+/**
  * What the organisation-unit fact is labelled, exported because a page resolves that one further.
  *
  * The spool derives it as a bare DHIS2 uid, which is the only thing it can honestly say - it has no

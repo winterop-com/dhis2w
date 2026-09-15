@@ -1453,6 +1453,16 @@ describe('the organisation unit a submission reports from', () => {
         expect(refilledReportingUnit(chosen, drawnNothing, scopedForm)).toEqual(chosen)
         expect(refilledReportingUnit(null, null, scopedForm)).toBeNull()
     })
+
+    it('keeps an organisation unit somebody chose across a refill, the way the combo beside it is kept', () => {
+        expect(refilledReportingUnit(chosen, scopedSkeleton, scopedForm, true)).toEqual(chosen)
+    })
+
+    it('still takes the draw on a refill where nobody chose the organisation unit', () => {
+        expect(refilledReportingUnit(chosen, scopedSkeleton, scopedForm, false)).toEqual({
+            reference: 'Location/DiszpKrYNg8',
+        })
+    })
 })
 
 /**

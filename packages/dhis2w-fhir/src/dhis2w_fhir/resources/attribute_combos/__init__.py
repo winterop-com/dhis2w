@@ -22,7 +22,9 @@ A pair states one more thing about itself: where each of its concepts may be cap
 a category option to organisation units, and a combo is usable at a unit only where every option
 composing it is, so each concept names one restriction `List` per restricted option it is met from
 (`dhis2w_fhir.resources.attribute_combos.restrictions`). A concept naming none is usable wherever
-the form itself is.
+the form itself is. DHIS2 scopes a category option to a calendar window too, so a concept met from
+a dated option also carries `dhis2-valid-from` / `dhis2-valid-to` - the narrowest window of its
+options, outside which DHIS2 answers a capture `E8032 Untimely data entry`.
 
 The pair takes its own naming token (`AOC`) rather than the data dictionary's `COC`. Both
 vocabularies are category option combos, but they answer different questions in different
@@ -75,9 +77,11 @@ from dhis2w_fhir.resources.attribute_combos.restrictions import (
     UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY,
     AttributeOptionRestrictionPlan,
     AttributeOptionRestrictions,
+    CategoryOptionValidity,
     UnusableAttributeOptionCombosSummary,
     UsableAttributeOptionCombos,
     attribute_option_restriction_declaration,
+    attribute_option_validity_declarations,
     build_attribute_option_restriction_artifacts,
 )
 from dhis2w_fhir.resources.attribute_combos.schemas import (
@@ -122,6 +126,7 @@ __all__ = [
     "build_attribute_combo_identifier_artifacts",
     "max_attribute_combo_slug_length",
     "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
+    "CategoryOptionValidity",
     "UnusableAttributeOptionCombosSummary",
     "UsableAttributeOptionCombos",
 ]
@@ -619,9 +624,9 @@ def _declarations(
 ) -> list[CodeSystemProperty]:
     """The CodeSystem-level declaration of every concept property the emitted concepts actually carry.
 
-    The DHIS2 identifier pair first, then the organisation-unit restriction, then one declaration
-    per category axis the combo decomposes over, each carrying that category's name so the
-    vocabulary alone names its own axes.
+    The DHIS2 identifier pair first, then the two axes a capture is scoped on - the organisation
+    units, then the calendar window - then one declaration per category axis the combo decomposes
+    over, each carrying that category's name so the vocabulary alone names its own axes.
     """
     carried = {
         concept_property.code
@@ -636,6 +641,11 @@ def _declarations(
     ]
     if ATTRIBUTE_OPTION_RESTRICTION_PROPERTY in carried:
         declarations.append(attribute_option_restriction_declaration(systems.property_base))
+    declarations.extend(
+        declaration
+        for declaration in attribute_option_validity_declarations(systems.property_base)
+        if declaration.code in carried
+    )
     if decomposition is not None:
         declarations.extend(decomposition.declarations_for(carried))
     return declarations

@@ -26,6 +26,12 @@ Usage: #definition
 * parameter[=].max = "1"
 * parameter[=].type = #integer
 * parameter[=].documentation = "The seed the generated values are drawn from. The same seed against the same served form returns the same response, so a client can reproduce a submission by naming its seed. Absent, the server draws one and states it on the generated response's identifier."
+* parameter[+].name = #subject
+* parameter[=].use = #in
+* parameter[=].min = 0
+* parameter[=].max = "1"
+* parameter[=].type = #string
+* parameter[=].documentation = "The organisation unit the generated response reports from, as a Location reference - the resource type, a slash, and the organisation unit's DHIS2 UID. The server draws the rest of the context at that organisation unit, so the attribute option combo it draws is one the instance accepts there. Absent, the server draws the organisation unit too, from the form's own assignment. An organisation unit the form is not assigned to is refused rather than silently replaced."
 * parameter[+].name = #return
 * parameter[=].use = #out
 * parameter[=].min = 1

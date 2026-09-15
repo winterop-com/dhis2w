@@ -1211,3 +1211,71 @@ async def test_a_stage_response_is_the_same_bytes_for_one_seed_and_one_spool_sta
     second = await _generate(capture_client, STAGE_ID, seed=1234)
 
     assert first.content == second.content
+
+
+#: The organisation unit a `subject` hint names in the tests below - one the registration form admits.
+HINTED_UNIT = SCOPED_ASSIGNMENT_UNITS[0]
+
+#: An organisation unit the fixture publishes but the registration form's assignment does not admit.
+UNASSIGNED_UNIT = "ImspTQPwCqd"
+
+
+async def test_a_named_subject_is_where_the_draft_reports_from(capture_client: httpx2.AsyncClient) -> None:
+    """The organisation unit stands in for the draw, so every seed reports from the one that was named.
+
+    This is what lets a capture client refill a form somebody has already chosen an organisation unit
+    on without the refill replacing the choice - and the rest of the context, the attribute option
+    combo included, is drawn there rather than somewhere else.
+    """
+    drawn: set[str] = set()
+    for seed in VARIANCE_SEEDS:
+        generated = await _generate(capture_client, REGISTRATION_ID, seed=seed, subject=f"Location/{HINTED_UNIT}")
+        assert generated.status_code == 200
+        response = generated.json()
+        drawn.add(_extensions(response, ORGANISATION_UNIT_URL)[0]["valueReference"]["reference"])
+
+    assert drawn == {f"Location/{HINTED_UNIT}"}
+
+
+async def test_a_bare_uid_names_the_same_organisation_unit_as_the_reference(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """Both spellings name one organisation unit, so a client holding either is answered the same way."""
+    referenced = await _generate(capture_client, REGISTRATION_ID, seed=4, subject=f"Location/{HINTED_UNIT}")
+    bare = await _generate(capture_client, REGISTRATION_ID, seed=4, subject=HINTED_UNIT)
+
+    assert referenced.content == bare.content
+
+
+async def test_a_subject_outside_the_assignment_is_refused_rather_than_replaced(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """Drafting a capture DHIS2 answers `E1029` would be worse than saying which organisation units admit it."""
+    refused = await _generate(capture_client, REGISTRATION_ID, seed=4, subject=f"Location/{UNASSIGNED_UNIT}")
+    outcome = refused.json()
+
+    assert refused.status_code == 422
+    assert outcome["resourceType"] == "OperationOutcome"
+    assert f"Location/{UNASSIGNED_UNIT}" in outcome["issue"][0]["diagnostics"]
+
+
+async def test_a_subject_that_is_no_organisation_unit_reference_is_refused(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """A misspelled parameter is answered here rather than drawn at an unrelated organisation unit."""
+    refused = await _generate(capture_client, REGISTRATION_ID, seed=4, subject="Patient/abc")
+
+    assert refused.status_code == 400
+    assert "subject" in refused.json()["issue"][0]["diagnostics"]
+
+
+async def test_naming_no_subject_leaves_the_organisation_unit_to_the_draw(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """The parameter is optional, and absent it the form's own assignment is what the draw ranges over."""
+    drawn: set[str] = set()
+    for seed in VARIANCE_SEEDS:
+        response = (await _generate(capture_client, REGISTRATION_ID, seed=seed)).json()
+        drawn.add(_extensions(response, ORGANISATION_UNIT_URL)[0]["valueReference"]["reference"])
+
+    assert drawn == ASSIGNED_UNIT_REFERENCES

@@ -27,7 +27,7 @@ import {
     rejectionRuleName,
     trackerContextFacts,
 } from '@/lib/receipt'
-import { formatInstant, type SpoolResponseSummary } from '@/lib/spool'
+import { formatDay, type SpoolResponseSummary } from '@/lib/spool'
 
 /**
  * The receipt page's reading of a stored capture, against captures a real server produced.
@@ -468,20 +468,20 @@ describe('the tracker context on a receipt', () => {
         ],
     }
 
-    it('states all four facts a registration files, identities mono and dates as prose', () => {
+    it('states all four facts a registration files, identities mono and dates as calendar days', () => {
         expect(trackerContextFacts(registration)).toEqual([
             { label: 'Tracked entity', value: 'wJt3Qy1PxLd', mono: true },
             { label: 'Enrollment', value: 'Qm4bTnPzKdE', mono: true },
             // Read against the same formatter rather than a literal, so the assertion does not
-            // depend on the timezone the suite happens to run in.
+            // depend on the locale the suite happens to run in.
             {
                 label: DEFAULT_DATE_LABELS.enrollmentDate,
-                value: formatInstant('2026-07-21T04:00:00Z'),
+                value: formatDay('2026-07-21T04:00:00Z'),
                 mono: false,
             },
             {
                 label: DEFAULT_DATE_LABELS.incidentDate,
-                value: formatInstant('2026-07-14T04:00:00Z'),
+                value: formatDay('2026-07-14T04:00:00Z'),
                 mono: false,
             },
         ])

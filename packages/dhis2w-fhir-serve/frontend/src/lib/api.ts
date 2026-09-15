@@ -356,13 +356,23 @@ export async function readResource<T>(resourceType: string, resourceId: string):
  * answers are invented, and the seed that produced them comes back on the
  * response's identifier so the same call reproduces the same bytes. A UI's
  * "fill with test data" button is this one call.
+ *
+ * `subjectLocationId` pins the organisation unit the draft reports from. A
+ * refill on a form somebody has already chosen an organisation unit on sends
+ * it, so the whole context - the attribute option combo included - comes back
+ * drawn at that organisation unit rather than at one the server picked.
  */
 export async function generateResponse(
     questionnaireId: string,
     seed?: number,
+    subjectLocationId?: string,
 ): Promise<QuestionnaireResponse> {
-    const query = seed === undefined ? '' : `?seed=${seed}`
-    return readJson<QuestionnaireResponse>(`/Questionnaire/${questionnaireId}/$generate${query}`)
+    const parameters = new URLSearchParams()
+    if (seed !== undefined) parameters.set('seed', String(seed))
+    if (subjectLocationId !== undefined && subjectLocationId !== '')
+        parameters.set('subject', `Location/${subjectLocationId}`)
+    const query = parameters.toString()
+    return readJson<QuestionnaireResponse>(`/Questionnaire/${questionnaireId}/$generate${query ? `?${query}` : ''}`)
 }
 
 /**

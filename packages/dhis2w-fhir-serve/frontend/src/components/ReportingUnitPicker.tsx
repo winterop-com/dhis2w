@@ -67,6 +67,7 @@ export function ReportingUnitPicker({
     selectedUnitId,
     keptUnitNotAdmitted,
     chosen,
+    uncapturable = false,
     onChange,
 }: {
     /** The form's DHIS2 kind, which decides what the organisation unit means for the submission. */
@@ -78,6 +79,14 @@ export function ReportingUnitPicker({
     keptUnitNotAdmitted: boolean
     /** True once somebody picked a unit - before that, what is shown is the server's own draw. */
     chosen: boolean
+    /**
+     * True on a form this DHIS2 instance accepts no capture for, whichever organisation unit it names.
+     *
+     * The control holds nothing because there is no draft to hold, and there never will be one - so
+     * the line that offers a submission the server will name the rest of is left off, and the page's
+     * own sentence above the control is what says why.
+     */
+    uncapturable?: boolean
     onChange: (choice: OrgUnitChoice) => void
 }) {
     const scope = useOrgUnitScope()
@@ -132,7 +141,7 @@ export function ReportingUnitPicker({
                     </p>
                 )
             )}
-            {selectedUnitId === null && !scope.loading && offered > 0 && (
+            {selectedUnitId === null && !uncapturable && !scope.loading && offered > 0 && (
                 <p className="text-muted-foreground text-xs">
                     Nothing is chosen yet, because the server has not answered with its generated
                     draft. Pick an organisation unit, or submit and let the server name what it

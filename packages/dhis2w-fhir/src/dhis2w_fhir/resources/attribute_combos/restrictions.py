@@ -1,4 +1,8 @@
-"""Which organisation units an attribute option combo may be captured at, published as a List per category option.
+"""Where and when an attribute option combo may be captured, published beside the vocabulary itself.
+
+DHIS2 scopes a category option two ways, and a combo is usable only where every option composing it
+is on both: to organisation units, published here as one `List` per restricted option, and to a
+calendar window, published here as a pair of concept properties on the combo concept.
 
 DHIS2 scopes a category option to organisation units: `CategoryOption.organisationUnits` names the
 units the option is available at, and an option naming none is available everywhere. A category
@@ -22,10 +26,21 @@ Two economies keep it publishable at national scale:
   something every published unit already sits under narrows nothing, publishes nothing, and its
   concepts carry no property - absence means the whole registry, which is what a consumer assumed.
   An option no published unit sits under publishes an empty List: the combo is usable nowhere here.
+
+THE DATE AXIS. `CategoryOption.startDate` and `CategoryOption.endDate` open the option for a
+calendar window, and DHIS2 refuses a data value set whose period falls outside the window of any
+option behind its attribute option combo with `E8032 Untimely data entry`. The window is two dates
+rather than a set of thousands, so it rides the concept itself as `dhis2-valid-from` /
+`dhis2-valid-to` rather than a resource of its own, and what a concept carries is the **narrowest**
+window of the options it is met from - the latest start and the earliest end - because a combo is
+open only while all of them are. That is the same conjunction the unit axis takes as an
+intersection, and it is DHIS2's own `CategoryOptionCombo` date range. An option stating neither date
+narrows nothing and publishes nothing: absence means always open, which is what a consumer assumed.
 """
 
 from __future__ import annotations
 
+import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -44,14 +59,18 @@ __all__ = [
     "ATTRIBUTE_OPTION_RESTRICTION_ID_SUFFIX",
     "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
     "ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE",
+    "ATTRIBUTE_OPTION_VALID_FROM_PROPERTY",
+    "ATTRIBUTE_OPTION_VALID_TO_PROPERTY",
     "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "AttributeOptionRestrictionBuild",
     "AttributeOptionRestrictionPlan",
     "AttributeOptionRestrictions",
+    "CategoryOptionValidity",
     "OrganisationUnitPaths",
     "UnusableAttributeOptionCombosSummary",
     "UsableAttributeOptionCombos",
     "attribute_option_restriction_declaration",
+    "attribute_option_validity_declarations",
     "build_attribute_option_restriction_artifacts",
     "restricted_category_option_uids",
     "unusable_attribute_option_combo_message",
@@ -60,6 +79,10 @@ __all__ = [
 
 #: The concept property naming one restriction List, repeated once per restricted option of the combo.
 ATTRIBUTE_OPTION_RESTRICTION_PROPERTY = "dhis2-organisation-units"
+
+#: The concept properties stating the calendar window every category option of the combo is open for.
+ATTRIBUTE_OPTION_VALID_FROM_PROPERTY = "dhis2-valid-from"
+ATTRIBUTE_OPTION_VALID_TO_PROPERTY = "dhis2-valid-to"
 
 #: The resource type a restriction is published as, and the prefix of the reference a property carries.
 ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE = "List"
@@ -71,6 +94,16 @@ ATTRIBUTE_OPTION_RESTRICTION_ID_SUFFIX = "org-units"
 _DECLARATION_DESCRIPTION = (
     "List of the organisation units a category option of this combo is restricted to. A capture is "
     "refused unless its organisation unit is on every List the concept names."
+)
+
+#: What the two validity properties are called on the CodeSystem-level declaration a carrier emits.
+_VALID_FROM_DECLARATION_DESCRIPTION = (
+    "First day this combo is open for. A capture is refused unless the whole period it reports for "
+    "falls on or after it."
+)
+_VALID_TO_DECLARATION_DESCRIPTION = (
+    "Last day this combo is open for. A capture is refused unless the whole period it reports for "
+    "falls on or before it."
 )
 
 
@@ -98,6 +131,44 @@ class OrganisationUnitPaths(BaseModel):
         return frozenset(uid for uid, path in self.paths.items() if restricted & set(path.strip("/").split("/")))
 
 
+class CategoryOptionValidity(BaseModel):
+    """The calendar window one attribute category option is open for, either end of it open.
+
+    THE RULE, READ OFF DHIS2 2.43 ITSELF. A capture is refused with `E8032 Untimely data entry`
+    unless the window covers the **whole** period it reports for, both ends inclusive: the start has
+    to fall on or before the period's first day, the end on or after its last. Confirmed by
+    validate-only posts against a category option ending `2016-10-01` - period `201609` accepted,
+    `201610` refused although that period begins on the very day the option ends - and against one
+    starting `2016-04-01` - `201603` refused, `201604` accepted on the equality.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    valid_from: datetime.date | None = None
+    """The option's `startDate`, as a calendar day - None where DHIS2 opens it from the beginning."""
+
+    valid_to: datetime.date | None = None
+    """The option's `endDate`, as a calendar day - None where DHIS2 leaves it open-ended."""
+
+    @property
+    def stated(self) -> bool:
+        """Whether the option narrows anything at all, which is what decides if a concept carries the pair."""
+        return self.valid_from is not None or self.valid_to is not None
+
+    def narrowed_by(self, other: CategoryOptionValidity) -> CategoryOptionValidity:
+        """The window both options are open for - the later start and the earlier end, which is DHIS2's own rule."""
+        return CategoryOptionValidity(
+            valid_from=_later(self.valid_from, other.valid_from),
+            valid_to=_earlier(self.valid_to, other.valid_to),
+        )
+
+    def covers(self, start_date: datetime.date, end_date: datetime.date) -> bool:
+        """Whether a capture reporting for this span falls inside the window, both ends inclusive."""
+        if self.valid_from is not None and self.valid_from > start_date:
+            return False
+        return not (self.valid_to is not None and self.valid_to < end_date)
+
+
 class AttributeOptionRestrictions(BaseModel):
     """What DHIS2 restricts each attribute category option to, and the registry a restriction is published against."""
 
@@ -108,6 +179,13 @@ class AttributeOptionRestrictions(BaseModel):
 
     An option absent from the index carries no restriction, which is what DHIS2 answers for an
     option assigned to no organisation unit: every unit may capture under it.
+    """
+
+    validity: dict[str, CategoryOptionValidity] = Field(default_factory=dict)
+    """The calendar window each attribute category option is open for, by category option UID.
+
+    An option absent from the index states neither date, which is what DHIS2 answers for an option
+    open from the beginning and never closed: a capture for any period may be keyed under it.
     """
 
     units: OrganisationUnitPaths = Field(default_factory=OrganisationUnitPaths)
@@ -208,21 +286,41 @@ class UnusableAttributeOptionCombosSummary(BaseModel):
 
 
 class AttributeOptionRestrictionPlan(BaseModel):
-    """Which restriction Lists each attribute option combo concept names, keyed by the option combo's UID."""
+    """Where and when each attribute option combo concept may be captured, keyed by the option combo's UID."""
 
     model_config = ConfigDict(frozen=True)
 
     list_ids: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    """The restriction Lists each combo concept names, one per restricted option it is met from."""
+
+    windows: dict[str, CategoryOptionValidity] = Field(default_factory=dict)
+    """The narrowest calendar window each combo concept is open for - absent where every option is always open."""
 
     def properties_for(self, member_uid: str) -> list[CodeSystemConceptProperty]:
-        """The restriction properties one attribute option combo concept carries, one per restricted option."""
-        return [
+        """The restriction properties one attribute option combo concept carries: the units, then the window."""
+        properties = [
             CodeSystemConceptProperty(
                 code=ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
                 valueString=f"{ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE}/{list_id}",
             )
             for list_id in self.list_ids.get(member_uid, ())
         ]
+        window = self.windows.get(member_uid)
+        if window is None:
+            return properties
+        if window.valid_from is not None:
+            properties.append(
+                CodeSystemConceptProperty(
+                    code=ATTRIBUTE_OPTION_VALID_FROM_PROPERTY, valueDateTime=window.valid_from.isoformat()
+                )
+            )
+        if window.valid_to is not None:
+            properties.append(
+                CodeSystemConceptProperty(
+                    code=ATTRIBUTE_OPTION_VALID_TO_PROPERTY, valueDateTime=window.valid_to.isoformat()
+                )
+            )
+        return properties
 
 
 class AttributeOptionRestrictionBuild(JsonBuild):
@@ -265,6 +363,24 @@ def attribute_option_restriction_declaration(property_base: str) -> CodeSystemPr
     )
 
 
+def attribute_option_validity_declarations(property_base: str) -> list[CodeSystemProperty]:
+    """The CodeSystem-level declarations of the two dates a vocabulary carrying a window emits."""
+    return [
+        CodeSystemProperty(
+            code=ATTRIBUTE_OPTION_VALID_FROM_PROPERTY,
+            uri=f"{property_base}/{ATTRIBUTE_OPTION_VALID_FROM_PROPERTY}",
+            description=_VALID_FROM_DECLARATION_DESCRIPTION,
+            type="dateTime",
+        ),
+        CodeSystemProperty(
+            code=ATTRIBUTE_OPTION_VALID_TO_PROPERTY,
+            uri=f"{property_base}/{ATTRIBUTE_OPTION_VALID_TO_PROPERTY}",
+            description=_VALID_TO_DECLARATION_DESCRIPTION,
+            type="dateTime",
+        ),
+    ]
+
+
 def restricted_category_option_uids(sources: list[QuestionnaireSourceIn]) -> list[str]:
     """Every category option composing a non-default attribute combo the selection rides, sorted by UID.
 
@@ -292,6 +408,9 @@ def build_attribute_option_restriction_artifacts(
 
     `id_stem` is the attribute-combo family's own, so a restriction List sits in that family's
     directory under that family's prefix and the directory sweep keeps the two kinds apart.
+
+    The date axis needs no artifact of its own: a window is two dates, so it rides the plan straight
+    onto the concept as the narrowest window of the options the combo is met from.
     """
     build = AttributeOptionRestrictionBuild()
     compositions = _compositions(sources)
@@ -314,9 +433,40 @@ def build_attribute_option_restriction_artifacts(
             option_combo_uid: tuple(list_ids[option_uid] for option_uid in composition if option_uid in list_ids)
             for option_combo_uid, composition in compositions.items()
             if any(option_uid in list_ids for option_uid in composition)
-        }
+        },
+        windows=_windows(compositions, restrictions.validity),
     )
     return build
+
+
+def _windows(
+    compositions: dict[str, list[str]], validity: dict[str, CategoryOptionValidity]
+) -> dict[str, CategoryOptionValidity]:
+    """The narrowest window each attribute option combo is open for, over the options it is met from."""
+    windows: dict[str, CategoryOptionValidity] = {}
+    for option_combo_uid, composition in compositions.items():
+        window = CategoryOptionValidity()
+        for option_uid in composition:
+            stated = validity.get(option_uid)
+            if stated is not None:
+                window = window.narrowed_by(stated)
+        if window.stated:
+            windows[option_combo_uid] = window
+    return windows
+
+
+def _later(left: datetime.date | None, right: datetime.date | None) -> datetime.date | None:
+    """The later of two opening days, either of them absent - absence being the earliest day there is."""
+    if left is None:
+        return right
+    return left if right is None else max(left, right)
+
+
+def _earlier(left: datetime.date | None, right: datetime.date | None) -> datetime.date | None:
+    """The earlier of two closing days, either of them absent - absence being the latest day there is."""
+    if left is None:
+        return right
+    return left if right is None else min(left, right)
 
 
 def _compositions(sources: list[QuestionnaireSourceIn]) -> dict[str, list[str]]:
