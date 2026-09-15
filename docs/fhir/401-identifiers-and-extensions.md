@@ -847,9 +847,9 @@ identifier *of* one:
 ```
 
 So `dhis2-code`, `value-type`, `unique`, `searchable`, `generated`, `pattern`,
-`display-in-list` and `dhis2-organisation-units` are
-`{base}/property/dhis2-code` and so on, and each category a combo decomposes
-over is `{base}/property/category-<stem>`.
+`display-in-list`, `dhis2-organisation-units`, `dhis2-valid-from` and
+`dhis2-valid-to` are `{base}/property/dhis2-code` and so on, and each category a
+combo decomposes over is `{base}/property/category-<stem>`.
 
 ```console
 $ curl -s localhost:8389/CodeSystem/d2-aoc-idcDPkDtepR-cs | jq -c '.property[]'
@@ -875,6 +875,24 @@ the generator settles it once so a reader tests plain membership. An option
 every published unit already sits under narrows nothing and publishes nothing;
 an option none of them sits under publishes an empty List, which says the combo
 is usable nowhere in this guide.
+
+DHIS2 scopes a category option by calendar window too - `startDate` and
+`endDate` - and refuses a data value set whose period the window does not cover
+with `E8032 Untimely data entry`. A window is two dates rather than thousands of
+organisation units, so it rides the concept itself:
+
+```console
+$ curl -s localhost:8389/CodeSystem/d2-aoc-O4VaNks6tta-cs | jq -c '.concept[0].property[-2:]'
+[{"code":"dhis2-valid-from","valueDateTime":"2016-04-01"},{"code":"dhis2-valid-to","valueDateTime":"2016-10-01"}]
+```
+
+What a concept carries is the **narrowest** window of the options it is met
+from - the latest start and the earliest end - because a combo is open only
+while all of them are, which is DHIS2's own `CategoryOptionCombo` date range.
+Either property may be absent on its own: absence means the combo was always
+open, or is never closed. **The whole period has to sit inside the window, both
+ends inclusive**: a combo closing on `2016-10-01` takes period `201609` and
+refuses `201610`, which begins on the very day it closes.
 
 The full property set of each vocabulary is in
 [Terminology and ConceptMaps](401-terminology-and-conceptmaps.md).

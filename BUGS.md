@@ -7945,6 +7945,69 @@ declarations - `/metadata`'s search parameter documentation, `/uiconfig`, and
 
 ---
 
+### 110. `E8032 Untimely data entry` names neither the category option that closed nor the window it closed on, and a window ending inside a period closes the whole period
+
+**Observed on:** DHIS2 `2.43.2-SNAPSHOT` (revision `9d68e60`, `https://play.im.dhis2.org/dev-2-43`,
+DHIS 2 Demo - Sierra Leone). Login as `admin/district`.
+
+**What a caller is trying to do.** Post a data value set keyed to an attribute option combo, and
+where DHIS2 refuses it, learn enough from the refusal to fix the payload.
+
+**Repro (against the seeded demo database):**
+
+```bash
+BASE=https://play.im.dhis2.org/dev-2-43
+
+# `OUUdG3sdOqb` ("Provide access to primary health care") ends on 2016-10-01; combo
+# `FLpJ2hYMbLO` is met from it. `lyLU2wR22tC` is Monthly, with openPeriodsAfterCoEndDate 0.
+curl -sf -u admin:district "$BASE/api/categoryOptions/OUUdG3sdOqb?fields=id,name,startDate,endDate"
+# {"endDate":"2016-10-01T00:00:00.000","id":"OUUdG3sdOqb","name":"Provide access to primary health care"}
+
+body() { printf '{"dataSet":"lyLU2wR22tC","period":"%s","orgUnit":"ABM75Q1UfoP","attributeOptionCombo":"FLpJ2hYMbLO","dataValues":[{"dataElement":"Jw8BIUYVMGE","categoryOptionCombo":"HllvX50cXC0","value":"1"}]}' "$1"; }
+
+# September 2016 - the whole period is inside the window. SUCCESS.
+curl -s -u admin:district -X POST -H 'Content-Type: application/json' \
+  "$BASE/api/dataValueSets?dryRun=true&importStrategy=CREATE_AND_UPDATE" -d "$(body 201609)"
+
+# October 2016 - the period BEGINS on the day the option ends. 409.
+curl -s -u admin:district -X POST -H 'Content-Type: application/json' \
+  "$BASE/api/dataValueSets?dryRun=true&importStrategy=CREATE_AND_UPDATE" -d "$(body 201610)"
+# conflict: {"errorCode":"E8032","value":"Untimely data entry for attribute option combo FLpJ2hYMbLO and period(s): `[201610]`"}
+```
+
+**Expected.** Two things. That a window ending on the first day of a period admits at least that
+day - or, if it does not, that the refusal says so; and that the conflict names the category option
+whose window closed and the window itself, the way `E8025` names the organisation units.
+
+**Actual.** The whole period has to sit inside the window, both ends inclusive, so an `endDate`
+anywhere inside a period closes that period entirely - `2016-10-01` refuses all of `201610`. The
+same rule holds at the other end: `i4Nbp8S2G6A` starts `2016-04-01`, and `201603` is refused while
+`201604` is accepted. And the conflict names only the combo UID and the period. Which of the combo's
+category options closed, and on what day, is nowhere in the answer: a caller has to read
+`categoryOptionCombos/{id}?fields=categoryOptions[id,startDate,endDate]` and work out the narrowest
+window for themselves.
+
+**Why it matters beyond tidiness.** The combo UID is the one piece of information the caller already
+had. An import of several thousand values refused on this code tells an operator nothing they can
+act on without a second round of metadata reads, and the rule that closes a period from inside is
+not one a reader would guess from "startDate / endDate".
+
+**Workaround applied in this repo:** the generator reads `categoryOptions[].startDate,endDate` in
+the same request it reads `organisationUnits` (`fetch_attribute_option_restrictions` in
+`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`) and publishes the narrowest window of a combo's
+options on the combo concept as `dhis2-valid-from` / `dhis2-valid-to`
+(`packages/dhis2w-fhir/src/dhis2w_fhir/resources/attribute_combos/restrictions.py`). The facade then
+draws and grades against it (`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py`,
+`.../capture/validate.py`), so a client is told which window closed and on what day before DHIS2
+ever sees the payload.
+
+**How to know it's fixed:** the `201610` post either succeeds, or its conflict names the category
+option and the window.
+
+**Verifier:** none yet.
+
+---
+
 ## HL7 IG publisher defects
 
 Not DHIS2. One entry, filed here because it is the upstream defect that shapes what

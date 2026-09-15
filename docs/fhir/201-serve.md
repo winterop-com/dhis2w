@@ -579,14 +579,24 @@ content-type: application/fhir+json
 draws the same answers, so a submission that misbehaved can be asked for
 again.
 
-The organisation unit and the attribute option combo are one draw, because
-DHIS2 grades them together: a category option is scoped to organisation units,
-and a value keyed to a combo not usable at the unit it was filed from earns
-`E8025`. So `$generate` draws the combo from the concepts usable at the unit it
-drew, and where a unit admits none it moves on to the next unit the form
-admits. A form whose every declared combo is restricted away from every unit it
-admits is not drafted at all - the operation answers 422 saying so, the way it
-does for a form assigned to no published organisation unit.
+`?subject=Location/<id>` is optional too, and pins the organisation unit the
+draft reports from instead of leaving it to the draw. A capture client refilling
+a form somebody has already chosen an organisation unit on names it here, so the
+whole context comes back drawn there and the choice is not replaced. An
+organisation unit the form is not assigned to is refused rather than silently
+swapped for one that is.
+
+The organisation unit, the period and the attribute option combo are one draw,
+because DHIS2 grades them together. A category option is scoped to organisation
+units, and a value keyed to a combo not usable at the unit it was filed from
+earns `E8025`; it is scoped to a calendar window too, and a value whose period
+the window does not cover earns `E8032 Untimely data entry`. So `$generate`
+draws the combo from the concepts usable at the unit it drew **and** open for
+the period it reports for, and where a unit admits none it moves on to the next
+unit the form admits. A form whose every declared combo is closed to it on
+either axis is not drafted at all - the operation answers 422 saying which axis
+closed it, the way it does for a form assigned to no published organisation
+unit.
 
 A refused capture answers with the same resource type, a different severity,
 and a FHIRPath `expression` naming where each problem is. Validation runs in
@@ -611,7 +621,7 @@ linkId eY5ehpbEsB7: code 'Op1aaaaaaaa' matched option Op1aaaaaaaa by option-uid;
 the contract expects concept code 'MALE'
 ```
 
-`--strict-codes` flips the leniencies into refusals. One dial grades four
+`--strict-codes` flips the leniencies into refusals. One dial grades five
 things the same way:
 
 | What the dial grades | Lenient (default) | Strict |
@@ -620,6 +630,7 @@ things the same way:
 | the `D2AttributeOptionCombo` a form declares | missing or drifted is a warning | 422 (DHIS2 would refuse the write with `E8023`) |
 | the organisation unit, against the form's published assignment | outside the assignment is a warning | 422 (DHIS2 would refuse with `E1029`) |
 | the organisation unit, against the combo's organisation-unit restriction | outside the restriction is a warning | 422 (DHIS2 would refuse with `E8025`) |
+| the reporting period, against the combo's validity window | outside the window is a warning | 422 (DHIS2 would refuse with `E8032`) |
 | the subject type, against the form's `subjectType` | mismatch is a warning | 422 |
 
 Two things are refused whatever the dial, because they are malformed rather

@@ -22,8 +22,14 @@ _DEFINITION_FALLBACK_PREFIX = "D2"
 #: every client that knows what it means.
 GENERATE_OPERATION_CODE = "generate"
 
-#: The one input parameter `$generate` takes - the RNG seed that makes a generated response reproducible.
+#: The input parameter `$generate` takes to make a generated response reproducible - its RNG seed.
 GENERATE_SEED_PARAMETER = "seed"
+
+#: The input parameter `$generate` takes to pin where the response reports from, as `Location/<id>`.
+#: A capture client that has already been told which organisation unit to report from names it here,
+#: so the draft's own organisation unit and the attribute option combo drawn beside it agree with the
+#: choice rather than replacing it.
+GENERATE_SUBJECT_PARAMETER = "subject"
 
 
 class IdentifierSystemSubject(BaseModel):

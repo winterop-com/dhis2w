@@ -111,6 +111,27 @@ export const NOTHING_ANSWERED_NOTICE = 'Answer at least one question before subm
 export const FORM_ASKS_NOTHING_NOTICE = 'This form asks no questions, so there is nothing to submit'
 
 /**
+ * What `$generate` answers for a form this server can write no capturable draft for.
+ *
+ * 422 rather than 404 or 500: the form is served and readable, and what cannot be done is the one
+ * operation. Every other refusal from that operation carries a different status, so the page reads
+ * this one as the fact it is and leaves the rest to the failure path they were always on.
+ */
+export const UNCAPTURABLE_FORM_STATUS = 422
+
+/**
+ * The refusal's reason, with the part that only repeats which form is on screen taken off the front.
+ *
+ * The server writes `Questionnaire/<id> cannot be generated against: <reason>`, because the operation
+ * answers about a form a client named by id. On this page the form is the heading, so the id is a
+ * fact already on screen and the reason is the whole of what a reader needs.
+ */
+export function uncapturableReason(message: string, questionnaireId: string): string {
+    const prefix = `\`Questionnaire/${questionnaireId}\` cannot be generated against: `
+    return message.startsWith(prefix) ? message.slice(prefix.length) : message
+}
+
+/**
  * One form, filled in and posted back.
  *
  * THE ENVELOPE IS THE SERVER'S, THE ANSWERS ARE THE USER'S. A capture-valid
@@ -224,6 +245,11 @@ export function FormFill() {
     const [error, setError] = useState<string | null>(null)
     const [errorStatus, setErrorStatus] = useState<number | null>(null)
     const [envelope, setEnvelope] = useState<QuestionnaireResponse | null>(null)
+    // Why this server can write no draft for this form, in the words its own refusal used, or null
+    // where it wrote one. A form whose every attribute option combo is restricted away from every
+    // organisation unit it admits, or closed for the period it reports for, is one this DHIS2
+    // instance takes no capture for at all - so the page says that instead of inviting one.
+    const [uncapturable, setUncapturable] = useState<string | null>(null)
     const [answers, dispatch] = useReducer(answersReducer, {} as AnswerState)
     const [issues, setIssues] = useState<OperationOutcomeIssue[]>([])
     const [busy, setBusy] = useState(false)
@@ -375,6 +401,7 @@ export function FormFill() {
         setErrorStatus(null)
         setQuestionnaire(null)
         setEnvelope(null)
+        setUncapturable(null)
         setIssues([])
         setAttributeOptionCombo(null)
         setReportingUnit(null)
@@ -397,10 +424,23 @@ export function FormFill() {
                 // The skeleton is read after the form is on screen rather than blocking it:
                 // reading a form and being able to submit one are different capabilities, and a
                 // slow or refused `$generate` should not keep the questions off the page.
-                return generateResponse(questionnaireId).then((skeleton) => {
-                    if (cancelled) return
-                    setEnvelope(skeleton)
-                })
+                return generateResponse(questionnaireId)
+                    .then((skeleton) => {
+                        if (cancelled) return
+                        setEnvelope(skeleton)
+                    })
+                    .catch((failure: unknown) => {
+                        if (cancelled) return
+                        // A form nothing capturable can be made for is not a read that went wrong:
+                        // the server has stated, in the refusal's own words, that this DHIS2
+                        // instance accepts no submission for this form at all. The page renders
+                        // that instead of a "not yet" - see the block the refusal replaces.
+                        if (failure instanceof FhirRequestError && failure.status === UNCAPTURABLE_FORM_STATUS) {
+                            setUncapturable(uncapturableReason(failure.message, questionnaireId))
+                            return
+                        }
+                        throw failure
+                    })
             })
             .catch((failure: unknown) => {
                 if (cancelled) return
@@ -447,11 +487,17 @@ export function FormFill() {
         // would be a routing bug rather than a state a person can reach.
         if (filling || questionnaire === null) return
         setFilling(true)
-        generateResponse(questionnaireId, seedStated ? statedSeed(seed) : undefined)
+        // A chosen organisation unit is where the refill is drawn, not something the refill
+        // overwrites: the server draws the whole context there, so the attribute option combo that
+        // comes back beside it is one this DHIS2 instance accepts at that organisation unit.
+        const chosenUnitId = reportingUnitChosen ? (referencedUnitId(reportingUnit) ?? undefined) : undefined
+        generateResponse(questionnaireId, seedStated ? statedSeed(seed) : undefined, chosenUnitId)
             .then((generated) => {
                 setEnvelope(generated)
                 setAttributeOptionCombo((current) => refilledAttributeOptionCombo(current, generated))
-                setReportingUnit((current) => refilledReportingUnit(current, generated, questionnaire))
+                setReportingUnit((current) =>
+                    refilledReportingUnit(current, generated, questionnaire, reportingUnitChosen),
+                )
                 // The one refill rule that runs the other way: the fresh draw's pair is synthetic,
                 // so the answers refill and the chosen identity stands.
                 setEnrollment((current) => refilledEnrollment(current))
@@ -478,7 +524,7 @@ export function FormFill() {
                 })
             })
             .finally(() => setFilling(false))
-    }, [filling, questionnaire, questionnaireId, seed, seedStated, clearStatedDates])
+    }, [filling, questionnaire, questionnaireId, seed, seedStated, clearStatedDates, reportingUnit, reportingUnitChosen])
 
     // How far through the form this is, published before the read has landed so the hook order does
     // not depend on whether the server holds the form.
@@ -634,7 +680,23 @@ export function FormFill() {
                 stageRepeats={repeatsPerEnrollmentHere}
             />
 
-            {envelope === null && (
+            {uncapturable !== null && (
+                <Alert variant="destructive" className="mb-4">
+                    <AlertTitle>This DHIS2 instance takes no capture for this form</AlertTitle>
+                    <AlertDescription>
+                        <p>{uncapturable}</p>
+                        <p>
+                            What would change it is the project's own selections:{' '}
+                            <code className="font-mono">[generate.organisation_units]</code> in{' '}
+                            <code className="font-mono">fhir.toml</code> decides which organisation units this
+                            project publishes, and the form selection beside it decides which forms. Change
+                            either, then run <code className="font-mono">d2w fhir generate</code> again.
+                        </p>
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {uncapturable === null && envelope === null && (
                 <Alert className="mb-4">
                     <AlertTitle>No submission context yet</AlertTitle>
                     <AlertDescription>
@@ -674,6 +736,7 @@ export function FormFill() {
                         selectedUnitId={referencedUnitId(reportingUnit)}
                         keptUnitNotAdmitted={keptUnitNotAdmitted}
                         chosen={reportingUnitChosen}
+                        uncapturable={uncapturable !== null}
                         onChange={(choice) => {
                             setReportingUnit(orgUnitReference(choice))
                             setReportingUnitChosen(true)
@@ -706,6 +769,7 @@ export function FormFill() {
                         <AttributeOptionComboPicker
                             canonical={attributeOptionCombos}
                             selected={attributeOptionCombo}
+                            disabled={uncapturable !== null}
                             onChange={setAttributeOptionCombo}
                         />
                     )}
@@ -809,7 +873,12 @@ export function FormFill() {
                     <Send className="size-4" />
                     {busy ? 'Submitting' : 'Submit'}
                 </Button>
-                <Button type="button" variant="outline" disabled={filling} onClick={fillWithTestData}>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={filling || uncapturable !== null}
+                    onClick={fillWithTestData}
+                >
                     <Sparkles className="size-4" />
                     {filling ? 'Filling' : 'Fill with test data'}
                 </Button>

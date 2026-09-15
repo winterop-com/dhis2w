@@ -20,6 +20,7 @@ never published would blame the client for the project's own incomplete IG.
 
 from __future__ import annotations
 
+import datetime
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
@@ -61,8 +62,16 @@ LOCATION_RESOURCE_TYPE = "Location"
 #: category option the attribute option combo is met from.
 ATTRIBUTE_OPTION_RESTRICTION_PROPERTY = "dhis2-organisation-units"
 
+#: The concept properties stating the calendar window every category option of the attribute option
+#: combo is open for - the narrowest of them, which is the window the combo itself is open for.
+ATTRIBUTE_OPTION_VALID_FROM_PROPERTY = "dhis2-valid-from"
+ATTRIBUTE_OPTION_VALID_TO_PROPERTY = "dhis2-valid-to"
+
 #: The separator a disaggregated cell's link id joins its data element and category option combo with.
 CELL_LINK_ID_SEPARATOR = "."
+
+#: How many leading characters of an R4 `dateTime` spell the calendar day it falls on.
+_ISO_DATE_LENGTH = 10
 
 #: The `value[x]` element a question answers on, keyed by the R4 item type the questionnaire gives it.
 #: The inverse of what the emitter writes: `ITEM_TYPES_BY_VALUE_TYPE` maps a DHIS2 value type onto an
@@ -278,24 +287,54 @@ class CaptureAssignment(BaseModel):
 
 
 class CaptureComboRestriction(BaseModel):
-    """Where one attribute option combo may be captured: the Lists it names, and the units on all of them.
+    """Where and when one attribute option combo may be captured, as its own concept states both axes.
 
-    DHIS2 scopes a category option to organisation units, and a category option combo is usable at a
-    unit only where every option composing it is - so the admitted set is the intersection of the
-    Lists the concept names, and a capture outside it is refused with `E8025`. A List the facade
-    does not serve states nothing and is left out of that intersection, for the reason an
-    unresolvable assignment does not narrow a form.
+    DHIS2 scopes a category option two ways, and a combo is usable only where every option composing
+    it is on both. On the unit axis the admitted set is the intersection of the Lists the concept
+    names, and a capture outside it is refused with `E8025`. A List the facade does not serve states
+    nothing and is left out of that intersection, for the reason an unresolvable assignment does not
+    narrow a form; a concept no served List narrows holds `location_ids` None, which admits every
+    organisation unit rather than none.
+
+    On the date axis the concept states the narrowest window its options are open for, and a capture
+    reporting for a period the window does not cover entirely is refused with `E8032`. Either end
+    may be absent, which is DHIS2 saying the combo was always open, or is never closed.
     """
 
     model_config = ConfigDict(frozen=True)
 
     list_ids: tuple[str, ...] = ()
-    location_ids: frozenset[str] = frozenset()
+    location_ids: frozenset[str] | None = None
+    """The units every served restriction List holds, or None where no served List narrows the combo."""
+
+    valid_from: datetime.date | None = None
+    """The first day the combo is open for, or None where every option behind it was always open."""
+
+    valid_to: datetime.date | None = None
+    """The last day the combo is open for, or None where no option behind it is ever closed."""
 
     def admits(self, reference: str) -> bool:
         """Whether one Location reference, in either spelling, names a unit this combo may be captured at."""
+        if self.location_ids is None:
+            return True
         location_id = location_id_of(reference)
         return location_id is not None and location_id in self.location_ids
+
+    def covers(self, start_date: datetime.date, end_date: datetime.date) -> bool:
+        """Whether a capture reporting for this span falls inside the window, both ends inclusive.
+
+        DHIS2's own rule, read off 2.43 with validate-only posts: the whole period has to sit inside
+        the window, so a period beginning on the very day an option closes is already outside it.
+        """
+        if self.valid_from is not None and self.valid_from > start_date:
+            return False
+        return not (self.valid_to is not None and self.valid_to < end_date)
+
+    def window(self) -> str:
+        """The window spelled the way a refusal names it back to a client - an open end says so."""
+        opened = self.valid_from.isoformat() if self.valid_from is not None else "the beginning"
+        closed = self.valid_to.isoformat() if self.valid_to is not None else "no closing day"
+        return f"{opened} to {closed}"
 
 
 class CaptureAttributeOptionCombos(BaseModel):
@@ -311,14 +350,15 @@ class CaptureAttributeOptionCombos(BaseModel):
     value_set: str
     system: str | None = None
     restrictions: dict[str, CaptureComboRestriction] = Field(default_factory=dict)
-    """Where each concept of the vocabulary may be captured, by concept code - the restricted ones alone.
+    """Where and when each concept may be captured, by concept code - the scoped ones alone.
 
-    A concept absent from the map carries no restriction: every organisation unit the form admits
-    may file a capture under it, which is what DHIS2 answers for a combo of unrestricted options.
+    A concept absent from the map is scoped on neither axis: every organisation unit the form admits
+    may file a capture under it, for any period, which is what DHIS2 answers for a combo whose
+    options name no organisation unit and state no calendar window.
     """
 
     def restriction_for(self, concept_code: str) -> CaptureComboRestriction | None:
-        """Where one concept of the vocabulary may be captured, or None when it is restricted nowhere."""
+        """Where and when one concept may be captured, or None when it is scoped on neither axis."""
         return self.restrictions.get(concept_code)
 
 
@@ -606,14 +646,19 @@ def _attribute_option_combos(
 def _combo_restrictions(
     system: str | None, naming: CaptureNaming, store: ResourceStore
 ) -> dict[str, CaptureComboRestriction]:
-    """Where each concept of one served attribute-option-combo CodeSystem may be captured, by concept code.
+    """Where and when each concept of one served attribute-option-combo CodeSystem may be captured, by code.
 
     The concept names one restriction List per restricted category option it is met from, and the
-    units admitted are the ones every one of those Lists holds. A concept naming none is left out:
-    absence is the vocabulary saying the combo is usable wherever the form itself is, and so is a
-    concept whose every List the facade fails to serve - an artifact this project did not publish
-    narrows nothing, for the reason an unresolvable assignment does not. A List that *is* served and
-    holds no unit narrows everything: the combo is usable at no organisation unit of this guide.
+    units admitted are the ones every one of those Lists holds. It states the window its options are
+    open for on `dhis2-valid-from` / `dhis2-valid-to`, either end of which may be absent. A concept
+    stating neither axis is left out: absence is the vocabulary saying the combo is usable wherever
+    and whenever the form itself is.
+
+    A List the facade fails to serve narrows nothing - an artifact this project did not publish
+    states nothing, for the reason an unresolvable assignment does not - so a concept whose every
+    List is unservable still carries its window and still admits every organisation unit. A List
+    that *is* served and holds no unit narrows everything: the combo is usable at no organisation
+    unit of this guide.
     """
     code_system = _code_system(system, store)
     if code_system is None:
@@ -628,18 +673,38 @@ def _combo_restrictions(
             and concept_property.valueString
             and concept_property.valueString.startswith(ASSIGNMENT_REFERENCE_PREFIX)
         )
-        if not concept.code or not list_ids:
+        valid_from = _concept_date(concept, ATTRIBUTE_OPTION_VALID_FROM_PROPERTY)
+        valid_to = _concept_date(concept, ATTRIBUTE_OPTION_VALID_TO_PROPERTY)
+        if not concept.code or (not list_ids and valid_from is None and valid_to is None):
             continue
         for list_id in list_ids:
             if list_id not in members:
                 members[list_id] = _list_location_ids(list_id, naming, store)
         admitted = [held for list_id in list_ids if (held := members[list_id]) is not None]
-        if not admitted:
-            continue
         restrictions[concept.code] = CaptureComboRestriction(
-            list_ids=list_ids, location_ids=frozenset.intersection(*admitted)
+            list_ids=list_ids,
+            location_ids=frozenset.intersection(*admitted) if admitted else None,
+            valid_from=valid_from,
+            valid_to=valid_to,
         )
     return restrictions
+
+
+def _concept_date(concept: CodeSystemConcept, property_code: str) -> datetime.date | None:
+    """One calendar day a concept property states, or None where it states none this server can read.
+
+    An R4 `dateTime` admits more than a day - a time, an offset - and DHIS2 scopes a category option
+    by calendar day, so the day is what is read and anything beyond it is passed over. A value that
+    is not a day at all states nothing rather than refusing the whole vocabulary.
+    """
+    for concept_property in concept.property or []:
+        if concept_property.code != property_code or not concept_property.valueDateTime:
+            continue
+        try:
+            return datetime.date.fromisoformat(concept_property.valueDateTime[:_ISO_DATE_LENGTH])
+        except ValueError:
+            return None
+    return None
 
 
 def _code_system(canonical: str | None, store: ResourceStore) -> CodeSystem | None:

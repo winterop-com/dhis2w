@@ -34,7 +34,11 @@ attribute option combo are one draw rather than two, because DHIS2 scopes a cate
 organisation units and refuses a capture keyed to a combo not usable at the unit it was filed from
 (`E8025`): the combo is drawn from the concepts the published restriction admits at the unit that
 was drawn, and a form whose every combo is restricted away from every unit it admits is refused by
-name rather than drafted. And a `unique`
+name rather than drafted. The period joins that draw for the same reason: DHIS2 scopes a category
+option to a calendar window too and refuses a data value set whose period the window does not cover
+with `E8032 Untimely data entry`, so a combo whose window has closed is out of the draw for the
+period the response reports for, and a form whose every combo has closed is refused by name as
+well. And a `unique`
 tracked entity attribute is never answered with a constant: DHIS2 refuses the second registration
 carrying a repeated unique value with `E1064`, so the answer embeds the response's own minted
 tracked-entity UID - the one value no other generated registration holds - through the same rule
@@ -214,7 +218,7 @@ class UnreportableAssignmentError(UngeneratableCaptureError):
 
 
 class UnusableAttributeOptionComboError(UngeneratableCaptureError):
-    """Raised when no attribute option combo the form declares may be captured at any unit it admits."""
+    """Raised when no combo the form declares may be captured at any unit it admits, or for its period."""
 
 
 class DateWindow(BaseModel):
@@ -250,19 +254,22 @@ def generate_response(
     seed: int,
     today: datetime.date,
     spool: ResponseSpool | None = None,
+    subject_location_id: str | None = None,
 ) -> QuestionnaireResponse:
     """Generate one synthetic response to a served form: its context, then an answer to every question.
 
-    The whole document is a function of `(questionnaire, store, spool, seed, today)`. Two terms move
-    on their own: `today` decides which completed reporting period an aggregate response is for and
-    which thirty days an event's timestamps fall in, and `spool` decides which registration a stage
-    response answers against. A caller naming no spool generates a stage response that mints its own
-    tracker pair, which is what a form kind whose context is data rather than metadata otherwise does.
+    The whole document is a function of `(questionnaire, store, spool, seed, today,
+    subject_location_id)`. Three terms move on their own: `today` decides which completed reporting
+    period an aggregate response is for and which thirty days an event's timestamps fall in, `spool`
+    decides which registration a stage response answers against, and `subject_location_id` pins the
+    organisation unit the response reports from rather than leaving it to the draw. A caller naming
+    no spool generates a stage response that mints its own tracker pair, which is what a form kind
+    whose context is data rather than metadata otherwise does.
     """
     period = _reporting_period(index, today) if index.form_kind == "aggregate" else None
     window = DateWindow.of_period(period) if period is not None else DateWindow.recent(today)
     resolvers = CodingResolverSet(store=store)
-    target = capture_target(index, store, resolvers, seed)
+    target = capture_target(index, store, resolvers, seed, period=period, location_id=subject_location_id)
     generator = _Generator(
         index=index,
         naming=naming,
@@ -881,6 +888,9 @@ def capture_target(
     store: ResourceStore,
     resolvers: CodingResolverSet,
     seed: int,
+    *,
+    period: PeriodValue | None = None,
+    location_id: str | None = None,
 ) -> CaptureTarget:
     """Where a generated response reports from and what it is filed under - one seeded draw over both.
 
@@ -895,6 +905,13 @@ def capture_target(
     and where that unit admits none the draw moves on to the next admitted unit rather than writing
     a draft the instance would refuse.
 
+    A category option is scoped by calendar window as well, and `period` is what that window is read
+    against: DHIS2 refuses a data value set whose period the window does not cover entirely with
+    `E8032 Untimely data entry`, so a combo whose window has closed is out of the draw for that
+    period exactly as a combo restricted away from the unit is out of it there. A caller naming no
+    period draws on the unit axis alone, which is every form kind whose capture reports for no
+    period at all.
+
     Both draws are the seed's: the same seed names the same unit and the same combo, and different
     seeds range over the whole admitted set of pairs.
 
@@ -902,12 +919,19 @@ def capture_target(
     names no organisation unit this project publishes, because the two halves of the same rule have
     to agree: such a form admits nothing on receipt, so drawing it a unit would be drafting the very
     capture the facade then warns about. The other is the form no admitted unit may file any of its
-    declared combos at, which is the same refusal one axis over.
+    declared combos at for the period in hand, which is the same refusal one axis over - and the
+    diagnostics name which of the two axes closed it.
 
     A store publishing no registry at all (a project generated without an organisation-unit
     selection) is a different absence, and it falls back to a seeded UID, which the capture contract
     admits because it checks the reference's shape rather than its target. Nothing is known about
-    where such a unit sits, so the combo is drawn from the whole declared vocabulary.
+    where such a unit sits, so the combo is drawn from whatever the period alone leaves open.
+
+    `location_id` is a caller naming the organisation unit itself - a capture client refilling a form
+    somebody has already chosen one on. It stands in for the draw rather than beside it: the combo is
+    drawn at the named unit, so the pair the client gets back agrees with the choice instead of
+    replacing it. A named unit the form does not admit is refused by name, because drafting a capture
+    DHIS2 answers `E1029` would be worse than saying which organisation units the form admits.
     """
     assignment = index.assignment
     if assignment is not None and not assignment.location_ids:
@@ -916,16 +940,29 @@ def capture_target(
             f"published organisation unit, so there is nowhere a response to it could report from"
         )
     admitted = _admitted_location_ids(index, store)
+    if location_id is not None:
+        if admitted and location_id not in admitted:
+            raise UnreportableAssignmentError(
+                f"`{LOCATION_RESOURCE_TYPE}/{location_id}` is not one of the {len(admitted)} organisation "
+                f"unit(s) this form may be reported from, so a response drawn there is one DHIS2 refuses"
+            )
+        admitted = (location_id,)
     generator = random.Random(seed)  # noqa: S311 - a reproducibility handle, not a secret
     declared = index.attribute_option_combos
     resolver = resolvers.for_system(declared.system) if declared is not None and declared.system else None
-    options = resolver.options if resolver is not None else ()
+    declared_options = resolver.options if resolver is not None else ()
+    if declared is None or not declared_options:
+        if not admitted:
+            return CaptureTarget(location_id=_shaped_uid(generator))
+        return CaptureTarget(location_id=admitted[generator.randrange(len(admitted))])
+    options = _timely_options(declared_options, declared, period)
+    if not options:
+        raise UnusableAttributeOptionComboError(_untimely_combo_diagnostics(declared, declared_options, period))
     if not admitted:
-        drawn = options[generator.randrange(len(options))] if options else None
-        return CaptureTarget(location_id=_shaped_uid(generator), attribute_option_combo=drawn)
+        return CaptureTarget(
+            location_id=_shaped_uid(generator), attribute_option_combo=options[generator.randrange(len(options))]
+        )
     opened = generator.randrange(len(admitted))
-    if declared is None or not options:
-        return CaptureTarget(location_id=admitted[opened])
     for offset in range(len(admitted)):
         location_id = admitted[(opened + offset) % len(admitted)]
         usable = _usable_options(options, declared, location_id)
@@ -934,6 +971,22 @@ def capture_target(
                 location_id=location_id, attribute_option_combo=usable[generator.randrange(len(usable))]
             )
     raise UnusableAttributeOptionComboError(_unusable_combo_diagnostics(declared, options, len(admitted)))
+
+
+def _timely_options(
+    options: tuple[ResolvedCoding, ...],
+    declared: CaptureAttributeOptionCombos,
+    period: PeriodValue | None,
+) -> tuple[ResolvedCoding, ...]:
+    """The concepts of the declared vocabulary whose window covers the period a capture reports for."""
+    if period is None:
+        return options
+    return tuple(
+        option
+        for option in options
+        if (restriction := declared.restriction_for(option.concept_code)) is None
+        or restriction.covers(period.start_date, period.end_date)
+    )
 
 
 def _usable_options(
@@ -957,6 +1010,20 @@ def _unusable_combo_diagnostics(
         f"of the {admitted_count} organisation unit(s) this form admits: DHIS2 restricts the category options "
         f"behind them to organisation units this project publishes none of, and refuses a capture keyed to one "
         f"of them with E8025"
+    )
+
+
+def _untimely_combo_diagnostics(
+    declared: CaptureAttributeOptionCombos,
+    options: tuple[ResolvedCoding, ...],
+    period: PeriodValue | None,
+) -> str:
+    """Say why no draft could be written for a form whose every combo is closed for the period it reports for."""
+    reported = f"period `{period.iso}`" if period is not None else "the period it reports for"
+    return (
+        f"none of the {len(options)} attribute option combo(s) of `{declared.value_set}` is open for the "
+        f"{reported}: DHIS2 opens a category option for a calendar window and refuses a capture whose period "
+        f"the window does not cover with E8032"
     )
 
 

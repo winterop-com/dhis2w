@@ -11,6 +11,12 @@ The spool is read as part of answering: a generated stage response answers again
 and the enrollment a spooled registration of the same program minted, so the operation's output is a
 function of the project's receipts as well as its forms - see `dhis2w_fhir_serve.synthesize`.
 
+Two inputs steer the draw. `seed` makes it reproducible, and `subject` pins the organisation unit the
+response reports from - a capture client refilling a form somebody already chose an organisation unit
+on names it, and the whole context comes back drawn at that unit rather than at one of the server's
+own choosing. The attribute option combo is drawn there too, so the pair the client gets back is one
+the instance accepts together.
+
 This is a **custom** operation, deliberately not SDC's `$populate`. `$populate` means fill this form
 from real context about a real subject; `$generate` invents its data, and a client that knows what
 `$populate` means would be misled by seeing it here. The IG publishes the OperationDefinition, and
@@ -26,8 +32,10 @@ import datetime
 import json
 from typing import Any
 
-from dhis2w_fhir.foundation import GENERATE_SEED_PARAMETER
-from dhis2w_fhir.r4 import Parameters, Questionnaire
+from dhis2w_fhir.conversion.values import location_id_of
+from dhis2w_fhir.foundation import GENERATE_SEED_PARAMETER, GENERATE_SUBJECT_PARAMETER
+from dhis2w_fhir.names import is_dhis2_uid
+from dhis2w_fhir.r4 import Parameters, ParametersParameter, Questionnaire
 from fastapi import APIRouter
 from pydantic import ValidationError
 from starlette.datastructures import QueryParams
@@ -65,14 +73,52 @@ class UngeneratableFormError(ServeError):
 @router.get(GENERATE_PATH)
 async def generate_from_questionnaire(request: Request, resource_id: str) -> Response:
     """Answer one served form with a synthetic response, drawn from the seed the query names."""
-    return _generated(request, resource_id, read_seed(request.query_params))
+    return _generated(request, resource_id, read_seed(request.query_params), read_subject(request.query_params))
 
 
 @router.post(GENERATE_PATH)
 async def post_generate_from_questionnaire(request: Request, resource_id: str) -> Response:
-    """The POST spelling of the same operation, taking its seed from a Parameters body or the query."""
-    body_seed = read_body_seed(await request.body())
-    return _generated(request, resource_id, body_seed if body_seed is not None else read_seed(request.query_params))
+    """The POST spelling of the same operation, taking its inputs from a Parameters body or the query."""
+    body = await request.body()
+    body_seed = read_body_seed(body)
+    body_subject = read_body_subject(body)
+    return _generated(
+        request,
+        resource_id,
+        body_seed if body_seed is not None else read_seed(request.query_params),
+        body_subject if body_subject is not None else read_subject(request.query_params),
+    )
+
+
+def read_subject(params: QueryParams) -> str | None:
+    """Read the `subject` query parameter as the organisation unit a draft reports from, or None."""
+    return _checked_subject(params.get(GENERATE_SUBJECT_PARAMETER))
+
+
+def read_body_subject(raw_body: bytes) -> str | None:
+    """Read `subject` off a POSTed Parameters body, the way `read_body_seed` reads the seed beside it."""
+    for parameter in _body_parameters(raw_body):
+        if parameter.name == GENERATE_SUBJECT_PARAMETER:
+            return _checked_subject(parameter.valueString)
+    return None
+
+
+def _checked_subject(raw: str | None) -> str | None:
+    """One organisation unit as the operation declares it: a `Location/<id>` reference, or its bare UID.
+
+    A client that holds the reference sends it whole and one holding only the UID sends that, because
+    both spell the same organisation unit and refusing either would be this server insisting on a
+    spelling the registry itself does not care about. Anything that is neither is refused rather than
+    passed on, so a misspelled parameter is answered here instead of drawing at an unrelated unit.
+    """
+    if raw is None or raw == "":
+        return None
+    location_id = location_id_of(raw) if "/" in raw else raw
+    if location_id is None or not is_dhis2_uid(location_id):
+        raise BadOperationError(
+            f"`{GENERATE_SUBJECT_PARAMETER}` takes an organisation unit as `Location/<id>`, not `{raw}`"
+        )
+    return location_id
 
 
 def read_seed(params: QueryParams) -> int | None:
@@ -91,17 +137,7 @@ def read_body_seed(raw_body: bytes) -> int | None:
     name a seed and misspelled the resource would otherwise be answered with a different response
     than it asked for, silently.
     """
-    if not raw_body.strip():
-        return None
-    try:
-        payload: Any = json.loads(raw_body)
-    except (json.JSONDecodeError, UnicodeDecodeError) as error:
-        raise BadOperationError(f"the request body is not valid JSON ({error})") from error
-    try:
-        parameters = Parameters.model_validate(payload)
-    except ValidationError as error:
-        raise BadOperationError(f"the request body is not a Parameters resource ({error})") from error
-    for parameter in parameters.parameter or []:
+    for parameter in _body_parameters(raw_body):
         if parameter.name != GENERATE_SEED_PARAMETER:
             continue
         if parameter.valueInteger is not None:
@@ -110,6 +146,21 @@ def read_body_seed(raw_body: bytes) -> int | None:
             return _checked_seed(parameter.valueString)
         raise BadOperationError(f"the `{GENERATE_SEED_PARAMETER}` parameter carries no `valueInteger`")
     return None
+
+
+def _body_parameters(raw_body: bytes) -> list[ParametersParameter]:
+    """Every parameter a POSTed body names, an empty body naming none."""
+    if not raw_body.strip():
+        return []
+    try:
+        payload: Any = json.loads(raw_body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise BadOperationError(f"the request body is not valid JSON ({error})") from error
+    try:
+        parameters = Parameters.model_validate(payload)
+    except ValidationError as error:
+        raise BadOperationError(f"the request body is not a Parameters resource ({error})") from error
+    return parameters.parameter or []
 
 
 def _checked_seed(raw: str) -> int:
@@ -123,7 +174,7 @@ def _checked_seed(raw: str) -> int:
     return seed
 
 
-def _generated(request: Request, resource_id: str, seed: int | None) -> Response:
+def _generated(request: Request, resource_id: str, seed: int | None, subject_location_id: str | None) -> Response:
     """Resolve the named form, generate one response to it, and serialise it as the operation's output."""
     context = serve_context(request)
     state = capture_state(request)
@@ -141,6 +192,7 @@ def _generated(request: Request, resource_id: str, seed: int | None) -> Response
             seed=seed if seed is not None else draw_seed(),
             today=datetime.date.today(),
             spool=context.spool,
+            subject_location_id=subject_location_id,
         )
     except (UnreadableQuestionnaireError, UngeneratableCaptureError, ValidationError) as error:
         raise UngeneratableFormError(resource_id, _diagnostics(error)) from error

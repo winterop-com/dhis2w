@@ -122,6 +122,20 @@ curl -sf -X POST "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate" \
     | head -c 200
 echo
 
+# subject pins where the draft reports from, instead of leaving it to the draw. A capture
+# client whose user has already chosen an organisation unit names it here, and the whole
+# context - the attribute option combo included - is drawn there, so what comes back is a
+# capture this DHIS2 instance accepts at that organisation unit rather than one that
+# replaces the choice. Named as `Location/<id>`, or as the bare UID.
+UNIT=$(curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=1" | jq -r '.subject.reference')
+curl -sf "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?seed=99&subject=${UNIT}" \
+    | jq -c '.subject.reference'
+
+# An organisation unit the form is not assigned to is refused rather than swapped for one
+# that is: drafting a capture DHIS2 answers E1029 would say less than naming the rule.
+curl -s -o /dev/null -w '%{http_code}\n' \
+    "${BASE}/Questionnaire/TuL8IOPzpHh/\$generate?subject=Location/notaunituid"
+
 # A load set: synthetic QuestionnaireResponse JSON to POST at the facade. Seeded from the
 # target UID and the ordinal, so a rerun over unchanged metadata writes identical files.
 # It lands in load/ beside ig/ - a load set is not IG source, it is gitignored by the

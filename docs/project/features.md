@@ -1061,6 +1061,18 @@ NamingSystems declaring them, plus these extensions:
   scoped to the category options of the non-default attribute combos the
   selection rides and carries the published units' `path` on the registry read
   the run already makes, so it costs one extra request and no hierarchy walk.
+- **A validity window on every combo concept whose category options state one**,
+  as a `dhis2-valid-from` / `dhis2-valid-to` pair of `dateTime` concept
+  properties. DHIS2 scopes a category option by calendar window as well as by
+  organisation unit and refuses a data value set whose period the window does not
+  cover with `E8032 Untimely data entry`, so the vocabulary publishes the window
+  the way it publishes the restriction - on the concept itself, a window being
+  two dates rather than thousands of organisation units. What a concept carries
+  is the narrowest window of the options it is met from, the latest start and the
+  earliest end, which is DHIS2's own `CategoryOptionCombo` date range; an option
+  stating neither date publishes nothing, and absence means always open. The
+  dates ride the same `categoryOptions` read the organisation-unit restriction
+  does, so the date axis costs no request of its own.
 - A category outside `[generate.categories]` drops its axis with a
   selection-gap note rather than coding into a CodeSystem nobody wrote.
 - Nothing at all for a default-combo data set, because absence means the
@@ -1157,8 +1169,10 @@ NamingSystems declaring them, plus these extensions:
 - **`D2GenerateOperation` OperationDefinition** stands behind `$generate`:
   `kind #operation`, `code #generate`, `resource #Questionnaire`,
   `instance = true` with `system`/`type` false, `affectsState = false` so a GET
-  is legal, one optional `integer` `seed` input and a `QuestionnaireResponse`
-  `return`, and a `comment` stating outright that it is not SDC's `$populate`.
+  is legal, one optional `integer` `seed` input, one optional `string` `subject`
+  input naming an organisation unit as `Location/<id>`, and a
+  `QuestionnaireResponse` `return`, plus a `comment` stating outright that it is
+  not SDC's `$populate`.
   It is deliberately absent from the `kind #requirements` capture statement,
   because a server that only receives captures is still conformant.
 
@@ -2543,6 +2557,14 @@ deliberately not SDC's `$populate`, which means fill-from-real-context.
   on `QuestionnaireResponse.identifier` under `{canonical}/id/generate-seed`,
   so a seedless call is reproducible too and a corpus can be regenerated from
   the seeds off it.
+- **An optional `subject`** (query for GET, a `Parameters` body for POST, a
+  `Location/<id>` reference or the bare UID) pins the organisation unit the draft
+  reports from instead of leaving it to the draw, so a capture client refilling a
+  form somebody has already chosen one on gets a draft drawn there - the
+  attribute option combo beside it included - rather than a draft that replaces
+  the choice. An organisation unit the form's published assignment does not admit
+  is refused with the reason, because drafting a capture DHIS2 answers `E1029`
+  would be worse than saying which organisation units admit it.
 - **Two facts a compiled Questionnaire cannot carry take documented rules**:
   the data set's period type is read off a served example response answering
   the same form and falls back to `Monthly` (which is every `--live` store,
@@ -2595,6 +2617,15 @@ in phases that stop at the first level to find an error.
   warns and refuses under `--strict-codes`, in the shape an organisation unit
   outside the form's assignment is told in and naming the `E8025` the write
   would earn.
+- **And when.** A concept carrying a `dhis2-valid-from` / `dhis2-valid-to`
+  window is open only while that window covers the whole period a response
+  reports for, both ends inclusive - DHIS2's own rule, read off 2.43 with
+  validate-only posts: a combo closing on `2016-10-01` takes period `201609` and
+  refuses `201610`. A response reporting outside it warns and refuses under
+  `--strict-codes`, in the same shape and naming the `E8032 Untimely data entry`
+  the write would earn. An event or an enrollment reports for no period and
+  carries a date of its own, which the instance grades against the same window
+  on import.
 
 #### Receipts and the spool
 
@@ -3031,6 +3062,12 @@ control per R4 item type.
   `subject` for an aggregate or event form and the `D2OrganisationUnit`
   extension for a tracker one. The same one read of `GET /Location` feeds every
   `ORGANISATION_UNIT` question in the form below it.
+- **A chosen organisation unit stands across a refill**, the rule the combo
+  beside it already followed. **Fill with test data** asks `$generate` for a
+  draft drawn at the chosen organisation unit - `?subject=Location/<id>` - so
+  the answers refill, the choice stays, and the attribute option combo that
+  comes back is one this DHIS2 instance accepts there. With nobody having
+  chosen, the draw stands as it always did.
 - **An attribute option combo control** for a data set or program on a
   non-default category combo: the combo the whole submission is filed under,
   expanded from
@@ -3042,6 +3079,15 @@ control per R4 item type.
   refusal to render a form until the combo is chosen. **Fill with test data**
   still adopts the fresh draw, because that is the server proposing a whole
   submission.
+- **A form this DHIS2 instance takes no capture for says so, in the server's own
+  words.** Where `$generate` answers 422 - every attribute option combo
+  restricted away from every organisation unit the form admits, or closed for
+  the period it reports for - the page renders that refusal's reason in place of
+  the *No submission context yet* block, disables the combo control and **Fill
+  with test data**, and names the two selections in `fhir.toml` that would change
+  it. The alternative is what a reader met before: a full capture page inviting a
+  submission the instance refuses, and a Fill button whose only trace was a 422
+  in the developer console.
 - **A Person control on both registration kinds**, naming who the submission is
   about. **New person** by default - the minted identity, and the only option a
   compiled run offers, which says so rather than offering a search it cannot
@@ -3164,7 +3210,12 @@ control per R4 item type.
   which is how a registration receipt states its enrolled-at and incident
   dates, the two the spool has no column for, beside the tracked entity and
   enrollment it minted. It degrades to link ids and values with a stated reason
-  when the form has been recompiled away.
+  when the form has been recompiled away. The two dates read as calendar days
+  and not as instants, because that is what DHIS2 holds them as: the capture
+  profiles spell both as `dateTime`, so a drafted one carries an hour and a
+  minute no register ever recorded and rendering it would state a precision
+  nobody has. An instant that really is one - when a receipt arrived, when an
+  event happened - keeps its clock.
 - **Beside it**: the DHIS2 context the receipt carries, the `$generate` seed it
   was drawn from, the capture warnings, and the import report's rollup of what
   DHIS2 said about a rejection - with an `E1300` row's program rule read back

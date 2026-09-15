@@ -166,6 +166,23 @@ directions - `$generate` draws a combo usable at the unit it drew, and a
 received response filed at a unit outside the restriction is graded on the dial
 an organisation unit outside the form's assignment is graded on.
 
+### Which periods a combo may be captured for is per-concept too
+
+DHIS2 scopes a category option by calendar window as well - `startDate` and
+`endDate` - and refuses a data value set whose period the window does not cover
+with `E8032 Untimely data entry`. The whole period has to sit inside the window,
+both ends inclusive, so a combo closing on `2016-10-01` takes period `201609`
+and refuses `201610`.
+
+The vocabulary publishes the window on the concept itself, as `dhis2-valid-from`
+and `dhis2-valid-to` - the narrowest window of the options the combo is met
+from, either end of it absent where no option states one. The server reads this
+in both directions too: `$generate` draws a combo open for the period it reports
+for, and a received response filed under a closed one is graded on the same dial
+and in the same shape as the organisation-unit restriction beside it. An event
+or an enrollment reports for no period and carries a date of its own, which the
+instance grades against the same window on import (`E1056` / `E1057`).
+
 ## `status` is the completeness claim
 
 `QuestionnaireResponse.status` is `1..1` on every one of the five profiles, and
@@ -489,6 +506,8 @@ warning to 422 ([Serve the guide](201-serve.md#coded-answers-lenient-by-default)
   (`E8023` on a data set, `E1055` on a program);
 - a response filed under a combo outside its published organisation-unit
   restriction (`E8025` on a data value set);
+- a response reporting for a period outside the combo's published validity
+  window (`E8032` on a data value set);
 - a coded answer whose code is in none of the served terminology.
 
 Under strict, the fall-back tiers are switched off too: only the concept code

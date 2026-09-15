@@ -35,6 +35,18 @@
       "type": "string"
     },
     {
+      "code": "dhis2-valid-from",
+      "uri": "http://dhis2.org/fhir/property/dhis2-valid-from",
+      "description": "First day this combo is open for. A capture is refused unless the whole period it reports for falls on or after it.",
+      "type": "dateTime"
+    },
+    {
+      "code": "dhis2-valid-to",
+      "uri": "http://dhis2.org/fhir/property/dhis2-valid-to",
+      "description": "Last day this combo is open for. A capture is refused unless the whole period it reports for falls on or before it.",
+      "type": "dateTime"
+    },
+    {
       "code": "category-yY2bQYqNt0o",
       "uri": "http://dhis2.org/fhir/property/category-yY2bQYqNt0o",
       "description": "DHIS2 category Project.",
@@ -61,6 +73,10 @@
         {
           "code": "dhis2-organisation-units",
           "valueString": "List/d2-aoc-i4Nbp8S2G6A-org-units"
+        },
+        {
+          "code": "dhis2-valid-from",
+          "valueDateTime": "2016-04-01"
         }
       ]
     },
@@ -105,6 +121,10 @@
         {
           "code": "dhis2-organisation-units",
           "valueString": "List/d2-aoc-OUUdG3sdOqb-org-units"
+        },
+        {
+          "code": "dhis2-valid-to",
+          "valueDateTime": "2016-10-01"
         }
       ]
     },

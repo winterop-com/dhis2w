@@ -77,6 +77,7 @@ from dhis2w_fhir.config import CorrectionPosture, FhirProject, WithdrawalPosture
 from dhis2w_fhir.conversion.schemas import COMBO_REFUSAL_CODES, ComboRefusalCodes
 from dhis2w_fhir.names import DHIS2_UID_LENGTH, is_dhis2_uid
 from dhis2w_fhir.period import parse_period
+from dhis2w_fhir.period.schemas import PeriodValue
 from dhis2w_fhir.r4 import (
     Extension,
     QuestionnaireResponse,
@@ -1010,6 +1011,36 @@ def _restriction_issue(
     )
 
 
+def _untimely_issue(restriction: CaptureComboRestriction, coding_code: str, iso: str, *, strict: bool) -> CaptureIssue:
+    """What a client is told when it files a capture under a combo whose window does not cover its period."""
+    return CaptureIssue(
+        severity="error" if strict else "warning",
+        code="business-rule",
+        expression=_COMBO_EXPRESSION,
+        diagnostics=(
+            f"period `{iso}` is outside the window attribute option combo `{coding_code}` is open for "
+            f"({restriction.window()}); DHIS2 opens a category option for a calendar window and refuses a "
+            f"capture whose period the window does not cover entirely, with E8032 on a data value set"
+        ),
+    )
+
+
+def _reported_period_value(response: QuestionnaireResponse, naming: CaptureNaming) -> PeriodValue | None:
+    """The period a submission reports for, as the dates it covers - None where it names none this server reads.
+
+    An unreadable ISO period is the period phase's refusal to write, not this one's: what this phase
+    needs is a span to compare a window against, and a submission that states none is graded on the
+    organisation-unit axis alone.
+    """
+    iso = _reported_period(response, naming)
+    if not iso:
+        return None
+    try:
+        return parse_period(iso)
+    except ValueError:
+        return None
+
+
 def _attribute_option_combo_issues(
     response: QuestionnaireResponse,
     index: CaptureIndex,
@@ -1034,10 +1065,17 @@ def _attribute_option_combo_issues(
     stored and then silently not written, because the payload has no field for it - so the client
     is told rather than left to discover it at forward time.
 
-    Where the combo resolves, the organisation unit it is filed at grades too: DHIS2 scopes a
-    category option to organisation units, so a combo the vocabulary publishes a restriction for is
-    usable only at the units that restriction admits. It is the assignment rule one axis over, and
-    it grades on the same dial and in the same shape.
+    Where the combo resolves, both axes DHIS2 scopes a category option on grade too. The
+    organisation unit it is filed at: a combo the vocabulary publishes a restriction for is usable
+    only at the units that restriction admits, which is the assignment rule one axis over. And the
+    period it reports for: a combo the vocabulary states a window for is open only while that window
+    covers the whole period, and DHIS2 answers a capture outside it `E8032 Untimely data entry`. All
+    three grade on the same dial and in the same shape.
+
+    The date axis is read off the period the submission itself states, so it grades the aggregate
+    capture DHIS2 grades it on. An event or an enrollment reports for no period and carries a date
+    of its own, which DHIS2 checks against the same window and refuses with `E1056` / `E1057` on
+    import - the instance's answer, not this server's, for the reason a uniqueness claim is.
     """
     declared = index.attribute_option_combos
     carried = _extensions(response, naming.attribute_option_combo_url)
@@ -1052,6 +1090,7 @@ def _attribute_option_combo_issues(
         resolvers,
         codes,
         _reported_unit(response, naming, form_kind),
+        _reported_period_value(response, naming),
         strict=strict,
     )
 
@@ -1062,6 +1101,7 @@ def _combo_coding_issues(
     resolvers: CodingResolverSet,
     codes: ComboRefusalCodes,
     reported: _ReportedUnit,
+    period: PeriodValue | None,
     *,
     strict: bool,
 ) -> tuple[CaptureIssue, ...]:
@@ -1129,9 +1169,13 @@ def _combo_coding_issues(
             ),
         )
     restriction = declared.restriction_for(resolved.concept_code)
-    if restriction is None or reported.reference is None or restriction.admits(reported.reference):
+    if restriction is None:
         return ()
-    return (_restriction_issue(restriction, coding.code, reported.reference, strict=strict),)
+    if reported.reference is not None and not restriction.admits(reported.reference):
+        return (_restriction_issue(restriction, coding.code, reported.reference, strict=strict),)
+    if period is not None and not restriction.covers(period.start_date, period.end_date):
+        return (_untimely_issue(restriction, coding.code, period.iso, strict=strict),)
+    return ()
 
 
 def _missing_combo_issue(

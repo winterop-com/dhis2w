@@ -8,6 +8,7 @@ import {
     checkCredential,
     checkReachability,
     configureApi,
+    generateResponse,
     listRegister,
     NOT_A_CAPABILITY_STATEMENT,
     outcomeMessage,
@@ -531,5 +532,46 @@ describe('the receipt id a create interaction states', () => {
     it('says nothing where the server stated no Location at all', () => {
         expect(receiptIdOf(null)).toBeNull()
         expect(receiptIdOf('')).toBeNull()
+    })
+})
+
+/**
+ * What `$generate` is asked for, and where.
+ *
+ * The organisation unit matters as much as the seed: a refill on a form somebody has already chosen
+ * one on has to be drawn there, or the attribute option combo that comes back beside it is one this
+ * DHIS2 instance refuses at the chosen organisation unit.
+ */
+describe('asking the server to fill a form', () => {
+    it('asks for a bare draw when neither a seed nor an organisation unit is named', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC')
+
+        expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate')
+    })
+
+    it('names the seed alone when only a seed is asked for', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC', 7)
+
+        expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate?seed=7')
+    })
+
+    it('names the chosen organisation unit as a Location reference, beside the seed', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC', 7, 'ImspTQPwCqd')
+
+        expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate?seed=7&subject=Location%2FImspTQPwCqd')
+    })
+
+    it('names the organisation unit on its own where no seed was asked for', async () => {
+        const { calls } = stubFetch(fhirResponse({ resourceType: 'QuestionnaireResponse', status: 'completed' }))
+
+        await generateResponse('lyLU2wR22tC', undefined, 'ImspTQPwCqd')
+
+        expect(calls[0].url).toBe('/Questionnaire/lyLU2wR22tC/$generate?subject=Location%2FImspTQPwCqd')
     })
 })

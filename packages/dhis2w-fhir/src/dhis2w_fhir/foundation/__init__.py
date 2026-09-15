@@ -89,6 +89,7 @@ from dhis2w_fhir.foundation.schemas import (
     FORM_TYPE_TERMINOLOGY,
     GENERATE_OPERATION_CODE,
     GENERATE_SEED_PARAMETER,
+    GENERATE_SUBJECT_PARAMETER,
     IDENTIFIER_SYSTEM_SEGMENTS,
     IDENTIFIER_SYSTEM_SUBJECTS,
     PERIOD_ISO_SUB_EXTENSION,
@@ -151,6 +152,7 @@ __all__ = [
     "FORM_TYPE_TERMINOLOGY",
     "GENERATE_OPERATION_CODE",
     "GENERATE_SEED_PARAMETER",
+    "GENERATE_SUBJECT_PARAMETER",
     "PERIOD_ISO_SUB_EXTENSION",
     "PERIOD_RANGE_SUB_EXTENSION",
     "PERIOD_TYPE_SUB_EXTENSION",
@@ -236,6 +238,17 @@ _GENERATE_SEED_DOCUMENTATION = (
     "The seed the generated values are drawn from. The same seed against the same served form "
     "returns the same response, so a client can reproduce a submission by naming its seed. Absent, "
     "the server draws one and states it on the generated response's identifier."
+)
+#: No angle brackets in this sentence, and none in any other string this module renders into FSH:
+#: the IG publisher's last pass writes the narrative as XHTML, and a stray `<` aborts the build -
+#: which is the same hazard `HostileNameGate` screens DHIS2's own names for.
+_GENERATE_SUBJECT_DOCUMENTATION = (
+    "The organisation unit the generated response reports from, as a Location reference - the "
+    "resource type, a slash, and the organisation unit's DHIS2 UID. The server draws the rest of "
+    "the context at that organisation unit, so the attribute option combo it draws is one the "
+    "instance accepts there. Absent, the server draws the organisation unit too, from the form's "
+    "own assignment. An organisation unit the form is not assigned to is refused rather than "
+    "silently replaced."
 )
 _GENERATE_RETURN_DOCUMENTATION = (
     "The generated QuestionnaireResponse, declaring the response profile of the form's own DHIS2 "
@@ -424,6 +437,8 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
         operation_code=GENERATE_OPERATION_CODE,
         seed_parameter=GENERATE_SEED_PARAMETER,
         seed_documentation=_GENERATE_SEED_DOCUMENTATION,
+        subject_parameter=GENERATE_SUBJECT_PARAMETER,
+        subject_documentation=_GENERATE_SUBJECT_DOCUMENTATION,
         return_documentation=_GENERATE_RETURN_DOCUMENTATION,
         declared_date=_GENERATE_OPERATION_DECLARED_DATE,
         ig_status=ig_status,

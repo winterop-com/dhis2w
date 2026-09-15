@@ -7,6 +7,7 @@ import {
     LIFECYCLE_TINTS,
     RESPONSE_LIFECYCLES,
     captureContext,
+    formatDay,
     formatInstant,
     lifecyclesPresent,
     rejectionSummary,
@@ -122,6 +123,16 @@ function wallClock(year: number, month: number, day: number, hour: number, minut
     })
 }
 
+/** The calendar day a rendering states, as `Intl` writes those fields with no zone arithmetic on them. */
+function calendarDay(year: number, month: number, day: number): string {
+    return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(undefined, {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    })
+}
+
 describe('formatInstant', () => {
     it('renders the wall clock the wire carries, digit for digit', () => {
         expect(formatInstant('2026-08-09T09:30:00Z')).toBe(wallClock(2026, 8, 9, 9, 30))
@@ -163,6 +174,30 @@ describe('formatInstant', () => {
 
     it('shows a value that is only shaped like an instant at its head verbatim', () => {
         expect(formatInstant('2026-08-09 and then some')).toBe('2026-08-09 and then some')
+    })
+})
+
+describe('formatDay', () => {
+    it('renders a calendar day with no time of day, whatever precision the value carries', () => {
+        // The shape a drafted enrollment date arrives in: a dateTime element carrying an hour DHIS2
+        // never recorded. `04:00` has to be nowhere in the reading.
+        expect(formatDay('2026-07-21T04:00:00Z')).toBe(calendarDay(2026, 7, 21))
+        expect(formatDay('2026-07-21')).toBe(calendarDay(2026, 7, 21))
+    })
+
+    it('reads the day the value states rather than the day a zone would move it to', () => {
+        // Late enough that applying an offset lands on another date, which is the failure a zone
+        // conversion would introduce on a date of birth.
+        const late = '2026-08-09T23:30:00Z'
+        expect(inTimeZone('Pacific/Kiritimati', () => formatDay(late))).toBe(
+            inTimeZone('Pacific/Honolulu', () => formatDay(late)),
+        )
+        expect(inTimeZone('Pacific/Honolulu', () => formatDay(late))).toBe(calendarDay(2026, 8, 9))
+    })
+
+    it('shows a value it cannot read as a day verbatim, rather than as Invalid Date', () => {
+        expect(formatDay('not a day')).toBe('not a day')
+        expect(formatDay('2026-02-30')).toBe('2026-02-30')
     })
 })
 
