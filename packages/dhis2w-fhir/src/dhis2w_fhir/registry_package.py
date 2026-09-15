@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
 
 __all__ = [
+    "REGISTRY_CHECKOUT_RELATIVE_PATH",
     "REGISTRY_PACKAGE_RESOURCE_TYPES",
     "RegistryDocument",
     "RegistryMissingError",
@@ -38,7 +39,7 @@ __all__ = [
 ]
 
 #: Where a checkout of the registry project keeps the instances `d2w fhir generate` wrote.
-_CHECKOUT_REGISTRY_RELATIVE_PATH = Path("ig") / "input" / "resources" / "registry"
+REGISTRY_CHECKOUT_RELATIVE_PATH = Path("ig") / "input" / "resources" / "registry"
 
 #: The directory every FHIR package tarball roots its resources at.
 _PACKAGE_ROOT = "package"
@@ -152,7 +153,7 @@ def _checkout_directory(project: FhirProject, registry: RegistryDependency) -> P
     """The checkout's registry directory when `registry.path` names one holding resources, else None."""
     if registry.path is None:
         return None
-    directory = (project.project_root / registry.path / _CHECKOUT_REGISTRY_RELATIVE_PATH).resolve()
+    directory = (project.project_root / registry.path / REGISTRY_CHECKOUT_RELATIVE_PATH).resolve()
     if not directory.is_dir() or not any(directory.rglob("*.json")):
         return None
     return directory
@@ -205,7 +206,7 @@ def _no_source_message(project: FhirProject, registry: RegistryDependency) -> st
     """The refusal naming both ways to supply the registry, and the one the project already half-states."""
     stated = (
         f"`path` in [generate.organisation_units.registry] names {registry.path}, which holds no "
-        f"{_CHECKOUT_REGISTRY_RELATIVE_PATH.as_posix()} - run `d2w fhir generate` there"
+        f"{REGISTRY_CHECKOUT_RELATIVE_PATH.as_posix()} - run `d2w fhir generate` there"
         if registry.path is not None
         else "set `path` in [generate.organisation_units.registry] to a checkout of the registry project"
     )

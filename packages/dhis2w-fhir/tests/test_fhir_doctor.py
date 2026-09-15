@@ -606,6 +606,70 @@ async def test_a_project_that_refuses_hostile_names_fails_the_generate_phase(
     assert "The run generated under hostile names refuse." in generate.evidence
 
 
+#: A project stating the posture a doctor run has to take from it, and nothing else. The run
+#: scaffolds its own probe, so the only thing this file decides is what the probe generates under.
+_REFUSING_PROJECT_TOML = """
+[ig]
+id = "dhis2.fhir.calling"
+canonical = "http://example.org/fhir/calling"
+name = "Calling"
+title = "Calling guide"
+publisher = "Test Organisation"
+
+[generate]
+hostile_names = "refuse"
+"""
+
+
+@respx.mock
+async def test_the_probe_generates_under_the_posture_of_the_project_doctor_was_run_in(
+    probe_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Doctor answers "does the toolchain run as this project is configured", not as a scaffold defaults.
+
+    The working directory holds a `fhir.toml` stating `hostile_names = "refuse"`, where
+    `d2w fhir generate` exits 1 on a DHIS2 name carrying '<'. A run that scaffolded itself the
+    template's `substitute` would report the same instance as one the toolchain handles, two lines
+    under the command that refused it.
+    """
+    monkeypatch.setattr("dhis2w_fhir.doctor.shutil.which", lambda _name: None)
+    calling = tmp_path / "calling"
+    calling.mkdir()
+    (calling / "fhir.toml").write_text(_REFUSING_PROJECT_TOML, encoding="utf-8")
+    monkeypatch.chdir(calling)
+    _mock_whole_instance(_HOSTILE_OPTION_SETS_PAYLOAD)
+
+    report = await run_doctor(_profile(), DoctorOptions(workspace=tmp_path / "workspace"))
+
+    generate = next(phase for phase in report.phases if phase.phase is DoctorPhase.GENERATE)
+    assert generate.outcome is DoctorOutcome.FAILED
+    assert "whose name carries '<'" in generate.evidence
+    assert "The run generated under hostile names refuse." in generate.evidence
+    assert report.failed_phases
+
+
+@respx.mock
+async def test_the_probe_keeps_the_scaffold_posture_where_no_project_states_one(
+    probe_profile: None,  # noqa: ARG001
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run from a directory no `fhir.toml` sits in or above, there is no posture to take and the scaffold's stands."""
+    monkeypatch.setattr("dhis2w_fhir.doctor.shutil.which", lambda _name: None)
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    monkeypatch.chdir(bare)
+    _mock_whole_instance(_HOSTILE_OPTION_SETS_PAYLOAD)
+
+    report = await run_doctor(_profile(), DoctorOptions(workspace=tmp_path / "workspace"))
+
+    generate = next(phase for phase in report.phases if phase.phase is DoctorPhase.GENERATE)
+    assert generate.outcome is not DoctorOutcome.FAILED, generate.evidence
+    assert "under hostile names substitute" in generate.evidence
+
+
 @respx.mock
 async def test_a_whole_run_judges_every_oracle_family_it_served(
     probe_profile: None,  # noqa: ARG001

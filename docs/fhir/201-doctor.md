@@ -95,19 +95,29 @@ arithmetic. A form assigned nowhere inside that slice is dropped from the
 selection with the reason stated. `--all-targets` scaffolds empty selection
 tables instead, which means every data set, every program, and every level.
 
+The selection is the probe's own; the `[generate]` posture is not. Every key
+that decides what a run *produces* rather than what it selects - `hostile_names`,
+the `[generate.naming]` table, `concept_code_source`, `identifier_system_base`,
+`timezone`, `locales`, and `tracked_entity_types` - is copied from the project
+you ran doctor in, so the run answers "does the toolchain work against this
+instance as this project is configured" rather than "does it work under the
+scaffold's defaults". Run doctor from a directory no `fhir.toml` sits in or
+above and the scaffold's own answers stand.
+
 **generate** runs the full pipeline against the instance - the same
 `d2w fhir generate` a project runs - and keeps every note it raised. Notes
 are warnings: an unmatched selection entry, a question no synthetic answer
 fits, a reference that leaves the selection.
 
 It screens the instance's names through the `[generate] hostile_names` posture
-of the project it scaffolded, exactly as `d2w fhir generate` does, and the
-phase's evidence names the posture it took. The scaffolded `fhir.toml` writes
-`substitute`, so a DHIS2 name carrying `<` - which the demo database holds out
-of the box, in an age band such as `Female, <15y` - is rewritten for
+the scaffold copied off the project you ran doctor in, exactly as
+`d2w fhir generate` does there, and the phase's evidence names the posture it
+took. Under `substitute` a DHIS2 name carrying `<` - which the demo database
+holds out of the box, in an age band such as `Female, <15y` - is rewritten for
 publication and the run carries on; a project stating `refuse` publishes every
-name as DHIS2 states it and the phase fails on that name instead. The same
-instance grades two ways, so the evidence says which answer was in force:
+name as DHIS2 states it and the phase fails on that name instead, which is the
+same exit `d2w fhir generate` takes in that directory. The same instance grades
+two ways, so the evidence says which answer was in force:
 
 ```
 generate │ warn │ 322 file(s) across 7 target(s), 4 note(s), under hostile names substitute

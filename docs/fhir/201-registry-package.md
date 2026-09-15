@@ -308,6 +308,17 @@ selections have drifted apart - it stays offline, reads no instance, and runs
 inside `make build`, so a dangling reference is named in seconds instead of by
 the publisher after it has rendered everything else.
 
+`d2w fhir generate` counts the same gap as it writes the references, against the
+`Location-<id>.json` files the checkout named by
+`[generate.organisation_units.registry] path` published. It reads those files
+rather than the two `[generate.naming] source` literals, because the literals are
+not the fact: `code-or-id` falls back to the id for every unit whose code cannot
+serve as a stem, so a registry stating it beside a guide stating `id` can publish
+exactly the stems the guide references and nothing dangles - and a registry that
+code-stems some units and falls back on others produces a partial mismatch two
+literals have no shape for. The note states how many of how many references
+dangle, names the first few, and says nothing at all when none does.
+
 ### Why the refusal matters more than it looks
 
 A missing registry is not a quiet degradation, and the reason is worth stating.

@@ -747,6 +747,14 @@ chain in one command.
   and an optional project directory. `ig/input/pagecontent/**/*.md` is out of
   scope on purpose: markdown carries HTML by design. An existing project takes
   the gate up with one `d2w fhir init --refresh`.
+- **The findings table reads at 80 columns**, which is what a CI log gets and
+  `make build` runs this command into one. The file path is cut from the front,
+  so what survives is the end that names the file; the resource and the element
+  are dropped in that order when the terminal is too narrow for them, both being
+  in `--json`. The remedy is not a column at all: six sentences stand behind
+  every finding the scan raises, so they are printed under the table once each
+  and whole - which is also the only place the `[generate.*]` table names inside
+  one survive a narrow screen.
 - **The scan reads the guide's own identity too**, in `fhir.toml`'s `[ig]` table
   and in `ig/sushi-config.yaml` (`title`, `name`, `publisher`, `description`).
   No DHIS2 selection supplies those, and no compiled resource carries them until
@@ -1025,12 +1033,18 @@ NamingSystems declaring them, plus these extensions:
   a client can join the rule to the item on its own form; the question itself
   carries no marking, because the fact belongs to the rule. The examples target
   and `d2w fhir generate load-set` answer none of them, and `d2w fhir generate`
-  raises a note per form naming the rules and the questions. DHIS2 refuses a
-  payload whose answer is neither empty nor byte-equal to the value it
-  calculated (`E1307`), and a calculated value can be one no answer expresses at
-  all, so no answer is the only answer that always lands. `d2w fhir
+  raises a note per form naming the rules and the questions, then closes the run
+  with a line naming how many published forms ask such a question and how many
+  questions across them, because a form whose corpus answers nine of thirteen
+  questions on purpose is otherwise a progress counter a reader cannot read.
+  DHIS2 refuses a payload whose answer is neither empty nor byte-equal to the
+  value it calculated (`E1307`), and a calculated value can be one no answer
+  expresses at all, so no answer is the only answer that always lands. `d2w fhir
   check-artifacts` files a warning-level finding for a published example that
-  answers one, and the capture UI renders such a question read-only, naming the
+  answers one, in both formats an example lives in - the compiled JSON, and the
+  FSH source it was compiled from, which is the only place a hand-authored
+  example sits and the only half of the tree a project holds before `make build`
+  runs SUSHI - and the capture UI renders such a question read-only, naming the
   rule, out of the progress count and out of the submission.
 
 #### Organisation-unit assignment
@@ -1088,7 +1102,12 @@ NamingSystems declaring them, plus these extensions:
   kind. `d2w fhir check-artifacts` reports the same entry as a warning-level
   finding against `fhir.toml`, read off the published tree with no connection.
   An `include_ids` that is absent or an empty list selects everything, which is
-  why `enabled = false` is the switch that publishes none.
+  why `enabled = false` is the switch that publishes none. The scan grades a
+  selection only against a tree a run finished writing: a refused run writes the
+  foundation target and stops, and reading a selection off that half-written tree
+  would say a UID live on the instance - the very object the run refused over -
+  is not on it. The questionnaire target is the evidence the run reached the end;
+  without it the scan says the run did not complete and grades nothing.
 - `d2w fhir serve` grades the subject, the tracker organisation-unit extension,
   and every ORGANISATION_UNIT answer against it, on the same lenient/strict
   dial coded answers take, and `$generate` draws its Location from it. The
@@ -1778,6 +1797,16 @@ registration form become `Questionnaire` instances.
   the ids the package publishes. It stays offline and connectionless, which is
   what lets `make build` run it; a registry it cannot read at all is one finding
   against `fhir.toml` rather than silence.
+- **`d2w fhir generate` counts the references the package carries no place for**
+  as it writes them, reading the `Location-<id>.json` files the checkout
+  published against the stems this run resolved. The two `[generate.naming]
+  source` literals are not that fact: `code-or-id` falls back to the id for every
+  unit whose code cannot serve as a stem, so a registry stating it beside a guide
+  stating `id` publishes exactly the stems the guide references and nothing
+  dangles - and a registry that code-stems some units and falls back on others
+  produces a partial mismatch no comparison of two literals has a shape for. The
+  note states how many of how many dangle and names the first few, or says
+  nothing at all.
 
 #### Site pages
 
@@ -1971,17 +2000,36 @@ semantics `generate` uses.
   predicate generate refuses through, so a validate error equals a generate
   refusal, with collisions graded per id namespace, data sets, event programs
   and tracker stages pooling into the Questionnaire namespace exactly as
-  generate resolves them); and an attribute pass naming every attribute the
+  generate resolves them, and every stem read off the code the posture
+  **publishes** rather than the one DHIS2 holds - a run screens its names before
+  it plans an identity, so under `"substitute"` the option set coded
+  `Development activities` stems from `Development-activities` and is neither
+  counted nor refused, which is what keeps the two commands stating one number
+  and one fact per object; a finding on a code the rewrite left unusable names
+  both spellings); and an attribute pass naming every attribute the
   instance left uncoded, whose values therefore ride a bare UID on all five
   resource types the `D2AttributeValue` extension is contexted on, counted as
   `attribute_count` in the report beside the option-set, option, resource-type,
   and object counts.
 - **`template-hostile-name`** fires in either code mode on any name holding
   `<`, `>`, or `&` - the characters the IG publisher's template injects into
-  HTML unescaped. Its sibling **`template-hostile-code`** reads the code for
+  HTML unescaped - and reads the object's NAME and FORM_NAME translations beside
+  its name, because the generate gate rewrites those two translated properties
+  exactly as it rewrites the name: a translated NAME becomes a published
+  `_title`, `_name` or designation and a translated FORM_NAME becomes a
+  question's `_text`, so an object whose own name is clean and whose `en_GB` name
+  carries a `<` is a build the publisher dies on. The message names the locale
+  and the property. Its sibling **`template-hostile-code`** reads the code for
   the same three on the six collections whose codes become identifier values
   (`optionSets`, `categories`, `organisationUnits`, `dataSets`, `programs`,
   `programStages`).
+- **`spaced-code`** reads every surface the generate gate screens a code on -
+  `optionSets`, `categories`, `categoryOptions`, `organisationUnits`, `dataSets`,
+  `programs`, `programStages`, `trackedEntityTypes`, `dataElements`,
+  `trackedEntityAttributes`, and the options of the deep pass - so the report the
+  refusal calls "the full report" names every code the run would rewrite. A code
+  the R4 datatype refuses outright is reported as the invalid code it is and not
+  a second time here.
 - **`control-character-name`** fires in either code mode on any name or form
   name holding a C0 control character (U+0000 through U+001F), which SUSHI
   carries byte-true from the FSH into the compiled resource. Tab, newline, and
@@ -2027,6 +2075,14 @@ semantics `generate` uses.
   data elements, and tracked entity attributes - rather than only the six whose
   codes become identity stems. Codes stay asymmetric on purpose: a data element's
   code is a concept property the publisher escapes, so neither command gates it.
+- **`--details` degrades at 80 columns rather than folding.** The object, its
+  code, and the sentence saying what it costs carry a floor and an ellipsis; the
+  scope, the category and the resource type are dropped in that order when the
+  terminal is too narrow for them - the `findings by category` rollup above the
+  table counts the first two and the Markdown, CSV and PDF reports carry all
+  three. What is left is what a reader acts on, one line per finding: an
+  11-character UID rendered one character to a line names nothing. 80 columns is
+  what a non-TTY pipe gets.
 - **The scope and both restrictions keep the error meaning "this build will
   fail"**: a dashboard is never generated and a data element carries its code
   through an escaped surface, so neither is a finding; `<` is the only
@@ -3956,21 +4012,27 @@ Each response goes through `dhis2w_fhir.conversion` all-or-nothing.
   identifiers generalised away, except a UID naming a program rule the guide
   published, which is read back as that rule's own name so an `E1300` refusal
   says which rule refused rather than which twelve characters did (the raw UID
-  stays untouched on the response's own `.report.json`). Quoted and bare alike:
-  DHIS2 backticks the organisation-unit list of an `E8025` and leaves the
-  attribute option combo in the same sentence bare, so a row standing for three
-  responses refused on three different combos names none of them rather than
-  the first one's. A bare eleven-character word is read as a UID by its shape -
-  it carries a digit, or it turns from lower case to upper more often than a
-  word does - so the `DataElement` of an `E1302` sentence stays prose. Each
+  stays untouched on the response's own `.report.json`). Quoted and bare alike,
+  and by the same shape test: DHIS2 backticks the organisation-unit list of an
+  `E8025` and leaves the attribute option combo in the same sentence bare, so a
+  row standing for three responses refused on three different combos names none
+  of them rather than the first one's - while what DHIS2 quotes is not thereby an
+  identifier, since an `E1302` backticks a value type, a whole explanatory clause
+  and the offending value inside it. A run of characters reads as an identifier
+  only when every token in it is eleven characters starting with a letter and
+  turns like a UID rather than like a word - it carries a digit, or it turns from
+  lower case to upper more often than a word does - so the `DataElement`, the
+  `NUMBER` and the `-Infinity` of an `E1302` sentence all stay prose. Each
   response is counted once per distinct cause, so `202 rejected` reads as the
   three rules it broke, rendered as a `Responses | Code | What DHIS2 said`
   table on the terminal and at the head of the written report.
-- **A cause that ended exactly one response is stated as DHIS2 stated it**, its
-  identifiers intact. The generalisation is what turns twenty rejections into
-  one row; at one it buys nothing and costs the reader the very UID they came
-  for, sending them to the report file for something that fits on the line in
-  front of them.
+- **A cause whose responses all met it in the same words is stated as DHIS2
+  stated it**, its identifiers intact - a cause that ended one response, and a
+  cause that ended five byte-identical ones alike. The generalisation is what
+  turns twenty rejections differing only in the object they name into one row;
+  where nothing differs it removes the sentence and buys the reader nothing back,
+  sending them to the report file for something that fits on the line in front of
+  them.
 
 #### The spool as ledger
 
@@ -4214,13 +4276,21 @@ typed phases.
   WITHOUT_REGISTRATION program, and the first WITH_REGISTRATION program by
   name, plus the organisation-unit subtree those forms are actually assigned
   inside, since DHIS2 refuses a response naming a unit a form is not assigned
-  to. `--all-targets` takes the lot instead.
+  to. `--all-targets` takes the lot instead. The selection is the probe's own;
+  the `[generate]` posture is not. Every key that decides what a run *produces*
+  rather than what it selects - `hostile_names`, the `[generate.naming]` table,
+  `concept_code_source`, `identifier_system_base`, `timezone`, `locales`, and
+  `tracked_entity_types` - is copied from the project doctor was run in, so the
+  phases after this one answer "does the toolchain run against this instance as
+  this project is configured" rather than "does it run under the scaffold's
+  defaults". Run from a directory no `fhir.toml` sits in or above, the
+  scaffold's own answers stand.
 - **generate** - the full pipeline, every note kept as a finding, screened
-  through the `[generate] hostile_names` posture of the project the run
-  scaffolded - the same gate `d2w fhir generate` builds. The scaffold writes
-  `substitute`, so a DHIS2 name carrying `<` is rewritten for publication
-  rather than refused, and the phase's evidence states the posture it ran
-  under so a reader knows which of the two answers the outcome belongs to.
+  through the `[generate] hostile_names` posture the scaffold copied off the
+  calling project - the same gate `d2w fhir generate` builds. A project stating
+  `refuse` fails this phase on the same DHIS2 name `d2w fhir generate` exits 1
+  on, and the phase's evidence states the posture it ran under so a reader knows
+  which of the two answers the outcome belongs to.
 - **compile** - real SUSHI when the machine offers one (`sushi` on PATH or the
   `fhir-ig` docker image the scaffold builds), and SKIPPED with that reason
   otherwise, because a compile is evidence rather than a gate every machine can

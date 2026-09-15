@@ -247,6 +247,22 @@ def test_findings_read_in_one_stable_order(project_root: Path) -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("command", "named"),
+    [("check-artifacts", "[generate.*] include_ids"), ("validate", "[generate] hostile_names")],
+)
+def test_the_help_screen_states_the_fhir_toml_table_it_names(command: str, named: str) -> None:
+    """Rich reads `[generate]` as a style tag and prints nothing in its place, so the docstring escapes it.
+
+    A help screen reading "and a ` include_ids` entry" names no table at all, and a reader who has to
+    guess which one is a reader the sentence failed.
+    """
+    result = _runner.invoke(build_app(), ["fhir", command, "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert named in " ".join(result.output.replace("│", " ").split())
+
+
 def test_the_command_exits_zero_on_a_clean_project(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A clean tree is a build that may start, and the command says so without a connection."""
     monkeypatch.chdir(project_root)
@@ -260,12 +276,37 @@ def test_the_command_exits_one_and_names_the_object(project_root: Path, monkeypa
         project_root / "ig/fsh-generated/resources/CodeSystem-d2-os-Age.json",
         {"resourceType": "CodeSystem", "id": "d2-os-Age", "title": _ABORTING_NAME},
     )
+    monkeypatch.setenv("COLUMNS", "300")
     monkeypatch.chdir(project_root)
     result = _runner.invoke(build_app(), ["fhir", "check-artifacts"])
     assert result.exit_code == 1, result.output
     assert "d2-os-Age" in result.output
     assert "title" in result.output
     assert "1 build-aborting artifact(s) found" in result.output
+
+
+def test_the_findings_table_is_read_at_eighty_columns(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A CI log is eighty columns wide, and `make build` runs this command into one.
+
+    Every cell says itself on one line rather than folding into a column of word fragments, the cut
+    path keeps the end that names the file, and the remedy is under the table whole - which is where
+    the `[generate.*]` table names inside one survive a screen this narrow.
+    """
+    _write_resource(
+        project_root / "ig/fsh-generated/resources/CodeSystem-d2-os-Age.json",
+        {"resourceType": "CodeSystem", "id": "d2-os-Age", "title": _ABORTING_NAME},
+    )
+    monkeypatch.setenv("COLUMNS", "80")
+    monkeypatch.chdir(project_root)
+    result = _runner.invoke(build_app(), ["fhir", "check-artifacts"])
+    assert result.exit_code == 1, result.output
+    rows = [line for line in result.output.splitlines() if line.startswith("│")]
+    assert rows and all(len(row) <= 80 for row in rows)
+    finding_row = next(row for row in rows if "d2-os-Age" in row)
+    assert "d2-os-Age.json" in finding_row
+    assert "title" in finding_row
+    assert _ABORTING_NAME in finding_row
+    assert "note: what to do: Rename it in DHIS2" in result.output
 
 
 def test_no_fail_reports_the_findings_and_exits_zero(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -646,11 +687,14 @@ include_ids = ["BfMAe6Itzgt", "aBcDeFgHiJk"]
 
 
 def _write_selected_form(root: Path, uid: str) -> None:
-    """Write one generated Questionnaire carrying the DHIS2 UID it was generated from."""
-    _write_generated_fsh(
-        root / f"ig/input/fsh/foundation/{uid}.fsh",
-        f'Instance: Questionnaire-{uid}\nInstanceOf: Questionnaire\n* id = "{uid}"\n',
-    )
+    """Write one generated Questionnaire carrying the DHIS2 UID it was generated from.
+
+    Into the questionnaire target, which is where a run that reached the end writes one - and which
+    is the evidence the selection is graded against at all.
+    """
+    destination = root / f"ig/input/fsh/questionnaires/{uid}.fsh"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    _write_generated_fsh(destination, f'Instance: Questionnaire-{uid}\nInstanceOf: Questionnaire\n* id = "{uid}"\n')
 
 
 def test_a_selection_entry_the_tree_carries_nothing_for_is_a_warning(project_root: Path) -> None:
@@ -677,6 +721,24 @@ def test_a_selection_every_entry_of_which_published_raises_nothing(project_root:
     )
     _write_selected_form(project_root, "BfMAe6Itzgt")
     assert _report(project_root).finding_count == 0
+
+
+def test_a_run_that_stopped_after_the_foundation_says_so_instead_of_grading_the_selection(
+    project_root: Path,
+) -> None:
+    """A refused run writes the foundation and stops, and a UID live on the instance is then not missing.
+
+    `d2w fhir generate` under `hostile_names = "refuse"` writes the foundation target and refuses at
+    the next one - over the very data set the selection names - so the tree holds no Questionnaire
+    and every entry would read as naming nothing. The scan says the run did not complete instead.
+    """
+    (project_root / "fhir.toml").write_text(_SELECTION_TOML, encoding="utf-8")
+    report = _report(project_root)
+    assert report.build_aborting_count == 0
+    assert [(finding.kind, finding.origin.value) for finding in report.findings] == [("selection", "incomplete-run")]
+    assert "wrote the foundation and stopped before the forms" in report.findings[0].message
+    assert "is not on the instance" not in report.findings[0].message
+    assert "let it finish" in report.findings[0].remedy
 
 
 def test_a_project_that_has_never_generated_says_nothing_about_its_selection(project_root: Path) -> None:
@@ -759,6 +821,60 @@ def test_an_example_leaving_the_computed_question_empty_raises_nothing(project_r
         compiled / "QuestionnaireResponse-Asg1aaaaaaa-example-1.json",
         _computed_response(answers_the_computed_question=False),
     )
+
+    assert [entry for entry in _report(project_root).findings if entry.kind == "computed-answer"] == []
+
+
+#: One hand-authored example of the computing form, in the only format a hand-authored example lives
+#: in. The soft indices are how SUSHI reads a FSH item tree: `[+]` opens an item and `[=]` adds to
+#: the one just opened, so the answer four lines down belongs to the `linkId` above it.
+_COMPUTED_EXAMPLE_FSH = """Instance: QuestionnaireResponse-Asg1aaaaaaa-example-2
+InstanceOf: QuestionnaireResponse
+Usage: #example
+* questionnaire = "http://example.org/fhir/check/Questionnaire/Asg1aaaaaaa"
+* status = #completed
+* item[+].linkId = "Dea1aaaaaaa"
+* item[=].answer[+].valueDecimal = 8
+* item[+].linkId = "Dea2aaaaaaa"
+* item[=].text = "Logged reading"
+* item[=].answer.valueDecimal = 2.0794
+"""
+
+
+def test_a_hand_authored_fsh_example_answering_a_computed_question_is_named(project_root: Path) -> None:
+    """The remedy sends a reader to the hand-authored example, so the scan opens the format one lives in.
+
+    Nothing regenerates a hand-authored example, and FSH is the only place one sits. It is also the
+    only half of the tree a project holds before `make build` runs SUSHI, and refusing the build
+    before it begins is what this command is for.
+    """
+    _write_resource(
+        project_root / "ig" / "fsh-generated" / "resources" / "Questionnaire-Asg1aaaaaaa.json",
+        _COMPUTED_QUESTIONNAIRE,
+    )
+    example = project_root / "ig" / "input" / "fsh" / "examples" / "Asg1aaaaaaa-example-2.fsh"
+    example.parent.mkdir(parents=True, exist_ok=True)
+    example.write_text(_COMPUTED_EXAMPLE_FSH, encoding="utf-8")
+
+    report = _report(project_root)
+
+    (finding,) = [entry for entry in report.findings if entry.kind == "computed-answer"]
+    assert finding.severity == "warning"
+    assert finding.file.endswith("Asg1aaaaaaa-example-2.fsh")
+    assert finding.value == "Dea2aaaaaaa"
+    assert finding.field == "line 10"
+    assert report.build_aborting_count == 0
+
+
+def test_a_hand_authored_fsh_example_leaving_the_computed_question_empty_raises_nothing(project_root: Path) -> None:
+    """The question a rule computes is the only one that counts; the answers beside it are the example working."""
+    _write_resource(
+        project_root / "ig" / "fsh-generated" / "resources" / "Questionnaire-Asg1aaaaaaa.json",
+        _COMPUTED_QUESTIONNAIRE,
+    )
+    example = project_root / "ig" / "input" / "fsh" / "examples" / "Asg1aaaaaaa-example-2.fsh"
+    example.parent.mkdir(parents=True, exist_ok=True)
+    example.write_text(_COMPUTED_EXAMPLE_FSH.replace("* item[=].answer.valueDecimal = 2.0794\n", ""), encoding="utf-8")
 
     assert [entry for entry in _report(project_root).findings if entry.kind == "computed-answer"] == []
 

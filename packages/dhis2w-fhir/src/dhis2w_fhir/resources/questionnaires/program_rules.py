@@ -47,6 +47,7 @@ from dhis2w_fhir.resources.questionnaires.schemas import (
     QuestionnaireItemIn,
     QuestionnaireSourceIn,
     item_type,
+    source_display_name,
 )
 
 if TYPE_CHECKING:
@@ -256,17 +257,39 @@ class FormProgramRules(BaseModel):
         return self.enable_when.get(question_uid)
 
 
+class ComputedQuestionsSummary(BaseModel):
+    """The published forms whose examples leave a question empty because DHIS2 computes its answer.
+
+    Counted in forms for the reason the empty-assignment summary is: the form is what a reader opens
+    and what a capture client draws from, and a form whose example corpus deliberately answers nine
+    of thirteen questions says nothing about the four unless the run says it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    form_count: int
+    """How many published forms ask at least one question a DHIS2 program rule computes the answer to."""
+
+    question_count: int
+    """How many distinct questions across those forms, which is what every example of them leaves empty."""
+
+    forms: list[str]
+    """The forms themselves, as `name (uid)`, sorted."""
+
+
 class ProgramRulePlan(BaseModel):
     """One run's reading of every program rule, resolved per form so both emitters state the same thing.
 
     `notes` holds what the reading alone saw: a hide whose option literal the bound set publishes no
-    concept for, which is a rule the guide states as its untranslated form.
+    concept for, which is a rule the guide states as its untranslated form. `computed_questions` is
+    the same reading rolled up for the closing line a run says out loud rather than notes.
     """
 
     model_config = ConfigDict(frozen=True)
 
     forms: dict[str, FormProgramRules] = Field(default_factory=dict)
     notes: list[GenerateNote] = Field(default_factory=list)
+    computed_questions: ComputedQuestionsSummary | None = None
 
     def for_form(self, source_uid: str) -> FormProgramRules:
         """What one form publishes of its program's rules; an empty reading for a form with none."""
@@ -318,6 +341,7 @@ def plan_program_rules(
     published CodeSystem holds no code for is a rule the form gets wrong.
     """
     codes = option_concept_codes if option_concept_codes is not None else OptionConceptCodeIndex()
+    computed_by_form: dict[str, set[str]] = {}
     forms: dict[str, FormProgramRules] = {}
     notes: list[GenerateNote] = []
     for program_sources in _sources_by_program(sources).values():
@@ -350,7 +374,10 @@ def plan_program_rules(
             computed = _computed_answer_text(source, published, questions[source.uid])
             if computed is not None:
                 notes.append(generate_note(GenerateNoteCategory.SKIPPED_QUESTION, computed))
-    return ProgramRulePlan(forms=forms, notes=notes)
+            counted = _computed_question_uids(source, published, questions[source.uid])
+            if counted:
+                computed_by_form[f"{source_display_name(source)} ({source.uid})"] = counted
+    return ProgramRulePlan(forms=forms, notes=notes, computed_questions=_computed_summary(computed_by_form))
 
 
 def merged_bounds(
@@ -688,6 +715,28 @@ def _computed_answer_text(
         f"on import, so every example this run emits leaves {verb_for_count(count, 'it', 'them')} "
         f"unanswered - DHIS2 refuses a capture answering one anything but the value it calculated, with "
         f"E1307: {named}"
+    )
+
+
+def _computed_question_uids(
+    source: QuestionnaireSourceIn, published: list[PublishedProgramRule], questions: dict[str, QuestionnaireItemIn]
+) -> set[str]:
+    """The questions one form asks that a DHIS2 program rule computes the answer to.
+
+    Only the questions this form asks: a program's rules reach every form of the program, and a rule
+    computing a question another stage asks leaves nothing empty on this one.
+    """
+    return {question_uid for rule in published for question_uid in rule.assigns if question_uid in questions}
+
+
+def _computed_summary(computed_by_form: dict[str, set[str]]) -> ComputedQuestionsSummary | None:
+    """The run's computed questions rolled up per form, or nothing at all when no form has one."""
+    if not computed_by_form:
+        return None
+    return ComputedQuestionsSummary(
+        form_count=len(computed_by_form),
+        question_count=len({uid for uids in computed_by_form.values() for uid in uids}),
+        forms=sorted(computed_by_form),
     )
 
 

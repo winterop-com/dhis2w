@@ -262,6 +262,16 @@ publishes that name rewritten and the finding is informational -
 `>` and `&` cost a malformed page the build survives, so they are warnings
 under either posture.
 
+The check reads the object's **NAME and FORM_NAME translations** beside its
+name, because those are the two translated properties the generate gate
+rewrites: a translated NAME becomes the published `_title`, `_name` or concept
+designation, and a translated FORM_NAME becomes a question's `_text`, so both
+land on page positions the publisher strict-parses. An object whose own name is
+clean and whose `en_GB` name carries a `<` is otherwise a build the publisher
+dies on and a report that never mentioned it. The finding names the object under
+its DHIS2 name - that is what you search the instance for - and the message names
+the locale and the property.
+
 A second name check reads the other thing a real instance carries and a page
 cannot show: `control-character-name`, raised on any name holding a C0 control
 character (U+0000 through U+001F). SUSHI carries one byte-true from the FSH it
@@ -348,10 +358,26 @@ The code-stem pass works the same dial for naming: under
 `source = "code"` the same object is a `code-stem-refusal` **error** -
 `d2w fhir generate` refuses the run through the same defect predicate, so a
 validate error is also a generate refusal.
+
+The stem is read off the code the posture **publishes**, not the one DHIS2
+holds. A run screens its names and codes before it plans an identity, so under
+`hostile_names = "substitute"` the option set coded `Development activities`
+stems from `Development-activities` - a perfectly good stem, and the file the
+run writes is `CodeSystem-d2-os-Development-activities-cs.json`. Grading the
+DHIS2 spelling would count offenders the run does not have and assert a
+fall-back the generator did not make. Where the rewrite leaves the code unusable
+anyway, the finding names both spellings.
+
 `spaced-code` is the info-grade
 neighbour: a code with spaces is FHIR-valid but emits in the quoted
 `#"..."` FSH form - unless `hostile_names = "substitute"`, under which the
-finding names the hyphenated code the guide publishes instead.
+finding names the hyphenated code the guide publishes instead. It reads every
+surface the generate gate screens a code on, not options alone: `optionSets`,
+`categories`, `categoryOptions`, `organisationUnits`, `dataSets`, `programs`,
+`programStages`, `trackedEntityTypes`, `dataElements` and
+`trackedEntityAttributes`, so the report the refusal calls "the full report"
+names every code the run would rewrite. A code the R4 datatype refuses outright
+is reported as the invalid code it is and not a second time here.
 
 ## Hand over the report
 

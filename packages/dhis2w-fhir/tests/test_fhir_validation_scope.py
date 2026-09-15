@@ -96,7 +96,10 @@ def test_an_in_scope_aborting_code_is_the_only_error() -> None:
         _CONFIG,
         scope=scope,
     )
-    assert [(finding.severity, finding.category) for finding in report.findings] == [("error", "template-hostile-code")]
+    assert [(finding.severity, finding.category) for finding in report.findings] == [
+        ("error", "template-hostile-code"),
+        ("info", "spaced-code"),
+    ]
     assert report.findings[0].scope == "selection"
     assert "`make build` aborts" in report.findings[0].message
 
@@ -109,7 +112,10 @@ def test_an_out_of_scope_aborting_code_is_info_but_still_names_the_stakes() -> N
         _CONFIG,
         scope=ValidationScope(),
     )
-    assert [(finding.severity, finding.scope) for finding in report.findings] == [("info", "instance")]
+    assert [(finding.severity, finding.scope) for finding in report.findings] == [
+        ("info", "instance"),
+        ("info", "instance"),
+    ]
     assert "aborts `make build` the moment the object is selected" in report.findings[0].message
 
 

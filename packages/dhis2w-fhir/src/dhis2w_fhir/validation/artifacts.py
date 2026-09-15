@@ -221,6 +221,9 @@ class FindingOrigin(StrEnum):
     COMPUTED_ANSWER = "computed-answer"
     """A published example answering a question the form's own program rules say DHIS2 computes."""
 
+    INCOMPLETE_RUN = "incomplete-run"
+    """A published tree the last generate run stopped part-way through, which answers no selection question."""
+
 
 FindingSeverity = Literal["build-aborting", "warning"]
 """Whether a finding stops the build or only asks to be looked at before one is paid for."""
@@ -269,6 +272,11 @@ _SELECTION_REMEDY = (
     "names - or drop it - and run `d2w fhir generate` again."
 )
 
+#: What answers a half-written tree: run generate through to the end, then scan what it wrote.
+_INCOMPLETE_RUN_REMEDY = (
+    "Run `d2w fhir generate` again and let it finish - it exits 1 naming what it refused - then scan the tree it wrote."
+)
+
 #: The line each origin is answered by, stated once. `ig-identity` is not here: its line names the
 #: key the value is stated under, so it is rendered from the finding rather than looked up.
 _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
@@ -281,12 +289,14 @@ _ORIGIN_REMEDIES: dict[FindingOrigin, str] = {
     FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO: UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY,
     FindingOrigin.SELECTION: _SELECTION_REMEDY,
     FindingOrigin.COMPUTED_ANSWER: _COMPUTED_ANSWER_REMEDY,
+    FindingOrigin.INCOMPLETE_RUN: _INCOMPLETE_RUN_REMEDY,
 }
 
-#: The origins whose finding lets the build run. Five, and for the same reason: a form nobody can
+#: The origins whose finding lets the build run. Six, and for the same reason: a form nobody can
 #: submit - on any of the three axes DHIS2 grades a capture by - a selection entry that named
-#: nothing, and an example DHIS2 refuses to import all publish perfectly well, so stopping the build
-#: over one would refuse a guide the publisher has no quarrel with.
+#: nothing, an example DHIS2 refuses to import, and a tree written only half-way all publish
+#: perfectly well, so stopping the build over one would refuse a guide the publisher has no quarrel
+#: with.
 _WARNING_ORIGINS = frozenset(
     {
         FindingOrigin.ASSIGNMENT,
@@ -294,6 +304,7 @@ _WARNING_ORIGINS = frozenset(
         FindingOrigin.UNTIMELY_ATTRIBUTE_OPTION_COMBO,
         FindingOrigin.SELECTION,
         FindingOrigin.COMPUTED_ANSWER,
+        FindingOrigin.INCOMPLETE_RUN,
     }
 )
 
@@ -1125,10 +1136,25 @@ _SELECTION_MESSAGE = (
     "this is a warning rather than a build abort."
 )
 
-#: The directory the foundation target writes into. It is written by every generate run whatever the
-#: selection holds, so its absence is a project nothing has generated yet - where a selection naming
-#: nothing published says only that, and not that the UID is wrong.
+#: The directory the foundation target writes into. It is the first target a run writes, so its
+#: absence is a project nothing has generated yet - where a selection naming nothing published says
+#: only that, and not that the UID is wrong.
 _FOUNDATION_DIRECTORY = "foundation"
+
+#: The directory the questionnaire target writes into, which is the evidence a run reached the end.
+#: The form-side targets run after the foundation, and a run refused at one of them - a DHIS2 name
+#: carrying '<' under `hostile_names = "refuse"` - has already written the foundation and stopped.
+#: Reading the selection off that half-written tree would say a UID live on the instance is not on
+#: it, which is exactly the object the run refused over.
+_QUESTIONNAIRE_DIRECTORY = "questionnaires"
+
+#: Why a half-written tree answers no question about the selection, and why it stops no build.
+_INCOMPLETE_RUN_MESSAGE = (
+    "the last `d2w fhir generate` run wrote the foundation and stopped before the forms, so this "
+    "project's published tree holds no Questionnaire and no `[generate.*] include_ids` entry can be "
+    "checked against it. Nothing is said here about whether those UIDs are on the instance. The "
+    "guide builds and publishes whatever is on disk, which is why this is a warning."
+)
 
 
 def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
@@ -1142,7 +1168,9 @@ def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
 
     A table switched off selects nothing by design and is not read, and a project that has never
     generated raises nothing at all: there the tree is empty for a reason that has nothing to do
-    with the selection.
+    with the selection. A project whose last run stopped part-way through is the third case, and it
+    is said out loud in one row rather than graded: every entry would read as naming nothing, and
+    the tree is what is missing rather than the objects.
     """
     if not (project.fsh_directory / _FOUNDATION_DIRECTORY).is_dir():
         return []
@@ -1156,6 +1184,18 @@ def _selection_findings(project: FhirProject) -> list[ArtifactFinding]:
     wanted = {uid for _, table in tables if table.enabled for uid in table.include_ids}
     if not wanted:
         return []
+    if not (project.fsh_directory / _QUESTIONNAIRE_DIRECTORY).is_dir():
+        return [
+            ArtifactFinding(
+                file=FHIR_CONFIG_FILENAME,
+                resource_id="generate",
+                field="include_ids",
+                value=f"ig/input/fsh/{_QUESTIONNAIRE_DIRECTORY}",
+                kind="selection",
+                origin=FindingOrigin.INCOMPLETE_RUN,
+                message=_INCOMPLETE_RUN_MESSAGE,
+            )
+        ]
     published = _published_uids(project, wanted)
     return [
         ArtifactFinding(
@@ -1209,13 +1249,29 @@ _URL_ELEMENT = "url"
 _VALUE_ID_ELEMENT = "valueId"
 
 
+#: How a FSH example names the Questionnaire it answers, and how it lays an item out. A hand-authored
+#: example is FSH and nothing else - it is the one format nothing in this toolchain regenerates - so
+#: the scan reads the two lines it needs out of it: the canonical, and each `linkId` that an `answer`
+#: line follows at the same item path. FSH soft indexing spells one item `[+]` where it creates it
+#: and `[=]` where it adds to it, so the path is read with the index dropped and the line order
+#: decides which item an answer belongs to, exactly as SUSHI reads it.
+_FSH_QUESTIONNAIRE = re.compile(r'^\* questionnaire = "(?P<canonical>[^"]+)"', re.MULTILINE)
+_FSH_ITEM_PATH = r"item(?:\[[^\]]*\])?(?:\.item(?:\[[^\]]*\])?)*"
+_FSH_LINK_ID = re.compile(rf'^\* (?P<path>{_FSH_ITEM_PATH})\.linkId = "(?P<link_id>[^"]+)"')
+_FSH_ANSWER = re.compile(rf"^\* (?P<path>{_FSH_ITEM_PATH})\.answer[.\[]")
+_FSH_SOFT_INDEX = re.compile(r"\[[^\]]*\]")
+
+
 def _computed_answer_findings(project: FhirProject, root: Path) -> list[ArtifactFinding]:
     """Every published example answering a question its form says a DHIS2 program rule computes.
 
     Offline like the rest of the scan: a Questionnaire publishes the questions its `ASSIGN` rules
     compute on its own `D2ProgramRule` extensions, and a response names the Questionnaire it answers
-    by canonical, so the join is entirely on disk. A hand-authored example is read exactly as a
-    generated one is - nothing regenerates the first, which is the reader this finding is for.
+    by canonical, so the join is entirely on disk. Both formats an example lives in are read - the
+    compiled JSON, and the FSH source it was compiled from. The FSH half is the reader this finding
+    is for: a hand-authored example is FSH, nothing regenerates one, and the remedy sends its reader
+    to that very file. It is also the only half a project holds before `make build` runs SUSHI, and
+    refusing the build before it begins is what this command is for.
     """
     naming = FoundationNaming.from_naming(project.config.generate.naming)
     rule_extension_suffix = f"/StructureDefinition/{naming.program_rule_extension_id}"
@@ -1243,19 +1299,73 @@ def _computed_answer_findings(project: FhirProject, root: Path) -> list[Artifact
         resource_id = document.get("id")
         named = resource_id if isinstance(resource_id, str) else _UNIDENTIFIED_RESOURCE
         findings.extend(
-            ArtifactFinding(
-                file=_relative(path, root),
-                resource_id=named,
-                field=field,
-                value=link_id,
-                kind="computed-answer",
-                origin=FindingOrigin.COMPUTED_ANSWER,
-                message=_COMPUTED_ANSWER_MESSAGE,
-            )
+            _computed_answer_finding(_relative(path, root), named, field, link_id)
             for field, link_id in _answered_link_ids(document.get(_ITEM_ELEMENT), prefix=_ITEM_ELEMENT)
             if link_id in answered
         )
+    findings.extend(_fsh_computed_answer_findings(project, root, computed))
     return findings
+
+
+def _computed_answer_finding(file: str, resource_id: str, field: str, link_id: str) -> ArtifactFinding:
+    """One example named at the question it answers that its own form says DHIS2 computes."""
+    return ArtifactFinding(
+        file=file,
+        resource_id=resource_id,
+        field=field,
+        value=link_id,
+        kind="computed-answer",
+        origin=FindingOrigin.COMPUTED_ANSWER,
+        message=_COMPUTED_ANSWER_MESSAGE,
+    )
+
+
+def _fsh_computed_answer_findings(
+    project: FhirProject, root: Path, computed: dict[str, set[str]]
+) -> list[ArtifactFinding]:
+    """The same finding read off the FSH sources, which is where a hand-authored example lives."""
+    findings: list[ArtifactFinding] = []
+    for path in _fsh_paths(project):
+        text = _read_text(path)
+        if text is None:
+            continue
+        canonical = _FSH_QUESTIONNAIRE.search(text)
+        answered = computed.get(canonical.group("canonical"), set()) if canonical is not None else set()
+        if not answered:
+            continue
+        findings.extend(
+            _computed_answer_finding(_relative(path, root), path.stem, f"line {number}", link_id)
+            for number, link_id in _fsh_answered_link_ids(text)
+            if link_id in answered
+        )
+    return findings
+
+
+def _fsh_answered_link_ids(text: str) -> Iterator[tuple[int, str]]:
+    """Every `linkId` one FSH example carries an answer for, with the line the answer sits on.
+
+    The item an answer belongs to is the one whose `linkId` line last named that same item path, so
+    the walk holds a link id per path and drops every path below one that is named again - which is
+    what a `[+]` at a shallower depth means.
+    """
+    named: dict[str, str] = {}
+    for number, line in enumerate(text.splitlines(), start=1):
+        link_id = _FSH_LINK_ID.match(line)
+        if link_id is not None:
+            path = _fsh_item_path(link_id.group("path"))
+            named = {held: value for held, value in named.items() if not held.startswith(path)}
+            named[path] = link_id.group("link_id")
+            continue
+        answer = _FSH_ANSWER.match(line)
+        if answer is not None:
+            held = named.get(_fsh_item_path(answer.group("path")))
+            if held is not None:
+                yield number, held
+
+
+def _fsh_item_path(path: str) -> str:
+    """One FSH item path with its soft indices dropped, so `item[+]`, `item[=]` and `item` name one item."""
+    return _FSH_SOFT_INDEX.sub("", path)
 
 
 def _computed_question_uids(extensions: Any, rule_extension_suffix: str) -> set[str]:  # noqa: ANN401 - JSON is Any

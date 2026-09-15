@@ -177,14 +177,16 @@ $ d2w fhir check-artifacts
 │build-aborting│ 3                                           │
 │warnings      │ 0                                           │
 └──────────────┴─────────────────────────────────────────────┘
-                       artifact findings (3)
-┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
-┃Severity        ┃ File              ┃ Resource  ┃ Field               ┃
-┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
-│build-aborting  │ig/fsh-generated/r │ d2-os-Age │ concept[0].display  │
-│build-aborting  │esources/CodeSyste │           │ identifier[0].value │
-│build-aborting  │m-d2-os-Age.json   │           │ title               │
-└────────────────┴───────────────────┴───────────┴─────────────────────┘
+                            artifact findings (3)
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃Severity       ┃ File                     ┃ Resource  ┃ Field               ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│build-aborting │ ...System-d2-os-Age.json │ d2-os-Age │ concept[0].display  │
+│build-aborting │ ...System-d2-os-Age.json │ d2-os-Age │ identifier[0].value │
+│build-aborting │ ...System-d2-os-Age.json │ d2-os-Age │ title               │
+└───────────────┴──────────────────────────┴───────────┴─────────────────────┘
+note: what to do: Rename it in DHIS2 or narrow the selection in fhir.toml, then
+run `d2w fhir generate` again.
 note: what it costs: a name carrying '<' stays byte-true on the resource, and
 the IG publisher writes it into pages it strict-parses after writing, so `make
 build` aborts in its last pass, once every resource has already been rendered.
@@ -195,8 +197,15 @@ $ echo $?
 1
 ```
 
-Each finding also carries the offending value and the one line that answers it,
-in `Value` and `What to do` columns left out above for width. Which line a
+Each row also carries the offending value, in a `Value` column left out above
+for width. The table is written to read at eighty columns, which is what a CI
+log gets: the path is cut from the front so the end that names the file
+survives, and the resource and the element come out in that order on a terminal
+too narrow for them - both are in `--json`.
+
+The line that answers a finding is printed under the table rather than in a
+column, once per distinct remedy: six sentences stand behind every finding the
+scan raises, and a column would print one of the six once per row. Which line a
 finding gets follows from where the value came from, which the finding records
 rather than the printer guessing:
 
@@ -257,6 +266,12 @@ selection is narrowed.
 The fourth is a `[generate.*] include_ids` entry the published tree carries no
 trace of: the UID names no object on the instance the guide was generated
 against, so the guide publishes without that form, its examples, and its page.
+The selection is graded only against a tree a run finished writing. A refused
+run - `hostile_names = "refuse"` meeting a DHIS2 name carrying `<` - writes the
+foundation target and stops, and reading a selection off that half-written tree
+would say a UID live on the instance is not on it, when that very object is what
+the run refused over. The questionnaire target is the evidence the run reached
+the end; without it the scan says the run did not complete and grades nothing.
 
 The fifth is a published example answering a question the form's own
 `D2ProgramRule` extension says DHIS2 computes. A rule whose action is `#ASSIGN`
@@ -264,7 +279,10 @@ names each question it computes on an `assigns` sub-extension; DHIS2 calculates
 that value on import and refuses a payload whose answer is neither empty nor
 byte-equal to it, with `E1307`. `d2w fhir generate` leaves every such question
 unanswered, so a finding here is a hand-authored example, or a tree an older
-run wrote:
+run wrote. Both formats an example lives in are read - the compiled JSON, and
+the FSH source it was compiled from, which is the only place a hand-authored
+example sits, the file the remedy sends you to, and the only half of the tree a
+project holds before `make build` has run SUSHI:
 
 ```console
 $ d2w fhir check-artifacts

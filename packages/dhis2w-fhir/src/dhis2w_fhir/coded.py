@@ -29,19 +29,21 @@ from pydantic import BaseModel, ConfigDict, Field
 from dhis2w_fhir.r4 import Extension
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
 __all__ = [
     "CODE_SUBSTITUTION_SEPARATOR",
     "DHIS2_CODE_PROPERTY",
     "DHIS2_ID_PROPERTY",
     "DHIS2_NAME_PROPERTY",
+    "CodeSubstituter",
     "CodeSubstitutions",
     "CodedProjectionIn",
     "OriginalSpellingExtensionUrls",
     "carries_substitutable_code",
     "code_substitutions",
     "original_spelling_extensions",
+    "published_codes",
     "substituted_code",
 ]
 
@@ -149,6 +151,96 @@ def code_substitutions(models: Iterable[BaseModel]) -> CodeSubstitutions:
     for model in models:
         _gather(model, gathered)
     return CodeSubstitutions(originals_by_published=dict(sorted(gathered.items())))
+
+
+class CodeSubstituter:
+    """The published code every space-carrying DHIS2 code of one run takes, assigned once and held.
+
+    Assignment is deterministic and independent of the order the projections are walked in: every
+    code the run has observed is registered first, then the space-carrying ones are assigned in
+    sorted order, each taking its hyphenated form unless another code already holds it - in which
+    case it takes an ordinal suffix (`Pre-eclampsia-2`) and the next free ordinal after that.
+    """
+
+    def __init__(self) -> None:
+        """Start a run that has observed no code and assigned none."""
+        self._unassigned: set[str] = set()
+        self._published: dict[str, str] = {}
+        self._taken: set[str] = set()
+
+    def observe(self, model: BaseModel) -> None:
+        """Register every code one projection carries, so a later assignment can de-collide against it."""
+        if isinstance(model, CodedProjectionIn) and model.code is not None:
+            self._register(model.code)
+        for field_name in type(model).model_fields:
+            self._observe_value(getattr(model, field_name))
+
+    def observe_code(self, code: str) -> None:
+        """Register one DHIS2 code the run holds, so a later assignment de-collides against it."""
+        self._register(code)
+
+    def published_for(self, code: str) -> str:
+        """The code the guide publishes in one DHIS2 code's place, byte-true unless it carries a space."""
+        if not carries_substitutable_code(code):
+            return code
+        self._register(code)
+        if code not in self._published:
+            self._assign()
+        return self._published[code]
+
+    def _register(self, code: str) -> None:
+        """Hold one observed code: a space-free one is a target nothing may be rewritten onto."""
+        if carries_substitutable_code(code):
+            if code not in self._published:
+                self._unassigned.add(code)
+        else:
+            self._taken.add(code)
+
+    def _observe_value(self, value: object) -> None:
+        """Walk one field's value for nested projections, whatever container it arrives in."""
+        if isinstance(value, BaseModel):
+            self.observe(value)
+        elif isinstance(value, list):
+            for member in value:
+                self._observe_value(member)
+        elif isinstance(value, dict):
+            for member in value.values():
+                self._observe_value(member)
+
+    def _assign(self) -> None:
+        """Assign every space-carrying code still waiting, in sorted order rather than encounter order."""
+        for original in sorted(self._unassigned):
+            self._published[original] = self._free(substituted_code(original))
+        self._unassigned.clear()
+
+    def _free(self, candidate: str) -> str:
+        """The candidate itself when nothing holds it, else the first free ordinal after it."""
+        chosen = candidate
+        ordinal = 1
+        while chosen in self._taken:
+            ordinal += 1
+            chosen = f"{candidate}-{ordinal}"
+        self._taken.add(chosen)
+        return chosen
+
+
+def published_codes(codes: Sequence[str | None], *, substituting: bool) -> dict[str, str]:
+    """The code the guide publishes in each DHIS2 code's place, assigned the way one run's gate assigns them.
+
+    The offline reading of a screening, for a caller that grades what a generate run would publish
+    without emitting anything: `d2w fhir validate` resolves an identity stem off a code, and the code
+    a stem is read off is the published one. Assignment runs over the whole pool at once, so the
+    de-collision is the run's rather than one object's - the same property a gate's own substituter
+    holds. A run that is not substituting publishes every code as DHIS2 states it, so the answer is
+    every code mapped to itself.
+    """
+    stated = [code for code in codes if code is not None]
+    if not substituting:
+        return {code: code for code in stated}
+    substituter = CodeSubstituter()
+    for code in stated:
+        substituter.observe_code(code)
+    return {code: substituter.published_for(code) for code in stated}
 
 
 def _gather(model: BaseModel, gathered: dict[str, str]) -> None:
