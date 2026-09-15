@@ -82,6 +82,7 @@ from dhis2w_fhir.resources.option_sets import (
 from dhis2w_fhir.resources.option_sets.schemas import OptionSetIdentity, OptionSetIdentityPlan, OptionSetIn
 from dhis2w_fhir.resources.questionnaires.assignments import AssignmentPlan
 from dhis2w_fhir.resources.questionnaires.program_rules import (
+    ComputedQuestionsSummary,
     EnableWhenCondition,
     FormProgramRules,
     ItemEnableWhen,
@@ -166,6 +167,7 @@ __all__ = [
     "TRACKED_ENTITY_TYPE_IDENTIFIER_SEGMENT",
     "TRACKER_PROGRAM_DIRECTORY",
     "NumericBounds",
+    "QuestionnaireBuild",
     "QuestionnaireStemPlan",
     "ReferencedObjects",
     "bound_option_set_uids",
@@ -645,6 +647,18 @@ class _SupportTerminologyView(BaseModel):
         return any(concept.display_in_list_literal is not None for concept in self.concepts)
 
 
+class QuestionnaireBuild(FshBuild):
+    """One questionnaire build: the FSH artifacts and notes, plus what the run says out loud about it.
+
+    `computed_questions` is the roll-up behind the run's closing line. A form asking a question a
+    DHIS2 program rule computes the answer to publishes examples that leave it empty, deliberately
+    and correctly - and a reader watching a progress counter say `9 of 13` has no other way to learn
+    why, because the per-form note is one of several hundred a national instance raises.
+    """
+
+    computed_questions: ComputedQuestionsSummary | None = None
+
+
 def build_questionnaire_artifacts(
     sources: list[QuestionnaireSourceIn],
     config: GenerateConfig,
@@ -658,7 +672,7 @@ def build_questionnaire_artifacts(
     assignments: AssignmentPlan | None = None,
     attribute_combos: AttributeComboPlan | None = None,
     decomposition: CategoryDecomposition | None = None,
-) -> FshBuild:
+) -> QuestionnaireBuild:
     """Build one `data-sets/` or `event-programs/` file per target plus the `data-dictionary/` support pairs.
 
     `option_set_plan` is the identity plan the terminology target emits from, so an
@@ -677,7 +691,7 @@ def build_questionnaire_artifacts(
     attribute option combo. `decomposition` states what each category option combo is composed of,
     which is what the data dictionary's combo concepts carry their category axes from.
     """
-    build = FshBuild()
+    build = QuestionnaireBuild()
     assignment_plan = assignments if assignments is not None else AssignmentPlan()
     attribute_combo_plan = attribute_combos if attribute_combos is not None else AttributeComboPlan()
     plan = stem_plan if stem_plan is not None else plan_questionnaire_stems(sources, config.naming.source)
@@ -687,6 +701,7 @@ def build_questionnaire_artifacts(
     index = option_set_identity_index(option_set_plan, bound_option_set_uids(sources), config)
     rule_plan = plan_program_rules(sources, option_concept_code_index(option_sets or [], config))
     build.notes.extend(rule_plan.notes)
+    build.computed_questions = rule_plan.computed_questions
     referenced = ReferencedObjects()
     colliding: list[str] = []
     template = _ENVIRONMENT.get_template("questionnaire.fsh.jinja")

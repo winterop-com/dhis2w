@@ -1386,6 +1386,35 @@ def test_an_eleven_character_word_of_the_sentence_survives_the_roll_up() -> None
     assert report.rejection_reasons[0].reason == "DataElement `...` is not valid: dataElement value"
 
 
+def test_five_byte_identical_rejections_are_stated_as_DHIS2_stated_them() -> None:
+    """Generalising twenty rejections into one row buys a reader a screen; generalising five identical ones costs.
+
+    DHIS2 sent one sentence five times, so there is no second object for any part of it to be wrong
+    about - and eliding leaves three separate `...` in a row that names neither the data element nor
+    what was wrong with the value.
+    """
+    message = "DataElement `NUMBER` is not valid: `Value type is NUMBER but the value `-Infinity` is not.`."
+    report = _rejected_on(*[message] * 5)
+
+    assert report.rejection_reasons[0].responses == 5
+    assert report.rejection_reasons[0].reason == message
+
+
+def test_a_quoted_run_that_does_not_read_as_an_identifier_stays_as_DHIS2_wrote_it() -> None:
+    """DHIS2 backticks value types and whole clauses as readily as ids, so a quoted run is read for its shape.
+
+    The value type and the explanatory clause stay; only the organisation-unit list, which is
+    identifiers and nothing else, generalises - and it does so whether DHIS2 bracketed it or not.
+    """
+    report = _rejected_on(
+        "DataElement `NUMBER` is not valid: value `-Infinity` at `[ImspTQPwCqd]`",
+        "DataElement `NUMBER` is not valid: value `-Infinity` at `[O6uvpzGd5pu]`",
+    )
+
+    assert report.rejection_reasons[0].responses == 2
+    assert report.rejection_reasons[0].reason == "DataElement `NUMBER` is not valid: value `-Infinity` at `...`"
+
+
 def test_a_cause_that_ended_one_response_is_stated_as_DHIS2_stated_it() -> None:
     """Generalising buys one row out of twenty; at one it only takes the UID the reader came for away."""
     report = _rejected_on("DataElement qrur9Dvnyt5 is not valid: dataElement value")

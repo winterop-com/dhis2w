@@ -533,6 +533,7 @@ from dhis2w_fhir.resources.questionnaires.documents import (
     build_data_dictionary_documents,
     build_questionnaire_documents,
 )
+from dhis2w_fhir.resources.questionnaires.program_rules import ComputedQuestionsSummary
 from dhis2w_fhir.resources.questionnaires.schemas import (
     CAPTURED_FORM_KINDS,
     CATEGORY_OPTION_COMBO_TERMINOLOGY,
@@ -914,6 +915,7 @@ __all__ = [
     "CompiledArtifacts",
     "CompiledIgMissingError",
     "COMPLETED_EVENT_STATUSES",
+    "ComputedQuestionsSummary",
     "concept_assignments",
     "CONCEPT_CODE_TIER",
     "concept_map_canonical",

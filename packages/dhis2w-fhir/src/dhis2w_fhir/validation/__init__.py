@@ -123,13 +123,13 @@ from __future__ import annotations
 from collections import Counter
 from typing import TYPE_CHECKING, Literal
 
-from dhis2w_fhir.coded import carries_substitutable_code, substituted_code
+from dhis2w_fhir.coded import carries_substitutable_code, published_codes, substituted_code
 from dhis2w_fhir.config import HostileNamePosture
 from dhis2w_fhir.foundation.attribute_values import (
     ATTRIBUTE_CODE_SUB_EXTENSION,
     ATTRIBUTE_VALUE_CONTEXT_RESOURCE_TYPES,
 )
-from dhis2w_fhir.i18n import TranslationIn, name_translations
+from dhis2w_fhir.i18n import SUBSTITUTED_TRANSLATION_PROPERTIES, TranslationIn, name_translations
 from dhis2w_fhir.names import (
     FHIR_ID_MAX_LENGTH,
     StemSubject,
@@ -145,6 +145,7 @@ from dhis2w_fhir.resources.option_sets.schemas import OptionIn, OptionSetIn
 from dhis2w_fhir.resources.questionnaires.schemas import QUESTIONNAIRE_STEM_SURFACE, TRACKER_PROGRAM_STEM_SURFACE
 from dhis2w_fhir.validation.report import display_code, render_validation_markdown
 from dhis2w_fhir.validation.schemas import (
+    SCOPE_SURFACE_FIELDS,
     CodeCoverage,
     FhirValidationReport,
     MetadataCollectionIn,
@@ -314,7 +315,7 @@ def build_code_validation(
             _rescoped(finding, set_in_scope)
             for finding in _control_character_option_findings(option_set, config.locales, substituting=substituting)
         )
-    findings.extend(_stem_findings(collections, config, scope))
+    findings.extend(_stem_findings(collections, config, scope, substituting=substituting))
     object_count = 0
     for collection in sorted(collections, key=lambda item: item.resource):
         object_count += len(collection.items)
@@ -765,6 +766,90 @@ def _tracked_entity_type_findings(
     return findings
 
 
+def _translated_name_findings(
+    resource_type: str, item: MetadataItemIn, name: str, *, substituting: bool
+) -> list[ValidationFinding]:
+    """Flag every NAME or FORM_NAME translation carrying what the object's own name is graded for.
+
+    A generate run rewrites these two translated properties exactly as it rewrites the name beside
+    them: a translated NAME becomes the published `_title`, `_name` or designation, and a translated
+    FORM_NAME becomes a question's `_text`, so both land on the page positions the IG publisher
+    strict-parses. An object whose own name is clean and whose `en_GB` name carries a `<` is
+    therefore a build the publisher dies on and a report that never mentioned it, which is what this
+    closes. The finding names the object under its DHIS2 name, because that is what a reader searches
+    the instance for, and the locale and the property are in the sentence.
+    """
+    findings: list[ValidationFinding] = []
+    for translation in item.translations:
+        if translation.property not in SUBSTITUTED_TRANSLATION_PROPERTIES:
+            continue
+        field_label = f"{translation.locale} {translation.property} translation"
+        character = _template_hostile_character(translation.value)
+        if character is not None:
+            severity, message = _template_hostile_grade(
+                translation.value, character, substituting=substituting, field_label=field_label
+            )
+            findings.append(
+                ValidationFinding(
+                    severity=severity,
+                    category="template-hostile-name",
+                    resource_type=resource_type,
+                    uid=item.uid,
+                    name=name,
+                    code=item.code,
+                    message=message,
+                )
+            )
+        control = first_control_character(translation.value)
+        if control is not None:
+            severity, message = _control_character_grade(
+                translation.value, control, substituting=substituting, field_label=field_label
+            )
+            findings.append(
+                ValidationFinding(
+                    severity=severity,
+                    category=_CONTROL_CHARACTER_CATEGORY,
+                    resource_type=resource_type,
+                    uid=item.uid,
+                    name=name,
+                    code=item.code,
+                    message=message,
+                )
+            )
+    return findings
+
+
+def _spaced_sweep_code_finding(
+    resource_type: str, uid: str, name: str, code: str | None, *, substituting: bool
+) -> ValidationFinding | None:
+    """Flag one swept object whose DHIS2 code carries a space, on every surface the generate gate screens.
+
+    The gate rewrites a space in the code of every projection it screens, not only in an option's -
+    an option set, a category, a category option, an organisation unit, a data set, a program, a
+    program stage, a data element and a tracked entity attribute all reach it - and the refusal that
+    sends a reader here calls this command "the full report". Reading options alone would leave that
+    sentence false by thirty-nine objects on one ordinary instance.
+
+    Informational for the reason the option finding is: a space is legal in an R4 `code`, so the
+    worst it costs is an anchor two concepts share and an escape in every URL below it. A code the
+    R4 datatype refuses outright is reported as the invalid code it is and not a second time here,
+    which is the order the option pass reads its two findings in.
+    """
+    if resource_type not in SCOPE_SURFACE_FIELDS or code is None or not carries_substitutable_code(code):
+        return None
+    if describe_code_defect(code) is not None:
+        return None
+    return ValidationFinding(
+        severity="info",
+        category="spaced-code",
+        resource_type=resource_type,
+        uid=uid,
+        name=name,
+        code=code,
+        message=_spaced_code_message(code, substituting=substituting),
+    )
+
+
 def _collection_findings(
     collection: MetadataCollectionIn, scope: ValidationScope | None, *, substituting: bool
 ) -> list[ValidationFinding]:
@@ -800,6 +885,13 @@ def _collection_findings(
         )
         if control_form_name is not None:
             findings.append(_rescoped(control_form_name, in_scope))
+        findings.extend(
+            _rescoped(finding, in_scope)
+            for finding in _translated_name_findings(collection.resource, item, name, substituting=substituting)
+        )
+        spaced = _spaced_sweep_code_finding(collection.resource, item.uid, name, item.code, substituting=substituting)
+        if spaced is not None:
+            findings.append(_rescoped(spaced, in_scope))
         if item.code is None:
             if collection.resource == _CODE_REQUIRED_COLLECTION:
                 findings.append(
@@ -866,7 +958,11 @@ def _stem_budgets(config: GenerateConfig) -> dict[str, int | None]:
 
 
 def _stem_findings(
-    collections: list[MetadataCollectionIn], config: GenerateConfig, scope: ValidationScope | None
+    collections: list[MetadataCollectionIn],
+    config: GenerateConfig,
+    scope: ValidationScope | None,
+    *,
+    substituting: bool,
 ) -> list[ValidationFinding]:
     """Code-stem pass: which in-scope objects cannot take their DHIS2 code as the identity stem.
 
@@ -877,20 +973,36 @@ def _stem_findings(
     decides fall-backs and refusals with, which is what keeps the severities honest: with
     `"code-or-id"` each finding is the warning that this object's artifact ids silently fall
     back to the id, and with `"code"` it is the error that `d2w fhir generate` refuses the run.
+
+    THE STEM IS READ OFF THE PUBLISHED CODE, NOT THE DHIS2 ONE. A generate run screens its
+    projections through the hostile-name gate before it plans an identity, so under
+    `hostile_names = "substitute"` the option set coded `Development activities` stems from
+    `Development-activities` and is never refused. Grading the DHIS2 spelling instead would make
+    this pass count offenders the run does not have and assert a fall-back the generator did not
+    make - against a file on disk carrying the code stem. The two commands read one code and state
+    one number.
     """
     if config.naming.source == "id":
         return []
     budgets = _stem_budgets(config)
+    published = published_codes(
+        [item.code for collection in collections for item in collection.items], substituting=substituting
+    )
     findings: list[ValidationFinding] = []
     for resources, surface_label in _stem_namespaces(collections, scope):
         subjects_by_resource = {
             resource: [
-                StemSubject(uid=item.uid, code=item.code, label=item.name or item.uid)
+                StemSubject(
+                    uid=item.uid,
+                    code=None if item.code is None else published.get(item.code, item.code),
+                    label=item.name or item.uid,
+                )
                 for item in collection.items
                 if _in_scope(scope, resource, item.uid)
             ]
             for resource, collection in resources.items()
         }
+        stated = {item.uid: item.code for collection in resources.values() for item in collection.items if item.code}
         pooled = [subject for subjects in subjects_by_resource.values() for subject in subjects]
         peer_uids = frozenset(subject.uid for subject in pooled)
         peer_code_counts = Counter(
@@ -901,7 +1013,7 @@ def _stem_findings(
                 defect = describe_stem_defect(subject, peer_code_counts, peer_uids, surface_label, budgets[resource])
                 if defect is None:
                     continue
-                findings.append(_stem_finding(resource, subject, defect, config.naming.source))
+                findings.append(_stem_finding(resource, subject, defect, config.naming.source, stated.get(subject.uid)))
     return findings
 
 
@@ -945,8 +1057,15 @@ def _stem_namespaces(
     return namespaces
 
 
-def _stem_finding(resource_type: str, subject: StemSubject, defect: str, source: str) -> ValidationFinding:
-    """One code-stem finding, graded by what the configured source does with the defective code."""
+def _stem_finding(
+    resource_type: str, subject: StemSubject, defect: str, source: str, stated: str | None
+) -> ValidationFinding:
+    """One code-stem finding, graded by what the configured source does with the defective code.
+
+    `stated` is what DHIS2 holds where the run publishes something else, so the row names the string
+    a reader searches the instance for and the sentence names the string the stem was read off.
+    """
+    published = "" if stated is None or stated == subject.code else f" (published as {subject.code!r})"
     if source == "code":
         return ValidationFinding(
             severity="error",
@@ -955,9 +1074,9 @@ def _stem_finding(resource_type: str, subject: StemSubject, defect: str, source:
             resource_type=resource_type,
             uid=subject.uid,
             name=subject.label,
-            code=subject.code,
-            message=f'{defect}; `d2w fhir generate` refuses the run under [generate.naming] source = "code" '
-            "until the code is fixed in DHIS2",
+            code=stated if stated is not None else subject.code,
+            message=f"{defect}{published}; `d2w fhir generate` refuses the run under [generate.naming] "
+            'source = "code" until the code is fixed in DHIS2',
         )
     return ValidationFinding(
         severity="warning",
@@ -966,9 +1085,9 @@ def _stem_finding(resource_type: str, subject: StemSubject, defect: str, source:
         resource_type=resource_type,
         uid=subject.uid,
         name=subject.label,
-        code=subject.code,
-        message=f'{defect}; [generate.naming] source = "code-or-id" falls back to the id for this object\'s '
-        "artifact ids, canonical URLs, file names, and FSH names",
+        code=stated if stated is not None else subject.code,
+        message=f'{defect}{published}; [generate.naming] source = "code-or-id" falls back to the id for this '
+        "object's artifact ids, canonical URLs, file names, and FSH names",
     )
 
 

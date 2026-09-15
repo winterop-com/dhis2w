@@ -24,6 +24,14 @@ NAME_PROPERTY = "NAME"
 #: The DHIS2 translation property holding the label a data-entry form shows a question under.
 FORM_NAME_PROPERTY = "FORM_NAME"
 
+#: The two translation properties above, as the set a name-shaped reading of a translation asks for.
+#: A translated NAME becomes a resource's `_title` or `_name` and a concept's designation, and a
+#: translated FORM_NAME becomes a question's `_text` - so both land on the page positions the IG
+#: publisher strict-parses, and both take whatever rewrite the object's own name took. Every other
+#: translated property (DESCRIPTION, the date labels) lands on a `description` or an extension
+#: `valueString`, which is not a name.
+SUBSTITUTED_TRANSLATION_PROPERTIES = frozenset({NAME_PROPERTY, FORM_NAME_PROPERTY})
+
 #: The DHIS2 translation property holding an object's free-text description.
 DESCRIPTION_PROPERTY = "DESCRIPTION"
 

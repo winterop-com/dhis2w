@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import pytest
 from dhis2w_fhir.config import GenerateConfig, HostileNamePosture, NamingConfig
+from dhis2w_fhir.i18n import TranslationIn
 from dhis2w_fhir.resources.option_sets.schemas import OptionIn, OptionSetIn
 from dhis2w_fhir.validation import build_code_validation, render_validation_markdown
 from dhis2w_fhir.validation.pdf import render_validation_pdf
@@ -255,6 +256,89 @@ def test_the_attribute_finding_is_independent_of_the_code_source(code_source: st
     assert "informational in id mode" not in report.findings[0].message
 
 
+def test_a_spaced_code_is_swept_on_every_surface_the_generate_gate_screens() -> None:
+    """The refusal sends a reader here for "the full report", so the report reads every code the gate rewrites.
+
+    The gate rewrites a space in the code of every projection it screens - an option set and a
+    category option as readily as an option - and reading options alone leaves thirty-nine objects
+    off an ordinary instance's report.
+    """
+    collections = [
+        MetadataCollectionIn(
+            resource="optionSets", items=[MetadataItemIn(uid="Os1aaaaaaaa", name="Distance", code="in km")]
+        ),
+        MetadataCollectionIn(
+            resource="categoryOptions", items=[MetadataItemIn(uid="Co1aaaaaaaa", name="Care", code="End Balance")]
+        ),
+    ]
+    substituting = _CONFIG.model_copy(update={"hostile_names": HostileNamePosture.SUBSTITUTE})
+
+    spaced = [
+        finding
+        for finding in build_code_validation([], collections, substituting).findings
+        if finding.category == "spaced-code"
+    ]
+
+    assert [(finding.resource_type, finding.uid) for finding in spaced] == [
+        ("categoryOptions", "Co1aaaaaaaa"),
+        ("optionSets", "Os1aaaaaaaa"),
+    ]
+    assert "published as 'End-Balance'" in spaced[0].message
+
+
+def test_a_code_no_r4_datatype_admits_is_reported_as_invalid_and_not_a_second_time_as_spaced() -> None:
+    """Leading whitespace is an invalid code, not a code with a space in it; one defect reads as one row."""
+    collection = MetadataCollectionIn(
+        resource="optionSets", items=[MetadataItemIn(uid="Os1aaaaaaaa", name="Padded", code=" X ")]
+    )
+
+    categories = [finding.category for finding in build_code_validation([], [collection], _CONFIG).findings]
+
+    assert categories == ["invalid-code"]
+
+
+def test_a_translated_name_carrying_a_comparison_is_graded_beside_the_name() -> None:
+    """A DHIS2 NAME translation becomes a published `_title`, so it breaks the same build the name does.
+
+    An object whose own name is clean and whose `en_GB` name carries a `<` is a build the IG
+    publisher dies on and a report that never mentioned it - and the generate gate rewrites the
+    translation exactly as it rewrites the name, so validate grades both.
+    """
+    collection = MetadataCollectionIn(
+        resource="categoryOptions",
+        items=[
+            MetadataItemIn(
+                uid="Co1aaaaaaaa",
+                name="Under 1y",
+                translations=[TranslationIn(property="NAME", locale="en_GB", value="< 12 mths")],
+            )
+        ],
+    )
+
+    (finding,) = build_code_validation([], [collection], _CONFIG).findings
+
+    assert finding.category == "template-hostile-name"
+    assert finding.severity == "error"
+    assert finding.name == "Under 1y"
+    assert "en_GB NAME translation" in finding.message
+
+
+def test_a_translated_description_is_not_a_name_and_is_not_graded() -> None:
+    """A DESCRIPTION translation lands on a `description` element, which no publisher template injects raw."""
+    collection = MetadataCollectionIn(
+        resource="categoryOptions",
+        items=[
+            MetadataItemIn(
+                uid="Co1aaaaaaaa",
+                name="Under 1y",
+                translations=[TranslationIn(property="DESCRIPTION", locale="en_GB", value="< 12 mths")],
+            )
+        ],
+    )
+
+    assert build_code_validation([], [collection], _CONFIG).findings == []
+
+
 #: A naming surface whose codes exercise every stem defect: missing, unusable, colliding, and clean.
 _STEM_COLLECTION = MetadataCollectionIn(
     resource="optionSets",
@@ -296,6 +380,52 @@ def test_code_source_grades_stem_defects_as_errors() -> None:
     ]
     assert all("refuses the run" in finding.message for finding in stems)
     assert report.error_count == 4
+
+
+def test_a_stem_is_read_off_the_code_the_substitute_posture_publishes() -> None:
+    """A run screens its names before it plans an identity, so validate grades the code the run stems from.
+
+    Under `hostile_names = "substitute"` the option set coded `Development activities` publishes
+    `Development-activities`, which is a perfectly good stem - and the file `d2w fhir generate` wrote
+    is `CodeSystem-d2-os-Development-activities-cs.json`. Grading the DHIS2 spelling would count an
+    offender the run does not have and assert a fall-back the generator did not make.
+    """
+    collection = MetadataCollectionIn(
+        resource="optionSets",
+        items=[MetadataItemIn(uid="Os2aaaaaaaa", name="Phrase", code="Development activities")],
+    )
+    substituting = _CODE_OR_ID_STEMS.model_copy(update={"hostile_names": HostileNamePosture.SUBSTITUTE})
+    refusing = _CODE_OR_ID_STEMS.model_copy(update={"hostile_names": HostileNamePosture.REFUSE})
+
+    assert [
+        finding
+        for finding in build_code_validation([], [collection], substituting).findings
+        if finding.category.startswith("code-stem")
+    ] == []
+    under_refuse = [
+        finding
+        for finding in build_code_validation([], [collection], refusing).findings
+        if finding.category.startswith("code-stem")
+    ]
+    assert [finding.uid for finding in under_refuse] == ["Os2aaaaaaaa"]
+
+
+def test_a_stem_finding_names_the_dhis2_code_and_the_one_the_guide_publishes() -> None:
+    """A rewrite that leaves the code unusable states both spellings: one to search DHIS2 for, one it stems from."""
+    collection = MetadataCollectionIn(
+        resource="optionSets",
+        items=[MetadataItemIn(uid="Os2aaaaaaaa", name="Phrase", code="Under 5 / over 5")],
+    )
+    substituting = _CODE_STEMS.model_copy(update={"hostile_names": HostileNamePosture.SUBSTITUTE})
+
+    (finding,) = [
+        entry
+        for entry in build_code_validation([], [collection], substituting).findings
+        if entry.category == "code-stem-refusal"
+    ]
+
+    assert finding.code == "Under 5 / over 5"
+    assert "published as 'Under-5-/-over-5'" in finding.message
 
 
 def test_stem_defects_are_silent_in_id_mode() -> None:

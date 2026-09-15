@@ -1125,6 +1125,7 @@ def _render_generate_report(
     _render_empty_assignments(report)
     _render_unusable_attribute_option_combos(report)
     _render_untimely_attribute_option_combos(report)
+    _render_computed_questions(report)
 
 
 def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
@@ -1201,6 +1202,30 @@ def _render_untimely_attribute_option_combos(report: GenerateReport | LoadSetRep
         f"keyed to a combo this DHIS2 instance accepts, and the facade refuses to draft a response for one. "
         f"They are: {', '.join(summary.forms)}. {UNTIMELY_ATTRIBUTE_OPTION_COMBO_REMEDY}",
         style="yellow",
+    )
+
+
+def _render_computed_questions(report: GenerateReport | LoadSetReport) -> None:
+    """Say out loud that a form's examples leave a question empty because DHIS2 computes the answer.
+
+    Its own line at the end of the run, for the reason the dead-form warnings have one: the examples
+    this run wrote answer fewer questions than the form asks, on purpose, and the only other place
+    that is said is one note among the several hundred a national instance raises. A reader watching
+    a form publish nine answers to thirteen questions otherwise has nothing to tell a deliberate gap
+    from a broken emitter.
+
+    The line names the forms, the way the combo warnings do: a count alone sends a reader to the
+    notes file for the one fact that decides what to do next.
+    """
+    if not isinstance(report, GenerateReport) or report.computed_questions is None:
+        return
+    summary = report.computed_questions
+    _hint(
+        "note",
+        f"{summary.form_count} published form(s) ask {summary.question_count} question(s) a DHIS2 program rule "
+        "computes the answer to on import, so every example this run wrote leaves them unanswered - DHIS2 "
+        "refuses a capture answering one anything but the value it calculated, with E1307. "
+        f"They are: {', '.join(summary.forms)}.",
     )
 
 
@@ -1373,6 +1398,7 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
     _render_empty_assignments(report.questionnaires)
     _render_unusable_attribute_option_combos(report.questionnaires)
     _render_untimely_attribute_option_combos(report.questionnaires)
+    _render_computed_questions(report.questionnaires)
     _render_selection_mismatches(outcomes)
 
 
@@ -1430,12 +1456,22 @@ _CUTTABLE_COLUMN_WIDTH = 20
 
 
 def _table_width(columns: list[ColumnSpec], rows: list[dict[str, str]]) -> int:
-    """How wide the table asks to be: every cell plus the frame, with a cuttable column at its cut width."""
+    """How wide the table asks to be: every cell plus the frame, with a cuttable column at its cut width.
+
+    The frame is what Rich draws around the cells: one vertical per column plus one to close the row,
+    and a space either side of every cell. A cuttable column asks for its cut width or its own floor,
+    whichever is larger, because a floor is what the renderer will not go below however narrow the
+    terminal is - a column counted under its floor is a table that overflows the screen it fit on
+    paper.
+    """
     content = 0
     for column in columns:
         natural = max([len(column.label), *(len(row[column.key]) for row in rows)])
-        content += min(natural, _CUTTABLE_COLUMN_WIDTH) if column.overflow == "ellipsis" else natural
-    return content + 3 * len(columns) - 1
+        if column.overflow == "ellipsis":
+            content += max(column.min_width or 0, min(natural, _CUTTABLE_COLUMN_WIDTH))
+        else:
+            content += natural
+    return content + 3 * len(columns) + 1
 
 
 @generate_app.callback(invoke_without_command=True)
@@ -1769,14 +1805,14 @@ def validate_command(
     fail: Annotated[bool, typer.Option("--fail/--no-fail", help="Exit 1 when errors are found.")] = True,
     progress: ProgressOption = True,
 ) -> None:
-    """Check the instance's codes for FHIR-safety, writing md/csv/pdf reports grouped by type.
+    r"""Check the instance's codes for FHIR-safety, writing md/csv/pdf reports grouped by type.
 
     Severity means build impact on the configured IG: an error aborts your build (generate refuses
     the same codes), a warning degrades an emitted resource, and an info is instance hygiene on
     objects the build never reads. Each finding carries that verdict as its scope - `selection`
     for objects the configured selection emits, `instance` for the rest.
 
-    The run grades under the project's `[generate] hostile_names` posture, and the summary states
+    The run grades under the project's `\[generate] hostile_names` posture, and the summary states
     which one it read. Under `substitute` a DHIS2 name carrying '<' is rewritten for publication
     and the build survives it, so the finding on that name is informational and says what the guide
     publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
@@ -1876,29 +1912,22 @@ def validate_command(
         _render_finding_rollup(report)
         listed = [finding for finding in report.findings if details or finding.severity == "error"]
         if listed:
+            rows = [
+                {
+                    "severity": finding.severity,
+                    "scope": _scope_cell(finding.scope),
+                    "category": finding.category,
+                    "type": finding.resource_type,
+                    "object": f"{finding.name} ({finding.uid})",
+                    "code": display_code(finding.code),
+                    "message": _truncate(finding.message, _FINDING_MESSAGE_WIDTH),
+                }
+                for finding in listed
+            ]
             render_list(
                 "findings",
-                [
-                    {
-                        "severity": finding.severity,
-                        "scope": _scope_cell(finding.scope),
-                        "category": finding.category,
-                        "type": finding.resource_type,
-                        "object": f"{finding.name} ({finding.uid})",
-                        "code": display_code(finding.code),
-                        "message": finding.message,
-                    }
-                    for finding in listed
-                ],
-                [
-                    ColumnSpec("Severity", "severity", formatter=_severity_cell, no_wrap=True),
-                    ColumnSpec("Scope", "scope", no_wrap=True),
-                    ColumnSpec("Category", "category", no_wrap=True),
-                    ColumnSpec("Type", "type", no_wrap=True),
-                    ColumnSpec("Object", "object"),
-                    ColumnSpec("Code", "code"),
-                    ColumnSpec("Why it matters", "message"),
-                ],
+                rows,
+                _fitted_finding_columns(rows, STDERR_CONSOLE.width),
                 console=STDERR_CONSOLE,
             )
         if not report.error_count:
@@ -1927,6 +1956,44 @@ def _severity_cell(value: Any) -> str:
 def _scope_cell(scope: str) -> str:
     """Render one scope: selection full-strength, instance dimmed, so the build path carries the weight."""
     return f"[dim]{scope}[/]" if scope == "instance" else scope
+
+
+#: How many characters of a finding's sentence the terminal carries. The whole of it is in the
+#: markdown and csv reports the run writes; on screen it is what tells one row's fault from the next,
+#: and a cell left unbounded takes every other column's width with it however wide the screen is.
+_FINDING_MESSAGE_WIDTH = 60
+
+#: The findings table's columns, in the order they are rendered. Every column carries a floor, so a
+#: terminal too narrow shortens what a cell says instead of folding it to two blank characters, and
+#: the three carrying what a reader acts on - the object, its code, and the sentence saying what it
+#: costs - end in an ellipsis rather than down the page: an 11-character UID rendered one character
+#: to a line names nothing.
+_FINDING_COLUMNS: list[ColumnSpec] = [
+    ColumnSpec("Severity", "severity", formatter=_severity_cell, no_wrap=True, min_width=8),
+    ColumnSpec("Scope", "scope", no_wrap=True, min_width=5),
+    ColumnSpec("Category", "category", no_wrap=True, min_width=8),
+    ColumnSpec("Type", "type", no_wrap=True, min_width=4),
+    ColumnSpec("Object", "object", no_wrap=True, overflow="ellipsis", min_width=24),
+    ColumnSpec("Code", "code", no_wrap=True, overflow="ellipsis", min_width=8),
+    ColumnSpec("Why it matters", "message", no_wrap=True, overflow="ellipsis", min_width=24),
+]
+
+#: The finding columns a narrow terminal loses, in the order they go. The scope and the category of
+#: every finding are counted in the `findings by category` table printed above this one, and all
+#: three are in the report files and in `--json`, so what a narrow table drops is said elsewhere.
+#: What is left is what a reader acts on: how bad it is, what kind of object it is, which object,
+#: its code, and why. 80 columns is what a pipe gets.
+_DROPPED_FINDING_COLUMNS_WHEN_NARROW = ("scope", "category", "type")
+
+
+def _fitted_finding_columns(rows: list[dict[str, str]], width: int) -> list[ColumnSpec]:
+    """The widest finding column set that fits the terminal, dropping the recoverable ones until it does."""
+    columns = list(_FINDING_COLUMNS)
+    for key in _DROPPED_FINDING_COLUMNS_WHEN_NARROW:
+        if _table_width(columns, rows) <= width:
+            break
+        columns = [column for column in columns if column.key != key]
+    return columns
 
 
 def _instance_dimmed(text: str, scope: str) -> str:
@@ -1976,6 +2043,12 @@ def _render_finding_rollup(report: FhirValidationReport) -> None:
 #: short; a narrative-bound string is not, and one runaway row must not push the remedy off screen.
 _ARTIFACT_VALUE_WIDTH = 60
 
+#: How many characters of a file path the terminal carries, and the floor its column keeps. A
+#: compiled artifact sits four directories down under a name the resource id already states, so the
+#: path is cut from the front - what names the file is its end - and the cell is then never cut a
+#: second time from the other end, which would leave four directory names and no file.
+_ARTIFACT_FILE_WIDTH = 24
+
 
 def _literal_cell(value: object) -> str:
     """One table cell rendered as the text it is, rather than as the Rich markup it may look like.
@@ -1987,6 +2060,50 @@ def _literal_cell(value: object) -> str:
     from rich.markup import escape
 
     return escape(str(value))
+
+
+#: The artifact findings table's columns, in the order they are rendered. The path and the offending
+#: value carry a floor and an ellipsis, so a terminal too narrow shortens each cell instead of
+#: folding it into a column of word fragments.
+#:
+#: The remedy is not a column. Six sentences stand behind every finding this scan raises, so a
+#: column would print one of the six once per row - the same fact forty times, in the widest cell on
+#: screen, starving every column a reader identifies the row by. They are printed under the table
+#: instead, once each and whole, which is also the only place the `[generate.*]` table names inside
+#: them survive a narrow screen.
+_ARTIFACT_COLUMNS: list[ColumnSpec] = [
+    ColumnSpec("Severity", "severity", no_wrap=True),
+    ColumnSpec(
+        "File", "file", formatter=_literal_cell, no_wrap=True, overflow="ellipsis", min_width=_ARTIFACT_FILE_WIDTH
+    ),
+    ColumnSpec("Resource", "resource", no_wrap=True, formatter=_literal_cell),
+    ColumnSpec("Field", "field", no_wrap=True, formatter=_literal_cell),
+    ColumnSpec("Value", "value", formatter=_literal_cell, no_wrap=True, overflow="ellipsis", min_width=10),
+]
+
+#: The artifact columns a narrow terminal loses, in the order they go. The resource is named by the
+#: file the row already carries and the element inside it is in `--json`, so what is left is what a
+#: reader acts on: how bad it is, which file, and the offending string. 80 columns is what a CI log
+#: gets, and `make build` runs this command into one.
+_DROPPED_ARTIFACT_COLUMNS_WHEN_NARROW = ("resource", "field")
+
+
+def _distinct(values: Iterable[str]) -> list[str]:
+    """The given strings with repeats dropped, in the order they first appear."""
+    seen: dict[str, None] = {}
+    for value in values:
+        seen.setdefault(value, None)
+    return list(seen)
+
+
+def _fitted_artifact_columns(rows: list[dict[str, str]], width: int) -> list[ColumnSpec]:
+    """The widest artifact column set that fits the terminal, dropping the recoverable ones until it does."""
+    columns = list(_ARTIFACT_COLUMNS)
+    for key in _DROPPED_ARTIFACT_COLUMNS_WHEN_NARROW:
+        if _table_width(columns, rows) <= width:
+            break
+        columns = [column for column in columns if column.key != key]
+    return columns
 
 
 @app.command("check-artifacts")
@@ -2009,7 +2126,7 @@ def check_artifacts_command(
         ),
     ] = None,
 ) -> None:
-    """Refuse the build before it begins: scan the artifacts on disk for what aborts the IG publisher.
+    r"""Refuse the build before it begins: scan the artifacts on disk for what aborts the IG publisher.
 
     `d2w fhir generate` refuses a run whose selected DHIS2 names or codes carry a `<`. A build reads
     no such gate - it publishes whatever `ig/fsh-generated/` and `ig/input/` hold - so output written
@@ -2024,7 +2141,7 @@ def check_artifacts_command(
     from rather than assuming DHIS2 wrote it.
 
     Two findings are warnings rather than refusals: a published form whose organisation-unit
-    assignment names no organisation unit this project publishes, and a `[generate.*] include_ids`
+    assignment names no organisation unit this project publishes, and a `\[generate.*] include_ids`
     entry this project publishes nothing carrying that UID for. That guide builds and publishes;
     what it costs is a form nobody can submit a response to, and a form the guide never carried.
 
@@ -2054,29 +2171,24 @@ def check_artifacts_command(
     for unreadable in report.unreadable_files:
         _hint("note", f"{unreadable} is not readable as a JSON object; nothing in it was checked")
     if report.findings:
+        rows = [
+            {
+                "severity": finding.severity,
+                "file": _truncate_path(finding.file, _ARTIFACT_FILE_WIDTH),
+                "resource": finding.resource_id,
+                "field": finding.field,
+                "value": _truncate(finding.value, _ARTIFACT_VALUE_WIDTH),
+            }
+            for finding in report.findings
+        ]
         render_list(
             "artifact findings",
-            [
-                {
-                    "severity": finding.severity,
-                    "file": finding.file,
-                    "resource": finding.resource_id,
-                    "field": finding.field,
-                    "value": _truncate(finding.value, _ARTIFACT_VALUE_WIDTH),
-                    "remedy": finding.remedy,
-                }
-                for finding in report.findings
-            ],
-            [
-                ColumnSpec("Severity", "severity", no_wrap=True),
-                ColumnSpec("File", "file", formatter=_literal_cell),
-                ColumnSpec("Resource", "resource", no_wrap=True, formatter=_literal_cell),
-                ColumnSpec("Field", "field", no_wrap=True, formatter=_literal_cell),
-                ColumnSpec("Value", "value", formatter=_literal_cell),
-                ColumnSpec("What to do", "remedy", formatter=_literal_cell),
-            ],
+            rows,
+            _fitted_artifact_columns(rows, STDERR_CONSOLE.width),
             console=STDERR_CONSOLE,
         )
+        for remedy in _distinct(finding.remedy for finding in report.findings):
+            _hint("note", f"what to do: {remedy}")
         for message in report.messages:
             _hint("note", f"what it costs: {message}")
     else:

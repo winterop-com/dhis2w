@@ -594,6 +594,25 @@ nothing of a kind in it is rarely what the file meant to ask for.
 `d2w fhir check-artifacts` reports the same entry as a warning-level finding
 against `fhir.toml`, so a tree on disk answers for itself with no connection.
 
+The fifth is not a loss at all - it is a gap the run made on purpose, and says
+so because nothing else would. A DHIS2 program rule whose action is `ASSIGN`
+computes a question's answer on import, and DHIS2 refuses a payload whose answer
+is neither empty nor byte-equal to the value it calculated (`E1307`), so every
+example this run writes leaves those questions unanswered:
+
+```text
+note: 4 published form(s) ask 5 question(s) a DHIS2 program rule computes the
+answer to on import, so every example this run wrote leaves them unanswered -
+DHIS2 refuses a capture answering one anything but the value it calculated, with
+E1307. They are: Antenatal care visit (WZbXY0S00lP), Child Programme - Birth
+(A03MvHHogjR), ...
+```
+
+Without the line, a form whose corpus answers nine of thirteen questions reads
+as an emitter that lost four. `d2w fhir check-artifacts` files the other half of
+the fact: an example that answers one of those questions anyway, in the compiled
+JSON or in a hand-authored FSH source.
+
 Every command with an instance behind it narrates its steps on stderr - a
 spinner on a terminal, one plain `[k/N] label: summary` line per step when
 redirected. `--no-progress` turns it off; `d2w --json fhir generate` implies

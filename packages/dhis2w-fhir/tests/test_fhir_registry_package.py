@@ -612,18 +612,22 @@ _REGISTRY_TABLE = (
 )
 
 
-def _registry_checkout(guide_root: Path) -> Path:
-    """A sibling checkout of the registry project holding one published Location, as generate wrote it.
+def _registry_checkout(guide_root: Path, *stems: str) -> Path:
+    """A sibling checkout of the registry project holding a published Location per stem, as generate wrote it.
 
     `d2w fhir generate` refuses a depending guide whose registry neither a checkout nor a package
     supplies, in the words `serve --live`, `forward` and `check-artifacts` refuse it in, so every
-    run against such a guide needs a readable registry the way a real one does.
+    run against such a guide needs a readable registry the way a real one does. The default stems are
+    the ids of every unit the mocked instance holds, which is the registry a guide stemming by id
+    really depends on: a checkout publishing fewer is a checkout the guide's references dangle into.
     """
     directory = guide_root.parent / "registry" / "ig" / "input" / "resources" / "registry"
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / "Location-O6uvpzGd5pu.json").write_text(
-        json.dumps({"resourceType": "Location", "id": "O6uvpzGd5pu"}), encoding="utf-8"
-    )
+    published = stems or tuple(str(unit["id"]) for unit in _ORGANISATION_UNITS_PAYLOAD["organisationUnits"])
+    for stem in published:
+        (directory / f"Location-{stem}.json").write_text(
+            json.dumps({"resourceType": "Location", "id": stem}), encoding="utf-8"
+        )
     return directory
 
 
@@ -877,22 +881,23 @@ async def test_generate_refuses_a_registry_it_cannot_read_before_it_dials_the_in
 
 
 @respx.mock
-async def test_generate_names_both_identity_sources_when_the_guide_and_its_registry_disagree(
+async def test_generate_counts_the_references_the_registry_package_does_not_publish(
     probe_profile: None,  # noqa: ARG001
     mock_system_info: Callable[..., None],
     mock_attributes: Callable[..., None],
     mock_organisation_unit_levels: Callable[..., None],
     tmp_path: Path,
 ) -> None:
-    """Nothing else makes the pair agree, so the run that writes the references says which two it read.
+    """The run that writes the references counts the ones the package it depends on carries no place for.
 
     A registry published under `code` names its units `Location/OU-211224`; a guide stemming by `id`
-    references `Location/<uid>`. Every reference then dangles, and only `check-artifacts` said so.
+    references `Location/<uid>`. The note reads the ids the checkout really published rather than the
+    `source` literal its fhir.toml states, so it states how many references dangle and names them.
     """
     _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
     guide = tmp_path / "guide"
     await _scaffold_project(guide, _FULL_OPTIONS, _REGISTRY_TABLE)
-    _registry_checkout(guide)
+    _registry_checkout(guide, "OU-211224", "OU-211225")
     (guide.parent / "registry" / "fhir.toml").write_text(
         '[ig]\nid = "dhis2.fhir.test.registry"\ncanonical = "http://example.org/fhir/registry"\n'
         'name = "TestRegistry"\ntitle = "Test registry"\npublisher = "Test Organisation"\n\n'
@@ -903,8 +908,39 @@ async def test_generate_names_both_identity_sources_when_the_guide_and_its_regis
     report = await service.generate_full(resolve_profile("probe"), load_project(guide))
 
     messages = [note.message for note in report.organisation_units.notes]
-    assert any("'id'" in message and "'code'" in message for message in messages)
+    assert any("2 of the 2 organisation unit(s)" in message for message in messages)
+    assert any("ImspTQPwCqd" in message and "O6uvpzGd5pu" in message for message in messages)
     assert any("check-artifacts" in message for message in messages)
+
+
+@respx.mock
+async def test_a_registry_falling_back_to_the_id_for_every_unit_says_nothing_at_all(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Two projects stating different sources can publish one set of ids, and then nothing dangles.
+
+    `code-or-id` falls back to the id for every unit whose code cannot serve as a stem, so a registry
+    stating it beside a guide stating `id` publishes exactly the stems the guide references. A note
+    read off the two literals would fire here and name a mismatch that does not exist.
+    """
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    guide = tmp_path / "guide"
+    await _scaffold_project(guide, _FULL_OPTIONS, _REGISTRY_TABLE)
+    _registry_checkout(guide)
+    (guide.parent / "registry" / "fhir.toml").write_text(
+        '[ig]\nid = "dhis2.fhir.test.registry"\ncanonical = "http://example.org/fhir/registry"\n'
+        'name = "TestRegistry"\ntitle = "Test registry"\npublisher = "Test Organisation"\n\n'
+        '[generate.naming]\nsource = "code-or-id"\n',
+        encoding="utf-8",
+    )
+
+    report = await service.generate_full(resolve_profile("probe"), load_project(guide))
+
+    assert [note.category for note in report.organisation_units.notes] == [GenerateNoteCategory.REGISTRY_DEPENDENCY]
 
 
 @respx.mock

@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_fhir import (
+    ComputedQuestionsSummary,
     EmptyAssignmentSummary,
     FhirValidationReport,
     GenerateFullReport,
@@ -314,6 +315,34 @@ def test_a_run_that_published_unreportable_forms_says_so_on_its_own_line(fhir_pr
     assert "max_level 2" in result.stderr
     assert "Widen the organisation-unit selection" in result.stderr
     assert "narrow the form selection in fhir.toml" in result.stderr
+
+
+def test_a_run_whose_examples_leave_a_computed_question_empty_says_so_on_its_own_line(fhir_project: Path) -> None:
+    """A form's corpus answering nine of thirteen questions on purpose is a fact the run says out loud.
+
+    The per-form note is one of several hundred a national instance raises, and a progress counter
+    reading `9 of 13` tells a reader nothing about whether the gap is deliberate.
+    """
+    report = _noted_report(fhir_project)
+    report.questionnaires.computed_questions = ComputedQuestionsSummary(
+        form_count=4, question_count=5, forms=["Child Programme - Birth (A03MvHHogjR)"]
+    )
+    with patch("dhis2w_fhir.service.generate_full", new=AsyncMock(return_value=report)):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+
+    assert result.exit_code == 0, result.output
+    assert "note: 4 published form(s) ask 5 question(s) a DHIS2 program rule computes" in result.stderr
+    assert "E1307" in result.stderr
+    assert "Child Programme - Birth (A03MvHHogjR)" in result.stderr
+
+
+def test_a_run_no_program_rule_computes_an_answer_in_carries_no_such_line(fhir_project: Path) -> None:
+    """The line states an exception, so an ordinary run does not carry a reassurance nobody asked for."""
+    with patch("dhis2w_fhir.service.generate_full", new=AsyncMock(return_value=_noted_report(fhir_project))):
+        result = _runner.invoke(build_app(), ["fhir", "generate"])
+
+    assert result.exit_code == 0, result.output
+    assert "a DHIS2 program rule computes" not in result.stderr
 
 
 def test_a_run_with_no_max_level_still_names_the_forms_nobody_may_report(fhir_project: Path) -> None:
@@ -1224,6 +1253,30 @@ def test_validate_details_table_carries_the_scope(fhir_project: Path) -> None:  
     lines = result.stderr.splitlines()
     assert any("Ds1aaaaaaaa" in line and "selection" in line for line in lines)
     assert any("De1aaaaaaaa" in line and "instance" in line for line in lines)
+
+
+def test_validate_details_names_the_object_and_the_reason_at_eighty_columns(
+    fhir_project: Path,  # noqa: ARG001
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A narrow terminal shortens the cells it cannot fit; it never collapses them to nothing.
+
+    The scope, the category and the resource type come out - the rollup above the table counts the
+    first two and every report file carries all three - and what is left is what a reader acts on:
+    the severity, the object, its code, and the sentence saying what it costs. A UID rendered one
+    character to a line names nothing, which is what folding a cell to zero width does.
+    """
+    monkeypatch.setenv("COLUMNS", "80")
+    mock = AsyncMock(return_value=_warning_report())
+    with patch("dhis2w_fhir.service.validate_codes", new=mock):
+        result = _runner.invoke(build_app(), ["fhir", "validate", "--details"])
+    assert result.exit_code == 0, result.output
+    rows = [line for line in result.stderr.splitlines() if line.startswith("│")]
+    assert rows and all(len(row) <= 80 for row in rows)
+    finding_row = next(row for row in rows if "Ou1aaaaaaaa" in row)
+    assert "Kids <5" in finding_row
+    assert "OU_K5" in finding_row
+    assert "name carries" in finding_row
 
 
 def test_validate_no_fail_and_details(fhir_project: Path) -> None:  # noqa: ARG001

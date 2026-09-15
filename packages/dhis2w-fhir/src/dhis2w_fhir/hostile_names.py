@@ -40,9 +40,9 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
-from dhis2w_fhir.coded import CodedProjectionIn, carries_substitutable_code, substituted_code
+from dhis2w_fhir.coded import CodedProjectionIn, CodeSubstituter
 from dhis2w_fhir.config import HostileNamePosture
-from dhis2w_fhir.i18n import FORM_NAME_PROPERTY, NAME_PROPERTY, TranslationIn
+from dhis2w_fhir.i18n import SUBSTITUTED_TRANSLATION_PROPERTIES, TranslationIn
 from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory, generate_note
 from dhis2w_fhir.resources.questionnaires.schemas import ProgramRuleIn, ProgramRuleVariableIn
 from dhis2w_fhir.validation.substitution import first_control_character, substitute_build_aborting_text
@@ -55,7 +55,6 @@ if TYPE_CHECKING:
 __all__ = [
     "SUBSTITUTED_CODE_FIELD",
     "SUBSTITUTED_NAME_FIELDS",
-    "SUBSTITUTED_TRANSLATION_PROPERTIES",
     "HostileNameGate",
     "HostileRewrite",
     "HostileRewriteConfirmation",
@@ -73,14 +72,6 @@ SUBSTITUTED_NAME_FIELDS = frozenset({"name", "form_name"})
 #: Where the byte-true DHIS2 spelling of each rewritten name field is kept, so the guide can state it
 #: beside the wording it publishes. Only `CodedProjectionIn` carries these fields.
 _ORIGINAL_NAME_FIELDS: dict[str, str] = {"name": "original_name", "form_name": "original_form_name"}
-
-#: The DHIS2 translation properties a name rewrite reads. A translated NAME becomes the `_title`,
-#: `_name`, or concept designation beside the very name the rewrite already changed, and a translated
-#: FORM_NAME becomes a question's `_text` - so leaving them byte-true would publish one resource
-#: stating two different names for one object, in two different languages, one of them carrying the
-#: character the rewrite exists to remove. Every other translated property (DESCRIPTION, the date
-#: labels) lands on a `description` or an extension `valueString`, which is not a name.
-SUBSTITUTED_TRANSLATION_PROPERTIES = frozenset({NAME_PROPERTY, FORM_NAME_PROPERTY})
 
 #: The `TranslationIn` field a name rewrite reads on the properties above.
 _TRANSLATION_VALUE_FIELD = "value"
@@ -123,73 +114,6 @@ class HostileRewriteConfirmation(Protocol):
         ...
 
 
-class _CodeSubstituter:
-    """The published code every space-carrying DHIS2 code of one run takes, assigned once and held.
-
-    Assignment is deterministic and independent of the order the projections are walked in: every
-    code the run has observed is registered first, then the space-carrying ones are assigned in
-    sorted order, each taking its hyphenated form unless another code already holds it - in which
-    case it takes an ordinal suffix (`Pre-eclampsia-2`) and the next free ordinal after that.
-    """
-
-    def __init__(self) -> None:
-        """Start a run that has observed no code and assigned none."""
-        self._unassigned: set[str] = set()
-        self._published: dict[str, str] = {}
-        self._taken: set[str] = set()
-
-    def observe(self, model: BaseModel) -> None:
-        """Register every code one projection carries, so a later assignment can de-collide against it."""
-        if isinstance(model, CodedProjectionIn) and model.code is not None:
-            self._register(model.code)
-        for field_name in type(model).model_fields:
-            self._observe_value(getattr(model, field_name))
-
-    def published_for(self, code: str) -> str:
-        """The code the guide publishes in one DHIS2 code's place, byte-true unless it carries a space."""
-        if not carries_substitutable_code(code):
-            return code
-        self._register(code)
-        if code not in self._published:
-            self._assign()
-        return self._published[code]
-
-    def _register(self, code: str) -> None:
-        """Hold one observed code: a space-free one is a target nothing may be rewritten onto."""
-        if carries_substitutable_code(code):
-            if code not in self._published:
-                self._unassigned.add(code)
-        else:
-            self._taken.add(code)
-
-    def _observe_value(self, value: object) -> None:
-        """Walk one field's value for nested projections, whatever container it arrives in."""
-        if isinstance(value, BaseModel):
-            self.observe(value)
-        elif isinstance(value, list):
-            for member in value:
-                self._observe_value(member)
-        elif isinstance(value, dict):
-            for member in value.values():
-                self._observe_value(member)
-
-    def _assign(self) -> None:
-        """Assign every space-carrying code still waiting, in sorted order rather than encounter order."""
-        for original in sorted(self._unassigned):
-            self._published[original] = self._free(substituted_code(original))
-        self._unassigned.clear()
-
-    def _free(self, candidate: str) -> str:
-        """The candidate itself when nothing holds it, else the first free ordinal after it."""
-        chosen = candidate
-        ordinal = 1
-        while chosen in self._taken:
-            ordinal += 1
-            chosen = f"{candidate}-{ordinal}"
-        self._taken.add(chosen)
-        return chosen
-
-
 class _ProjectionRewriter:
     """Walks one emission input, rewriting every DHIS2 name and code the guide cannot carry as it stands.
 
@@ -199,7 +123,7 @@ class _ProjectionRewriter:
     the walk, so two screenings of one run can never publish one DHIS2 code two ways.
     """
 
-    def __init__(self, codes: _CodeSubstituter) -> None:
+    def __init__(self, codes: CodeSubstituter) -> None:
         """Start a walk that has rewritten nothing yet, assigning codes through the run's substituter."""
         self.rewrites: list[HostileRewrite] = []
         self._codes = codes
@@ -286,7 +210,7 @@ class HostileNameGate:
         """Build a gate from a preset posture, an asker for when there is none, or neither."""
         self._confirmation = confirmation
         self._substituting: bool | None = None if posture is None else posture is HostileNamePosture.SUBSTITUTE
-        self._codes = _CodeSubstituter()
+        self._codes = CodeSubstituter()
 
     def decide(self, *groups: Sequence[BaseModel]) -> None:
         """Settle the run's answer up front, over every projection the run is about to emit.
@@ -316,7 +240,7 @@ class HostileNameGate:
         notes.extend(_rewrite_notes(rewriter.rewrites))
         return rewritten
 
-    def _observed(self, *groups: Sequence[BaseModel]) -> _CodeSubstituter:
+    def _observed(self, *groups: Sequence[BaseModel]) -> CodeSubstituter:
         """The run's substituter, with every code the given projections carry registered on it."""
         for group in groups:
             for model in group:

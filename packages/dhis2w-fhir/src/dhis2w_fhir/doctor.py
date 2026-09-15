@@ -28,6 +28,11 @@ The drift phase is the one phase whose subject is not the throwaway project. It 
 guide the working directory sits in, so `resolve_published_project` runs before anything is written
 and returns nothing for a working directory inside the workspace: a project this run generated
 seconds ago can only agree with the instance, and a phase that always passes says nothing.
+
+That same published project is where the run takes its `[generate]` posture from. The scaffold picks
+a representative selection of its own, and then generates it under the calling project's answers -
+its hostile-name posture, its identity source, its concept code source - so every phase answers
+whether the toolchain runs against this instance as this project is configured to run it.
 """
 
 from __future__ import annotations
@@ -798,7 +803,8 @@ class _DoctorRun:
         self._dhis2_version: str | None = None
         self._version_tree: str | None = None
         # Resolved before anything is written, so the throwaway project the run is about to scaffold
-        # can never be mistaken for the published guide the drift phase reads.
+        # can never be mistaken for the published guide the drift phase reads. It is also where the
+        # scaffold takes its `[generate]` posture from, which is why it is resolved this early.
         self._published = resolve_published_project(self._workspace)
 
     async def execute(self) -> DoctorReport:
@@ -879,6 +885,11 @@ class _DoctorRun:
         assigned to. A probe that picks three forms and then a slice of the hierarchy none of them
         may report in produces a guide nothing can be captured against, and every phase after it
         would then be reporting doctor's own arithmetic rather than the instance's behaviour.
+
+        The selection is the probe's own; the `[generate]` posture is not. Every key that decides what
+        a run produces is copied from the project doctor was run in, so the phases after this one
+        answer "does the toolchain run against this instance as this project is configured" rather
+        than "does it run under the scaffold's defaults".
         """
         self._progress.start(DoctorPhase.SCAFFOLD.value, "scaffolding a throwaway project")
         started = time.perf_counter()
@@ -890,7 +901,7 @@ class _DoctorRun:
         options = _probe_init_options(self._generation.name, selection)
         try:
             report = await service.init_project(self._workspace, options)
-            self._project = _apply_registry_root(load_project(self._workspace), selection.root)
+            self._project = _apply_probe_configuration(load_project(self._workspace), selection.root, self._published)
         except (OSError, LookupError, ValueError, UnknownFhirConfigKeyError) as error:
             self._record(DoctorPhase.SCAFFOLD, DoctorOutcome.FAILED, str(error), started)
             return False
@@ -903,13 +914,15 @@ class _DoctorRun:
         return True
 
     async def _generate(self) -> bool:
-        """Run the full pipeline against the instance under the project's posture, keeping every note as a finding.
+        """Run the full pipeline against the instance under the calling project's posture, keeping every note.
 
-        The gate is built the way `d2w fhir generate` builds it, off `[generate] hostile_names` of the
-        project this run scaffolded. Generating under any other answer would grade the instance on a
-        posture nobody configured: a DHIS2 name carrying '<' aborts the publisher's build under
-        `refuse` and is rewritten for publication under `substitute`, and reporting the first against
-        a project stating the second would call an instance broken that the toolchain handles.
+        The gate is built the way `d2w fhir generate` builds it, off `[generate] hostile_names` - and
+        the throwaway project carries that key, and every other `[generate]` key that changes what a
+        run produces, copied from the project doctor was run in. Generating under any other answer
+        would grade the instance on a posture nobody configured: a DHIS2 name carrying '<' aborts the
+        publisher's build under `refuse` and is rewritten for publication under `substitute`, so a run
+        that scaffolded itself `substitute` in a `refuse` project would report a clean toolchain two
+        lines under the command that refused.
         """
         self._progress.start(DoctorPhase.GENERATE.value, "generating the IG source from the instance")
         started = time.perf_counter()
@@ -1293,9 +1306,11 @@ def _connection_failure(error: Exception) -> str:
 def _hostile_name_posture(project: FhirProject) -> str:
     """The `[generate] hostile_names` posture the generate phase screened this instance's names under.
 
-    Stated on the phase because the same instance grades two ways. One DHIS2 name carrying '<' is a
-    refusal under `refuse` and a published rewrite under `substitute`, so a reader who cannot see
-    which answer the run took cannot read the outcome.
+    Read off the throwaway project, which carries the posture of the project doctor was run in, so a
+    reader standing in a `refuse` project reads `refuse` here. Stated on the phase because the same
+    instance grades two ways: one DHIS2 name carrying '<' is a refusal under `refuse` and a published
+    rewrite under `substitute`, so a reader who cannot see which answer the run took cannot read the
+    outcome.
     """
     posture = project.config.generate.hostile_names
     return f"hostile names {posture.value}" if posture is not None else "hostile names not set"
@@ -1423,24 +1438,52 @@ def _probe_init_options(profile_name: str, selection: _ProbeSelection) -> InitOp
     )
 
 
-def _apply_registry_root(project: FhirProject, root: str | None) -> FhirProject:
-    """Point the scaffolded project's registry at the chosen subtree, and read the project back.
+#: The `[generate]` keys the probe copies off the project doctor was run in. Every one of them
+#: changes what a run produces rather than what it selects: the posture a DHIS2 name the guide
+#: cannot carry is screened under, the field every identity stem is resolved from and the tokens
+#: built around it, the source every concept code is taken from, the URL stem identifiers are minted
+#: under, the zone a zone-less DHIS2 timestamp is read in, the locales a translation is published
+#: for, and the FHIR resource type each tracked entity type is published as.
+#:
+#: What a run *selects* stays the probe's own - the data sets, programs, option sets, categories and
+#: organisation-unit depth it chose a representative sample of. Doctor's question is whether the
+#: toolchain runs against this instance as this project is configured to run it, and a selection
+#: copied from the calling project would answer a question about a run nobody made.
+_COPIED_GENERATE_KEYS = (
+    "hostile_names",
+    "naming",
+    "concept_code_source",
+    "identifier_system_base",
+    "timezone",
+    "locales",
+    "tracked_entity_types",
+)
 
-    `d2w fhir init` seeds the depth of the registry but not which subtree it is taken from, so the
-    root is written into the throwaway project's own `fhir.toml` afterwards. Doctor owns that file
-    outright - it wrote it a moment ago into a directory it minted - so rewriting it costs nothing.
+
+def _apply_probe_configuration(project: FhirProject, root: str | None, calling: FhirProject | None) -> FhirProject:
+    """Write the run's own answers into the throwaway project's `fhir.toml`, and read the project back.
+
+    Two things reach it. The registry root: `d2w fhir init` seeds the depth of the registry but not
+    which subtree it is taken from, so the chosen root is written here. And the `[generate]` posture
+    of the project doctor was run in: a project stating `hostile_names = "refuse"` is a project whose
+    generate run refuses a DHIS2 name carrying '<', and a doctor run that scaffolded itself
+    `"substitute"` would report that this instance generates cleanly while `d2w fhir generate` in the
+    very same directory exits 1.
+
+    Doctor owns that file outright - it wrote it a moment ago into a directory it minted - so
+    rewriting it costs nothing. Run from a directory no `fhir.toml` sits in or above, there is no
+    project to take a posture from and the scaffold's own answers stand.
     """
-    if root is None:
-        return project
     generate = project.config.generate
-    updated = project.config.model_copy(
-        update={
-            "generate": generate.model_copy(
-                update={"organisation_units": generate.organisation_units.model_copy(update={"root": root})}
-            )
-        }
-    )
-    write_fhir_config(project.config_path, updated)
+    updates: dict[str, Any] = {}
+    if root is not None:
+        updates["organisation_units"] = generate.organisation_units.model_copy(update={"root": root})
+    if calling is not None:
+        updates |= {key: getattr(calling.config.generate, key) for key in _COPIED_GENERATE_KEYS}
+    if not updates:
+        return project
+    configured = project.config.model_copy(update={"generate": generate.model_copy(update=updates)})
+    write_fhir_config(project.config_path, configured)
     return load_project(project.project_root)
 
 

@@ -1175,16 +1175,23 @@ so three responses refused on three different combos read as
 E8025  Attribute option combo `...` not usable with org unit(s): `...`   3
 ```
 
-rather than as one row naming the first response's combo for all three. A
-bare eleven-character word is taken for a UID by its shape: it carries a
-digit, or it turns from lower case to upper more often than a word does. So
-the `DataElement` of an `E1302` sentence stays prose, and every response's
-own report keeps the sentence exactly as DHIS2 sent it.
+rather than as one row naming the first response's combo for all three.
 
-A cause that ended exactly one response is printed as DHIS2 printed it,
-identifiers and all: generalising buys one row out of twenty, and at one it
-only takes away the UID the reader came for and sends them to the report file
-for something that fits on the line in front of them.
+What DHIS2 quotes is not thereby an identifier, either: an `E1302` backticks
+the value type, the whole explanatory clause, and the offending value inside
+it. So a run of characters reads as an identifier only when every token in it
+is eleven characters starting with a letter and turns like a UID rather than
+like a word - it carries a digit, or it turns from lower case to upper more
+often than a word does. The `DataElement`, the `NUMBER` and the `-Infinity` of
+an `E1302` sentence all stay prose, and every response's own report keeps the
+sentence exactly as DHIS2 sent it.
+
+A cause whose responses all met it in the same words is printed as DHIS2
+printed it, identifiers and all - a cause that ended one response, and a cause
+that ended five byte-identical ones alike. Generalising is what turns twenty
+rejections differing only in the object they name into one row; where nothing
+differs it takes the sentence away and gives nothing back, sending the reader
+to the report file for something that fits on the line in front of them.
 
 `--details` replaces the counted hint with one row per receipt; `--json`
 puts the whole `ForwardReport` on stdout and nothing else, import summaries

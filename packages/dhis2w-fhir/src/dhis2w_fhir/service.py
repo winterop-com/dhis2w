@@ -34,7 +34,6 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from dhis2w_fhir.attributes import AttributeCodeIndex, AttributeValueIn
 from dhis2w_fhir.config import (
-    FHIR_CONFIG_FILENAME,
     CorrectionPosture,
     FhirProject,
     GenerateConfig,
@@ -86,7 +85,11 @@ from dhis2w_fhir.overwrite import (
 )
 from dhis2w_fhir.period import parse_period, recent_periods
 from dhis2w_fhir.r4 import QuestionnaireResponse
-from dhis2w_fhir.registry_package import load_registry_documents, resolve_registry_source
+from dhis2w_fhir.registry_package import (
+    REGISTRY_CHECKOUT_RELATIVE_PATH,
+    load_registry_documents,
+    resolve_registry_source,
+)
 from dhis2w_fhir.resources.administrative_gender import (
     administrative_gender_map_file_prefix,
     build_administrative_gender_concept_map_artifacts,
@@ -195,6 +198,7 @@ from dhis2w_fhir.resources.questionnaires.assignments import (
     build_assignment_artifacts,
 )
 from dhis2w_fhir.resources.questionnaires.documents import build_questionnaire_documents
+from dhis2w_fhir.resources.questionnaires.program_rules import ComputedQuestionsSummary
 from dhis2w_fhir.resources.questionnaires.schemas import (
     FORM_KIND_PROFILES,
     CategoryAxisIn,
@@ -555,6 +559,8 @@ class GenerateReport(BaseModel):
     """The published forms every attribute option combo is restricted away from, said out loud the same way."""
     untimely_attribute_option_combos: UntimelyAttributeOptionCombosSummary | None = None
     """The published forms every attribute option combo of theirs has closed for, said out loud the same way."""
+    computed_questions: ComputedQuestionsSummary | None = None
+    """The published forms whose examples leave a question empty because DHIS2 computes it, said out loud too."""
 
 
 class LoadSetReport(BaseModel):
@@ -987,7 +993,11 @@ _SWEEP_TIMEOUT_SECONDS = 600.0
 #: What the instance sweep asks of every collection at once. `formName` exists only on the two
 #: collections a form asks its questions from; DHIS2's field filter answers the rest without it,
 #: exactly as it already answers `code` for the collections that carry none.
-_SWEEP_FIELDS = "id,name,formName,code"
+#:
+#: `translations` rides along because a generate run rewrites a NAME or FORM_NAME translation exactly
+#: as it rewrites the name beside it - a translated name becomes a published `_title`, `_name` or
+#: designation - so a sweep that read names alone would grade half of what the run publishes.
+_SWEEP_FIELDS = "id,name,formName,code,translations[property,locale,value]"
 
 
 def _sweep_collections(raw: dict[str, object]) -> list[MetadataCollectionIn]:
@@ -1002,12 +1012,24 @@ def _sweep_collections(raw: dict[str, object]) -> list[MetadataCollectionIn]:
                 name=entry.get("name"),
                 form_name=entry.get("formName"),
                 code=entry.get("code"),
+                translations=_sweep_translations(entry.get("translations")),
             )
             for entry in value
             if isinstance(entry, dict) and entry.get("id")
         ]
         collections.append(MetadataCollectionIn(resource=resource, items=items))
     return collections
+
+
+def _sweep_translations(raw: object) -> list[TranslationIn]:
+    """The translations one swept object carries, skipping every entry the wire states incompletely."""
+    if not isinstance(raw, list):
+        return []
+    return [
+        TranslationIn(property=str(entry["property"]), locale=str(entry["locale"]), value=str(entry["value"]))
+        for entry in raw
+        if isinstance(entry, dict) and entry.get("property") and entry.get("locale") and entry.get("value")
+    ]
 
 
 def resolve_code_source(config: GenerateConfig, override: str | None) -> Literal["id", "code"]:
@@ -2047,6 +2069,7 @@ def _emit_questionnaires(
         assignment_count=len(assignment_build.artifacts),
         attribute_combo_count=len(attribute_combo_build.artifacts),
         empty_assignments=assignment_build.empty_assignments,
+        computed_questions=build.computed_questions,
         unusable_attribute_option_combos=unusable_combos,
         untimely_attribute_option_combos=untimely_combos,
         notes=[
@@ -3464,38 +3487,66 @@ def _emit_organisation_units(
     return report
 
 
-def _registry_naming_source_notes(project: FhirProject, registry: RegistryDependency) -> list[GenerateNote]:
-    """What this run says when the guide and the registry checkout it depends on stem identities differently.
+def _registry_naming_source_notes(
+    project: FhirProject, registry: RegistryDependency, *, stems: StemResolution
+) -> list[GenerateNote]:
+    """What this run says when a `Location/...` reference it writes names an id the registry does not publish.
 
-    The two projects each read `[generate.naming] source` for themselves, and a reference resolves
-    only where both read the same DHIS2 field: a registry published under `code` names its units
-    `Location/OU-211224` while a guide stemming by `id` references `Location/<uid>`, and every such
-    reference dangles. The checkout is the only source that states the answer - a built package
-    carries ids and no `fhir.toml` - so a package-only run says nothing here and
-    `d2w fhir check-artifacts` grades the references themselves.
+    Read off what the registry checkout actually published rather than off the `source` literal its
+    `fhir.toml` states. The two are not the same fact: a registry set to `code-or-id` falls back to
+    the id for every unit whose code cannot serve as a stem, so two projects stating different
+    sources can publish and reference the very same ids - and one stating `code-or-id` can code some
+    units and fall back on others, which is a partial mismatch no comparison of two literals has a
+    shape for. The stems this run resolved are on one side and the checkout's own `Location-<id>.json`
+    file names are on the other, so the note states the count that really dangles, and nothing when
+    none does.
+
+    The checkout is the only source that answers - a built package is read by
+    `d2w fhir check-artifacts` instead - so a run whose registry is only a package says nothing here.
     """
-    if registry.path is None:
+    published = _published_registry_location_ids(project, registry)
+    if published is None:
         return []
-    checkout = project.project_root / registry.path
-    if not (checkout / FHIR_CONFIG_FILENAME).is_file():
+    referenced = set(stems.stems.values())
+    dangling = sorted(referenced - published)
+    if not dangling:
         return []
-    try:
-        published = load_project(checkout)
-    except (NoFhirProjectError, OSError, ValueError):
-        return []
-    theirs = published.config.generate.naming.source
-    ours = project.config.generate.naming.source
-    if theirs == ours:
-        return []
+    sample = ", ".join(dangling[:_REGISTRY_DANGLING_SAMPLE])
+    trailing = "" if len(dangling) <= _REGISTRY_DANGLING_SAMPLE else ", ..."
     return [
         generate_note(
             GenerateNoteCategory.REGISTRY_DEPENDENCY,
-            f"this guide stems every identity from {ours!r} and {registry.id} stems its organisation units "
-            f"from {theirs!r}, so each `Location/...` reference this run writes names an id that package "
-            "does not publish. Set `[generate.naming] source` to one value in both fhir.toml files and "
-            "regenerate both projects; `d2w fhir check-artifacts` names each dangling reference.",
+            f"{len(dangling)} of the {len(referenced)} organisation unit(s) this run references are named by an "
+            f"id {registry.id} does not publish: `Location/{sample}`{trailing}. The two projects resolve their "
+            "identity stems differently - read `[generate.naming] source` in both fhir.toml files - so set it to "
+            "one value and regenerate both; `d2w fhir check-artifacts` names each dangling reference.",
         )
     ]
+
+
+#: How many dangling ids the note names before it stops. Enough to recognise the shape the two
+#: projects disagree about, short enough that the note stays one sentence a reader finishes.
+_REGISTRY_DANGLING_SAMPLE = 3
+
+
+def _published_registry_location_ids(project: FhirProject, registry: RegistryDependency) -> set[str] | None:
+    """The Location ids a registry checkout published, or None when no checkout answers this run."""
+    if registry.path is None:
+        return None
+    directory = project.project_root / registry.path / REGISTRY_CHECKOUT_RELATIVE_PATH
+    if not directory.is_dir():
+        return None
+    published = {
+        path.stem[len(_LOCATION_FILE_PREFIX) :]
+        for path in directory.rglob(f"{_LOCATION_FILE_PREFIX}*.json")
+        if path.stem != _LOCATION_FILE_PREFIX
+    }
+    return published or None
+
+
+#: How a registry package names the file it publishes one organisation unit's place in. The stem the
+#: guide references is what follows it, which is the whole join this note is read from.
+_LOCATION_FILE_PREFIX = "Location-"
 
 
 def _emit_organisation_unit_dependency(
@@ -3527,7 +3578,7 @@ def _emit_organisation_unit_dependency(
             "by its absolute URL in that package. Build it with the package installed: `make registry-install` "
             "before `make build`.",
         ),
-        *_registry_naming_source_notes(project, registry),
+        *_registry_naming_source_notes(project, registry, stems=stems),
     ]
     sync = sync_artifacts(project.fsh_directory, "organization", [])
     registry_sync = sync_json_artifacts(project.resources_directory, REGISTRY_DIRECTORY, [])
@@ -5835,6 +5886,16 @@ _TRACKER_REPORT_KEYS = frozenset({"validationReport", "stats", "bundleReport"})
 #: substituted for a UID is never itself re-read as one.
 _EMBEDDED_IDENTIFIER = re.compile(r"`[^`]*`|\b[A-Za-z][A-Za-z0-9]{10}\b")
 
+#: What one whole token has to look like to be a DHIS2 UID: eleven characters, a letter first. The
+#: bare half of `_EMBEDDED_IDENTIFIER` already reads that shape off a sentence; a quoted run is
+#: measured against it token by token, because DHIS2 backticks whole clauses as readily as ids.
+_UID_SHAPE = re.compile(r"[A-Za-z][A-Za-z0-9]{10}")
+
+#: What separates two identifiers inside one quoted run. `E1029` and `E8025` backtick a whole
+#: organisation-unit list - brackets and all - as one run, so the brackets separate rather than
+#: belong, and the run reads as identifiers only when every token between them does.
+_QUOTED_TOKEN_SEPARATOR = re.compile(r"[,;\s\[\]]+")
+
 #: Where a bare word turns from lower case to upper. A DHIS2 UID is eleven random characters and a
 #: sentence is made of words, so the two are told apart by shape: `DataElement` and `dataElement` are
 #: English spelt for a machine and turn once, where `ImspTQPwCqd` turns wherever the generator happened
@@ -6473,14 +6534,16 @@ class ForwardReport(BaseModel):
         `E1029` against two different pairs of objects is one cause of the run rather than two. The
         message shown for a cause is the first one the run met.
 
-        A cause that ended one response keeps its identifiers. The generalisation exists so twenty
-        rejections read as one row, and at a count of one it buys nothing and costs the reader the
-        very UID they need - which is then only in the report file. A UID naming a program rule the
-        guide published is read back as that rule's name at either count.
+        A cause that ended one response keeps its identifiers, and so does a cause whose every
+        response met it in the very same words. The generalisation exists so twenty rejections
+        differing only in the object they name read as one row; five byte-identical messages differ
+        in nothing, so eliding them removes the sentence and buys the reader nothing back. A UID
+        naming a program rule the guide published is read back as that rule's name at either count.
         """
         counted: Counter[tuple[str | None, str]] = Counter()
         samples: dict[tuple[str | None, str], str] = {}
         verbatim: dict[tuple[str | None, str], str] = {}
+        identical: dict[tuple[str | None, str], bool] = {}
         for outcome in self.rejected:
             imported = outcome.import_outcome
             issues = imported.issues if imported is not None else ()
@@ -6498,12 +6561,16 @@ class ForwardReport(BaseModel):
             counted.update(causes.keys())
             for key, reason in causes.items():
                 samples.setdefault(key, reason)
-                verbatim.setdefault(key, spoken[key])
+                if key in verbatim:
+                    identical[key] = identical[key] and verbatim[key] == spoken[key]
+                else:
+                    verbatim[key] = spoken[key]
+                    identical[key] = True
         ordered = sorted(counted.items(), key=lambda item: (-item[1], item[0][0] or "", item[0][1]))
         return tuple(
             ForwardRejectionReason(
                 error_code=key[0],
-                reason=verbatim[key] if responses == 1 else samples[key],
+                reason=verbatim[key] if identical[key] else samples[key],
                 responses=responses,
             )
             for key, responses in ordered
@@ -7734,12 +7801,14 @@ def _generalised_reason(reason: str, rule_names: ProgramRuleNames, *, elide: boo
     than which twelve characters did. Every other identifier generalises, because two rejections of
     one rule against two different objects are one cause of the run.
 
-    QUOTED AND BARE ALIKE. Whether DHIS2 backticks an identifier is DHIS2's own habit, not a fact
-    about the identifier - `E8025` states the attribute option combo bare and the organisation units
-    it is not usable with quoted, in one sentence - so a row grouping three responses would otherwise
-    name the first one's combo for all three. A quoted run is an identifier because DHIS2 marked it
-    as one; a bare one has to be told from the sentence it sits in, which `_reads_as_uid` is. The UID
-    itself is untouched on the response's own report, which is where a reader goes for the object.
+    QUOTED AND BARE ALIKE, AND BY THE SAME TEST. Whether DHIS2 backticks an identifier is DHIS2's own
+    habit, not a fact about the identifier - `E8025` states the attribute option combo bare and the
+    organisation units it is not usable with quoted, in one sentence - so a row grouping three
+    responses would otherwise name the first one's combo for all three. What DHIS2 quotes is not
+    thereby an identifier either: `E1302` backticks a value type, a whole explanatory clause, and the
+    offending value inside it, so a quoted run is read for the same shape a bare one is and stays
+    verbatim when it is prose, a value, or a name. The UID itself is untouched on the response's own
+    report, which is where a reader goes for the object.
 
     `elide = False` is the row standing for a single response: the rule name still lands, because
     reading `dahuKlP7jR2` back as the rule it published is a gain at any count, and every other
@@ -7748,14 +7817,28 @@ def _generalised_reason(reason: str, rule_names: ProgramRuleNames, *, elide: boo
 
     def _read(match: re.Match[str]) -> str:
         token = match.group(0)
-        if not token.startswith("`") and not _reads_as_uid(token):
-            return token
-        name = rule_names.name_for(token.strip("`"))
+        quoted = token.startswith("`")
+        inner = token.strip("`")
+        name = rule_names.name_for(inner)
         if name is not None:
             return f"`{name}`"
+        identifies = _quotes_identifiers(inner) if quoted else _reads_as_uid(token)
+        if not identifies:
+            return token
         return "`...`" if elide else token
 
     return _EMBEDDED_IDENTIFIER.sub(_read, reason)
+
+
+def _quotes_identifiers(run: str) -> bool:
+    """Whether one backticked run holds DHIS2 identifiers and nothing else.
+
+    DHIS2 quotes a list of organisation units and it quotes `Value type is NUMBER but the value` in
+    the same habit, so the run earns generalisation only when every token in it is UID-shaped and
+    reads as a UID rather than as a word. An empty run holds no identifier and says nothing.
+    """
+    tokens = [token for token in _QUOTED_TOKEN_SEPARATOR.split(run.strip()) if token]
+    return bool(tokens) and all(_UID_SHAPE.fullmatch(token) is not None and _reads_as_uid(token) for token in tokens)
 
 
 def _reads_as_uid(token: str) -> bool:

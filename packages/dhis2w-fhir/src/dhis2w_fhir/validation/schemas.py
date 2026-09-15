@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from dhis2w_fhir.config import HostileNamePosture
+from dhis2w_fhir.i18n import TranslationIn
 from dhis2w_fhir.notes import pluralize
 
 #: The sweep collection each `ValidationScope` surface answers for - every other collection is never in scope.
@@ -146,6 +147,8 @@ class MetadataItemIn(BaseModel):
     name: str | None = None
     form_name: str | None = None
     code: str | None = None
+    translations: list[TranslationIn] = Field(default_factory=list)
+    """Every translation DHIS2 holds for the object; the name-shaped ones are graded beside the name."""
 
 
 class MetadataCollectionIn(BaseModel):
