@@ -296,6 +296,16 @@ class CaptureFormExample(BaseModel):
     attribute_option_combo: CaptureAttributeOptionComboExample | None = None
     """The combination this form's capture is filed under, absent on a form riding the default category combo."""
 
+    attribute_option_combo_restricted_away: bool = False
+    """Whether this DHIS2 instance leaves the form no combination usable at the worked unit for the worked period.
+
+    A form on a category combination that is not the default one takes no capture naming no
+    combination (`E8023`), and none naming a combination scoped away from the organisation unit it
+    is filed from (`E8025`) or closed for the period it reports (`E8032`). Where every combination
+    the form declares falls to one of those, the form is one nothing may capture - which the page
+    states outright, because a walk-through quoting a combination there teaches a refused capture.
+    """
+
 
 class EventStatusRow(BaseModel):
     """One DHIS2 event status and the `QuestionnaireResponse.status` a capture client sends for it."""

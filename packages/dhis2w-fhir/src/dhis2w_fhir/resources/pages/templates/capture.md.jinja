@@ -108,6 +108,19 @@ not cover entirely with `E8032`. [Terminology](terminology.html) lists every pub
 and the DHIS2 identifiers each concept carries.
 
 {% endif %}
+{% if capture.aggregate is not none and capture.aggregate.attribute_option_combo_restricted_away %}
+**This DHIS2 instance takes no capture for {{ capture.aggregate.name }} at
+{{ capture.aggregate.organisation_unit_name or capture.aggregate.organisation_unit_uid }}{% if capture.aggregate.period is not none %}, for {{ capture.aggregate.period.iso }}{% endif %}.**
+The form rides a category combination that is not the default one, so a response naming no attribute
+option combination is refused with `E8023` - and every combination it declares is one this instance
+scopes away from that organisation unit (`E8025`){% if capture.aggregate.period is not none %} or has closed for that period (`E8032`){% endif %}.
+So the steps below state the shape of a response for this form, and the guide publishes no example
+of one: the category options behind those combinations have to admit the organisation unit{% if capture.aggregate.period is not none %} and
+stay open over the period{% endif %}, which is DHIS2 metadata rather than anything this guide sets.
+[Terminology](terminology.html) lists every published combination and the DHIS2 identifiers each
+concept carries.
+
+{% endif %}
 **{{ 5 + combo_step }}. Answer one item per `linkId`.** The response mirrors the Questionnaire's item tree, and
 every question is addressed by the `linkId` the Questionnaire gave it. There are exactly two
 grammars:

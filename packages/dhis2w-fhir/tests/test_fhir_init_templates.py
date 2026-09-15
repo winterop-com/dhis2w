@@ -119,7 +119,7 @@ def test_a_demonstration_example_is_no_template_and_is_refused_by_what_it_demons
     assert isinstance(result.exception, CliUserError)
     message = str(result.exception)
     assert "refused-names" in message
-    assert "`make sushi` has nothing to compile" in message
+    assert "`make sushi` has nothing it can compile" in message
     assert not (workdir / "project").exists()
 
 

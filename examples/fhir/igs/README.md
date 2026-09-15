@@ -44,11 +44,12 @@ refusal = """
 It demonstrates the names `d2w fhir generate` refuses: ..."""
 ```
 
-It is the exhibit, not a guide: the run is refused before a file is written, so
-it carries no generated tree to lay down and `make sushi` has nothing to
-compile. `--list-templates` leaves it out, and `d2w fhir init x --template
-refused-names` prints that `refusal` instead of scaffolding a project it would
-then tell you to compile.
+It is the exhibit, not a guide: the run is refused on the first hostile name,
+which leaves the foundation target on disk and nothing after it, so it carries no
+generated tree to lay down and `make sushi` has nothing it can compile.
+`--list-templates` leaves it out, and `d2w fhir init x --template refused-names`
+prints that `refusal` instead of scaffolding a project it would then tell you to
+compile.
 
 Three of the eight templates also ride the installed wheel, as payloads under
 `packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/projects/`; the manifest beside
@@ -174,9 +175,11 @@ Per guide, in order:
    exhibit must carry at least one `template-hostile-name` error.
 3. **generate** - `d2w fhir generate`. Every guide but the exhibit must succeed;
    the exhibit must be refused, naming the object it refused on.
-4. **compile** - the project's own `make sushi`, which is SUSHI in docker. The
-   exhibit has no FSH to compile and skips; every guide skips when docker is not
-   available, with that stated as the reason.
+4. **compile** - the project's own `make sushi`, which is SUSHI in docker. Every
+   guide skips it when docker is not available, with that stated as the reason.
+   The exhibit compiles nothing and is read instead on what its refused run left:
+   `aliases.fsh` and the foundation target under `ig/input/fsh/`, nothing after
+   them, and no compile beside them.
 
 The runner is [`infra/scripts/verify_igs.py`](../../../infra/scripts/verify_igs.py).
 It is an on-demand target: it needs a reachable DHIS2 instance and docker, so it
@@ -186,6 +189,32 @@ narrows it to one, and `--no-compile` drops the docker step.
 The full IG publisher - `make build` inside a project - is not part of this. It
 takes hours per guide, and what it would add over SUSHI is rendered pages rather
 than resources.
+
+## Regenerating every guide
+
+Nothing under `ig/input/fsh/` or `ig/input/pagecontent/` is committed, so there is
+no such thing as a guide here that has fallen behind an emitter: the tree a reader
+compiles is the tree the current build writes. What does fall behind is a
+selection - a `fhir.toml` naming a UID the seeded instance no longer carries - and
+that is what regenerating catches. Four commands, from the repository root:
+
+```bash
+make dhis2-run DHIS2_VERSION=v43   # the seeded stack, in another terminal
+make verify-igs                    # refresh, validate, generate, compile, all nine
+git status --porcelain             # empty, or a committed input has moved
+make clean-artifacts               # sweep the regenerated trees back off disk
+```
+
+`make dhis2-run` restores the prebuilt dump, so it is minutes rather than the
+hours a full reseed takes; [`docs/local-setup.md`](../../../docs/local-setup.md)
+covers rebuilding that dump. Every UID a `fhir.toml` here names belongs to that
+dump, so `play.dhis2.org` is not a substitute: run the catalog against the local
+stack or not at all.
+
+The regenerated trees are git-ignored, not absent - a checkout that has run the
+catalog holds every generated file on disk until `make clean-artifacts` sweeps
+them. A tree left there is a tree the next reader takes for a committed one, so
+sweep it before reading anything under a guide as what the catalog ships.
 
 ## Building one by hand
 

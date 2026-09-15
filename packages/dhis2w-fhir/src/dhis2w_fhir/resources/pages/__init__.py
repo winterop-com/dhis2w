@@ -39,6 +39,7 @@ from dhis2w_fhir.resources.attribute_combos import attribute_combo_identities, a
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     AttributeOptionRestrictions,
     CategoryOptionValidity,
+    UsableAttributeOptionCombos,
 )
 from dhis2w_fhir.resources.attribute_combos.schemas import AttributeComboIdentity
 from dhis2w_fhir.resources.examples import (
@@ -621,6 +622,21 @@ class _CaptureUnitResolver(BaseModel):
         )
 
 
+class _WorkedCaptureCombo(BaseModel):
+    """What the capture page may say about the combination one form's walk-through files under.
+
+    The two answers are different facts and the page says different things about them: `example` is
+    a combination the worked organisation unit may file under for the worked period, and
+    `restricted_away` is the form DHIS2 leaves no such combination at all - a form nobody may
+    capture for, which the page states rather than quoting a combination the instance refuses.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    example: CaptureAttributeOptionComboExample | None = None
+    restricted_away: bool = False
+
+
 class _CaptureComboResolver(BaseModel):
     """Which attribute option combination each worked form files its capture under, and how the page cites it.
 
@@ -630,6 +646,11 @@ class _CaptureComboResolver(BaseModel):
     window (`E8032`), so the combination the page quotes has to be one the worked organisation unit
     may file under for the worked period - which is what the run's own example placements and the
     instance's restrictions answer between them.
+
+    Both axes are graded together and an empty answer is the form's own verdict rather than a gap in
+    what is known: a form whose every combination this DHIS2 instance scopes away from the worked
+    organisation unit, or has closed by the worked period, is one no capture exists for, and the
+    examples target drops it for the same reason.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -639,6 +660,7 @@ class _CaptureComboResolver(BaseModel):
     identities: dict[str, AttributeComboIdentity] = Field(default_factory=dict)
     concept_codes: dict[str, ConceptAssignmentPlan] = Field(default_factory=dict)
     restrictions: AttributeOptionRestrictions = Field(default_factory=AttributeOptionRestrictions)
+    usable: UsableAttributeOptionCombos = Field(default_factory=UsableAttributeOptionCombos)
 
     @classmethod
     def of(
@@ -658,53 +680,61 @@ class _CaptureComboResolver(BaseModel):
             identities={identity.uid: identity for identity in plan.identities},
             concept_codes=example_attribute_combo_assignments(pages.forms, config),
             restrictions=attribute_option_restrictions,
+            usable=UsableAttributeOptionCombos.of(attribute_option_restrictions),
         )
 
     def worked(
         self, source: QuestionnaireSourceIn, organisation_unit_uid: str, period: CapturePeriodExample | None
-    ) -> CaptureAttributeOptionComboExample | None:
-        """The combination this form's walk-through files under, or None where it rides the default combo."""
+    ) -> _WorkedCaptureCombo:
+        """The combination this form's walk-through files under, or the verdict that DHIS2 leaves it none."""
         combo = source.attribute_combo
         if combo is None or combo.is_default or not combo.option_combos:
-            return None
+            return _WorkedCaptureCombo()
+        admitted = self._usable_option_combos(source, organisation_unit_uid, period)
+        if not admitted:
+            return _WorkedCaptureCombo(restricted_away=True)
         identity = self.identities.get(combo.uid)
         assignment = self.concept_codes.get(combo.uid)
         if identity is None or assignment is None:
-            return None
-        option_combo = self._usable_option_combo(source, organisation_unit_uid, period)
-        concept_code = assignment.code_for(option_combo.uid) if option_combo is not None else None
-        if option_combo is None or concept_code is None:
-            return None
-        return CaptureAttributeOptionComboExample(
-            uid=option_combo.uid,
-            display=markdown_text(option_combo.name),
-            concept_code=concept_code,
-            code_system_url=f"{self.canonical}/CodeSystem/{identity.code_system_id}",
-            value_set_id=identity.value_set_id,
+            return _WorkedCaptureCombo()
+        option_combo = admitted[0]
+        concept_code = assignment.code_for(option_combo.uid)
+        if concept_code is None:
+            return _WorkedCaptureCombo()
+        return _WorkedCaptureCombo(
+            example=CaptureAttributeOptionComboExample(
+                uid=option_combo.uid,
+                display=markdown_text(option_combo.name),
+                concept_code=concept_code,
+                code_system_url=f"{self.canonical}/CodeSystem/{identity.code_system_id}",
+                value_set_id=identity.value_set_id,
+            )
         )
 
-    def _usable_option_combo(
+    def _usable_option_combos(
         self, source: QuestionnaireSourceIn, organisation_unit_uid: str, period: CapturePeriodExample | None
-    ) -> CategoryOptionComboIn | None:
-        """The first combination of this form's vocabulary the worked unit may file under for the worked period.
+    ) -> list[CategoryOptionComboIn]:
+        """Every combination of this form's vocabulary the worked unit may file under for the worked period.
 
-        The unit axis comes off the run's own placement where it has one, so the page cites what the
-        examples beside it cite. The calendar axis is graded here: a combination whose window does not
-        cover the whole period the walk-through reports for is one DHIS2 answers `E8032` to, so it is
-        passed over for one that does. A form whose every combination is closed for that period falls
-        back to the first the unit admits, which is the page saying what the vocabulary holds where the
-        instance leaves it nothing better.
+        Both axes DHIS2 grades are graded here, off the instance's own restrictions: a combination
+        scoped away from the worked organisation unit is answered `E8025`, and one whose calendar
+        window does not cover the whole worked period `E8032`. The run's own placement narrows it
+        further where it has one, so the page cites what the examples beside it cite. An empty
+        answer is the form nothing may capture, and a caller that knows no restriction at all
+        narrows nothing - which is the whole vocabulary, as DHIS2 answers for an unrestricted one.
         """
         combo = source.attribute_combo
         if combo is None:
-            return None
+            return []
         placement = self.placements.get(source.uid)
-        usable = placement.usable_attribute_option_combo_uids.get(organisation_unit_uid, ()) if placement else ()
-        admitted = [entry for entry in combo.option_combos if not usable or entry.uid in usable]
-        if not admitted:
-            return None
-        open_for_period = [entry for entry in admitted if self._covers(entry, period)]
-        return (open_for_period or admitted)[0]
+        placed = placement.usable_attribute_option_combo_uids.get(organisation_unit_uid, ()) if placement else ()
+        return [
+            entry
+            for entry in combo.option_combos
+            if (not placed or entry.uid in placed)
+            and self.usable.admits(organisation_unit_uid, entry.category_option_uids)
+            and self._covers(entry, period)
+        ]
 
     def _covers(self, option_combo: CategoryOptionComboIn, period: CapturePeriodExample | None) -> bool:
         """Whether DHIS2 leaves this combination open for the whole period the walk-through reports for."""
@@ -729,17 +759,18 @@ def _capture_form_example(
 ) -> CaptureFormExample | None:
     """Work one selected form of `kind` through the contract: its Questionnaire, its period, and its linkIds.
 
-    A form the run filed an example for is preferred over one it did not, so the steps are worked
-    against a form the reader can actually capture for rather than against one every combo of is
-    restricted away from every organisation unit that may report it.
+    A form DHIS2 takes a capture for is preferred over one it refuses every capture of, and a form
+    the run filed an example for over one it did not - so the steps are worked against a form the
+    reader can really capture for wherever the selection holds one. Where it holds none, the page
+    says so rather than quoting a combination the instance answers `E8025` or `E8032` to.
     """
     candidates = [source for source in forms if source.kind == kind and _source_items(source)]
     if not candidates:
         return None
-    placed = [source for source in candidates if units.places(source.uid)]
-    source = min(placed or candidates, key=lambda item: (item.name, item.uid))
+    source = min(candidates, key=lambda item: _capture_preference(item, units, combos))
     worked = units.worked(source.uid)
     period = _capture_period(source)
+    attribute_option_combo = combos.worked(source, worked.uid, period)
     return CaptureFormExample(
         uid=source.uid,
         name=markdown_text(source_display_name(source)),
@@ -751,8 +782,18 @@ def _capture_form_example(
         organisation_unit_uid=worked.uid,
         organisation_unit_reference=worked.reference,
         organisation_unit_name=worked.name,
-        attribute_option_combo=combos.worked(source, worked.uid, period),
+        attribute_option_combo=attribute_option_combo.example,
+        attribute_option_combo_restricted_away=attribute_option_combo.restricted_away,
     )
+
+
+def _capture_preference(
+    source: QuestionnaireSourceIn, units: _CaptureUnitResolver, combos: _CaptureComboResolver
+) -> tuple[int, int, str, str]:
+    """How one form ranks as the walk-through's worked example - capturable first, placed next, then by name."""
+    worked = units.worked(source.uid)
+    restricted_away = combos.worked(source, worked.uid, _capture_period(source)).restricted_away
+    return (1 if restricted_away else 0, 0 if units.places(source.uid) else 1, source.name, source.uid)
 
 
 def _capture_period(source: QuestionnaireSourceIn) -> CapturePeriodExample | None:

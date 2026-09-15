@@ -172,16 +172,17 @@ either `scaffolds = true` with the `summary` the listing prints, or
 holds exhibits as well as guides -
 [`refused-names`](https://github.com/winterop-com/dhis2w/blob/main/examples/fhir/igs/refused-names/README.md)
 exists to show a selection `d2w fhir generate` refuses, so it has no generated
-tree to lay down and nothing for `make sushi` to compile - and the declaration
+tree to lay down and nothing `make sushi` can compile - and the declaration
 is what keeps one of those out of the listing:
 
 ```console
 $ d2w fhir init demo --template refused-names
 error: `refused-names` is an example, not a template. It demonstrates the names
 `d2w fhir generate` refuses: a selection whose DHIS2 names carry a raw '<', which
-aborts the IG publisher's last pass. The run is refused before a file is written,
-so this example carries no generated tree to lay down and `make sushi` has nothing
-to compile. Read it at examples/fhir/igs/refused-names/README.md.
+aborts the IG publisher's last pass. The run is refused on the first such name,
+which leaves the foundation target on disk and nothing after it, so this example
+carries no generated tree to lay down and `make sushi` has nothing it can
+compile. Read it at examples/fhir/igs/refused-names/README.md.
 ```
 
 **Bundled or checkout.** A bundled template rides the installed package and
