@@ -234,9 +234,15 @@ function StatTile({
     )
 }
 
-/** What the fifth tile is called, and the line under its count. */
-const QUARANTINED_LABEL = 'Could not be read'
-const QUARANTINED_SUBTITLE = 'This server could not read them'
+/**
+ * What the fifth tile is called, and the line under its count.
+ *
+ * The sub-label is a lower-case fragment saying where these files are, which is the one register the
+ * four lifecycle tiles beside it write in. A capitalised sentence restating the label would be the
+ * same fact in two costumes on one row of tiles.
+ */
+export const QUARANTINED_LABEL = 'Could not be read'
+export const QUARANTINED_SUBTITLE = 'set aside, never read as a response'
 
 /**
  * The files the facade moved aside, as the fifth tile.
@@ -272,7 +278,7 @@ function QuarantinedTile({ count }: { count: number }) {
 }
 
 /** The line under each count - what the state means, and for a rejection what it was mostly about. */
-function subtitleFor(
+export function subtitleFor(
     lifecycle: ResponseLifecycle,
     counts: SpoolCounts,
     cause: RejectionCause | null,

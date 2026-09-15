@@ -255,6 +255,10 @@ export function FormFill() {
     const [busy, setBusy] = useState(false)
     const [filling, setFilling] = useState(false)
     const [attributeOptionCombo, setAttributeOptionCombo] = useState<Coding | null>(null)
+    // Whether the combo in the picker is somebody's choice or the server's draw - the same
+    // distinction the organisation unit beside it keeps, and for the same reason: a refill draws
+    // around a choice and replaces a draw.
+    const [attributeOptionComboChosen, setAttributeOptionComboChosen] = useState(false)
     const [reportingUnit, setReportingUnit] = useState<Reference | null>(null)
     const [keptUnitNotAdmitted, setKeptUnitNotAdmitted] = useState(false)
     // Whether the unit in the picker is somebody's choice or the server's draw. The two look
@@ -487,14 +491,25 @@ export function FormFill() {
         // would be a routing bug rather than a state a person can reach.
         if (filling || questionnaire === null) return
         setFilling(true)
-        // A chosen organisation unit is where the refill is drawn, not something the refill
-        // overwrites: the server draws the whole context there, so the attribute option combo that
-        // comes back beside it is one this DHIS2 instance accepts at that organisation unit.
+        // A chosen organisation unit and a chosen attribute option combo are where the refill is
+        // drawn, not something the refill overwrites: the server draws the whole context around
+        // them, so what comes back is a capture this DHIS2 instance accepts under both choices. A
+        // pair it does not accept is refused with the reason, which lands in the catch below.
         const chosenUnitId = reportingUnitChosen ? (referencedUnitId(reportingUnit) ?? undefined) : undefined
-        generateResponse(questionnaireId, seedStated ? statedSeed(seed) : undefined, chosenUnitId)
+        const chosenComboCode = attributeOptionComboChosen
+            ? (attributeOptionCombo?.code ?? undefined)
+            : undefined
+        generateResponse(
+            questionnaireId,
+            seedStated ? statedSeed(seed) : undefined,
+            chosenUnitId,
+            chosenComboCode,
+        )
             .then((generated) => {
                 setEnvelope(generated)
-                setAttributeOptionCombo((current) => refilledAttributeOptionCombo(current, generated))
+                setAttributeOptionCombo((current) =>
+                    refilledAttributeOptionCombo(current, generated, attributeOptionComboChosen),
+                )
                 setReportingUnit((current) =>
                     refilledReportingUnit(current, generated, questionnaire, reportingUnitChosen),
                 )
@@ -524,7 +539,18 @@ export function FormFill() {
                 })
             })
             .finally(() => setFilling(false))
-    }, [filling, questionnaire, questionnaireId, seed, seedStated, clearStatedDates, reportingUnit, reportingUnitChosen])
+    }, [
+        filling,
+        questionnaire,
+        questionnaireId,
+        seed,
+        seedStated,
+        clearStatedDates,
+        reportingUnit,
+        reportingUnitChosen,
+        attributeOptionCombo,
+        attributeOptionComboChosen,
+    ])
 
     // How far through the form this is, published before the read has landed so the hook order does
     // not depend on whether the server holds the form.
@@ -770,7 +796,11 @@ export function FormFill() {
                             canonical={attributeOptionCombos}
                             selected={attributeOptionCombo}
                             disabled={uncapturable !== null}
-                            onChange={setAttributeOptionCombo}
+                            chosen={attributeOptionComboChosen}
+                            onChange={(coding) => {
+                                setAttributeOptionCombo(coding)
+                                setAttributeOptionComboChosen(true)
+                            }}
                         />
                     )}
                     {registersAPersonHere && (

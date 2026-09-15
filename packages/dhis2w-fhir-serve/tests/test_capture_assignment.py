@@ -237,6 +237,59 @@ def test_a_subject_outside_the_assignment_is_a_warning_by_default(
     assert "E1029" in noted[0].diagnostics
 
 
+def test_a_form_with_an_assignment_also_grades_whether_the_guide_publishes_the_unit(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """Two facts, two findings: the guide publishes no such Location, and the List does not name it.
+
+    A List saying nothing about a reference is not the List answering whether the reference names a
+    published organisation unit at all, so the existence question is asked of an assigned form
+    exactly as it is asked of an unassigned one.
+    """
+    aggregate_response["subject"] = {"reference": _UNPUBLISHED_LOCATION}
+    store = _scoped_store(capture_store, _ADMITTED_LOCATION)
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, store)
+
+    noted = [issue.diagnostics or "" for issue in _assignment_issues(accepted.warnings)]
+    assert any("is not among the organisation units this server publishes" in text for text in noted)
+    assert any("is not in the form's organisation-unit assignment" in text for text in noted)
+
+
+def test_a_strict_facade_refuses_an_unpublished_subject_of_an_assigned_form(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """The existence finding grades on the dial the assignment finding grades on, on a form with a List."""
+    aggregate_response["subject"] = {"reference": _UNPUBLISHED_LOCATION}
+    store = _scoped_store(capture_store, _ADMITTED_LOCATION)
+
+    rejection = _refuse(aggregate_response, capture_indexes, capture_naming, store, strict_codes=True)
+
+    assert rejection.http_status == 422
+    refused = [issue.diagnostics or "" for issue in _errors(rejection)]
+    assert any("is not among the organisation units this server publishes" in text for text in refused)
+
+
+def test_a_subject_the_assignment_admits_and_the_guide_publishes_is_silent_on_both(
+    aggregate_response: dict[str, Any],
+    capture_indexes: CaptureIndexCache,
+    capture_naming: CaptureNaming,
+    capture_store: ResourceStore,
+) -> None:
+    """Asking the existence question of every form adds no finding to a capture that is simply right."""
+    store = _scoped_store(capture_store, _ADMITTED_LOCATION)
+
+    accepted = _accept(aggregate_response, capture_indexes, capture_naming, store)
+
+    assert accepted.warnings == ()
+
+
 def test_a_strict_facade_refuses_the_subject_a_lenient_one_warns_about(
     aggregate_response: dict[str, Any],
     capture_indexes: CaptureIndexCache,

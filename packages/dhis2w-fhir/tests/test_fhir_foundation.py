@@ -74,6 +74,18 @@ def test_the_generate_operation_is_declared_instance_level_on_questionnaire() ->
     assert "not SDC's $populate" in content
 
 
+def test_the_generate_operation_declares_both_halves_of_the_capture_key_as_inputs() -> None:
+    """A client pins where a draft reports from and what it is filed under, and the definition says so."""
+    content = _by_path(GenerateConfig())["foundation/d2-generate-operation.fsh"]
+
+    assert "* parameter[+].name = #subject" in content
+    assert "* parameter[+].name = #attributeOptionCombo" in content
+    assert "refused with the reason rather than silently replaced" in content
+    # No angle brackets anywhere in the rendered narrative: the IG publisher writes it as XHTML and
+    # a stray `<` aborts the build.
+    assert "<" not in content
+
+
 def test_the_generate_operation_follows_the_configured_prefix() -> None:
     """The operation rides the same naming token every other foundation artifact does."""
     content = _by_path(GenerateConfig(naming=NamingConfig(prefix="LAO")))["foundation/d2-generate-operation.fsh"]

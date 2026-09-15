@@ -1269,6 +1269,53 @@ async def test_a_subject_that_is_no_organisation_unit_reference_is_refused(
     assert "subject" in refused.json()["issue"][0]["diagnostics"]
 
 
+#: The id shape a guide naming its organisation units by their DHIS2 code publishes them under. It is
+#: a valid R4 id and no DHIS2 UID, and it is what the capture UI of such a guide sends here.
+CODE_STEMMED_UNIT = "OU-226264"
+
+
+def _code_stemmed_location() -> dict[str, Any]:
+    """One published Location whose id is an organisation unit's DHIS2 code rather than its UID."""
+    return {
+        "resourceType": "Location",
+        "id": CODE_STEMMED_UNIT,
+        "identifier": [{"system": "http://dhis2.org/fhir/id/org-unit", "value": "M9q1wOOsrXp"}],
+        "name": "Yara MCHP",
+        "status": "active",
+    }
+
+
+async def test_a_subject_named_by_a_code_stemmed_id_is_drawn_at(
+    capture_project: FhirProject,
+    write_resource: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """A guide publishing `Location/OU-226264` has no other spelling for that organisation unit."""
+    write_resource(
+        capture_project.ig_directory / "input" / "resources" / "registry" / f"Location-{CODE_STEMMED_UNIT}.json",
+        _code_stemmed_location(),
+    )
+    app = create_app(ServeSettings(project_dir=capture_project.project_root))
+
+    async with app.router.lifespan_context(app):
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+            generated = await _generate(client, AGGREGATE_ID, seed=4, subject=f"Location/{CODE_STEMMED_UNIT}")
+
+    assert generated.status_code == 200
+    assert generated.json()["subject"]["reference"] == f"Location/{CODE_STEMMED_UNIT}"
+
+
+async def test_a_subject_this_server_serves_no_location_for_is_refused_by_name(
+    capture_client: httpx2.AsyncClient,
+) -> None:
+    """Which organisation units exist is the store's answer, so a refusal names the one it does not hold."""
+    refused = await _generate(capture_client, AGGREGATE_ID, seed=4, subject="Location/OU-999999")
+    outcome = refused.json()
+
+    assert refused.status_code == 422
+    assert "Location/OU-999999" in outcome["issue"][0]["diagnostics"]
+
+
 async def test_naming_no_subject_leaves_the_organisation_unit_to_the_draw(
     capture_client: httpx2.AsyncClient,
 ) -> None:

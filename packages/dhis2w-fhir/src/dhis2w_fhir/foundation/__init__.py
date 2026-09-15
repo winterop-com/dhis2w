@@ -87,6 +87,7 @@ from dhis2w_fhir.foundation.schemas import (
     DATE_LABEL_INCIDENT_SUB_EXTENSION,
     FORM_TYPE_DEFINITIONS,
     FORM_TYPE_TERMINOLOGY,
+    GENERATE_ATTRIBUTE_OPTION_COMBO_PARAMETER,
     GENERATE_OPERATION_CODE,
     GENERATE_SEED_PARAMETER,
     GENERATE_SUBJECT_PARAMETER,
@@ -150,6 +151,7 @@ __all__ = [
     "DATE_LABEL_INCIDENT_SUB_EXTENSION",
     "FORM_TYPE_DEFINITIONS",
     "FORM_TYPE_TERMINOLOGY",
+    "GENERATE_ATTRIBUTE_OPTION_COMBO_PARAMETER",
     "GENERATE_OPERATION_CODE",
     "GENERATE_SEED_PARAMETER",
     "GENERATE_SUBJECT_PARAMETER",
@@ -244,11 +246,21 @@ _GENERATE_SEED_DOCUMENTATION = (
 #: which is the same hazard `HostileNameGate` screens DHIS2's own names for.
 _GENERATE_SUBJECT_DOCUMENTATION = (
     "The organisation unit the generated response reports from, as a Location reference - the "
-    "resource type, a slash, and the organisation unit's DHIS2 UID. The server draws the rest of "
-    "the context at that organisation unit, so the attribute option combo it draws is one the "
-    "instance accepts there. Absent, the server draws the organisation unit too, from the form's "
-    "own assignment. An organisation unit the form is not assigned to is refused rather than "
-    "silently replaced."
+    "resource type, a slash, and the id the served Location carries, which is the DHIS2 UID under "
+    "the default naming source and the organisation unit's DHIS2 code under a code-stemmed one. The "
+    "server draws the rest of the context at that organisation unit, so the attribute option combo "
+    "it draws is one the instance accepts there. Absent, the server draws the organisation unit too, "
+    "from the form's own assignment. An organisation unit the server publishes no Location for, or "
+    "one the form is not assigned to, is refused rather than silently replaced."
+)
+_GENERATE_ATTRIBUTE_OPTION_COMBO_DOCUMENTATION = (
+    "The attribute option combo the generated response is filed under, as the concept code the "
+    "form's own attribute-option-combo ValueSet publishes, or as that code behind its system and a "
+    "vertical bar. This is subject's twin for the second half of the capture key: a client whose "
+    "person has chosen a combo names it here and the draft comes back keyed to it. Absent, the "
+    "server draws the combo, from the concepts the instance accepts at the organisation unit and "
+    "for the period the response reports for. A combo the instance does not accept there is refused "
+    "with the reason rather than silently replaced."
 )
 _GENERATE_RETURN_DOCUMENTATION = (
     "The generated QuestionnaireResponse, declaring the response profile of the form's own DHIS2 "
@@ -439,6 +451,8 @@ def build_foundation_artifacts(config: GenerateConfig, canonical: str, *, ig_sta
         seed_documentation=_GENERATE_SEED_DOCUMENTATION,
         subject_parameter=GENERATE_SUBJECT_PARAMETER,
         subject_documentation=_GENERATE_SUBJECT_DOCUMENTATION,
+        attribute_option_combo_parameter=GENERATE_ATTRIBUTE_OPTION_COMBO_PARAMETER,
+        attribute_option_combo_documentation=_GENERATE_ATTRIBUTE_OPTION_COMBO_DOCUMENTATION,
         return_documentation=_GENERATE_RETURN_DOCUMENTATION,
         declared_date=_GENERATE_OPERATION_DECLARED_DATE,
         ig_status=ig_status,

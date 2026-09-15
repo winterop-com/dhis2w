@@ -40,11 +40,18 @@ const CONTROL_ID = 'attribute-option-combo'
  * almost the same ("Improve access to clean water", "Improve access to medicines"), and the uid is
  * what the receipt, the spool, the forwarder's refusals, and DHIS2 itself name them by - the same
  * argument the question labels make for their data element uids.
+ *
+ * WHY A CHOICE IS NOT THE SAME AS A DRAW. Once somebody picks here, "fill with test data" draws
+ * FOR that combo rather than over it - the server is asked for a draft filed under it, and answers
+ * with the reason where this DHIS2 instance takes no such capture. The line under the control says
+ * so once a choice is made, because a control that looks identical before and after would be
+ * claiming a random draw and a person's decision are the same fact.
  */
 export function AttributeOptionComboPicker({
     canonical,
     selected,
     disabled = false,
+    chosen = false,
     onChange,
 }: {
     /** The ValueSet the form declares its combos on - `d2-attribute-option-combos`, valueCanonical. */
@@ -58,6 +65,8 @@ export function AttributeOptionComboPicker({
      * says why above it, in the server's own words.
      */
     disabled?: boolean
+    /** True once somebody has picked here, which is what makes the selection survive a refill. */
+    chosen?: boolean
     onChange: (coding: Coding) => void
 }) {
     const expansion = useValueSetOptions(canonical)
@@ -104,6 +113,12 @@ export function AttributeOptionComboPicker({
                 )}
             </div>
 
+            {chosen && (
+                <p className="text-muted-foreground text-xs">
+                    Filling this form with test data keeps this attribute option combination and
+                    draws the rest of the submission for it.
+                </p>
+            )}
             {expansion.error !== null && (
                 <p className="text-destructive text-xs">
                     The attribute option combinations this form reports for could not be read:{' '}

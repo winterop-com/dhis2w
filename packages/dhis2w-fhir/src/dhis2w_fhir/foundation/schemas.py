@@ -31,6 +31,13 @@ GENERATE_SEED_PARAMETER = "seed"
 #: choice rather than replacing it.
 GENERATE_SUBJECT_PARAMETER = "subject"
 
+#: The input parameter `$generate` takes to pin what the response is filed under, as a concept code or
+#: a `<system>|<code>` pair. It is `subject`'s twin: a capture client whose person has chosen an
+#: attribute option combo names it here and the draft comes back keyed to that combo, and a combo the
+#: instance does not accept at the organisation unit or for the period is refused by name rather than
+#: swapped for one the draw preferred.
+GENERATE_ATTRIBUTE_OPTION_COMBO_PARAMETER = "attributeOptionCombo"
+
 
 class IdentifierSystemSubject(BaseModel):
     """One DHIS2 object kind whose UID, and optionally whose code, gets an identifier system."""
