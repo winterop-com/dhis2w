@@ -177,6 +177,18 @@ def is_valid_fhir_id(value: str) -> bool:
 #: The R4 `id` length limit every emitted artifact id is bounded against.
 FHIR_ID_MAX_LENGTH = 64
 
+#: How long a FHIR computer-friendly `name` may be, and the shape of it: an upper-case letter, then
+#: letters, digits and underscores. It is what SUSHI writes a guide's `name:` as - anything else it
+#: rewrites into this shape without saying so, which is why the rule is checked where the name is given.
+FHIR_NAME_MAX_LENGTH = 255
+_FHIR_NAME_PATTERN = re.compile(r"^[A-Z][A-Za-z0-9_]{0,254}$")
+
+
+def is_fhir_name(value: str) -> bool:
+    """Check `value` against the FHIR computer-friendly name shape: an upper-case letter, then word characters."""
+    return _FHIR_NAME_PATTERN.match(value) is not None
+
+
 #: How many characters a DHIS2 UID carries, and the shape of them: one ASCII letter, then ten
 #: alphanumeric places. It is the one thing a reader can check about a client-minted DHIS2
 #: identifier without an instance to ask, which is what the registration capture contract leans on.

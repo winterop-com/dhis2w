@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import errno
+import os
 import socket
 import sys
 from collections import Counter
@@ -326,8 +327,24 @@ def init_command(
     canonical: Annotated[
         str, typer.Option("--canonical", help="Canonical base URL for the IG (no trailing slash).")
     ] = _DEFAULT_CANONICAL,
-    name: Annotated[str | None, typer.Option("--name", help="SUSHI name (default: derived from --id).")] = None,
-    title: Annotated[str | None, typer.Option("--title", help="IG title (default: derived from --name).")] = None,
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            help="SUSHI name (default: derived from --id). FHIR computer-friendly: an upper-case letter, "
+            "then up to 254 letters, digits or underscores. SUSHI rewrites anything else without "
+            "saying so, so a name outside that shape is refused here.",
+        ),
+    ] = None,
+    title: Annotated[
+        str | None,
+        typer.Option(
+            "--title",
+            help="IG title (default: derived from --name). A title carrying '<' or '>' is refused: the IG "
+            "publisher strict-parses the pages it writes the title into, and aborts the build in its "
+            "last pass.",
+        ),
+    ] = None,
     publisher: Annotated[str, typer.Option("--publisher", help="Publisher name.")] = _DEFAULT_PUBLISHER,
     status: Annotated[
         IgStatusChoice,
@@ -376,16 +393,24 @@ def init_command(
         list[str] | None,
         typer.Option(
             "--data-set",
-            help="Data set UID to seed `\\[generate.data_sets]` include_ids with (repeatable). Offline: the UID is "
-            "written to fhir.toml as given, never checked against an instance.",
+            help="Data set UID to seed `\\[generate.data_sets]` include_ids with (repeatable). Naming one "
+            "family narrows that family alone: an absent selection table means every member of its kind, "
+            "so a guide naming data sets here still publishes every event program and every tracker "
+            "program. Narrow those with --event-program and --tracker-program, or by writing "
+            "`\\[generate.event_programs]` and `\\[generate.tracker_programs]` in fhir.toml. Offline: the "
+            "UID shape is checked here, never the instance.",
         ),
     ] = None,
     event_program_ids: Annotated[
         list[str] | None,
         typer.Option(
             "--event-program",
-            help="Event program UID to seed `\\[generate.event_programs]` include_ids with (repeatable). Offline: "
-            "the UID is written to fhir.toml as given, never checked against an instance.",
+            help="Event program UID to seed `\\[generate.event_programs]` include_ids with (repeatable). Naming "
+            "one family narrows that family alone: an absent selection table means every member of its "
+            "kind, so a guide naming event programs here still publishes every data set and every tracker "
+            "program. Narrow those with --data-set and --tracker-program, or by writing "
+            "`\\[generate.data_sets]` and `\\[generate.tracker_programs]` in fhir.toml. Offline: the UID "
+            "shape is checked here, never the instance.",
         ),
     ] = None,
     tracker_program_ids: Annotated[
@@ -393,8 +418,12 @@ def init_command(
         typer.Option(
             "--tracker-program",
             help="Tracker program UID to seed `\\[generate.tracker_programs]` include_ids with (repeatable); the "
-            "program emits one Questionnaire per program stage. Offline: the UID is written to fhir.toml as "
-            "given, never checked against an instance.",
+            "program emits one Questionnaire per program stage. Naming one family narrows that family "
+            "alone: an absent selection table means every member of its kind, so a guide naming tracker "
+            "programs here still publishes every data set and every event program. Narrow those with "
+            "--data-set and --event-program, or by writing `\\[generate.data_sets]` and "
+            "`\\[generate.event_programs]` in fhir.toml. Offline: the UID shape is checked here, never the "
+            "instance.",
         ),
     ] = None,
     publishes: Annotated[
@@ -447,23 +476,35 @@ def init_command(
             "--registry-path",
             file_okay=False,
             help="Local checkout of the registry project, whose build wrote the package `make build` "
-            "installs. Written as given, relative to the new project's directory.",
+            "installs. Written as given, relative to the new project's directory, and refused when no "
+            "directory stands there.",
         ),
     ] = None,
-    force: Annotated[bool, typer.Option("--force", help="Overwrite scaffold files that already exist.")] = False,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite scaffold files that already exist, fhir.toml and every hand-written line in "
+            "them included. Each is reported overwritten and named, and the run says what it replaced.",
+        ),
+    ] = False,
     refresh: Annotated[
         bool,
         typer.Option(
             "--refresh",
             help="Bring an existing project's scaffold-managed files up to date. Identity comes from the "
-            "project's own fhir.toml, which a refresh never writes, and a file carrying a line the scaffold "
-            "would not produce is left alone and reported, so your edits survive. Rejects --force.",
+            "project's own fhir.toml, which a refresh never writes. Five toolchain files are the "
+            "scaffold's own and are rewritten whole from the current render - the Makefile, the "
+            "Dockerfile, .python-version, ig/ig.ini and ig/fsh.ini - so an edit to one of them does not "
+            "survive: every knob the Makefile has is a `?=` default, and a value you set on the command "
+            "line (`make build JAVA_HEAP=8g`) or in the environment lives outside the file. Every other "
+            "file carrying a line the scaffold would not produce is left alone and reported, so your "
+            "edits to those survive. Rejects --force.",
         ),
     ] = False,
 ) -> None:
     """Scaffold a dockerized SUSHI IG project with a fhir.toml for `d2w fhir generate`."""
     from dhis2w_fhir import InitOptions, service
-    from dhis2w_fhir.names import pascal
 
     if list_templates:
         _list_project_templates()
@@ -513,6 +554,10 @@ def init_command(
             registry_version=registry_version,
             registry_path=registry_path,
         )
+    _require_uid_shape("--data-set", data_set_ids)
+    _require_uid_shape("--event-program", event_program_ids)
+    _require_uid_shape("--tracker-program", tracker_program_ids)
+    _require_registry_checkout(directory, registry_path)
     registry = _registry_dependency(
         publishes=publishes,
         registry_id=registry_id,
@@ -543,12 +588,16 @@ def init_command(
             title = title or project_template.title
         if canonical == _DEFAULT_CANONICAL:
             canonical = project_template.canonical
-    resolved_name = name or pascal(ig_id)
+    resolved_name = name or _derived_ig_name(ig_id)
+    resolved_title = title or f"{resolved_name} Implementation Guide"
+    _require_parseable_page_text("--name", resolved_name)
+    _require_parseable_page_text("--title", resolved_title)
+    _require_fhir_name(resolved_name, flag="--name" if name else "--id")
     options = InitOptions(
         ig_id=ig_id,
         canonical=canonical,
         name=resolved_name,
-        title=title or f"{resolved_name} Implementation Guide",
+        title=resolved_title,
         publisher=publisher,
         status="active" if status is IgStatusChoice.ACTIVE else "draft",
         publisher_url=publisher_url,
@@ -571,17 +620,22 @@ def init_command(
     rows = [
         DetailRow("directory", str(report.directory)),
         DetailRow("created", str(len(report.created_files))),
+        DetailRow("overwritten", str(len(report.overwritten_files))),
         DetailRow("skipped", str(len(report.skipped_files))),
     ]
     if project_template is not None:
         rows.append(DetailRow("template", project_template.name))
         rows.append(DetailRow("template files", str(len(report.template_files))))
+        rows.append(DetailRow("template files overwritten", str(len(report.overwritten_template_files))))
         rows.append(DetailRow("template files skipped", str(len(report.skipped_template_files))))
     render_detail("fhir init", rows, console=STDERR_CONSOLE)
     for relative_path in report.created_files:
         _line(f"  created {relative_path}")
+    for relative_path in report.overwritten_files:
+        _line(f"  overwritten {relative_path}")
     for relative_path in report.skipped_files:
         _line(f"  skipped {relative_path} (exists; use --force to overwrite)")
+    _print_force_discards(report)
     if project_template is not None:
         _print_template_next_steps(project_template, report, directory)
         return
@@ -609,13 +663,95 @@ def _print_with_registry_next_steps(directory: Path, *, profile: str | None) -> 
     _hint("next", f"cd {directory} && make generate, then `make build` - the registry builds first")
 
 
+def _print_force_discards(report: ScaffoldReport) -> None:
+    """Say what `--force` replaced, so a run that rewrote a project reads as a rewrite rather than a scaffold.
+
+    The scaffold's own files are named line by line above, so the closing line counts them; a
+    template payload is hundreds of files wide and is counted rather than named.
+    """
+    scaffold_files = len(report.overwritten_files)
+    payload_files = len(report.overwritten_template_files)
+    if not scaffold_files and not payload_files:
+        return
+    replaced = f"{scaffold_files} file(s) that already stood here, listed above"
+    if payload_files:
+        replaced = f"{scaffold_files} scaffold file(s), listed above, and {payload_files} template file(s)"
+    _hint(
+        "note",
+        f"--force replaced {replaced} - what they held, fhir.toml and every hand-written line included, is gone",
+    )
+
+
+def _derived_ig_name(ig_id: str) -> str:
+    """The SUSHI name `--id` yields on its own: PascalCase, bounded to the 255 characters FHIR allows."""
+    from dhis2w_fhir.names import FHIR_NAME_MAX_LENGTH, pascal
+
+    return pascal(ig_id)[:FHIR_NAME_MAX_LENGTH]
+
+
+def _require_fhir_name(value: str, *, flag: str) -> None:
+    """Refuse a SUSHI name outside the FHIR computer-friendly shape, stating the rule and what SUSHI does."""
+    from dhis2w_fhir.names import is_fhir_name
+
+    if is_fhir_name(value):
+        return
+    raise typer.BadParameter(
+        f"{flag} yields the SUSHI name `{value}`, which FHIR does not accept: a name is an upper-case "
+        f"letter followed by up to 254 letters, digits or underscores. SUSHI rewrites anything else "
+        f"without saying so, and the guide then publishes a name nobody chose."
+    )
+
+
+def _require_parseable_page_text(flag: str, value: str) -> None:
+    """Refuse a title or name carrying '<' or '>', the two characters that abort the IG publisher's last pass."""
+    for character in ("<", ">"):
+        if character in value:
+            raise typer.BadParameter(
+                f"{flag} carries '{character}'. The IG publisher writes this value into pages it "
+                f"strict-parses after writing, so the build aborts in its last pass, once every resource "
+                f"has already been rendered. Name it without '<' and '>'."
+            )
+
+
+def _require_uid_shape(flag: str, uids: list[str] | None) -> None:
+    """Refuse a selection UID outside the DHIS2 shape, so a typo is caught here rather than as an empty guide."""
+    from dhis2w_fhir.names import is_dhis2_uid
+
+    malformed = [uid for uid in uids or [] if not is_dhis2_uid(uid)]
+    if not malformed:
+        return
+    raise typer.BadParameter(
+        f"{flag} carries {', '.join(repr(uid) for uid in malformed)}, which is not a DHIS2 UID: eleven "
+        f"characters, an ASCII letter followed by ten letters or digits."
+    )
+
+
+def _require_registry_checkout(directory: Path, registry_path: Path | None) -> None:
+    """Refuse a `--registry-path` no directory stands at, resolved the way the scaffolded fhir.toml reads it.
+
+    The path is normalised rather than resolved: the project directory is what this run is about to
+    write, so `..` is folded textually and no `.resolve()` is asked of a directory that does not
+    exist yet.
+    """
+    if registry_path is None:
+        return
+    resolved = registry_path if registry_path.is_absolute() else Path(os.path.normpath(directory / registry_path))
+    if resolved.is_dir():
+        return
+    raise typer.BadParameter(
+        f"--registry-path {registry_path} names no directory: the project reads it from its own root, "
+        f"which puts it at {resolved}. Scaffold the registry project there first, or drop the flag and "
+        f"let `make build` install the package from its id and version."
+    )
+
+
 def _resolve_project_template(name: str) -> ProjectTemplate:
-    """Resolve `--template`, turning an unknown name into a user error that names what this install has."""
-    from dhis2w_fhir.scaffold.project_templates import UnknownTemplateError, resolve_template
+    """Resolve `--template`, turning a name this install will not scaffold into a user error stating why."""
+    from dhis2w_fhir.scaffold.project_templates import TemplateUnavailableError, resolve_template
 
     try:
         return resolve_template(name)
-    except UnknownTemplateError as error:
+    except TemplateUnavailableError as error:
         raise CliUserError(str(error)) from error
 
 
@@ -652,12 +788,27 @@ def _list_project_templates() -> None:
 
 
 def _print_template_next_steps(template: ProjectTemplate, report: ScaffoldReport, directory: Path) -> None:
-    """State what a template-scaffolded project already holds and the one step between it and a facade."""
-    _line(f"  laid down {len(report.template_files)} files from template `{template.name}` under ig/input/")
+    """State what a template-scaffolded project already holds and the one step between it and a facade.
+
+    A checkout template's `ig/input/` tree is generated rather than committed, so a checkout that
+    has never generated it lays down nothing. The project is then the ordinary scaffold and takes
+    the ordinary next step - naming `make sushi` there would name a compile with no source.
+    """
+    laid_down = len(report.template_files) + len(report.overwritten_template_files)
+    _line(f"  laid down {laid_down} files from template `{template.name}` under ig/input/")
     if report.skipped_template_files:
         _line(
             f"  left {len(report.skipped_template_files)} template files alone (they exist; use --force to overwrite)"
         )
+    if not laid_down and not report.skipped_template_files:
+        _hint(
+            "note",
+            f"`{template.name}` keeps its ig/input/ tree generated rather than committed, and this "
+            f"checkout has not generated it - `make verify-igs` writes it. The project holds the "
+            f"scaffold alone until then.",
+        )
+        _hint("next", "set `profile` in fhir.toml, then run `d2w fhir generate`")
+        return
     _hint(
         "note", "the guide under ig/input/ was generated against a DHIS2 instance already - none is needed to serve it"
     )
@@ -869,6 +1020,7 @@ def _refresh_project(directory: Path) -> None:
         [
             DetailRow("directory", str(report.directory)),
             DetailRow("created", str(len(report.created_files))),
+            DetailRow("rewritten (scaffold-owned)", str(len(report.rewritten_files))),
             DetailRow("refreshed", str(len(report.refreshed_files))),
             DetailRow("unchanged", str(len(report.unchanged_files))),
             DetailRow("with your additions", str(len(report.extended_files))),
@@ -878,6 +1030,8 @@ def _refresh_project(directory: Path) -> None:
     )
     for relative_path in report.created_files:
         _line(f"  created {relative_path}")
+    for relative_path in report.rewritten_files:
+        _line(f"  rewritten {relative_path} (scaffold-owned; an edit to it does not survive a refresh)")
     for relative_path in report.refreshed_files:
         _line(f"  refreshed {relative_path}")
     for relative_path in report.unchanged_files:
@@ -887,6 +1041,14 @@ def _refresh_project(directory: Path) -> None:
     for relative_path in report.diverged_files:
         _line(f"  kept {relative_path} (holds lines the current scaffold does not write)")
     _hint("note", f"{FHIR_CONFIG_FILENAME} is yours - a refresh never writes it")
+    if report.rewritten_files:
+        _hint(
+            "note",
+            "a scaffold-owned file is the toolchain's, and the render replaces it whole - the Makefile, "
+            "the Dockerfile, .python-version, ig/ig.ini and ig/fsh.ini. Keep a value of your own out of "
+            "them: every Makefile knob is a `?=` default, so set it on the command line "
+            "(`make build JAVA_HEAP=8g`) or in the environment.",
+        )
     for note in report.notes:
         _hint("note", note)
     if report.diverged_files:

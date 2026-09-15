@@ -1,0 +1,7 @@
+# Read by `d2w fhir init --template`. An example of this catalog is a template only when it
+# declares itself one here, so an exhibit whose point is a refusal never reaches the listing or a
+# `next: make sushi` it is built to fail.
+scaffolds = true
+
+# The row `d2w fhir init --list-templates` prints for this guide.
+summary = "An International Patient Summary at $summary: who a person is, which recorded values are doses, and what the document says about itself."

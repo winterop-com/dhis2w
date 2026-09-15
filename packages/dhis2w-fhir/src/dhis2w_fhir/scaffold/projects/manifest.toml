@@ -11,11 +11,12 @@
 # scaffolds from a dhis2w checkout and cannot scaffold anywhere else, and naming them here
 # is what lets an installed package refuse one by saying where it lives instead of denying it
 # exists. A checkout is the authority on the list: `test_fhir_init_templates.py` fails when this
-# array and `examples/fhir/igs/` disagree.
+# array and the guides of `examples/fhir/igs/` whose `template.toml` says `scaffolds = true`
+# disagree. An example declaring itself no template - the refused-names exhibit - belongs to
+# neither list, and `--template` refuses it by the reason that file states.
 checkout_only = [
     "aggregate-disaggregated",
     "facility-mixed",
-    "refused-names",
     "registry-district",
     "terminology-strict",
     "tracker-registration",

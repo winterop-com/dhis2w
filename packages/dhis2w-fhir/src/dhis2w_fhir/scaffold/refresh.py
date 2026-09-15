@@ -6,11 +6,14 @@ that carries none of it. `refresh_project` re-renders the scaffold for that proj
 back off disk, not defaults - and lands the current render wherever nothing of the project's own is
 at stake.
 
-The files at `OWNED_WHOLE_RELATIVE_PATHS` are the scaffold's outright: nobody edits the `Makefile`,
-the `Dockerfile`, `.python-version`, `ig/ig.ini` or `ig/fsh.ini`, because every value in them is
-either a `?=` default taken from the command line or the environment, or a value the project states
-elsewhere and the render carries back in. A refresh writes each of those from the current render
-whenever it differs, so a revision that replaces a line lands whole.
+The files at `OWNED_WHOLE_RELATIVE_PATHS` are the scaffold's outright: the `Makefile`, the
+`Dockerfile`, `.python-version`, `ig/ig.ini` and `ig/fsh.ini` hold no value that is the reader's to
+keep, because each is either a `?=` default taken from the command line or the environment, or a
+value the project states elsewhere and the render carries back in. A refresh writes each of those
+from the current render whenever it differs, so a revision that replaces a line lands whole - and
+an edit written into one of those five files does not survive it, which is why the report gives
+them the verdict `rewritten` of their own rather than the `refreshed` that means every line on disk
+is still there.
 
 Every other file goes through the line ladder. It is rewritten only when the render reproduces every
 line already there, so a refresh adds what the scaffold gained and never takes away what the user
@@ -22,7 +25,7 @@ all.
 
 A directory holding both projects of a split guide carries two files of its own, and both take
 the same two rules: the `Makefile` that drives the two projects is named in
-`OWNED_WHOLE_RELATIVE_PATHS` like any other and lands whole, and the `README.md` beside it goes
+`OWNED_WHOLE_RELATIVE_PATHS` like any other and is rewritten whole, and the `README.md` beside it goes
 through the line ladder, so prose written under the scaffold's own sections stays. Two lines of
 that README are the guide's identity rather than the reader's - the title on its cover and the
 registry canonical it names - so they are owned lines like the front page's heading, and a rename
@@ -137,7 +140,14 @@ def _refresh_guide_and_registry(directory: Path) -> ScaffoldReport:
     report = ScaffoldReport(directory=directory.resolve())
     for root in (REGISTRY_RELATIVE_ROOT, GUIDE_RELATIVE_ROOT):
         nested = refresh_project(directory / root)
-        for field in ("created_files", "refreshed_files", "unchanged_files", "extended_files", "diverged_files"):
+        for field in (
+            "created_files",
+            "rewritten_files",
+            "refreshed_files",
+            "unchanged_files",
+            "extended_files",
+            "diverged_files",
+        ):
             getattr(report, field).extend(f"{root}/{path}" for path in getattr(nested, field))
         report.notes.extend(nested.notes)
     state = read_project_scaffold_state(directory / GUIDE_RELATIVE_ROOT)
@@ -190,8 +200,10 @@ def _land_scaffold_file(destination: Path, scaffold_file: ScaffoldFile, report: 
         report.unchanged_files.append(relative_path)
         return
     if relative_path in OWNED_WHOLE_RELATIVE_PATHS:
+        # The scaffold's own toolchain file: the render lands whole, replacing whatever line stood
+        # there. Its own verdict, because `refreshed` means a rewrite that kept every line on disk.
         destination.write_text(scaffold_file.content, encoding="utf-8")
-        report.refreshed_files.append(relative_path)
+        report.rewritten_files.append(relative_path)
         return
     comparable = adopt_scaffold_owned_lines(relative_path, current, scaffold_file.content)
     if preserves_every_line(comparable, scaffold_file.content):

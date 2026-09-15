@@ -10,9 +10,17 @@ Templates come from two places, and the difference is visible to whoever asks fo
 - **Bundled.** The payloads under `projects/` ride the wheel, so they work in every install.
   `projects/manifest.toml` beside them is the one file that names them, and the listing is read
   straight off it.
-- **Checkout.** The full example catalog at `examples/fhir/igs/` of the dhis2w repository,
-  found by walking up from this file. A wheel carries no `examples/`, so these exist only in a
-  checkout; asking for one anywhere else is refused by name, naming the bundled ones instead.
+- **Checkout.** The example guides at `examples/fhir/igs/` of the dhis2w repository that declare
+  themselves templates, found by walking up from this file. A wheel carries no `examples/`, so
+  these exist only in a checkout; asking for one anywhere else is refused by name, naming the
+  bundled ones instead.
+
+An example is a template only when it says so. Each example carries a `template.toml` beside its
+`fhir.toml`: `scaffolds = true` with the `summary` the listing prints, or `scaffolds = false` with
+the `refusal` `--template` prints instead. The catalog holds exhibits as well as guides - an
+example whose whole point is a run `d2w fhir generate` refuses has no tree to lay down and no
+compile to offer - and a declaration is what keeps one of those out of the listing and out of a
+`next: make sushi` it is built to fail.
 
 The one thing a payload cannot ship neutrally is its canonical. `Questionnaire.url`,
 `CodeSystem.url`, and every `valueSet` reference under `ig/input/resources/` state it in full -
@@ -29,14 +37,19 @@ from collections.abc import Iterable
 from enum import StrEnum
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from dhis2w_fhir.scaffold.schemas import ScaffoldFile
 
 __all__ = [
+    "TEMPLATE_DECLARATION_FILENAME",
     "TEMPLATE_SELECTION_FILENAME",
+    "NotATemplateError",
     "ProjectTemplate",
+    "TemplateDeclaration",
     "TemplateOrigin",
+    "TemplateSelection",
+    "TemplateUnavailableError",
     "UnknownTemplateError",
     "build_template_files",
     "checkout_only_names",
@@ -47,6 +60,9 @@ __all__ = [
 
 #: The template's `[generate]` and `[ips]` tables, appended to the scaffolded `fhir.toml`.
 TEMPLATE_SELECTION_FILENAME = "selection.toml"
+
+#: What an example guide says about scaffolding from it. An example carrying none is no template.
+TEMPLATE_DECLARATION_FILENAME = "template.toml"
 
 #: The file naming every bundled template. Nothing else names one.
 _MANIFEST_FILENAME = "manifest.toml"
@@ -90,20 +106,65 @@ class ProjectTemplate(BaseModel):
     root: Path
 
 
-class UnknownTemplateError(LookupError):
-    """Raised for a `--template` name this install cannot scaffold, naming what it can."""
+class TemplateDeclaration(BaseModel):
+    """What an example guide's `template.toml` says about scaffolding from it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    scaffolds: bool
+    summary: str | None = None
+    refusal: str | None = None
+
+    @model_validator(mode="after")
+    def _says_which_and_why(self) -> TemplateDeclaration:
+        """A template states the row the listing prints; an exhibit states the refusal instead."""
+        if self.scaffolds and not self.summary:
+            raise ValueError("a template needs `summary`: it is the row `--list-templates` prints for it")
+        if not self.scaffolds and not self.refusal:
+            raise ValueError("an example that scaffolds nothing needs `refusal`: it is what `--template` prints")
+        return self
+
+
+class TemplateSelection(BaseModel):
+    """A template's selection, split the way the scaffolded `fhir.toml` carries it.
+
+    `generate_keys` are the keys of the template's own bare `[generate]` table and land inside the
+    table the scaffold already renders, because a file declaring `[generate]` twice is not TOML.
+    `tables` is every table below it - `[generate.data_sets]`, `[generate.organisation_units]`,
+    `[ips]` and the rest - and is appended whole.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    generate_keys: str = ""
+    tables: str = ""
+
+
+class TemplateUnavailableError(LookupError):
+    """Raised for a `--template` name this install will not scaffold, whatever the reason."""
+
+
+class UnknownTemplateError(TemplateUnavailableError):
+    """Raised for a `--template` name no template answers to, naming what this install can scaffold."""
 
     def __init__(self, name: str, *, available: Iterable[ProjectTemplate], checkout_only: bool) -> None:
-        bundled = ", ".join(template.name for template in available) or "none"
+        carried = ", ".join(template.name for template in available) or "none"
         if checkout_only:
             message = (
                 f"template `{name}` belongs to the example catalog, which ships in the dhis2w "
-                f"repository rather than in an installed package. This install carries {bundled}. "
+                f"repository rather than in an installed package. This install carries {carried}. "
                 f"Run `d2w fhir init` from a clone of the repository to scaffold from `{name}`."
             )
         else:
-            message = f"no template named `{name}`. This install carries: {bundled}."
+            message = f"no template named `{name}`. This install carries: {carried}."
         super().__init__(message)
+
+
+class NotATemplateError(TemplateUnavailableError):
+    """Raised for an example guide that declares itself a demonstration rather than a template."""
+
+    def __init__(self, name: str, *, refusal: str) -> None:
+        super().__init__(f"`{name}` is an example, not a template. {refusal}")
 
 
 def list_templates() -> list[ProjectTemplate]:
@@ -114,13 +175,21 @@ def list_templates() -> list[ProjectTemplate]:
 
 
 def resolve_template(name: str) -> ProjectTemplate:
-    """Find the named template, refusing an unknown name with a message naming what this install has."""
+    """Find the named template, refusing a name this install will not scaffold with the reason it holds.
+
+    Three refusals, and the reader can act on each: an example that declares itself a
+    demonstration says what it demonstrates, a template that lives only in the repository says
+    where to run from, and a name nothing answers to names every template there is.
+    """
     for template in list_templates():
         if template.name == name:
             return template
+    refusal = _declared_refusal(name)
+    if refusal is not None:
+        raise NotATemplateError(name, refusal=refusal)
     raise UnknownTemplateError(
         name,
-        available=_bundled_templates(),
+        available=list_templates(),
         checkout_only=name in checkout_only_names(),
     )
 
@@ -139,17 +208,23 @@ def checkout_only_names() -> frozenset[str]:
     return frozenset(str(name) for name in manifest.get(_CHECKOUT_ONLY_KEY, []))
 
 
-def template_selection(template: ProjectTemplate) -> str:
-    """The template's `[generate]` and `[ips]` tables, as they are appended to the scaffolded `fhir.toml`.
+def template_selection(template: ProjectTemplate) -> TemplateSelection:
+    """The template's `[generate]` and `[ips]` tables, split the way the scaffolded `fhir.toml` carries them.
 
     A bundled template ships them already on their own. A checkout template is a whole project, so
     its identity - the header comment, the `profile` line, and the `[ig]` table - is stripped here;
     the scaffold renders those from the caller's flags instead.
+
+    Either source may state keys directly under `[generate]` - `concept_code_source`,
+    `identifier_system_base` - and the scaffold has already opened that table to render
+    `hostile_names`. So those keys come back as `generate_keys` for the scaffold to put inside the
+    table it opened, and every table below them comes back as `tables` to append. What the template
+    states is carried whole; what it would have declared twice is declared once.
     """
     separated = template.root / TEMPLATE_SELECTION_FILENAME
     if separated.is_file():
-        return separated.read_text(encoding="utf-8")
-    return _strip_identity((template.root / "fhir.toml").read_text(encoding="utf-8"))
+        return _split_generate_table(separated.read_text(encoding="utf-8"))
+    return _split_generate_table(_strip_identity((template.root / "fhir.toml").read_text(encoding="utf-8")))
 
 
 def build_template_files(
@@ -200,14 +275,15 @@ def _bundled_templates() -> list[ProjectTemplate]:
 
 
 def _checkout_templates() -> list[ProjectTemplate]:
-    """Read every example guide of the surrounding checkout, or nothing at all when there is no checkout."""
+    """Read every example guide of the surrounding checkout that declares itself a template."""
     catalog = _checkout_catalog()
     if catalog is None:
         return []
     templates: list[ProjectTemplate] = []
     for root in sorted(catalog.iterdir()):
         config = root / "fhir.toml"
-        if not config.is_file():
+        declaration = _read_declaration(root)
+        if not config.is_file() or declaration is None or not declaration.scaffolds:
             continue
         identity = tomllib.loads(config.read_text(encoding="utf-8")).get("ig", {})
         if not identity.get("id") or not identity.get("canonical"):
@@ -216,7 +292,7 @@ def _checkout_templates() -> list[ProjectTemplate]:
         templates.append(
             ProjectTemplate(
                 name=root.name,
-                summary=title,
+                summary=str(declaration.summary),
                 ig_id=str(identity["id"]),
                 canonical=str(identity["canonical"]),
                 ig_name=str(identity.get("name", root.name)),
@@ -226,6 +302,32 @@ def _checkout_templates() -> list[ProjectTemplate]:
             )
         )
     return templates
+
+
+def _read_declaration(root: Path) -> TemplateDeclaration | None:
+    """Read one example guide's `template.toml`, or None when the directory carries none."""
+    declaration_path = root / TEMPLATE_DECLARATION_FILENAME
+    if not declaration_path.is_file():
+        return None
+    return TemplateDeclaration.model_validate(tomllib.loads(declaration_path.read_text(encoding="utf-8")))
+
+
+def _declared_refusal(name: str) -> str | None:
+    """What the named example says about scaffolding from it, when it declares itself no template.
+
+    The catalog is walked rather than joined, so a `--template` carrying path separators reaches
+    nothing: a name is a directory of the catalog or it is nothing.
+    """
+    catalog = _checkout_catalog()
+    if catalog is None:
+        return None
+    for root in catalog.iterdir():
+        if root.name != name:
+            continue
+        declaration = _read_declaration(root)
+        if declaration is not None and not declaration.scaffolds:
+            return str(declaration.refusal)
+    return None
 
 
 def _checkout_catalog() -> Path | None:
@@ -244,3 +346,21 @@ def _strip_identity(config_text: str) -> str:
         if line.startswith(("[generate", "[ips")):
             return "\n".join(lines[index:]).strip("\n") + "\n"
     return ""
+
+
+def _split_generate_table(selection_text: str) -> TemplateSelection:
+    """Lift the keys of a bare `[generate]` table out of the selection, leaving every other table in place."""
+    generate_lines: list[str] = []
+    table_lines: list[str] = []
+    inside_generate_table = False
+    for line in selection_text.splitlines():
+        heading = line.strip()
+        if heading.startswith("["):
+            inside_generate_table = heading == "[generate]"
+            if inside_generate_table:
+                continue
+        (generate_lines if inside_generate_table else table_lines).append(line)
+    return TemplateSelection(
+        generate_keys="\n".join(generate_lines).strip("\n"),
+        tables="\n".join(table_lines).strip("\n"),
+    )

@@ -258,12 +258,14 @@ from dhis2w_fhir.ips import (
 )
 from dhis2w_fhir.names import (
     DHIS2_UID_LENGTH,
+    FHIR_NAME_MAX_LENGTH,
     CodeStemError,
     NamingSource,
     StemResolution,
     StemSubject,
     fsh_stem_segment,
     is_dhis2_uid,
+    is_fhir_name,
     markdown_text,
     resolve_identity_stems,
 )
@@ -988,6 +990,7 @@ __all__ = [
     "fetch_live_ig_inputs",
     "FHIR_CONFIG_FILENAME",
     "FHIR_JSON_MEDIA_TYPE",
+    "FHIR_NAME_MAX_LENGTH",
     "FhirProject",
     "FhirProjectConfig",
     "FhirValidationReport",
@@ -1091,6 +1094,7 @@ __all__ = [
     "is_default_category",
     "is_dhis2_uid",
     "is_disaggregated",
+    "is_fhir_name",
     "is_generated_file",
     "is_multi_valued",
     "ITEM_CONTROL_CODE_SYSTEM_URL",

@@ -12,7 +12,13 @@ cd demo-refresh
 # only when the current scaffold render reproduces every line already on disk, in order: a
 # refresh adds what the scaffold gained (a new path-resource glob, a new .gitignore entry)
 # and never drops a line you wrote. A file carrying anything the scaffold would not produce
-# is left byte-identical and reported as skipped.
+# is left byte-identical and reported as kept.
+#
+# Five toolchain files are the exception, and the report gives them a verdict of their own,
+# `rewritten (scaffold-owned)`: the Makefile, the Dockerfile, .python-version, ig/ig.ini and
+# ig/fsh.ini are replaced whole from the current render, so an edit written into one of them
+# does not survive. Every Makefile knob is a `?=` default - set it on the command line
+# (`make build JAVA_HEAP=8g`) or in the environment, where the value lives outside the file.
 #
 # The case it exists for: a project scaffolded before a sushi-config path-resource glob
 # landed compiles fine - SUSHI recurses into input/resources on its own - while the IG

@@ -1386,6 +1386,11 @@ async def init_project(
     registry package it depends on - wired to each other under `directory`. Every file is still
     written at `directory / relative_path`; the two projects are subdirectories named there, which
     is why this loop does not know there are two.
+
+    A file `force` replaces is reported overwritten rather than created, and counted apart. The two
+    are different acts on a project: writing `fhir.toml` where none stood scaffolds a guide, and
+    writing it over the one a person configured discards that configuration. The report names every
+    file of the second kind so the run says what it took.
     """
     report = ScaffoldReport(directory=directory.resolve(), template=template.name if template else None)
     scaffold_files = (
@@ -1393,14 +1398,19 @@ async def init_project(
     )
     for scaffold_file in scaffold_files:
         destination = directory / scaffold_file.relative_path
-        if destination.exists() and not force:
+        stood_here = destination.exists()
+        if stood_here and not force:
             skipped = report.skipped_template_files if scaffold_file.from_template else report.skipped_files
             skipped.append(scaffold_file.relative_path)
             continue
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(scaffold_file.content, encoding="utf-8")
-        created = report.template_files if scaffold_file.from_template else report.created_files
-        created.append(scaffold_file.relative_path)
+        if stood_here:
+            replaced = report.overwritten_template_files if scaffold_file.from_template else report.overwritten_files
+            replaced.append(scaffold_file.relative_path)
+            continue
+        written = report.template_files if scaffold_file.from_template else report.created_files
+        written.append(scaffold_file.relative_path)
     return report
 
 
