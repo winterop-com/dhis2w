@@ -58,8 +58,8 @@ note: 3 distinct note(s) across 2 target(s); full list in /home/you/hmis-ig/repo
 The count is of distinct notes, which is what the summary table's
 `Distinct notes` column counts too: a note two targets raise about the same
 object is one note in both. Each target's own `[k/N]` step line counts its own
-share of it, so a step line and the table can name different numbers for the
-same run.
+share of it and says so - it ends `N notes raised here` - so the two numbers a
+run prints for one target are two named numbers rather than two bare ones.
 
 `reports/fhir-generate-notes.md` is an ordinary text file grouped by what was
 being generated, one line per note. An unmatched selection reads:

@@ -14,6 +14,7 @@ import pytest
 from dhis2w_cli.main import build_app
 from dhis2w_fhir import validation
 from dhis2w_fhir.config import load_project
+from dhis2w_fhir.resources.attribute_combos.restrictions import ATTRIBUTE_OPTION_RESTRICTION_PROPERTY
 from dhis2w_fhir.validation import artifacts
 from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
 from dhis2w_fhir.writer import GENERATED_HEADER
@@ -445,6 +446,101 @@ def test_a_warning_alone_lets_the_build_start(project_root: Path, monkeypatch: p
     # The bracketed table name reaches the reader: Rich reads `[generate.organisation_units]` as a
     # style tag and prints nothing in its place unless the cell states its own brackets.
     assert "[generate.organisation_units] max_level" in result.output
+
+
+def _write_combo_vocabulary(root: Path, *, restricted_to: list[str], other_restricted_to: list[str]) -> None:
+    """Write one attribute-combo vocabulary with two concepts, each scoped by a restriction List of its own."""
+    directory = root / "ig/input/resources/attribute-option-combos"
+    directory.mkdir(parents=True, exist_ok=True)
+    system = "http://example.org/fhir/CodeSystem/d2-aoc-idcDPkDtepR-cs"
+    for list_id, entries in (
+        ("d2-aoc-yMj2MnmNI8L-org-units", restricted_to),
+        ("d2-aoc-M58XdOfhiJ7-org-units", other_restricted_to),
+    ):
+        document: dict[str, Any] = {"resourceType": "List", "id": list_id, "status": "current", "mode": "snapshot"}
+        if entries:
+            document["entry"] = [{"item": {"reference": f"Location/{uid}"}} for uid in entries]
+        _write_resource(directory / f"List-{list_id}.json", document)
+    _write_resource(
+        directory / "CodeSystem-d2-aoc-idcDPkDtepR-cs.json",
+        {
+            "resourceType": "CodeSystem",
+            "id": "d2-aoc-idcDPkDtepR-cs",
+            "url": system,
+            "name": "D2AOC_idcDPkDtepR_CS",
+            "status": "draft",
+            "content": "complete",
+            "concept": [
+                {
+                    "code": "BqblOcSwGey",
+                    "property": [
+                        {
+                            "code": ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+                            "valueString": "List/d2-aoc-yMj2MnmNI8L-org-units",
+                        }
+                    ],
+                },
+                {
+                    "code": "oawMLLH7OjA",
+                    "property": [
+                        {
+                            "code": ATTRIBUTE_OPTION_RESTRICTION_PROPERTY,
+                            "valueString": "List/d2-aoc-M58XdOfhiJ7-org-units",
+                        }
+                    ],
+                },
+            ],
+        },
+    )
+    _write_resource(
+        directory / "ValueSet-d2-aoc-idcDPkDtepR-vs.json",
+        {
+            "resourceType": "ValueSet",
+            "id": "d2-aoc-idcDPkDtepR-vs",
+            "url": "http://example.org/fhir/ValueSet/d2-aoc-idcDPkDtepR-vs",
+            "name": "D2AOC_idcDPkDtepR_VS",
+            "status": "draft",
+            "compose": {"include": [{"system": system}]},
+        },
+    )
+
+
+def _write_form_on_a_combo(root: Path, stem: str) -> None:
+    """Write one generated Questionnaire binding the attribute-combo vocabulary by its FSH name."""
+    _write_generated_fsh(
+        root / f"ig/input/fsh/foundation/{stem}.fsh",
+        f"Instance: Q{stem}\nInstanceOf: Questionnaire\n"
+        "* extension[D2AttributeOptionCombos].valueCanonical = Canonical(D2AOC_idcDPkDtepR_VS)\n",
+    )
+
+
+def test_a_form_whose_every_combo_is_restricted_away_is_a_warning(project_root: Path) -> None:
+    """No organisation unit may file any concept of the vocabulary, so every capture for the form earns E8025."""
+    _write_combo_vocabulary(project_root, restricted_to=[], other_restricted_to=[])
+    _write_form_on_a_combo(project_root, "epi-stock")
+    report = _report(project_root)
+    finding = report.findings[0]
+    assert finding.kind == "attribute-option-combo"
+    assert finding.severity == "warning"
+    assert finding.resource_id == "epi-stock"
+    assert finding.value == "D2AOC_idcDPkDtepR_VS"
+    assert "max_level" in finding.remedy
+    assert report.build_aborting_count == 0
+    assert report.warning_count == 1
+
+
+def test_one_usable_concept_is_a_vocabulary_somebody_may_file_under(project_root: Path) -> None:
+    """A combo restricted to organisation units the project does publish is the artifact working as designed."""
+    _write_combo_vocabulary(project_root, restricted_to=["ImspTQPwCqd"], other_restricted_to=[])
+    _write_form_on_a_combo(project_root, "epi-stock")
+    assert _report(project_root).finding_count == 0
+
+
+def test_a_concept_restricted_by_two_lists_needs_one_unit_on_both(project_root: Path) -> None:
+    """A combo is met from one option per axis, so a unit admits it only where every List names it."""
+    _write_combo_vocabulary(project_root, restricted_to=["ImspTQPwCqd"], other_restricted_to=["O6uvpzGd5pu"])
+    _write_form_on_a_combo(project_root, "epi-stock")
+    assert _report(project_root).finding_count == 0
 
 
 #: A guide selecting two data sets by UID: one the published tree carries, one it carries nowhere.

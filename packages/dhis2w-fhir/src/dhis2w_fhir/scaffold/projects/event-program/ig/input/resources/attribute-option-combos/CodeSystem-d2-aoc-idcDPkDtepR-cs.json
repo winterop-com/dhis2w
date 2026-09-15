@@ -29,6 +29,12 @@
       "type": "string"
     },
     {
+      "code": "dhis2-organisation-units",
+      "uri": "http://dhis2.org/fhir/property/dhis2-organisation-units",
+      "description": "List of the organisation units a category option of this combo is restricted to. A capture is refused unless its organisation unit is on every List the concept names.",
+      "type": "string"
+    },
+    {
       "code": "category-yY2bQYqNt0o",
       "uri": "http://dhis2.org/fhir/property/category-yY2bQYqNt0o",
       "description": "DHIS2 category Project.",
@@ -51,6 +57,10 @@
             "code": "i4Nbp8S2G6A",
             "display": "Improve access to clean water"
           }
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-i4Nbp8S2G6A-org-units"
         }
       ]
     },
@@ -69,6 +79,10 @@
             "code": "yMj2MnmNI8L",
             "display": "Improve access to medicines"
           }
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-yMj2MnmNI8L-org-units"
         }
       ]
     },
@@ -87,6 +101,10 @@
             "code": "OUUdG3sdOqb",
             "display": "Provide access to primary health care"
           }
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-OUUdG3sdOqb-org-units"
         }
       ]
     },
@@ -105,6 +123,10 @@
             "code": "M58XdOfhiJ7",
             "display": "Provide access to basic education"
           }
+        },
+        {
+          "code": "dhis2-organisation-units",
+          "valueString": "List/d2-aoc-M58XdOfhiJ7-org-units"
         }
       ]
     }

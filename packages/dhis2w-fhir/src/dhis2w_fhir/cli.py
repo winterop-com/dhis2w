@@ -42,6 +42,7 @@ from dhis2w_fhir import (
 )
 from dhis2w_fhir.doctor import DEFAULT_ORACLE_SAMPLES
 from dhis2w_fhir.notes import GenerateNoteCategory
+from dhis2w_fhir.resources.attribute_combos.restrictions import UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY
 from dhis2w_fhir.resources.questionnaires.assignments import EMPTY_ASSIGNMENT_REMEDY
 from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE
 
@@ -1026,6 +1027,7 @@ def _refresh_project(directory: Path) -> None:
             DetailRow("created", str(len(report.created_files))),
             DetailRow("rewritten (scaffold-owned)", str(len(report.rewritten_files))),
             DetailRow("refreshed", str(len(report.refreshed_files))),
+            DetailRow("refreshed, with your additions", str(len(report.refreshed_with_additions_files))),
             DetailRow("unchanged", str(len(report.unchanged_files))),
             DetailRow("with your additions", str(len(report.extended_files))),
             DetailRow("diverged (kept)", str(len(report.diverged_files))),
@@ -1038,6 +1040,13 @@ def _refresh_project(directory: Path) -> None:
         _line(f"  rewritten {relative_path} (scaffold-owned; an edit to it does not survive a refresh)")
     for relative_path in report.refreshed_files:
         _line(f"  refreshed {relative_path}")
+    # Both halves of the verdict, in the order they happened: the render's identity line landed,
+    # and the lines the reader wrote are still under it.
+    for relative_path in report.refreshed_with_additions_files:
+        _line(
+            f"  refreshed, with your additions {relative_path} "
+            "(the current identity landed; every line of your own is still there)"
+        )
     for relative_path in report.unchanged_files:
         _line(f"  unchanged {relative_path}")
     # The two verdicts the table separates are separate here too: "kept" for both would teach a
@@ -1109,6 +1118,7 @@ def _render_generate_report(
     for note in report.notes:
         _hint("note", note.message)
     _render_empty_assignments(report)
+    _render_unusable_attribute_option_combos(report)
 
 
 def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
@@ -1129,6 +1139,30 @@ def _render_empty_assignments(report: GenerateReport | LoadSetReport) -> None:
         f"{summary.form_count} published form(s) carry an empty organisation-unit assignment{narrowed}: no "
         f"organisation unit may report them, and the facade refuses to draft a response for one. "
         f"{EMPTY_ASSIGNMENT_REMEDY}",
+        style="yellow",
+    )
+
+
+def _render_unusable_attribute_option_combos(report: GenerateReport | LoadSetReport) -> None:
+    """Say out loud that a run published forms every attribute option combo of theirs is restricted away from.
+
+    Its own line at the end of the run, for the reason the empty-assignment warning has one: DHIS2
+    refuses every capture such a form could carry, the run knows it at generate time from the
+    restriction Lists it just wrote, and a reader who chose `max_level` to keep a build small has no
+    other way to learn what it cost.
+    """
+    if not isinstance(report, GenerateReport) or report.unusable_attribute_option_combos is None:
+        return
+    summary = report.unusable_attribute_option_combos
+    narrowed = (
+        f" under [generate.organisation_units] max_level {summary.max_level}" if summary.max_level is not None else ""
+    )
+    _hint(
+        "warning",
+        f"{summary.form_count} published form(s) declare attribute option combos DHIS2 restricts away from every "
+        f"organisation unit that may report them{narrowed}: no capture for one of them can be keyed to a combo "
+        f"this DHIS2 instance accepts, and the facade refuses to draft a response for one. "
+        f"{UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY}",
         style="yellow",
     )
 
@@ -1299,6 +1333,7 @@ def _render_full_report(report: GenerateFullReport, generation: GenerationProfil
     render_list("fhir generate", rows, _fitted_columns(rows, STDERR_CONSOLE.width), console=STDERR_CONSOLE)
     _render_full_notes(outcomes, generation, details=details)
     _render_empty_assignments(report.questionnaires)
+    _render_unusable_attribute_option_combos(report.questionnaires)
     _render_selection_mismatches(outcomes)
 
 

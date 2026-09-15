@@ -14,7 +14,7 @@ import httpx
 import respx
 from dhis2w_core.profile import resolve_profile
 from dhis2w_fhir import GenerateFullReport, GenerateReport, InitOptions, UnsupportedProgramError, load_project, service
-from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory
+from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory, generate_note
 from dhis2w_fhir.resources.examples import EXAMPLES_DIRECTORY
 from dhis2w_fhir.service import GenerateSubject, _target_counts
 
@@ -663,6 +663,19 @@ def test_a_target_with_no_subject_reports_files_alone() -> None:
     )
 
     assert _target_counts(report) == "24 files written, 0 files unchanged"
+
+
+def test_the_step_lines_note_count_says_which_number_it_is() -> None:
+    """The summary table counts the run's distinct notes, so the step line names its own number rather than clashing."""
+    report = GenerateReport(
+        project_root=Path("/project"),
+        target_directory="pagecontent",
+        written_files=["pagecontent/index.md"],
+        notes=[generate_note(GenerateNoteCategory.SELECTION_GAP, f"note {index}") for index in range(379)],
+        subject=GenerateSubject(count=3, noun="page"),
+    )
+
+    assert _target_counts(report) == "3 pages, 1 file written, 0 files unchanged, 379 notes raised here"
 
 
 def test_every_count_on_one_line_is_grouped_the_same_way() -> None:

@@ -100,7 +100,11 @@ from dhis2w_fhir.resources.attribute_combos import (
 )
 from dhis2w_fhir.resources.attribute_combos.restrictions import (
     OrganisationUnitPaths,
+    UnusableAttributeOptionCombosSummary,
+    UsableAttributeOptionCombos,
     restricted_category_option_uids,
+    unusable_attribute_option_combo_message,
+    unusable_attribute_option_combos_summary,
 )
 from dhis2w_fhir.resources.categories import (
     CATEGORY_DIRECTORY,
@@ -180,6 +184,7 @@ from dhis2w_fhir.resources.questionnaires.assignments import (
     ASSIGNMENT_DIRECTORY,
     AssignmentIndex,
     EmptyAssignmentSummary,
+    admitted_organisation_unit_uids,
     assignment_container_uid,
     build_assignment_artifacts,
 )
@@ -535,6 +540,8 @@ class GenerateReport(BaseModel):
     full run still reports every slot and a reader skips the ones that had nothing to do."""
     empty_assignments: EmptyAssignmentSummary | None = None
     """The published forms no organisation unit may report, which the run says out loud rather than noting."""
+    unusable_attribute_option_combos: UnusableAttributeOptionCombosSummary | None = None
+    """The published forms every attribute option combo is restricted away from, said out loud the same way."""
 
 
 class LoadSetReport(BaseModel):
@@ -872,7 +879,12 @@ class _StepAnnouncer:
 
 
 def _target_counts(report: GenerateReport) -> str:
-    """One-line outcome of one generate target: what it covers, then what it wrote, left alone, removed, and noted."""
+    """One-line outcome of one generate target: what it covers, then what it wrote, left alone, removed, and noted.
+
+    The note count is this target's own, repeats of a decision an earlier target already raised
+    included, and the line says so: the summary table counts the same notes once for the whole run,
+    under `Distinct notes`, and two numbers that differ have to be two named numbers.
+    """
     parts = [] if report.subject is None else [report.subject.label()]
     parts += [
         f"{grouped_count(len(report.written_files), 'file')} written",
@@ -881,7 +893,7 @@ def _target_counts(report: GenerateReport) -> str:
     if report.deleted_files:
         parts.append(f"{grouped_count(len(report.deleted_files), 'file')} deleted")
     if report.notes:
-        parts.append(grouped_count(len(report.notes), "note"))
+        parts.append(f"{grouped_count(len(report.notes), 'note')} raised here")
     return ", ".join(parts)
 
 
@@ -1933,6 +1945,9 @@ def _emit_questionnaires(
         decomposition=decomposition,
         restrictions=attribute_option_restrictions,
     )
+    unusable_combos = _unusable_attribute_option_combos(
+        sources, assignments, attribute_option_restrictions, generate, published_organisation_unit_stems
+    )
     concept_maps = build_attribute_combo_concept_map_artifacts(sources, generate, canonical, ig_status=ig_status)
     build = build_questionnaire_artifacts(
         sources,
@@ -2010,17 +2025,58 @@ def _emit_questionnaires(
         assignment_count=len(assignment_build.artifacts),
         attribute_combo_count=len(attribute_combo_build.artifacts),
         empty_assignments=assignment_build.empty_assignments,
+        unusable_attribute_option_combos=unusable_combos,
         notes=[
             *notes,
             *build.notes,
             *assignment_build.notes,
             *attribute_combo_build.notes,
             *decomposition.notes,
+            *(
+                []
+                if unusable_combos is None
+                else [
+                    generate_note(
+                        GenerateNoteCategory.SELECTION_GAP,
+                        unusable_attribute_option_combo_message(unusable_combos),
+                    )
+                ]
+            ),
             *_remove_stale_compile(project, *syncs),
         ],
     )
     progress.complete(_target_counts(report))
     return report
+
+
+def _unusable_attribute_option_combos(
+    sources: list[QuestionnaireSourceIn],
+    assignments: AssignmentIndex,
+    restrictions: AttributeOptionRestrictions,
+    config: GenerateConfig,
+    published: StemResolution,
+) -> UnusableAttributeOptionCombosSummary | None:
+    """The published forms every attribute option combo of theirs is restricted away from, or None when none is.
+
+    DHIS2 refuses a capture keyed to a combo whose category options are scoped away from the
+    organisation unit it was filed from (`E8025`), so a form on a non-default category combo that no
+    organisation unit it may report from admits any combo of is a form nobody can submit - the same
+    loss the empty assignment is, one axis over, and reported the same way rather than left for a
+    reader to discover by drafting a response the facade answers 422 for.
+
+    A form with nowhere to report from at all is left out: its assignment List is empty, which the
+    assignment summary already says, and saying it twice would report one loss under two names.
+    """
+    usable = UsableAttributeOptionCombos.of(restrictions)
+    published_uids = frozenset(published.stems)
+    forms: list[str] = []
+    for source in sources:
+        if not _declares_attribute_option_combos(source):
+            continue
+        admitted = admitted_organisation_unit_uids(source, assignments, published_uids)
+        if admitted and not any(usable.usable_at(source, unit) for unit in admitted):
+            forms.append(f"{source.name} ({source.uid})")
+    return unusable_attribute_option_combos_summary(forms, max_level=config.organisation_units.max_level)
 
 
 async def generate_examples(
@@ -2052,6 +2108,7 @@ async def generate_examples(
             option_sets=[],
             option_set_plan=option_set_identities([], config),
             published_organisation_unit_uids=frozenset(),
+            attribute_option_restrictions=AttributeOptionRestrictions(),
             stem_plan=plan_questionnaire_stems([], config.naming.source),
             organisation_unit_stems=StemResolution(),
             notes=notes,
@@ -2065,7 +2122,11 @@ async def generate_examples(
         sources = screening.screen(sources, notes)
         option_sets = screening.screen(option_sets, notes)
         option_set_plan = await _fetch_option_set_identity_plan(client, config, sources, screening)
-        organisation_unit_stems = (await _fetch_published_organisation_units(client, config)).stems
+        published = await _fetch_published_organisation_units(client, config)
+        organisation_unit_stems = published.stems
+        restrictions = await fetch_attribute_option_restrictions(
+            client, sources, published=published.stems, units=published.paths
+        )
         progress.complete(f"{len(sources):,} questionnaire target(s), {len(option_sets):,} bound option set(s)")
         return await _emit_examples(
             client,
@@ -2074,6 +2135,7 @@ async def generate_examples(
             option_sets=option_sets,
             option_set_plan=option_set_plan,
             published_organisation_unit_uids=frozenset(organisation_unit_stems.stems),
+            attribute_option_restrictions=restrictions,
             stem_plan=plan_questionnaire_stems(sources, config.naming.source),
             organisation_unit_stems=organisation_unit_stems,
             notes=notes,
@@ -2090,6 +2152,7 @@ async def _emit_examples(
     option_set_plan: OptionSetIdentityPlan,
     published_organisation_unit_uids: frozenset[str],
     assignments: AssignmentIndex | None = None,
+    attribute_option_restrictions: AttributeOptionRestrictions,
     stem_plan: QuestionnaireStemPlan,
     organisation_unit_stems: StemResolution,
     notes: list[GenerateNote],
@@ -2110,6 +2173,11 @@ async def _emit_examples(
     the run's identity resolutions - the file names and the `questionnaire` canonical follow the
     target's stem, every `Location/...` reference follows the registry's - and their fall-back
     notes stay on the targets that own those surfaces.
+
+    `attribute_option_restrictions` is the other half of what DHIS2 accepts a capture under, so the
+    organisation unit an example reports from and the attribute option combo it is keyed to are one
+    choice rather than two: a form is placed at an organisation unit that admits one of its combos,
+    and a form no organisation unit it admits may file any of its combos at publishes no example.
     """
     progress.step("examples", f"writing ig/input/fsh/{EXAMPLES_DIRECTORY}")
     _refuse_build_aborting_form_objects(sources)
@@ -2134,6 +2202,7 @@ async def _emit_examples(
             project.config.generate.examples,
             published_organisation_unit_uids,
             assignments,
+            attribute_option_restrictions,
             notes,
             progress,
         )
@@ -2445,6 +2514,7 @@ async def _example_responses(
     selection: ExampleSelection,
     published_organisation_unit_uids: frozenset[str],
     assignments: AssignmentIndex | None,
+    restrictions: AttributeOptionRestrictions,
     notes: list[GenerateNote],
     progress: _StepAnnouncer,
 ) -> list[ExampleResponseIn]:
@@ -2453,6 +2523,11 @@ async def _example_responses(
     `assignments` is the run's already-read container-to-units index; with none the examples
     target reads it itself, because a synthetic example is captured at an organisation unit its
     form's own DHIS2 assignment names and there is no other way to know which those are.
+
+    `restrictions` is the run's already-read category-option scope, which decides the second half of
+    the same question: which attribute option combos the organisation unit an example is placed at
+    may file a capture under. An index resolving none leaves the combo drawn from the whole
+    vocabulary the form declares.
     """
     today = datetime.now(tz=UTC).date()
     root_organisation_unit_uid = await _example_organisation_unit_uid(client, config)
@@ -2478,7 +2553,13 @@ async def _example_responses(
             client, sources, selection.per_target, root_organisation_unit_uid, notes, progress
         )
     index = assignments if assignments is not None else await fetch_assignment_index(client, sources)
-    plan = _plan_example_placements(sources, index, published_organisation_unit_uids, root_organisation_unit_uid)
+    plan = _plan_example_placements(
+        sources,
+        index,
+        published_organisation_unit_uids,
+        root_organisation_unit_uid,
+        UsableAttributeOptionCombos.of(restrictions),
+    )
     notes.extend(plan.notes)
     if not plan.sources:
         return []
@@ -2508,30 +2589,42 @@ def _plan_example_placements(
     assignments: AssignmentIndex,
     published_organisation_unit_uids: frozenset[str],
     root_organisation_unit_uid: str,
+    usable_combos: UsableAttributeOptionCombos,
 ) -> _ExamplePlan:
-    """Place every form's example at an organisation unit that form's own DHIS2 assignment names.
+    """Place every form's example where DHIS2 accepts the whole capture: the unit and the combo as one choice.
 
     DHIS2 scopes a data set and a program to the organisation units it is assigned to, and a
-    capture outside that scope is refused (`E1029` on an event, `E1041` on an enrollment). A
-    published example is the shape a consumer copies, so it is placed the way a capture has to
-    be: the registry root where the assignment names it, and otherwise the first assigned
-    organisation unit the guide publishes a Location for, taken by UID so a rerun places it
-    identically.
+    capture outside that scope is refused (`E1029` on an event, `E1041` on an enrollment). It
+    scopes a category option to organisation units on top of that, and refuses a capture keyed to
+    an attribute option combo not usable at the unit it was filed from (`E8025`). A published
+    example is the shape a consumer copies, so it is placed the way a capture has to be: the
+    registry root where both rules admit it, and otherwise the first organisation unit by UID that
+    they do, so a rerun places it identically.
 
     Two classes fall back to the root. A form of a kind DHIS2 hangs no assignment on - a
     tracked entity type - may register a person anywhere the guide publishes, and a form whose
     assignment names no published organisation unit at all has nowhere better to go: its
     assignment List is empty, which the run reports in its own closing warning.
+
+    A form every combo is restricted away from at every unit it admits is dropped rather than
+    placed: there is no capture for it DHIS2 would take, which the run says out loud in a closing
+    warning of its own rather than drafting the very response the facade then refuses.
     """
     plan = _ExamplePlan()
     outside: list[str] = []
+    unusable: list[str] = []
     for source in sources:
-        unit = _example_placement_uid(source, assignments, published_organisation_unit_uids, root_organisation_unit_uid)
-        if unit is None:
+        admitted = admitted_organisation_unit_uids(source, assignments, published_organisation_unit_uids)
+        placement = _example_placement(
+            source, admitted, published_organisation_unit_uids, root_organisation_unit_uid, usable_combos
+        )
+        if placement is not None:
+            plan.sources.append(source)
+            plan.placements[source.uid] = placement
+        elif admitted:
+            unusable.append(f"{source.name} ({source.uid})")
+        else:
             outside.append(f"{source.name} ({source.uid})")
-            continue
-        plan.sources.append(source)
-        plan.placements[source.uid] = SyntheticPlacement(organisation_unit_uids=(unit,))
     if outside:
         plan.notes.append(
             aggregate_generate_note(
@@ -2541,28 +2634,56 @@ def _plan_example_placements(
                 outside,
             )
         )
+    if unusable:
+        plan.notes.append(
+            aggregate_generate_note(
+                GenerateNoteCategory.SELECTION_GAP,
+                f"{len(unusable)} questionnaire targets declare attribute option combos DHIS2 restricts away "
+                "from every organisation unit that may report them; no examples emitted for them",
+                unusable,
+            )
+        )
     return plan
 
 
-def _example_placement_uid(
+def _example_placement(
     source: QuestionnaireSourceIn,
-    assignments: AssignmentIndex,
+    admitted: frozenset[str],
     published_organisation_unit_uids: frozenset[str],
     root_organisation_unit_uid: str,
-) -> str | None:
-    """The organisation unit one form's example reports from, or None when the guide publishes none it may use."""
-    if FORM_KIND_PROFILES[source.kind].assigned:
-        assigned = assignments.assigned(assignment_container_uid(source)) or frozenset()
-    else:
-        assigned = published_organisation_unit_uids
-    admitted = assigned & published_organisation_unit_uids if published_organisation_unit_uids else assigned
-    if root_organisation_unit_uid in admitted:
-        return root_organisation_unit_uid
-    if admitted:
-        return min(admitted)
-    if published_organisation_unit_uids and root_organisation_unit_uid not in published_organisation_unit_uids:
+    usable_combos: UsableAttributeOptionCombos,
+) -> SyntheticPlacement | None:
+    """Where one form's example reports from and what it may be filed under, or None when DHIS2 admits neither.
+
+    `admitted` is the organisation units the form's own assignment leaves, narrowed here to the ones
+    that also admit a combo it declares. A form on the default category combo narrows nothing - it
+    declares no combo and its capture carries none - and a form whose declared combos every admitted
+    organisation unit is scoped away from narrows to nothing, which is the form nobody may submit.
+    """
+    usable = {unit: usable_combos.usable_at(source, unit) for unit in admitted}
+    if any(usable.values()):
+        admitted = frozenset(unit for unit, combos in usable.items() if combos)
+    elif admitted and _declares_attribute_option_combos(source):
         return None
-    return root_organisation_unit_uid
+    if root_organisation_unit_uid in admitted:
+        unit = root_organisation_unit_uid
+    elif admitted:
+        unit = min(admitted)
+    elif published_organisation_unit_uids and root_organisation_unit_uid not in published_organisation_unit_uids:
+        return None
+    else:
+        unit = root_organisation_unit_uid
+    combos = usable.get(unit, ())
+    return SyntheticPlacement(
+        organisation_unit_uids=(unit,),
+        usable_attribute_option_combo_uids={unit: combos} if combos else {},
+    )
+
+
+def _declares_attribute_option_combos(source: QuestionnaireSourceIn) -> bool:
+    """Whether one form keys its captures by an attribute option combo rather than by the default one."""
+    combo = source.attribute_combo
+    return combo is not None and not combo.is_default and bool(combo.option_combos)
 
 
 async def _example_organisation_unit_uid(client: Dhis2Client, config: GenerateConfig) -> str | None:
@@ -3497,6 +3618,7 @@ async def generate_full(
             option_set_plan=inputs.option_set_plan,
             published_organisation_unit_uids=frozenset(inputs.organisation_unit_stems.stems),
             assignments=inputs.assignments,
+            attribute_option_restrictions=inputs.attribute_option_restrictions,
             stem_plan=inputs.questionnaire_stems,
             organisation_unit_stems=inputs.organisation_unit_stems,
             notes=list(inputs.source_notes),

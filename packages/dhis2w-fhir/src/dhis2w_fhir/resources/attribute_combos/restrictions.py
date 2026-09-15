@@ -44,13 +44,18 @@ __all__ = [
     "ATTRIBUTE_OPTION_RESTRICTION_ID_SUFFIX",
     "ATTRIBUTE_OPTION_RESTRICTION_PROPERTY",
     "ATTRIBUTE_OPTION_RESTRICTION_RESOURCE_TYPE",
+    "UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY",
     "AttributeOptionRestrictionBuild",
     "AttributeOptionRestrictionPlan",
     "AttributeOptionRestrictions",
     "OrganisationUnitPaths",
+    "UnusableAttributeOptionCombosSummary",
+    "UsableAttributeOptionCombos",
     "attribute_option_restriction_declaration",
     "build_attribute_option_restriction_artifacts",
     "restricted_category_option_uids",
+    "unusable_attribute_option_combo_message",
+    "unusable_attribute_option_combos_summary",
 ]
 
 #: The concept property naming one restriction List, repeated once per restricted option of the combo.
@@ -112,6 +117,96 @@ class AttributeOptionRestrictions(BaseModel):
     """The registry selection: the ids a List names its members by, relative or absolute into a package."""
 
 
+#: The one line answering a form no organisation unit may file a capture for, stated identically wherever
+#: the fact is reported - `d2w fhir generate` closes a run with it and `d2w fhir check-artifacts` files it
+#: as a finding's remedy. Two selections meet here and the sentence names both: the organisation-unit
+#: selection is the one to widen until a restricted unit is published, the form selection the one to narrow.
+UNUSABLE_ATTRIBUTE_OPTION_COMBO_REMEDY = (
+    "Widen the organisation-unit selection until one of the restricted organisation units is published - "
+    "raise `[generate.organisation_units] max_level`, or set its `root` to an organisation unit above "
+    "them - or narrow the form selection in fhir.toml to the forms those organisation units report, then "
+    "run `d2w fhir generate` again."
+)
+
+
+class UsableAttributeOptionCombos(BaseModel):
+    """Which attribute option combos a capture at each published organisation unit may be filed under.
+
+    The restriction index read the way both consumers of it ask: DHIS2 refuses a capture keyed to a
+    combo whose category options are scoped away from the organisation unit it was filed from
+    (`E8025`), so the examples target places a response and the questionnaires target grades a form
+    against the same question - which combos, at which unit. The ancestor rule is resolved once per
+    category option here rather than per combo per unit, because a national registry has thousands
+    of units and a category combo has dozens of combos met from a handful of options.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    admissions: dict[str, frozenset[str]] = Field(default_factory=dict)
+    """The published organisation units each restricted category option admits, by category option UID.
+
+    An option absent from the index restricts nothing, which is what DHIS2 answers for an option
+    assigned to no organisation unit: every published unit may capture under it.
+    """
+
+    @classmethod
+    def of(cls, restrictions: AttributeOptionRestrictions) -> UsableAttributeOptionCombos:
+        """Resolve every restricted category option's descendants against the published registry, once."""
+        return cls(
+            admissions={
+                option_uid: restrictions.units.under(restricted_to)
+                for option_uid, restricted_to in restrictions.organisation_units.items()
+                if restricted_to
+            }
+        )
+
+    def usable_at(self, source: QuestionnaireSourceIn, organisation_unit_uid: str) -> tuple[str, ...]:
+        """The option combos of this form's category combo a capture at this organisation unit may be filed under.
+
+        A form on the default category combo, or on one the run publishes no vocabulary for, declares
+        no combo at all and the answer is empty - such a capture carries no combo and DHIS2 keys it
+        under the default one.
+        """
+        combo = source.attribute_combo
+        if combo is None or combo.is_default:
+            return ()
+        return tuple(
+            option_combo.uid
+            for option_combo in combo.option_combos
+            if self.admits(organisation_unit_uid, option_combo.category_option_uids)
+        )
+
+    def admits(self, organisation_unit_uid: str, category_option_uids: Collection[str]) -> bool:
+        """Whether a capture at this organisation unit may be filed under a combo met from these category options."""
+        return all(
+            organisation_unit_uid in admitted
+            for option_uid in category_option_uids
+            if (admitted := self.admissions.get(option_uid)) is not None
+        )
+
+
+class UnusableAttributeOptionCombosSummary(BaseModel):
+    """The published forms no organisation unit may file a capture for: every combo is restricted away.
+
+    Counted in forms for the reason the empty-assignment summary is: the form is what a capture
+    client is refused at, and what `$generate` answers 422 for. A form lands here only when it has
+    somewhere to report from at all - a form assigned to no published organisation unit is the
+    other absence, reported by the assignment summary, and reporting it twice would say one loss
+    under two names.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    form_count: int
+    """How many published Questionnaires declare a combo vocabulary no organisation unit may draw from."""
+
+    forms: list[str]
+    """The forms themselves, as `name (uid)`, sorted."""
+
+    max_level: int | None = None
+    """The `[generate.organisation_units] max_level` in force, which is what usually narrows the registry."""
+
+
 class AttributeOptionRestrictionPlan(BaseModel):
     """Which restriction Lists each attribute option combo concept names, keyed by the option combo's UID."""
 
@@ -134,6 +229,30 @@ class AttributeOptionRestrictionBuild(JsonBuild):
     """The restriction Lists one run publishes, plus the plan the combo concepts name them by."""
 
     plan: AttributeOptionRestrictionPlan = Field(default_factory=AttributeOptionRestrictionPlan)
+
+
+def unusable_attribute_option_combos_summary(
+    forms: list[str], *, max_level: int | None
+) -> UnusableAttributeOptionCombosSummary | None:
+    """Summarise the forms no organisation unit may file a capture for, or None when every form has one."""
+    if not forms:
+        return None
+    return UnusableAttributeOptionCombosSummary(form_count=len(forms), forms=sorted(forms), max_level=max_level)
+
+
+def unusable_attribute_option_combo_message(summary: UnusableAttributeOptionCombosSummary) -> str:
+    """The note one run files about the forms no organisation unit may file a capture for."""
+    narrowed = (
+        f"; `[generate.organisation_units] max_level = {summary.max_level}` is what narrows the registry"
+        if summary.max_level is not None
+        else ""
+    )
+    return (
+        f"{summary.form_count} published form(s) declare attribute option combos DHIS2 restricts away from "
+        f"every organisation unit that may report them, so no capture for them can be keyed to a combo this "
+        f"DHIS2 instance accepts and the restriction Lists beside their vocabulary name no organisation unit "
+        f"that may report them{narrowed}. The forms are: {', '.join(summary.forms)}"
+    )
 
 
 def attribute_option_restriction_declaration(property_base: str) -> CodeSystemProperty:

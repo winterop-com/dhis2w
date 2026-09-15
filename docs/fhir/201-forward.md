@@ -210,8 +210,13 @@ the two commands that produce a guide:
 
 ```
 error: no compiled IG at /home/you/demo-ig/ig/fsh-generated/resources - run
-`d2w fhir generate`, then `make sushi` in the project, and forward again.
+`d2w fhir generate` and then `make sushi` in the project, then run this command
+again.
 ```
+
+`d2w fhir doctor` reads a compiled guide too, in its drift phase, and raises the
+same refusal there - so the sentence closes on the command you typed rather than
+on a verb one of its callers owns.
 
 ### Both halves read one registry
 

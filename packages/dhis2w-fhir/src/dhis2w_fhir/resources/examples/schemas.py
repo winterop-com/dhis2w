@@ -61,6 +61,28 @@ class SyntheticPlacement(BaseModel):
 
     organisation_unit_uids: tuple[str, ...] = Field(min_length=1)
 
+    usable_attribute_option_combo_uids: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    """The attribute option combos each of those units may file a capture under, by organisation unit UID.
+
+    DHIS2 scopes a category option to organisation units on top of the assignment, and refuses a
+    capture keyed to a combo not usable at the unit it was filed from (`E8025`). So the unit and the
+    combo are one choice rather than two: a caller that knows the restrictions fills this, every unit
+    it names admits at least one combo, and the draw takes the combo from the drawn unit's own entry.
+    An empty index states a caller that knows no restriction - a form on the default category combo,
+    or a run publishing no registry to resolve one against - and the combo is drawn from the whole
+    vocabulary the form declares.
+    """
+
+
+class SyntheticCapture(BaseModel):
+    """What one synthetic response is captured against: the organisation unit, and the combo it is filed under."""
+
+    model_config = ConfigDict(frozen=True)
+
+    organisation_unit_uid: str
+    attribute_option_combo_uid: str | None = None
+    """The combo the response is keyed to - usable at `organisation_unit_uid`, or None on a default-combo form."""
+
 
 class RegistrationIdentities(BaseModel):
     """The two DHIS2 identities one registration response mints: the person, and the enrollment it creates.

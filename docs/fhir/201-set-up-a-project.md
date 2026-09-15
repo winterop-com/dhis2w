@@ -369,6 +369,8 @@ $ d2w fhir init . --refresh
 │created                   │ 0                  │
 │rewritten (scaffold-owned)│ 0                  │
 │refreshed                 │ 0                  │
+│refreshed, with your      │ 0                  │
+│additions                 │                    │
 │unchanged                 │ 12                 │
 │with your additions       │ 0                  │
 │diverged (kept)           │ 0                  │
@@ -419,13 +421,14 @@ writes both.
 **Every other file is rewritten only when the current scaffold render
 reproduces every line already on disk, in order.** So a refresh can only add
 what the scaffold gained, and no line you wrote is ever dropped. Every file
-gets one of six outcomes, all of them printed:
+gets one of seven outcomes, all of them printed:
 
 | Outcome | Meaning |
 | --- | --- |
 | `created` | A scaffold file the project did not have. Written. |
 | `rewritten (scaffold-owned)` | One of the five toolchain files the scaffold owns outright. Replaced whole by the current render, so an edit to it is gone. |
 | `refreshed` | A file whose render carries every line on disk plus more, or one whose identity lines `fhir.toml` declares have changed. Rewritten line-preservingly: every line you wrote is still there. |
+| `refreshed, with your additions` | Both at once: an identity line landed on a file that also carries lines the render does not produce. Written, and the lines you added are still under it - so a title change and an appended section read as two facts rather than one. |
 | `unchanged` | Already byte-identical to the current scaffold. |
 | `with your additions` | Carries every line the current scaffold renders, plus lines of your own. Nothing to add, so nothing is written. |
 | `diverged (kept)` | Holds lines the current scaffold does not write - your edits, or scaffold lines that have since changed; a line-preserving refresh cannot tell which. Your version stays, reported as `kept <path> (holds lines the current scaffold does not write)`. To take the scaffold's version, delete the file and refresh again. |
