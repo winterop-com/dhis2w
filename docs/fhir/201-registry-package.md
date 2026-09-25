@@ -58,7 +58,8 @@ four values the two projects share cannot disagree - which is the failure the
 rest of this section describes how to avoid by hand. `d2w fhir init --refresh`
 on that directory refreshes both projects, rewrites the Makefile from the
 current scaffold, and writes the README only when the current render reproduces
-every line already in it, so what you add to it stays.
+every line already in it, so what you add to it stays. `make update` in that
+directory moves both projects to the current release and then does that refresh.
 
 The two halves, spelled out. The registry becomes a project of its own,
 scaffolded with `--publishes organisation-units`.

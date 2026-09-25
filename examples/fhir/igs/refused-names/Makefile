@@ -57,15 +57,31 @@ BUILD_CARRIED_BACK := output fsh-generated input-cache
 # kill it was, and hand the publisher's own status back to make. Exit 137 says only that something
 # SIGKILLed the publisher, and a `docker stop`, a `docker kill` and a timeout around the build all
 # look identical from here - so the container reports its own cgroup's out-of-memory count as it
-# exits, and that count is what tells the two apart.
-define REPORT_KILL
+# exits, and that count is what tells the two apart. A build that succeeded also says what the one
+# `Error` line every successful run prints is, so nobody goes looking for a failure that is not there.
+define REPORT_RUN
 	status=$$(cat "$$run/status" 2>/dev/null || echo 1); \
 	oom_kills=$$(awk '/^container out-of-memory kills: / { count = $$NF } END { print count + 0 }' \
 		"$$run/log" 2>/dev/null); \
+	combined_package_errors=$$(grep -c '^Error generating combined package' "$$run/log" 2>/dev/null); \
 	rm -rf "$$run"; \
 	if [ $$status -eq 137 ] && [ $$oom_kills -gt 0 ]; then $(REPORT_OOM_KILL); \
-	elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); fi; \
+	elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); \
+	elif [ $$status -eq 0 ] && [ $${combined_package_errors:-0} -gt 0 ]; then $(REPORT_COMBINED_PACKAGE); fi; \
 	exit $$status
+endef
+
+# The publisher builds `package-combined.tgz` - the package plus the terminology it expands - by
+# reading `output/package.tgz` before it has written that run's package there, so a fresh build logs
+# "Error generating combined package ... No such file or directory" and carries on (BUGS.md #132).
+# `package.tgz`, the package a depending guide installs, is written as usual; only the combined
+# archive, which nothing here reads, is missing.
+define REPORT_COMBINED_PACKAGE
+	printf '%s\n' \
+		'' \
+		'note: "Error generating combined package" above is the IG publisher, not this build: it reads' \
+		'  output/package.tgz before writing it, so only package-combined.tgz is missing, and nothing' \
+		'  reads that. output/package.tgz is this run'"'"'s package. Upstream quirk: BUGS.md #132 in dhis2w.'
 endef
 
 # What a build prints when the kernel's out-of-memory killer took the publisher. The two memory
@@ -230,7 +246,7 @@ build: cache-init  ## Run the full IG publisher
 				fi; \
 			done; \
 			exit $$status'; echo $$? > "$$run/status"; } | tee "$$run/log"; \
-	$(REPORT_KILL)
+	$(REPORT_RUN)
 
 .PHONY: build-bind
 
@@ -252,7 +268,7 @@ build-bind: cache-init  ## Run the publisher straight over the mounted project, 
 			awk "/^oom_kill / { printf \"container out-of-memory kills: %d\n\", \$$2 }" \
 				/sys/fs/cgroup/memory.events 2>/dev/null || true; \
 			exit $$status'; echo $$? > "$$run/status"; } | tee "$$run/log"; \
-	$(REPORT_KILL)
+	$(REPORT_RUN)
 
 .PHONY: serve serve-live
 

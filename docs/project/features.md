@@ -649,7 +649,9 @@ chain in one command.
   own make still parallelises; the cost is that a `-j` no longer shortens `make
   generate`, whose two reads of the instance are independent, so
   `generate-registry` and `generate-guide` are each a target to run in its own
-  shell. `d2w fhir init --refresh` on that directory refreshes both projects and
+  shell. `make update` there moves both projects to the current release - each
+  one's own `make update`, then a refresh of the pair through the guide's moved
+  toolchain. `d2w fhir init --refresh` on that directory refreshes both projects and
   the two files no project's `fhir.toml` describes: the Makefile is the
   scaffold's own and is rewritten whole, and the README takes the line rule every
   other file takes, so a deployment note written into it is reported and kept

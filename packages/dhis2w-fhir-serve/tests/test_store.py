@@ -457,3 +457,42 @@ def test_a_guide_this_server_cannot_read_costs_its_own_declarations(
 
     assert store.example_entries == ()
     assert any("states contents that cannot be read" in record.getMessage() for record in caplog.records)
+
+
+def test_the_held_out_examples_line_counts_by_type_and_names_only_a_few() -> None:
+    """A guide declares one example per form and per registry profile, so the line cannot name them all."""
+    from dhis2w_fhir.implementation_guide import DeclaredExamples, PublishedResourceKey
+    from dhis2w_fhir_serve.store import _held_out_line
+
+    pairs = [("QuestionnaireResponse", f"form{index}-example-1") for index in range(64)]
+    pairs += [("Location", "d2-location-example"), ("Organization", "d2-organization-example")]
+    keys = frozenset(
+        PublishedResourceKey(resource_type=resource_type, resource_id=resource_id)
+        for resource_type, resource_id in pairs
+    )
+
+    line = _held_out_line(DeclaredExamples(keys=keys))
+
+    assert line.startswith("66 worked example(s) the implementation guide declares are held out of what it publishes")
+    assert "(1 Location, 1 Organization, 64 QuestionnaireResponse)" in line
+    assert (
+        "Location/d2-location-example, Organization/d2-organization-example, QuestionnaireResponse/form0-example-1"
+        in line
+    )
+    assert line.count("QuestionnaireResponse/") == 1
+    assert "and 63 more; each is still readable by id" in line
+
+
+def test_a_guide_with_few_examples_names_every_one() -> None:
+    """Under the sample size there is nothing to leave out, so the line says no 'more'."""
+    from dhis2w_fhir.implementation_guide import DeclaredExamples, PublishedResourceKey
+    from dhis2w_fhir_serve.store import _held_out_line
+
+    keys = frozenset(
+        PublishedResourceKey(resource_type="Location", resource_id=resource_id)
+        for resource_id in ["d2-location-example"]
+    )
+
+    line = _held_out_line(DeclaredExamples(keys=keys))
+
+    assert line.endswith("(1 Location): Location/d2-location-example; each is still readable by id")

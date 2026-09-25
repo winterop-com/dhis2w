@@ -192,6 +192,7 @@ Every entry in the file is listed here, including the four that carried no Index
 
 - [#103](#103-the-ig-publisher-writes-a-resources-title--text--display-into-its-final-markdown-pass-without-escaping--and-dies-re-parsing-the-page-it-just-wrote) — the IG publisher dies re-parsing a page whose `<` it wrote unescaped **[NOT RETESTED]**
 - [#107](#107-the-ig-publishers-concept-anchor-slug-strips-whitespace-so-two-distinct-codes-render-one-duplicate-anchor-id) — the IG publisher's concept anchor slug strips whitespace, colliding two codes **[NOT RETESTED]**
+- [#132](#132-the-ig-publisher-builds-package-combinedtgz-from-outputpackagetgz-before-it-has-written-that-runs-package) — the IG publisher reads `output/package.tgz` for its combined package before writing it **[NEW]**
 
 ## OpenAPI document (v41 / v42 / v43)
 
@@ -8176,8 +8177,8 @@ arithmetic.
 
 ## HL7 IG publisher defects
 
-Not DHIS2. One entry, filed here because it is the upstream defect that shapes what
-`d2w fhir generate` may publish, and because the repro is metadata a DHIS2 instance
+Not DHIS2. Filed here because each shapes what `d2w fhir generate` may publish or what a
+build of its output prints, and because the repro starts from metadata a DHIS2 instance
 legitimately holds. Numbers continue the global sequence.
 
 ### 103. The IG publisher writes a resource's `title` / `text` / `display` into its final markdown pass without escaping `<`, and dies re-parsing the page it just wrote
@@ -8328,3 +8329,42 @@ the QA errors remain - cosmetic, and counted among a guide's expected errors.
 
 **Status (2026-09-11):** not retested; the HL7 IG publisher is not DHIS2 and is outside this sweep's targets.
 
+### 132. The IG publisher builds `package-combined.tgz` from `output/package.tgz` before it has written that run's package
+
+**Version observed:** HL7 `fhir-ig-publisher` 2.3.4 (Git# 7ae92f79415a), FHIR R4, 2026-09-25, on every
+guide and registry package this toolchain builds.
+
+**Repro.** Any guide, built into an `output/` directory that does not exist yet:
+
+```bash
+rm -rf output temp
+java -Xmx8g -jar publisher.jar ig.ini -ig .
+grep -n "combined package" <the run's log>
+```
+
+```text
+Generating combined package
+Error generating combined package: /home/publisher/work/output/package.tgz (No such file or directory)
+```
+
+**Expected.** The combined package is generated from the package this run built, after that package
+is written - or the step reads the package from wherever the run holds it at that point.
+
+**Actual.** `PublisherGenerator.genCombinedPackage()` runs unconditionally after "Reclaiming memory..."
+and before Jekyll renders the site. It opens `<outputDir>/package.tgz` with a `FileInputStream`, which
+at that point holds no package from this run: on a fresh `output/` the open fails, is caught, and is
+logged as the `Error` above; the run then continues, writes `output/package.tgz` as usual, and exits
+0. Only `package-combined.tgz` - the package plus the expansions and terminology it uses - is never
+produced. Read from the bytecode: the call site is `generate(...)` offset 1949, the read is
+`genCombinedPackage()` offset 164-170, and there is no `ig.ini` or IG parameter guarding it.
+
+The fresh-directory case is the loud one. On a build over an `output/` a previous run left behind,
+the same step reads that **previous** run's `package.tgz` and writes a combined package from stale
+content without a word.
+
+**Workaround applied in this repo.** None is possible from outside the publisher, and nothing here
+reads `package-combined.tgz`. The scaffolded Makefile's `REPORT_RUN`
+(`packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/templates/Makefile.jinja`) notices the line in a
+build that exited 0 and prints a note saying what it is, so it is not read as a failed build. The
+copy-in `make build` never carries `output/` into the container, so it always takes the loud path
+rather than the stale one.

@@ -681,9 +681,49 @@ def test_only_a_counted_out_of_memory_kill_reads_as_one() -> None:
     makefile = _by_path()["Makefile"]
     assert "define REPORT_OTHER_KILL" in makefile
     assert "if [ $$status -eq 137 ] && [ $$oom_kills -gt 0 ]; then $(REPORT_OOM_KILL); \\" in makefile
-    assert "elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); fi; \\" in makefile
+    assert "elif [ $$status -eq 137 ]; then $(REPORT_OTHER_KILL); \\" in makefile
     assert "  BUILD KILLED (exit 137)" in makefile
     assert "a docker stop, a docker kill, a timeout around the" in makefile
+
+
+def _report_run(tmp_path: Path, *, status: int, log: str) -> subprocess.CompletedProcess[str]:
+    """Run the scaffolded Makefile's REPORT_RUN over a run directory holding this status and log."""
+    run = tmp_path / "run"
+    run.mkdir(parents=True)
+    (run / "status").write_text(f"{status}\n", encoding="utf-8")
+    (run / "log").write_text(log, encoding="utf-8")
+    makefile = tmp_path / "Makefile"
+    makefile.write_text(_by_path()["Makefile"] + f"\nprobe:\n\t@run={run}; $(REPORT_RUN)\n", encoding="utf-8")
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+    return run_make(tmp_path, stub, "probe")
+
+
+_COMBINED_PACKAGE_LINE = (
+    "Error generating combined package: /home/publisher/work/output/package.tgz (No such file or directory)"
+    "   (00:00.002 / 06:20.949, 5Gb)\n"
+)
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_a_successful_build_says_what_the_combined_package_error_is(tmp_path: Path) -> None:
+    """The publisher logs an `Error` on every successful build; the build says it is not one (BUGS.md #132)."""
+    completed = _report_run(tmp_path, status=0, log=f"Generating combined package\n{_COMBINED_PACKAGE_LINE}")
+
+    assert completed.returncode == 0, completed.stderr
+    assert '"Error generating combined package" above is the IG publisher, not this build' in completed.stdout
+    assert "BUGS.md #132" in completed.stdout
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_a_failed_build_and_a_clean_log_say_nothing_about_the_combined_package(tmp_path: Path) -> None:
+    """A failed build has a real error to read, and a log without the line has nothing to explain."""
+    failed = _report_run(tmp_path / "failed", status=1, log=_COMBINED_PACKAGE_LINE)
+    clean = _report_run(tmp_path / "clean", status=0, log="Done\n")
+
+    assert failed.returncode != 0
+    assert "combined package" not in failed.stdout
+    assert clean.returncode == 0, clean.stderr
+    assert clean.stdout == ""
 
 
 @pytest.mark.parametrize("target", ["build", "build-bind"])
@@ -694,8 +734,8 @@ def test_both_publisher_builds_report_a_kill(target: str) -> None:
     build that never reports anything: the last line of the recipe is what hands make the status.
     """
     recipe = _makefile_recipe(_by_path()["Makefile"], target)
-    assert "\t$(REPORT_KILL)" in recipe
-    assert recipe.rstrip().splitlines()[-1] == "\t$(REPORT_KILL)"
+    assert "\t$(REPORT_RUN)" in recipe
+    assert recipe.rstrip().splitlines()[-1] == "\t$(REPORT_RUN)"
     assert 'echo $$? > "$$run/status"; } | tee "$$run/log"' in recipe
 
 

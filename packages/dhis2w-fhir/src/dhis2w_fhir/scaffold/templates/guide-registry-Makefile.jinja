@@ -55,6 +55,14 @@ toolchain:  ## Print the d2w each project resolves - the first thing to check wh
 	@printf '%-10s ' "$(REGISTRY):"; cd $(REGISTRY) && $(D2W) --version 2>/dev/null || echo "not resolvable"
 	@printf '%-10s ' "$(GUIDE):";    cd $(GUIDE)    && $(D2W) --version 2>/dev/null || echo "not resolvable"
 
+.PHONY: update
+update:  ## Move both projects to the current d2w - each pin, sync and scaffold - then refresh this Makefile and the README
+# Each project moves its own pin, because each resolves `d2w` from its own lock. This file and the
+# README belong to neither, so the pair is refreshed last, through the guide's freshly moved toolchain.
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) update
+	@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) update
+	cd $(GUIDE) && $(D2W) fhir init --refresh ..
+
 .PHONY: setup
 setup:  ## Build the SUSHI + IG publisher docker image (once per machine, shared by both projects)
 	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) setup
