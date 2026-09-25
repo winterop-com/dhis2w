@@ -1499,6 +1499,15 @@ def generate_callback(
             "changed in DHIS2 before a build is spent on it. Every code is published byte-true.",
         ),
     ] = False,
+    registry_package: Annotated[
+        Path | None,
+        typer.Option(
+            "--registry-package",
+            help="The organisation-unit registry package this guide depends on, when no `path` checkout "
+            "answers - the package.tgz the registry's `make build` wrote, or an extracted package. Only for "
+            "a guide naming `\\[generate.organisation_units.registry]`.",
+        ),
+    ] = None,
     progress: ProgressOption = True,
 ) -> None:
     """Generate the whole IG source from DHIS2 metadata, or one named target of it.
@@ -1509,8 +1518,8 @@ def generate_callback(
 
     Notes land in reports/fhir-generate-notes.md; `--details` prints them here instead.
 
-    Name a target to run that one alone; --details and --progress belong to the bare run, and the
-    two hostile-name flags belong to every target under this group.
+    Name a target to run that one alone; --details, --registry-package and --progress belong to the
+    bare run, and the two hostile-name flags belong to every target under this group.
     """
     ctx.obj = GenerateDecisions(
         hostile_names=_hostile_name_posture(substitute=substitute_hostile_names, refuse=refuse_hostile_names)
@@ -1523,7 +1532,11 @@ def generate_callback(
     generation = service.resolve_generation_profile(project)
     gate = _hostile_name_gate(ctx, project)
     with _progress(service.generate_full_steps(project), enabled=progress) as reporter:
-        report = asyncio.run(service.generate_full(generation.profile, project, reporter=reporter, gate=gate))
+        report = asyncio.run(
+            service.generate_full(
+                generation.profile, project, reporter=reporter, gate=gate, registry_package=registry_package
+            )
+        )
         if reporter is not None:
             reporter.finish(_full_run_summary(report))
     if is_json_output():

@@ -8,8 +8,11 @@ registry-mode assertion with the inline one it must not disturb. The full runs a
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import shutil
+import tarfile
 import tomllib
 from collections.abc import Callable
 from pathlib import Path
@@ -43,6 +46,7 @@ from dhis2w_fhir.scaffold import build_scaffold_files
 from dhis2w_fhir.scaffold.refresh import read_project_scaffold_state, refresh_project
 from dhis2w_fhir.service import RegistryProjectTargetError
 from dhis2w_fhir.validation.artifacts import check_publishable_artifacts
+from makefile_harness import run_make, stub_docker
 from typer.testing import CliRunner
 
 _HOST = "https://dhis2.example"
@@ -483,6 +487,51 @@ def test_the_makefile_installs_the_registry_package_before_sushi_and_the_publish
     assert "build: cache-init  ##" in plain
 
 
+def test_a_guide_without_a_checkout_names_the_archive_to_every_command_that_reads_the_registry() -> None:
+    """With no `path`, the archive is the only source, so generate, check, serve and forward all carry it.
+
+    A guide with a checkout carries no flag: the checkout answers first for every one of those
+    commands, and a toolchain pin older than `generate --registry-package` keeps working.
+    """
+    without_path = _scaffold(_GUIDE_OPTIONS.model_copy(update={"registry": _REGISTRY}))["Makefile"]
+    assert (
+        "REGISTRY_PACKAGE_FLAG = $(if $(wildcard $(REGISTRY_TGZ)),--registry-package $(REGISTRY_TGZ))" in without_path
+    )
+    for recipe in (
+        "\t$(D2W) fhir generate $(REGISTRY_PACKAGE_FLAG)\n",
+        "$(D2W) fhir check-artifacts $(REGISTRY_PACKAGE_FLAG); \\\n",
+        "\t$(D2W) fhir serve --ui $(REGISTRY_PACKAGE_FLAG)\n",
+        "\t$(D2W) fhir serve --live --ui $(REGISTRY_PACKAGE_FLAG)\n",
+        "\t$(D2W) fhir forward $(REGISTRY_PACKAGE_FLAG)\n",
+        "\t$(D2W) fhir forward --import $(REGISTRY_PACKAGE_FLAG)\n",
+    ):
+        assert recipe in without_path, recipe
+
+    with_path = _scaffold(_DEPENDING_OPTIONS)["Makefile"]
+    assert "REGISTRY_PACKAGE_FLAG" not in with_path
+    assert "\t$(D2W) fhir generate\n" in with_path
+
+
+@pytest.mark.skipif(shutil.which("make") is None, reason="make runs the Makefile under test")
+def test_the_build_check_reads_the_archive_named_on_the_command_line(tmp_path: Path) -> None:
+    """`make build REGISTRY_TGZ=...` scans against that archive, and names none that is not on disk."""
+    for relative, content in _scaffold(_GUIDE_OPTIONS.model_copy(update={"registry": _REGISTRY})).items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+    archive = tmp_path / "dist" / "package.tgz"
+    archive.parent.mkdir()
+    archive.write_bytes(b"")
+    stub = stub_docker(tmp_path, f"{16 * 1024**3}\n")
+
+    named = run_make(tmp_path, stub, "-n", "check", "REGISTRY_TGZ=dist/package.tgz", "D2W=d2w")
+    absent = run_make(tmp_path, stub, "-n", "check", "REGISTRY_TGZ=dist/absent.tgz", "D2W=d2w")
+
+    assert named.returncode == 0, named.stderr
+    assert "d2w fhir check-artifacts --registry-package dist/package.tgz;" in named.stdout
+    assert "--registry-package" not in absent.stdout
+
+
 def test_the_front_page_of_a_guide_does_not_move_when_it_names_a_registry() -> None:
     """The registry package has its own front page; a guide's is the same file either way, so a refresh stays quiet."""
     assert (
@@ -890,6 +939,34 @@ async def test_generate_refuses_a_registry_it_cannot_read_before_it_dials_the_in
     assert "neither source for it is readable" in str(refusal.value)
     assert not respx.routes["organisationUnits"].calls
     assert not (tmp_path / "ig" / "input" / "fsh" / "examples").exists()
+
+
+@respx.mock
+async def test_generate_reads_the_registry_from_a_package_when_no_checkout_answers(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    mock_attributes: Callable[..., None],
+    mock_organisation_unit_levels: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """The hand-off case: a guide holding only the archive the registry's build wrote generates against it."""
+    _mock_instance(mock_system_info, mock_attributes, mock_organisation_unit_levels)
+    await _scaffold_project(tmp_path, _FULL_OPTIONS, _UNREADABLE_REGISTRY_TABLE)
+    archive = tmp_path / "dist" / "package.tgz"
+    archive.parent.mkdir()
+    with tarfile.open(archive, "w:gz") as package:
+        for unit in _ORGANISATION_UNITS_PAYLOAD["organisationUnits"]:
+            body = json.dumps({"resourceType": "Location", "id": unit["id"]}).encode("utf-8")
+            member = tarfile.TarInfo(f"package/Location-{unit['id']}.json")
+            member.size = len(body)
+            package.addfile(member, io.BytesIO(body))
+
+    report = await service.generate_full(resolve_profile("probe"), load_project(tmp_path), registry_package=archive)
+
+    assert report.organisation_units.organisation_unit_count == 2
+    examples = tmp_path / "ig" / "input" / "fsh" / "examples"
+    text = "".join(path.read_text(encoding="utf-8") for path in examples.glob("*.fsh"))
+    assert "Reference(http://example.org/fhir/registry/Location/" in text
 
 
 @respx.mock

@@ -3814,6 +3814,7 @@ async def generate_full(
     reporter: ProgressReporter | None = None,
     client: Dhis2Client | None = None,
     gate: HostileNameGate | None = None,
+    registry_package: Path | None = None,
 ) -> GenerateFullReport:
     """Generate every target off one connected client and one pass over the instance's metadata.
 
@@ -3837,6 +3838,8 @@ async def generate_full(
     when neither a checkout nor a package supplies that registry, in the words `serve --live`,
     `forward` and `check-artifacts` refuse it in: the run would otherwise write a `Location/...`
     reference per example, assignment List and page against a package nothing on this machine holds.
+    `registry_package` is the archive or extracted package that answers when no `path` checkout
+    does, the same source those three commands take.
     """
     if project.config.publishes_organisation_units:
         return await _generate_registry_package(profile, project, reporter=reporter, client=client, gate=gate)
@@ -3844,7 +3847,7 @@ async def generate_full(
     # `Location/<id>` reference per example, per assignment List and per page, and a run that cannot
     # read that package writes them against places nothing publishes. `serve --live`, `forward`,
     # `check-artifacts` and `make sushi` all refuse such a project, and this is the same refusal.
-    resolve_registry_source(project)
+    resolve_registry_source(project, package=registry_package)
     config = project.config.generate
     progress = _StepAnnouncer(reporter, GENERATE_FULL_STEPS)
     progress.step(_FETCH_LABEL, "fetching instance metadata")

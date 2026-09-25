@@ -1757,14 +1757,18 @@ registration form become `Questionnaire` instances.
   absolute `<registry canonical>/Location/<id>` where a package publishes it.
   Both post, so what decides it is which spelling a client copying a draft
   should learn.
-- **Serving, forwarding and checking a depending guide** all find the units
-  through one resolver (`dhis2w_fhir.registry_package`): the checkout
+- **Generating, serving, forwarding and checking a depending guide** all find
+  the units through one resolver (`dhis2w_fhir.registry_package`): the checkout
   `[generate.organisation_units.registry] path` names, then a `package.tgz` or
   extracted directory given as `--registry-package`, then a `RegistryMissingError`
-  naming both remedies. A tarball is read in place with `tarfile`, never
-  unpacked to disk, and only `Location` and `Organization` are taken out of it -
-  the package's own profiles and ImplementationGuide stay where they are, so a
-  facade answering for one guide never holds a second ImplementationGuide.
+  naming both remedies. A guide scaffolded with no `path` names its
+  `REGISTRY_TGZ` to all four through the Makefile. A tarball is read in place
+  with `tarfile`, never unpacked to disk, and only the `Location` and
+  `Organization` resources at the package's top level are taken out of it. The
+  worked `d2-example` pair under `package/example/` names no organisation unit
+  and stays out, and the package's own profiles and ImplementationGuide stay
+  where they are, so a facade answering for one guide never holds a second
+  ImplementationGuide.
   `d2w fhir serve` preflights the registry in `ServeSettings.resolve`, so the
   refusal lands before the starting banner - in both store modes. **A `--live`
   run over a depending guide serves the package's units too** and walks no

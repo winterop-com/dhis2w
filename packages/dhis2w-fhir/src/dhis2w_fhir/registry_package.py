@@ -12,13 +12,17 @@ while both projects sit side by side, and the one that needs no build at all. A 
 the command line is the hand-off case: the `package.tgz` the registry's own `make build` wrote, or
 a directory it was extracted into. Neither present is a refusal naming both remedies rather than a
 guide that silently serves no place.
+
+A package is read at its top level only, which is where a FHIR package keeps its resources. Its
+`example/` directory holds the worked `d2-example` pair the registry's profiles are validated
+against, which names no organisation unit, so reading it would serve one place the checkout does not.
 """
 
 from __future__ import annotations
 
 import json
 import tarfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, Literal
 
 from dhis2w_core.cli_errors import CliUserError
@@ -141,9 +145,10 @@ def _source_documents(source: RegistrySource) -> list[RegistryDocument]:
         root = source.location
         if source.kind == "package" and (root / _PACKAGE_ROOT).is_dir():
             root = root / _PACKAGE_ROOT
+        paths = root.glob("*.json") if source.kind == "package" else root.rglob("*.json")
         return [
             document
-            for path in sorted(root.rglob("*.json"))
+            for path in sorted(paths)
             if (document := _document(_read_json(path, str(path)), str(path))) is not None
         ]
     return _archive_documents(source.location)
@@ -165,7 +170,7 @@ def _archive_documents(package: Path) -> list[RegistryDocument]:
     try:
         with tarfile.open(package, "r:*") as archive:
             for member in archive.getmembers():
-                if not member.isfile() or not member.name.endswith(".json"):
+                if not member.isfile() or not _is_top_level_resource(member.name):
                     continue
                 handle = archive.extractfile(member)
                 if handle is None:
@@ -177,6 +182,12 @@ def _archive_documents(package: Path) -> list[RegistryDocument]:
     except tarfile.TarError as error:
         raise RegistryMissingError(f"{package}: not a readable package archive ({error})") from error
     return documents
+
+
+def _is_top_level_resource(member_name: str) -> bool:
+    """Whether an archive member is a JSON resource directly under the package root, not in `example/` or deeper."""
+    parts = PurePosixPath(member_name).parts
+    return len(parts) == 2 and parts[0] == _PACKAGE_ROOT and parts[1].endswith(".json")
 
 
 def _document(body: dict[str, Any], source: str) -> RegistryDocument | None:
