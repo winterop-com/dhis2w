@@ -1120,6 +1120,28 @@ def test_the_context_is_assembled_from_the_published_guide(forward_project: Path
     assert context.resolves_organisation_units is True
 
 
+def test_a_location_the_publisher_rendered_a_narrative_for_is_read() -> None:
+    """A built package gives every Location a `text` narrative, and the unit it names must still resolve.
+
+    Left out, the reference falls back to reading its id as the DHIS2 uid - right by accident under
+    `naming.source = "id"`, and the wrong organisation unit under `code`.
+    """
+    from dhis2w_fhir.conversion.artifacts import SourcedDocument, collect_artifacts
+
+    narrative = {"status": "generated", "div": '<div xmlns="http://www.w3.org/1999/xhtml"><p>Ngelehun CHC</p></div>'}
+    collected = collect_artifacts(
+        [
+            SourcedDocument(
+                source="package.tgz:package/Location-DiszpKrYNg8.json",
+                body={"resourceType": "Location", "id": "DiszpKrYNg8", "text": narrative},
+            )
+        ]
+    )
+
+    assert collected.unreadable_resources == ()
+    assert [location.id for location in collected.locations] == ["DiszpKrYNg8"]
+
+
 def test_an_unreadable_form_fails_the_load_and_an_unreadable_terminology_is_left_out(forward_project: Path) -> None:
     """A skipped form would refuse every response answering it; a skipped CodeSystem costs only its codes."""
     predefined = forward_project / "ig" / "input" / "resources"

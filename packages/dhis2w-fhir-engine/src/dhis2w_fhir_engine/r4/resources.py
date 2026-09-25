@@ -262,6 +262,7 @@ class Organization(DomainResource):
     resourceType: Literal["Organization"] = "Organization"
     id: str | None = None
     meta: Meta | None = None
+    text: Narrative | None = None
     extension: list[Extension] | None = None
     identifier: list[Identifier] | None = None
     name: str | None = None
@@ -462,6 +463,7 @@ class Location(DomainResource):
     resourceType: Literal["Location"] = "Location"
     id: str | None = None
     meta: Meta | None = None
+    text: Narrative | None = None
     identifier: list[Identifier] | None = None
     name: str | None = None
     name_element: Element | None = Field(

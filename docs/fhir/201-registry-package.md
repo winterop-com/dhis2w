@@ -235,25 +235,35 @@ Two throwaway projects built with the same `fhir-ig` image settled the shape:
   `package/` directory as they are, from `input/resources/registry/*`, with no
   per-resource `exampleBoolean` entries in `sushi-config.yaml`.
 
-## Serving, forwarding and checking a depending guide
+## Generating, serving, forwarding and checking a depending guide
 
-The guide publishes no `Location` of its own, so the three commands that need
-one find it in the registry instead. All three read the same two sources in the
-same order: the checkout `path` names, then a package given on the command
-line.
+The guide publishes no `Location` of its own, so the four commands that need
+the registry find it in the package instead. All four read the same two sources
+in the same order: the checkout `path` names, then a package given on the
+command line.
 
 ```bash
 # The everyday case - the checkout beside the guide answers, no build needed.
 d2w fhir serve
 
 # The hand-off case - no checkout, so name the archive the registry build wrote.
+d2w fhir generate --registry-package ../dist/package.tgz
 d2w fhir serve --registry-package ../dist/package.tgz
 d2w fhir check-artifacts --registry-package ../dist/package.tgz
 d2w fhir forward --registry-package ../dist/package.tgz
 ```
 
+A guide scaffolded without `path` does this through its Makefile: once
+`REGISTRY_TGZ` names an archive that is on disk, `make generate`, `make build`
+(whose artifact scan runs first), `make serve` and `make forward` pass it as
+`--registry-package`, so `make build REGISTRY_TGZ=../dist/package.tgz` needs
+nothing else.
+
 A `package.tgz` is read where it lies; nothing is unpacked onto your disk. An
-already-extracted package directory works too.
+already-extracted package directory works too. Only the resources at the
+package's top level are read: the worked `d2-example` pair under
+`package/example/` names no organisation unit, so a guide serves the same units
+from the archive as from the checkout.
 
 Reaching neither source is refused rather than worked around, and for `serve`
 the refusal lands while settings resolve, so you get one line instead of a

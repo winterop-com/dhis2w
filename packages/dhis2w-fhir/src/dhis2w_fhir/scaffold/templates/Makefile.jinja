@@ -139,6 +139,12 @@ endef
 REGISTRY_ID ?= {{ registry.id }}
 REGISTRY_VERSION ?= {{ registry.version }}
 REGISTRY_TGZ ?= {{ registry.path.as_posix() ~ "/ig/output/package.tgz" if registry.path else "" }}
+{% if not registry.path %}
+# No `path` checkout answers for the registry, so the archive is also named to every d2w command
+# that reads it: generate, check-artifacts, serve and forward. Named only once it is on disk, so a
+# missing archive leaves each command to say which source it could not read.
+REGISTRY_PACKAGE_FLAG = $(if $(wildcard $(REGISTRY_TGZ)),--registry-package $(REGISTRY_TGZ))
+{% endif %}
 {% endif %}
 
 .PHONY: cache-init help setup upgrade generate validate sushi build refresh clean clean-all
@@ -153,7 +159,7 @@ upgrade:  ## Rebuild the image from scratch, pulling the latest SUSHI + IG publi
 	docker build --pull --no-cache -t $(DOCKER_IMAGE) .
 
 generate:  ## Regenerate FSH from DHIS2 metadata
-	$(D2W) fhir generate
+	$(D2W) fhir generate{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}
 
 .PHONY: update
 update:  ## Update the project to the current d2w: move the toolchain pin, sync, refresh the scaffold-managed files
@@ -173,7 +179,7 @@ check:  ## Scan the artifacts on disk for what aborts the IG publisher (offline,
 # ask the CLI what it knows first, and when the command is absent, warn with the upgrade named
 # and let the build proceed unscanned.
 	@if $(D2W) fhir --help 2>/dev/null | grep -q "check-artifacts"; then \
-		$(D2W) fhir check-artifacts; \
+		$(D2W) fhir check-artifacts{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}; \
 	else \
 		echo "WARNING: the pinned dhis2w-fhir has no 'd2w fhir check-artifacts' (1.8+); skipping the artifact scan. Upgrade: uv lock --upgrade && uv sync"; \
 	fi
@@ -300,19 +306,19 @@ build-bind: cache-init  ## Run the publisher straight over the mounted project, 
 .PHONY: serve serve-live
 
 serve:  ## Serve the compiled IG as a FHIR endpoint, with the capture UI at / (run generate + sushi first)
-	$(D2W) fhir serve --ui
+	$(D2W) fhir serve --ui{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}
 
 serve-live:  ## Serve straight from the DHIS2 instance, with the capture UI at / - no compile needed
-	$(D2W) fhir serve --live --ui
+	$(D2W) fhir serve --live --ui{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}
 
 {% if not publishes %}
 .PHONY: forward forward-import
 
 forward:  ## Dry-run the capture spool against DHIS2 - validate only, nothing written, nothing moved
-	$(D2W) fhir forward
+	$(D2W) fhir forward{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}
 
 forward-import:  ## Import the capture spool into DHIS2 and file every receipt by what it became
-	$(D2W) fhir forward --import
+	$(D2W) fhir forward --import{{ " $(REGISTRY_PACKAGE_FLAG)" if registry and not registry.path else "" }}
 {% else %}
 # No forward targets: a capture starts from a Questionnaire, this package publishes none, and the
 # spool it would drain can never fill. The guide that depends on this package is where captures

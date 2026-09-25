@@ -2040,9 +2040,9 @@ $ d2w fhir init [OPTIONS] [directory]
 * `--profile <str>`: DHIS2 profile to seed the `profile` key of the scaffolded fhir.toml with, so `d2w fhir generate` reads that instance without a flag. Offline: the name is written as given, never resolved against profiles.toml.
 * `--sushi-timeout <int>`: Seconds the IG publisher gives its internal SUSHI run, written to `[FSH] timeout` of ig/fsh.ini. It bounds the FSH targets alone - the registry and the terminology ship as pre-built JSON - and an overrun fails the build with exit 143.  [default: 1800]
 * `--max-level <int>`: Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this is the dial that bounds how much the IG publisher renders. Offline: written as given.
-* `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Naming one family narrows that family alone: an absent selection table means every member of its kind, so a guide naming data sets here still publishes every event program and every tracker program. Narrow those with --event-program and --tracker-program, or by writing `[generate.event_programs]` and `[generate.tracker_programs]` in fhir.toml. Offline: the UID shape is checked here, never the instance.
-* `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Naming one family narrows that family alone: an absent selection table means every member of its kind, so a guide naming event programs here still publishes every data set and every tracker program. Narrow those with --data-set and --tracker-program, or by writing `[generate.data_sets]` and `[generate.tracker_programs]` in fhir.toml. Offline: the UID shape is checked here, never the instance.
-* `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Naming one family narrows that family alone: an absent selection table means every member of its kind, so a guide naming tracker programs here still publishes every data set and every event program. Narrow those with --data-set and --event-program, or by writing `[generate.data_sets]` and `[generate.event_programs]` in fhir.toml. Offline: the UID shape is checked here, never the instance.
+* `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming data sets here still publishes every event program and every tracker program. Narrow those with --event-program and --tracker-program, or by writing `[generate.event_programs]` and `[generate.tracker_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
+* `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming event programs here still publishes every data set and every tracker program. Narrow those with --data-set and --tracker-program, or by writing `[generate.data_sets]` and `[generate.tracker_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
+* `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming tracker programs here still publishes every data set and every event program. Narrow those with --data-set and --event-program, or by writing `[generate.data_sets]` and `[generate.event_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
 * `--publishes <organisation-units>`: Scaffold a package rather than a guide, holding what this names and nothing else, for guides to depend on through --registry-id. `organisation-units` is the registry package. Omit it to scaffold a guide, which is the default.
 * `--with-registry`: Scaffold the guide and the organisation-unit registry package it depends on, as two wired projects under this directory: `registry/` publishes the units, `guide/` publishes the forms and references them. Both identities derive from --id and --canonical, so they cannot disagree, and a Makefile beside them drives the pair in the order that resolves.
 * `--registry-id <str>`: Package id of the registry package this guide&#x27;s organisation units are published by, seeding `[generate.organisation_units.registry]`; the guide then writes no Organization or Location of its own. Needs --registry-canonical.
@@ -2062,7 +2062,7 @@ the same codes), a warning degrades an emitted resource, and an info is instance
 objects the build never reads. Each finding carries that verdict as its scope - `selection`
 for objects the configured selection emits, `instance` for the rest.
 
-The run grades under the project&#x27;s ` hostile_names` posture, and the summary states
+The run grades under the project&#x27;s `[generate] hostile_names` posture, and the summary states
 which one it read. Under `substitute` a DHIS2 name carrying &#x27;&lt;&#x27; is rewritten for publication
 and the build survives it, so the finding on that name is informational and says what the guide
 publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
@@ -2107,9 +2107,10 @@ the resource, the element, and the value, so what comes back is the object rathe
 the publisher happened to die on, and the line that answers it follows from where the value came
 from rather than assuming DHIS2 wrote it.
 
-One finding is a warning rather than a refusal: a published form whose organisation-unit
-assignment names no unit this project publishes. That guide builds and publishes; what it costs
-is a form nobody can submit a response to.
+Two findings are warnings rather than refusals: a published form whose organisation-unit
+assignment names no organisation unit this project publishes, and a `[generate.*] include_ids`
+entry this project publishes nothing carrying that UID for. That guide builds and publishes;
+what it costs is a form nobody can submit a response to, and a form the guide never carried.
 
 No connection, no profile, no compile - the artifacts are the whole input, so it answers in
 seconds. Exit 1 when anything build-aborting is found, which is what `make build` runs it for.
@@ -2155,8 +2156,9 @@ verified against that issuer&#x27;s published keys).
 
 Host, port, authentication, strict codes, the UI, and basemaps come from `[serve]` unless a flag beats them.
 
-Two more `[serve]` keys have no flag: `capture = false` serves the guide and receives nothing, and
-`spool_dir` says where the receipts live - the same directory `d2w fhir forward` drains.
+Two more `[serve]` keys have no flag, and are set in fhir.toml alone: `capture = false` serves
+the guide and receives nothing, and `spool_dir` says where the receipts live - the same directory
+`d2w fhir forward` drains, which is why one project states it once rather than per invocation.
 
 **Usage**:
 
@@ -2190,8 +2192,11 @@ validate-only mode, so DHIS2&#x27;s rules decide the answer and nothing is writt
 
 The posture comes from `[forward]` in fhir.toml - `import`, `register_completeness`,
 `overwrites`, `corrections`, and `withdrawals` - unless a flag here overrides it for this run,
-and from the defaults above when the file states none. Which spool is drained is
-`[serve] spool_dir`, the same key the server writes receipts under.
+and from the defaults above when the file states none.
+
+Which spool is drained has no flag: it is `[serve] spool_dir` in fhir.toml, the same key the
+server writes receipts under, so a project that moves its receipt tree moves it for both halves
+of the loop at once.
 
 `corrections` and `withdrawals` are the deployment&#x27;s posture towards a submission that names what
 it amends or retracts, and the run states them rather than acting on them: a drain imports, and
@@ -2199,6 +2204,11 @@ it amends or retracts, and the run states them rather than acting on them: a dra
 
 An imported response moves from the spool&#x27;s received/ to forwarded/, a DHIS2-rejected one to
 rejected/ beside a report, and a translator-refused one stays put - fix and forward again.
+
+A guide whose organisation units a registry package publishes resolves every unit reference
+through that package - the `path` checkout, or `--registry-package` - however the guide itself
+was read, and a package neither source supplies refuses the drain rather than translating
+against places this guide does not publish.
 
 Every payload names its own DHIS2 object - an event&#x27;s UID is derived from the receipt&#x27;s logical id -
 so one receipt forwarded twice is refused as an object the instance holds, never imported twice.
@@ -2243,6 +2253,7 @@ $ d2w fhir forward [OPTIONS] [directory]
 * `--overwrites <allow|refuse>`: What to do with an aggregate value a forwarded receipt already sent, overriding `[forward] overwrites`. `allow` - the default - posts it and names it; `refuse` leaves the whole response in the queue with the covered values written down beside it.
 * `--corrections <off|amend>`: Whether this deployment accepts a submission that names the receipt it corrects, overriding `[forward] corrections`. Off by default. Stated by the run rather than acted on by it - a drain imports, and a correction lands on the corrected receipt&#x27;s identity.
 * `--withdrawals <off|retract>`: Whether this deployment retracts what it forwarded, overriding `[forward] withdrawals`. Off by default, and read by `d2w fhir withdraw` rather than by the drain, which never deletes anything.
+* `--registry-package <path>`: The organisation-unit registry package to resolve this guide&#x27;s unit references through - the `package.tgz` the registry project&#x27;s `make build` wrote, or a directory it was extracted into. Only for a guide naming `[generate.organisation_units.registry]`, and only when no `path` checkout answers: the checkout is read first.
 * `--details`: Print every response&#x27;s outcome here as well. The report is written either way.
 * `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
 * `--help`: Show this message and exit.
@@ -2445,8 +2456,8 @@ The foundation runs first because it reads nothing, the pages last because they 
 
 Notes land in reports/fhir-generate-notes.md; `--details` prints them here instead.
 
-Name a target to run that one alone; --details and --progress belong to the bare run, and the
-two hostile-name flags belong to every target under this group.
+Name a target to run that one alone; --details, --registry-package and --progress belong to the
+bare run, and the two hostile-name flags belong to every target under this group.
 
 **Usage**:
 
@@ -2459,6 +2470,7 @@ $ d2w fhir generate [OPTIONS] COMMAND [ARGS]...
 * `--details`: Print every note inline instead of writing them to the notes report.
 * `--substitute-hostile-names`: Publish a DHIS2 name carrying &#x27;&lt;&#x27; in rewritten wording (&quot;5 to &lt; 15 years&quot; becomes &quot;5 to under 15 years&quot;) and a DHIS2 code carrying a space with the space hyphenated (&quot;Pre eclampsia&quot; becomes &quot;Pre-eclampsia&quot;), instead of being asked. DHIS2 is never modified, and each rewritten concept states its DHIS2 code as a `dhis2-code` property.
 * `--refuse-hostile-names`: Refuse the run over a DHIS2 name carrying &#x27;&lt;&#x27; instead of being asked, so the name is changed in DHIS2 before a build is spent on it. Every code is published byte-true.
+* `--registry-package <path>`: The organisation-unit registry package this guide depends on, when no `path` checkout answers - the package.tgz the registry&#x27;s `make build` wrote, or an extracted package. Only for a guide naming `[generate.organisation_units.registry]`.
 * `--progress / --no-progress`: Narrate each step on stderr as it completes.  [default: progress]
 * `--help`: Show this message and exit.
 

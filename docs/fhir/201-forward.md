@@ -233,7 +233,7 @@ d2w fhir forward --registry-package ../dist/package.tgz
 ```
 
 Reaching neither is a refusal - the one
-[`d2w fhir serve` prints](201-registry-package.md#serving-forwarding-and-checking-a-depending-guide) -
+[`d2w fhir serve` prints](201-registry-package.md#generating-serving-forwarding-and-checking-a-depending-guide) -
 raised before the drain opens a connection. Walking the instance instead would
 resolve a reference through a place the published guide does not publish, so a
 drain with no build step would accept what a drain reading the compiled guide

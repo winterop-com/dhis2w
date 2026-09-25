@@ -181,6 +181,47 @@ def test_a_package_tarball_is_read_in_place(tmp_path: Path) -> None:
     assert not (tmp_path / "dist" / "package").exists(), "the archive was extracted to disk"
 
 
+def _write_example_pair(package_root: Path) -> None:
+    """The worked `d2-example` pair a built registry ships under `package/example/`."""
+    example = package_root / "example"
+    example.mkdir(parents=True, exist_ok=True)
+    for resource_type in ("Location", "Organization"):
+        (example / f"{resource_type}-d2-example.json").write_text(
+            json.dumps(_resource(resource_type, "d2-example")), encoding="utf-8"
+        )
+
+
+def test_a_package_tarball_reads_its_top_level_and_not_its_examples(tmp_path: Path) -> None:
+    """The example pair names no organisation unit, so the tarball serves the units the checkout does."""
+    staged = tmp_path / "staged"
+    _write_resources(staged)
+    _write_example_pair(staged)
+    package = tmp_path / "dist" / "package.tgz"
+    package.parent.mkdir(parents=True)
+    with tarfile.open(package, "w:gz") as archive:
+        for path in sorted(staged.rglob("*.json")):
+            archive.add(path, arcname=f"package/{path.relative_to(staged).as_posix()}")
+    project = load_project(_guide(tmp_path / "guide", registry=True))
+
+    documents = load_registry_documents(project, package=package)
+
+    assert len(documents) == 4
+    assert not any("d2-example" in document.source for document in documents)
+
+
+def test_an_extracted_package_reads_its_top_level_and_not_its_examples(tmp_path: Path) -> None:
+    """The same rule for a package unpacked to a directory as for the archive read in place."""
+    extracted = tmp_path / "extracted"
+    _write_resources(extracted / "package")
+    _write_example_pair(extracted / "package")
+    project = load_project(_guide(tmp_path / "guide", registry=True))
+
+    documents = load_registry_documents(project, package=extracted)
+
+    assert len(documents) == 4
+    assert not any("d2-example" in document.source for document in documents)
+
+
 # --- the refusals --------------------------------------------------------------------------------
 
 
