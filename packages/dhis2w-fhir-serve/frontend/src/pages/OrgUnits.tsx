@@ -367,8 +367,11 @@ export function OrgUnits() {
         <div className="flex min-h-0 flex-1 flex-col">
             <PageHeader
                 title="Organisation units"
+                // Worded off the settings as they stand rather than off `servingForms`, which holds
+                // back the form reads until the settings land: a guide is what silence reads as, so
+                // a guide's page never opens on the sentence written for a package.
                 description={
-                    servingForms
+                    servesForms(settings.config)
                         ? 'The organisation units this implementation guide publishes, in the hierarchy this DHIS2 instance holds them in - where a capture may report from, and which forms it may use.'
                         : 'The organisation units this package publishes, in the hierarchy this DHIS2 instance holds them in - the places the guides that depend on this package report from.'
                 }
