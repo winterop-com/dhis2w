@@ -161,6 +161,16 @@ def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
     assert root.index("build-registry:") < root.index("build-guide:")
 
 
+def test_the_root_makefile_updates_both_projects_and_then_the_pair() -> None:
+    """Each project moves its own pin; the pair's Makefile and README are refreshed after, by the guide's toolchain."""
+    root = _by_path()["Makefile"]
+
+    recipe = root[root.index("\nupdate:") :].split("\n\n", 1)[0]
+    assert "\t@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) update\n" in recipe
+    assert "\t@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) update\n" in recipe
+    assert recipe.rstrip().splitlines()[-1] == "\tcd $(GUIDE) && $(D2W) fhir init --refresh .."
+
+
 def test_the_root_makefile_spells_out_make_in_every_recipe_that_recurses() -> None:
     """Make reads the literal `$(MAKE)` token to recognise recursion, so nothing may hide it.
 

@@ -296,14 +296,28 @@ def load_compiled_store(project: FhirProject, *, registry_package: Path | None =
     for line in examples.unreadable_guides:
         logger.warning("%s", line)
     if examples.keys:
-        logger.info(
-            "%d worked example(s) the implementation guide declares are held out of what it publishes: %s",
-            len(examples.keys),
-            ", ".join(examples.references),
-        )
+        logger.info("%s", _held_out_line(examples))
     return ResourceStore(
         entries=tuple(entry for entry in entries if examples.publishes(entry.resource_type, entry.resource_id)),
         example_entries=tuple(entry for entry in entries if examples.declares(entry.resource_type, entry.resource_id)),
+    )
+
+
+#: How many held-out examples the startup line names before it stops. A guide declares one per form
+#: and one per registry profile, so naming all of them turns one log line into a screenful.
+_HELD_OUT_SAMPLE = 3
+
+
+def _held_out_line(examples: DeclaredExamples) -> str:
+    """The one startup line saying which worked examples the store holds apart: counts by type, then a few by name."""
+    references = examples.references
+    by_type = Counter(key.resource_type for key in examples.keys)
+    counts = ", ".join(f"{count} {resource_type}" for resource_type, count in sorted(by_type.items()))
+    sample = ", ".join(references[:_HELD_OUT_SAMPLE])
+    trailing = "" if len(references) <= _HELD_OUT_SAMPLE else f" and {len(references) - _HELD_OUT_SAMPLE} more"
+    return (
+        f"{len(references)} worked example(s) the implementation guide declares are held out of what it "
+        f"publishes ({counts}): {sample}{trailing}; each is still readable by id"
     )
 
 
