@@ -51,15 +51,20 @@ def stub_docker(directory: Path, docker_info: str, *, sushi_exit_status: int = 0
     environment["PATH"] = f"{binaries}{os.pathsep}{environment['PATH']}"
     # An outer `make test` hands its own flags and jobserver down through the environment, and a
     # run under test must answer for the Makefile under test alone.
-    for inherited in ("MAKEFLAGS", "MFLAGS", "JAVA_HEAP"):
+    for inherited in ("MAKEFLAGS", "MFLAGS", "MAKELEVEL", "JAVA_HEAP"):
         environment.pop(inherited, None)
     return StubbedDocker(environment=environment, call_log=call_log)
 
 
 def run_make(directory: Path, stub: StubbedDocker, *arguments: str) -> subprocess.CompletedProcess[str]:
-    """Run make in `directory` with the stubbed docker first on PATH."""
+    """Run make in `directory` with the stubbed docker first on PATH.
+
+    `--no-print-directory` keeps the output the Makefile's own: GNU make 4 announces the directory it
+    enters whenever it runs below another make, which is how CI runs the suite, and macOS's make 3.81
+    does not - so without it the same test reads two different stdouts on the two machines.
+    """
     return subprocess.run(
-        ["make", *arguments],
+        ["make", "--no-print-directory", *arguments],
         cwd=directory,
         env=stub.environment,
         capture_output=True,
