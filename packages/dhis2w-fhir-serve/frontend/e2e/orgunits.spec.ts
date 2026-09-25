@@ -57,6 +57,27 @@ async function generateAndPost(request: APIRequestContext, questionnaireId: stri
  */
 const hierarchyPane = (page: Page) => page.getByTestId('hierarchy')
 
+test('a guide opens on its own sentence while the settings are still on their way', async ({ page }) => {
+    // The form reads wait for the settings, so the page renders before they land. A guide is what
+    // silence reads as: the header must never say "this package" first and correct itself after.
+    let release: () => void = () => {}
+    const settingsHeld = new Promise<void>((resolve) => {
+        release = resolve
+    })
+    await page.route('**/facade/uiconfig', async (route) => {
+        await settingsHeld
+        await route.continue()
+    })
+
+    await page.goto('/#/organisation-units')
+    const header = page.getByText(/The organisation units this (implementation guide|package) publishes/)
+    await expect(header).toHaveText(/this implementation guide publishes/)
+
+    release()
+    await expect(header).toHaveText(/this implementation guide publishes/)
+    await expect(page.getByText('The organisation units this package publishes')).toHaveCount(0)
+})
+
 test('the tree renders the roots and expands on demand', async ({ page }) => {
     await page.goto('/#/organisation-units')
     const hierarchy = hierarchyPane(page)
