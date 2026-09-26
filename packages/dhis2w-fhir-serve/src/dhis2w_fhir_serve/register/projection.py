@@ -12,9 +12,10 @@ attribute, no sex attribute, no date-of-birth attribute. A server that matched o
 would be inventing a semantic mapping and publishing it as fact - and a wrong `gender` on a person,
 or a wrong `type` on a sample, is a worse answer than none.
 
-WHICH IS WHY THOSE THREE ELEMENTS COME FROM A NOMINATION AND FROM NOTHING ELSE. `[ips.identity]`
-names the attribute carrying a person's name, birth date, and sex, and maps that sex attribute's
-values onto R4's `administrative-gender` codes; `dhis2w_fhir.ips` reads a person's values through it
+WHICH IS WHY THOSE ELEMENTS COME FROM A NOMINATION AND FROM NOTHING ELSE. `[ips.identity]`
+names the attribute carrying a person's name (whole, or given and family apart), birth date, sex,
+phone number, and each part of their address, and maps that sex attribute's values onto R4's
+`administrative-gender` codes; `dhis2w_fhir.ips` reads a person's values through it
 (`docs/fhir/design/ips.md` section 4, and section 9's phase 1, which is this). A project that
 nominates nothing serves exactly what this register served before the table existed, byte for byte,
 because a registered resource then answers exactly one question, which is what this thing is in this
@@ -57,7 +58,7 @@ from dhis2w_fhir.foundation.tracked_entity_attribute_values import (
     tracked_entity_attribute_identifiers,
     tracked_entity_attribute_value_extensions,
 )
-from dhis2w_fhir.ips import ServedIdentity, served_identity
+from dhis2w_fhir.ips import ORGANISATION_UNIT_VALUE_TYPE, ServedIdentity, served_identity
 from dhis2w_fhir.r4 import Coding, Identifier, Meta, RegisteredEntity
 
 if TYPE_CHECKING:
@@ -92,6 +93,8 @@ def registered_entity_for(
         gender=identity.gender,
         birthDate=identity.birth_date,
         birthDate_element=identity.birth_date_element,
+        telecom=identity.telecom,
+        address=identity.address,
     )
 
 
@@ -138,7 +141,21 @@ def _identity(
     stated: dict[str, str] = {}
     for attribute_value in values:
         stated.setdefault(attribute_value.attribute_uid, attribute_value.value)
-    return served_identity(stated, identity)
+    return served_identity(
+        stated,
+        identity,
+        organisation_unit_names=index.organisation_unit_names,
+        organisation_unit_attributes=_organisation_unit_attributes(identity.nominated_attribute_uids(), index),
+    )
+
+
+def _organisation_unit_attributes(attribute_uids: tuple[str, ...], index: TrackedEntityIndex) -> tuple[str, ...]:
+    """The nominated attributes the guide publishes as `ORGANISATION_UNIT`, whose values are unit UIDs."""
+    return tuple(
+        uid
+        for uid in attribute_uids
+        if (published := index.attribute(uid)) is not None and published.value_type == ORGANISATION_UNIT_VALUE_TYPE
+    )
 
 
 def _attributes(entity: TrackerTrackedEntity) -> list[TrackerAttribute]:

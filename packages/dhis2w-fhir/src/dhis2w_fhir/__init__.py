@@ -259,6 +259,8 @@ from dhis2w_fhir.ips import (
     DATA_ABSENT_ERROR,
     DATA_ABSENT_UNKNOWN,
     NOMINATION_VALUE_TYPES,
+    ORGANISATION_UNIT_VALUE_TYPE,
+    AddressNominations,
     AdministrativeGender,
     IdentityNominations,
     ImmunizationsMapping,
@@ -764,6 +766,7 @@ from dhis2w_fhir.writer import (
 )
 
 __all__ = [
+    "AddressNominations",
     "ADMINISTRATIVE_GENDER_CODE_SYSTEM_URL",
     "ADMINISTRATIVE_GENDER_CODES",
     "ADMINISTRATIVE_GENDER_MAP_DESCRIPTION",
@@ -1210,6 +1213,7 @@ __all__ = [
     "ordered_option_combos",
     "organisation_unit_stem_subjects",
     "ORGANISATION_UNIT_STEM_SURFACE",
+    "ORGANISATION_UNIT_VALUE_TYPE",
     "OrganisationUnitIn",
     "OrganisationUnitLevelIn",
     "OrganisationUnitLevelNames",

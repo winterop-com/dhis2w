@@ -107,6 +107,17 @@ class ContactPoint(Element):
     value: str | None = None
 
 
+class Address(Element):
+    """A postal address - the place parts a nominated DHIS2 attribute each fill, never parsed out of one string."""
+
+    line: list[str] | None = None
+    city: str | None = None
+    district: str | None = None
+    state: str | None = None
+    postalCode: str | None = None
+    country: str | None = None
+
+
 class HumanName(Element):
     """A person's name; the generated contacts and a nominated DHIS2 attribute both carry it in `text`.
 
@@ -292,7 +303,9 @@ class RegisteredEntity(DomainResource):
     them is stated in `[ips.identity]` per instance or it is not stated at all; a project that
     nominates nothing serves the four elements above and no others. They sit at the end of the model
     rather than in R4's own element order so that a served resource is byte-identical to what this
-    register answered before the nomination existed. `birthDate_element` carries the `_birthDate`
+    register answered before the nomination existed. `telecom` and `address` follow them for the same
+    reason: each is filled from an `[ips.identity]` nomination too, a phone attribute and one
+    attribute per address part. `birthDate_element` carries the `_birthDate`
     sibling the way `Patient` does, because a nominated birth date the instance holds no readable
     value for states its absence there - see `dhis2w_fhir.ips` and
     `dhis2w_fhir_serve.register.projection`.
@@ -311,6 +324,8 @@ class RegisteredEntity(DomainResource):
         validation_alias=AliasChoices("_birthDate", "birthDate_element"),
         serialization_alias="_birthDate",
     )
+    telecom: list[ContactPoint] | None = None
+    address: list[Address] | None = None
 
 
 class Patient(DomainResource):
@@ -331,6 +346,7 @@ class Patient(DomainResource):
     identifier: list[Identifier] | None = None
     active: bool | None = None
     name: list[HumanName] | None = None
+    telecom: list[ContactPoint] | None = None
     gender: Literal["male", "female", "other", "unknown"] | None = None
     birthDate: str | None = None
     birthDate_element: Element | None = Field(
@@ -338,6 +354,7 @@ class Patient(DomainResource):
         validation_alias=AliasChoices("_birthDate", "birthDate_element"),
         serialization_alias="_birthDate",
     )
+    address: list[Address] | None = None
     managingOrganization: Reference | None = None
 
 
