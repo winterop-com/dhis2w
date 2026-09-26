@@ -153,12 +153,37 @@ def test_the_guide_scaffold_carries_the_dependency_into_sushi_and_the_makefile()
     assert "build: registry-present cache-init registry-install" in guide_makefile
 
 
+def test_a_guide_refresh_refuses_a_missing_registry_before_it_wipes_anything() -> None:
+    """`build` is the last step of a refresh, so the registry check has to run ahead of the first."""
+    guide_makefile = _by_path()[f"{GUIDE_RELATIVE_ROOT}/Makefile"]
+
+    assert "\nrefresh: registry-present  ##" in guide_makefile
+    assert "build the registry first: make -C ../registry build" in guide_makefile
+
+
 def test_the_root_makefile_builds_the_registry_before_the_guide() -> None:
     """The order is the one thing a reader must not get wrong, so the target states it."""
     root = _by_path()["Makefile"]
 
     assert "build: build-registry build-guide" in root
     assert root.index("build-registry:") < root.index("build-guide:")
+
+
+def test_the_root_makefile_refreshes_both_projects_rebuilding_the_image_once() -> None:
+    """Each project's own refresh rebuilds the shared image, so the pair spells the steps out instead."""
+    root = _by_path()["Makefile"]
+
+    recipe = root[root.index("\nrefresh:") :].split("\n\n", 1)[0]
+    steps = [line for line in recipe.splitlines() if line.startswith("\t")]
+    assert steps == [
+        "\t@$(MAKE) clean",
+        "\t@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) upgrade",
+        "\t@$(MAKE) generate",
+        "\t-@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) validate",
+        "\t-@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) validate",
+        "\t@$(MAKE) build",
+    ]
+    assert "refresh\n" not in recipe
 
 
 def test_the_root_makefile_updates_both_projects_and_then_the_pair() -> None:

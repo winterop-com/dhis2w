@@ -213,7 +213,11 @@ registry-present:  ## Check the registry archive is on disk, before anything rea
 		echo "REGISTRY_TGZ is empty: name the registry build's archive (make registry-install REGISTRY_TGZ=../registry/ig/output/package.tgz), or set registry.path in fhir.toml and run 'd2w fhir init --refresh'"; \
 		exit 1; }
 	@test -f "$(REGISTRY_TGZ)" || { \
+{% if registry.path %}
+		echo "$(REGISTRY_TGZ): no such file - build the registry first: make -C {{ registry.path.as_posix() }} build"; \
+{% else %}
 		echo "$(REGISTRY_TGZ): no such file - run 'make build' in the registry project first."; \
+{% endif %}
 		echo "  Only a compile needs it. 'd2w fhir serve --live' and 'd2w fhir forward' read the two projects as they stand, so neither needs a build of either one."; \
 		exit 1; }
 
@@ -360,7 +364,13 @@ clean-all: clean  ## Also remove the terminology cache and the FHIR package cach
 # round-trips on a large guide, the package cache is re-downloads, and neither can go stale
 # under a tooling upgrade - both are keyed by what they hold. `make clean-all` first is the
 # deliberate act when you really want them gone.
+{% if registry %}
+# The registry package goes in ahead of everything: a refresh that could only end at `build` refusing
+# it would first have wiped the output, rebuilt the image and read the whole instance.
+refresh: registry-present  ## Wipe build output, pull latest tooling, regenerate, revalidate, rebuild (keeps the caches)
+{% else %}
 refresh:  ## Wipe build output, pull latest tooling, regenerate, revalidate, rebuild (keeps the caches)
+{% endif %}
 	$(MAKE) clean
 	$(MAKE) upgrade
 	$(MAKE) generate

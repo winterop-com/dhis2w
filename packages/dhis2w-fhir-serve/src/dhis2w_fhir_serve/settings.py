@@ -215,7 +215,7 @@ class ServeSettings(BaseModel):
         )
         generation = _resolved_generation(project, profile, required=live)
         if not live and not any((project.ig_directory / COMPILED_RESOURCES_RELATIVE_PATH).glob("*.json")):
-            raise CompiledIgMissingError
+            raise CompiledIgMissingError(project.config.registry_dependency)
         # The registry a guide depends on is preflighted for the reason every other refusal is: a
         # facade that starts and then serves no organisation unit is a failure nobody meets until
         # they open the picker. Both store modes read the package, so both are preflighted: a live

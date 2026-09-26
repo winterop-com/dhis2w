@@ -21,6 +21,7 @@ make setup        # once per machine: the SUSHI + IG publisher docker image
 make generate     # read the instance, write both projects' sources
 make build        # build the registry, install it, build the guide
 make serve        # serve the guide with the capture UI
+make refresh      # start over: clean, rebuild the image, generate, validate, build both
 ```
 
 `make help` lists every target; `make toolchain` prints which `d2w` each project

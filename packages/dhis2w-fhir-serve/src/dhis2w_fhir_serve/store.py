@@ -45,6 +45,7 @@ from dhis2w_fhir.config import FhirProject
 from dhis2w_fhir.implementation_guide import DeclaredExamples, GuideDocument, declared_examples
 from dhis2w_fhir.r4 import ConceptMap
 from dhis2w_fhir.registry_package import load_registry_documents
+from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError
 
 from dhis2w_fhir_serve.log import LOGGER_NAME
@@ -78,11 +79,28 @@ logger = logging.getLogger(LOGGER_NAME)
 class CompiledIgMissingError(LookupError):
     """Raised when a project has no compiled IG to serve."""
 
-    def __init__(self) -> None:
+    def __init__(self, registry: RegistryDependency | None = None) -> None:
+        """Name the compile, the registry build it waits on when there is one, and the live way round both."""
         super().__init__(
             "no compiled IG at ig/fsh-generated/resources - run `d2w fhir generate`, "
-            "then `make sushi` in the project, and serve again."
+            f"then `make sushi` in the project, and serve again.{_registry_first(registry)} "
+            "`d2w fhir serve --live` serves straight from DHIS2 and needs no compile."
         )
+
+
+def _registry_first(registry: RegistryDependency | None) -> str:
+    """The step a guide depending on a registry package takes before its compile, or nothing."""
+    if registry is None:
+        return ""
+    if registry.path is not None:
+        return (
+            f" `make sushi` installs the registry package {registry.id}, so build it first: "
+            f"`make -C {registry.path.as_posix()} build`."
+        )
+    return (
+        f" `make sushi` installs the registry package {registry.id}, so name its archive: "
+        "`make sushi REGISTRY_TGZ=<package.tgz>`."
+    )
 
 
 class IdentifierToken(BaseModel):
@@ -285,7 +303,7 @@ def load_compiled_store(project: FhirProject, *, registry_package: Path | None =
     compiled_directory = project.ig_directory / "fsh-generated" / "resources"
     compiled_paths = sorted(compiled_directory.glob("*.json")) if compiled_directory.is_dir() else []
     if not compiled_paths:
-        raise CompiledIgMissingError
+        raise CompiledIgMissingError(project.config.registry_dependency)
 
     predefined_directory = project.resources_directory
     predefined_paths = sorted(predefined_directory.rglob("*.json")) if predefined_directory.is_dir() else []

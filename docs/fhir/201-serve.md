@@ -117,8 +117,13 @@ the server refuses to start and says what to run:
 
 ```
 error: no compiled IG at ig/fsh-generated/resources - run `d2w fhir generate`,
-then `make sushi` in the project, and serve again.
+then `make sushi` in the project, and serve again. `d2w fhir serve --live`
+serves straight from DHIS2 and needs no compile.
 ```
+
+In a guide that depends on a registry package, `make sushi` installs that
+package first, so the refusal also names the registry build to run before it -
+`make -C ../registry build` in a pair scaffolded with `--with-registry`.
 
 `--live` skips the compiled-IG check and builds the store through one DHIS2
 client, opened during startup and held open for the life of the process. No

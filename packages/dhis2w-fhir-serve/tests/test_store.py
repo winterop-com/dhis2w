@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 from dhis2w_fhir.config import FhirProject
+from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
 from dhis2w_fhir_serve.log import LOGGER_NAME
 from dhis2w_fhir_serve.store import (
     CompiledIgMissingError,
@@ -67,8 +68,33 @@ def test_missing_compiled_ig_raises(empty_project: FhirProject) -> None:
 
     assert str(raised.value) == (
         "no compiled IG at ig/fsh-generated/resources - run `d2w fhir generate`, "
-        "then `make sushi` in the project, and serve again."
+        "then `make sushi` in the project, and serve again. "
+        "`d2w fhir serve --live` serves straight from DHIS2 and needs no compile."
     )
+
+
+def test_missing_compiled_ig_names_the_registry_build_first() -> None:
+    """A guide depending on a registry package cannot compile until that package is built."""
+    registry = RegistryDependency(
+        id="dhis2.fhir.example.registry",
+        canonical="http://example.org/fhir/registry",
+        version="0.1.0",
+        path=Path("../registry"),
+    )
+
+    message = str(CompiledIgMissingError(registry))
+
+    assert "build it first: `make -C ../registry build`." in message
+    assert message.endswith("`d2w fhir serve --live` serves straight from DHIS2 and needs no compile.")
+
+
+def test_missing_compiled_ig_without_a_checkout_names_the_archive() -> None:
+    """With no local registry checkout, the archive is what the compile needs named."""
+    registry = RegistryDependency(
+        id="dhis2.fhir.example.registry", canonical="http://example.org/fhir/registry", version="0.1.0"
+    )
+
+    assert "`make sushi REGISTRY_TGZ=<package.tgz>`" in str(CompiledIgMissingError(registry))
 
 
 def test_empty_compiled_directory_raises(empty_project: FhirProject) -> None:
