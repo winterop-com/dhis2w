@@ -1500,14 +1500,22 @@ registration form become `Questionnaire` instances.
 #### Who a person is
 
 - **`[ips.identity]`** nominates, by UID, which tracked entity attribute holds a
-  person's `name`, `birth_date`, and `sex`. DHIS2 has no field that means any of
-  the three, so the nomination is the instance's own statement or there is
+  person's `name` (or `given_name` and `family_name` apart), `birth_date`, `sex`,
+  `phone`, and - under `[ips.identity.address]` - each address part (`line`,
+  `city`, `district`, `state`, `postal_code`, `country`). DHIS2 has no field that
+  means any of them, so the nomination is the instance's own statement or there is
   nothing to publish. Absent - the default - the register answers exactly what it
   answered before the table existed, byte for byte, which is what the whole serve
   test suite asserts by passing unchanged.
-- **One attribute for the name, published as free text.** There is no
-  given/family split: FHIR's `ips-pat-1` is satisfied by `name.text`, and which
-  half of a person's name an attribute holds is a fact DHIS2 does not state.
+- **A name is never split, only nominated.** `name` publishes one attribute as
+  `name.text`; `given_name` and `family_name` publish two as `given` and
+  `family` on the same name. Which half an attribute holds is what its key
+  says - nothing reads it off an attribute's name or cuts one value in two.
+- **`phone`** publishes as one `telecom` entry of system `phone`, and
+  **`[ips.identity.address]`** as one `address`. An address part of DHIS2 type
+  `ORGANISATION_UNIT` reads as the unit's name as the guide publishes it - its
+  own Location or its registry package's - and a unit the guide does not publish
+  leaves its part out rather than filling it with an id.
 - **`[ips.identity.administrative_gender]`** maps each value the sex attribute
   holds - the option's DHIS2 code where it is option-set bound - onto one of
   R4's four `administrative-gender` codes, whose binding on `Patient.gender` is
@@ -1517,7 +1525,8 @@ registration form become `Questionnaire` instances.
 - **The value shape is checked against the guide, not guessed.** At startup each
   nomination is looked up in the published `D2TEA_CS` vocabulary and its
   `value-type` checked against what the FHIR element takes - `DATE` for
-  `birth_date`, free text for `name` and `sex`. A mismatch refuses the run,
+  `birth_date`, free text for the names and `sex`, `PHONE_NUMBER` or text for
+  `phone`, `ORGANISATION_UNIT` or text for an address part. A mismatch refuses the run,
   naming the key and the type it found. An attribute the guide publishes nothing
   about is logged and served, because the guide's silence means the attribute is
   outside the selection rather than wrong.
@@ -2571,8 +2580,8 @@ reads that table.
   tracked entity type as a `meta.tag`, and every other attribute value -
   entity-level and enrollment-level alike, so a person found by a program
   attribute comes back holding it - on the `D2TrackedEntityAttributeValue`
-  foundation extension. `name`, `gender`, and `birthDate` are filled from the
-  nominations and from nothing else, because DHIS2 states no mapping for them
+  foundation extension. `name`, `gender`, `birthDate`, `telecom`, and `address`
+  are filled from the nominations and from nothing else, because DHIS2 states no mapping for them
   and a wrong one is worse than none.
 - **`GET /{resourceType}/{uid}`** reads one tracked entity, which is what each
   Bundle entry's `fullUrl` points at. The projection states nothing the target

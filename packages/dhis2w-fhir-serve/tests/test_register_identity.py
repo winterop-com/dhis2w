@@ -240,6 +240,39 @@ def test_a_nomination_the_guide_publishes_nothing_about_is_served_rather_than_re
     assert index.identity.name == "TeaUnknown1"
 
 
+def test_name_parts_a_phone_and_an_address_fill_the_served_person(tmp_path: Path) -> None:
+    """Given and family names, a phone, and a district read off the hierarchy by the unit's published name."""
+    project = _project_with(
+        tmp_path,
+        """
+[ips.identity]
+given_name = "TeaGivenNm1"
+family_name = "TeaFamilyN1"
+phone = "TeaMobile01"
+
+[ips.identity.address]
+district = "TeaDistrct1"
+city = "TeaVillage1"
+""",
+    )
+    # `DiszpKrYNg8` is a unit the guide publishes, and a text value is published as it stands.
+    entity = _entity(
+        TeaGivenNm1="Anna",
+        TeaFamilyN1="Nkemelu",
+        TeaMobile01="+23276111001",
+        TeaDistrct1="DiszpKrYNg8",
+        TeaVillage1="Kroo Bay",
+    )
+
+    patient = _served(project, entity)
+
+    assert patient["name"] == [{"family": "Nkemelu", "given": ["Anna"]}]
+    assert patient["telecom"] == [{"system": "phone", "value": "+23276111001"}]
+    assert patient["address"] == [{"city": "Kroo Bay", "district": "Ngelehun CHC"}]
+    # The raw values keep riding the attribute-value extension, so nothing the instance holds is lost.
+    assert "DiszpKrYNg8" in str(patient["extension"])
+
+
 class _Reader(BaseModel):
     """A `RegisterReader` over one respx-mocked host, which is what a sync is handed."""
 

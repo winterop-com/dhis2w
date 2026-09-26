@@ -623,8 +623,8 @@ generate.examples.source
 
 Every other table on this page says which of your DHIS2 metadata the guide
 covers. This one says what a piece of it *means*: which tracked entity
-attribute holds a person's name, which holds their birth date, and which holds
-their sex.
+attribute holds a person's name, their birth date, their sex, their phone
+number, and each part of their address.
 
 **Why anybody has to say.** DHIS2 has no name field, no sex field, and no
 date-of-birth field. It has tracked entity attributes, and which of them mean
@@ -646,17 +646,24 @@ the document. [The IPS document](design/ips.md) is the design behind both.
 
 ```toml
 [ips.identity]
-name = "w75KJ2mc4zz"          # First name
+given_name = "w75KJ2mc4zz"    # First name
+family_name = "zDhUuAYrxNC"   # Last name
 birth_date = "iESIqZ0R0R0"    # Date of birth
 sex = "cejWyOfXge6"           # Gender
+phone = "P2cwLGskgxn"         # Phone number
 
 [ips.identity.administrative_gender]
 "Male" = "male"
 "Female" = "female"
+
+[ips.identity.address]
+state = "AddrProvnc1"         # Province, picked from the hierarchy
+district = "AddrDistrc1"      # District, picked from the hierarchy
+city = "AddrVillag1"          # Village, picked from the hierarchy
 ```
 
-A person served out of that instance carries `name`, `birthDate`, and
-`gender`.
+A person served out of that instance carries `name`, `birthDate`, `gender`,
+`telecom`, and `address`.
 
 **Only UIDs, never names.** Attribute names are not unique in DHIS2 and change
 without notice - the same rule the selection tables run under. The guide
@@ -676,19 +683,42 @@ changes until you write a line here.
 ### `name` { #ips-name }
 
 **In plain words.** The tracked entity attribute whose value is published as
-the person's name.
+the person's whole name, as plain text.
 
-**One attribute, published as free text.** There is no `family_name` key and no
-given/family split. FHIR is satisfied by a name given as plain text, and which
-half of a person's name an attribute holds is a fact DHIS2 does not state - an
-instance keeping given and family names apart nominates the one it wants read
-rather than having this project guess. The value is published as written, with
-only leading and trailing spaces dropped.
+**For an instance that keeps the whole name in one attribute.** FHIR is
+satisfied by a name given as plain text. The value is published as written, with
+only leading and trailing spaces dropped. An instance that keeps first and last
+names apart nominates each with `given_name` and `family_name` below instead, or
+beside it - all three land on the same name.
 
 **If you get it wrong:** a value that is not a UID is refused when the file
 loads, naming the key. An attribute your guide publishes as something other
 than free text refuses the run when the server starts, naming the key and the
 value type it found.
+
+### `given_name` and `family_name` { #ips-given_name }
+
+**In plain words.** The tracked entity attribute holding the person's first
+name, and the one holding their last name, published as the name's `given` and
+`family` parts.
+
+**Which half is which is yours to say.** Nothing here splits one value into
+halves or decides from an attribute's name which half it holds - the key you
+write it under is the whole statement. Either one alone is a name FHIR accepts.
+
+**If you get it wrong:** a value that is not a UID is refused when the file
+loads, naming the key. An attribute your guide publishes as something other
+than free text refuses the run when the server starts, naming the key and the
+value type it found.
+
+### `phone` { #ips-phone }
+
+**In plain words.** The tracked entity attribute holding the person's phone
+number, published as one `telecom` entry of system `phone`. The attribute must
+be a DHIS2 phone number or free text.
+
+**If you get it wrong:** as `name`, and an attribute your guide publishes as
+anything but `PHONE_NUMBER` or text refuses the run.
 
 ### `birth_date` { #ips-birth_date }
 
@@ -745,6 +775,30 @@ ips.identity
   Value error, the DHIS2 value 'M' is mapped to 'man', which is not one of R4's
   administrative-gender codes: name one of male, female, other, unknown
 ```
+
+### `[ips.identity.address]` { #ips-address }
+
+**In plain words.** One tracked entity attribute per part of the person's
+address: `line`, `city`, `district`, `state`, `postal_code`, `country`. Name the
+parts your instance records and leave the rest out; they are published as one
+`address`.
+
+**A part picked from the hierarchy reads as the place's name.** An attribute of
+DHIS2 type `ORGANISATION_UNIT` holds a unit's id, and an address wants the
+district's name, not its id. The name is the one your guide publishes for that
+unit - its own Location, or its registry package's - so the address a client
+reads and the `Location` it can look up say the same thing. A text attribute is
+published as it stands.
+
+**A unit your guide does not publish.** Its part is left out: the guide has no
+name for it, and an id in `address.city` reads as nobody's village. This is
+where a guide capped with `max_level` shows - a village below the cap has no
+published name, so the person's address stops at the district. The id is still
+there as a labelled extra.
+
+**If you get it wrong:** a part that is not a UID is refused when the file
+loads, and a part your guide publishes as anything but `ORGANISATION_UNIT` or
+text refuses the run when the server starts.
 
 ## The `[ips.sections]` table { #ips-sections }
 

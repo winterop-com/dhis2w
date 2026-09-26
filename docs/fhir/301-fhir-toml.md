@@ -265,9 +265,12 @@ the file refuses.
 | `[forward]` | [`withdrawals`](201-forward.md#withdraw-what-you-forwarded) | `"off"` | whether `d2w fhir withdraw` may take back from DHIS2 what a forwarded receipt landed |
 | `[ips]` | [`enabled`](301-what-goes-in.md#ips-enabled) | `false` | whether a live run answers `$summary` with a patient summary at all |
 | `[ips.identity]` | [`name`](301-what-goes-in.md#ips-name) | unset | which tracked entity attribute holds a person's name |
+| `[ips.identity]` | [`given_name`, `family_name`](301-what-goes-in.md#ips-given_name) | unset | which tracked entity attributes hold a person's first and last name |
+| `[ips.identity]` | [`phone`](301-what-goes-in.md#ips-phone) | unset | which tracked entity attribute holds a person's phone number |
 | `[ips.identity]` | [`birth_date`](301-what-goes-in.md#ips-birth_date) | unset | which tracked entity attribute holds a person's birth date |
 | `[ips.identity]` | [`sex`](301-what-goes-in.md#ips-sex) | unset | which tracked entity attribute holds a person's sex |
 | `[ips.identity.administrative_gender]` | [value = gender](301-what-goes-in.md#ips-administrative_gender) | unset | what each value of that attribute means, in FHIR's four words |
+| `[ips.identity.address]` | [`line`, `city`, `district`, `state`, `postal_code`, `country`](301-what-goes-in.md#ips-address) | unset | which tracked entity attribute holds each part of a person's address; a unit picked from the hierarchy reads as its published name |
 | `[ips.sections.immunizations]` | [`program_stages`](301-what-goes-in.md#ips-program_stages) | unset | which program stages' events carry the doses a summary reads |
 | `[ips.sections.immunizations]` | [`dose_data_elements`](301-what-goes-in.md#ips-dose_data_elements) | unset | which data elements inside those stages each record a dose of one vaccine |
 

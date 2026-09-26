@@ -1,4 +1,4 @@
-"""Say which tracked entity attribute is a person's name, and read one person through that nomination.
+"""Say which tracked entity attributes are a person's name and phone, and read one person through them.
 
 DHIS2 has no name field, no sex field, and no date-of-birth field. It has tracked entity attributes,
 and which of them mean those things is a decision each instance made for itself - so a served person
@@ -7,8 +7,10 @@ one table in `fhir.toml`:
 
 ```toml
 [ips.identity]
-name = "w75KJ2mc4zz"          # First name
+given_name = "w75KJ2mc4zz"    # First name
+family_name = "zDhUuAYrxNC"   # Last name
 sex = "cejWyOfXge6"           # Gender
+phone = "P2cwLGskgxn"         # Phone number
 
 [ips.identity.administrative_gender]
 "Male" = "male"
@@ -23,7 +25,8 @@ here.
 
 **Three answers, and the difference between them is the point.**
 
-- A value the nomination names becomes the element: a `name.text`, a `gender`, a `birthDate`.
+- A value the nomination names becomes the element: a name's `given` and `family`, a `gender`, a
+  `birthDate`, a `telecom` phone. Which half of a name an attribute holds is what its key says.
 - A value the gender map does not mention publishes no `gender` at all. The binding on
   `Patient.gender` is required - `male`, `female`, `other`, `unknown` and nothing else - so an
   unmapped value has no code to become, and inventing one would be a guess.
@@ -57,8 +60,10 @@ from dhis2w_fhir.ips import IdentityNominations, ServedIdentity, served_identity
 from dhis2w_fhir.r4 import DATA_ABSENT_REASON_EXTENSION_URL
 
 IDENTITY_TABLE = """
-name = "w75KJ2mc4zz"
+given_name = "w75KJ2mc4zz"
+family_name = "zDhUuAYrxNC"
 sex = "cejWyOfXge6"
+phone = "P2cwLGskgxn"
 
 [administrative_gender]
 "Male" = "male"
@@ -106,8 +111,11 @@ def values_of(person: dict[str, Any]) -> dict[str, str]:
 def described(identity: ServedIdentity) -> list[str]:
     """The FHIR elements one reading fills, and the absences it states, one line each."""
     lines = [
-        f"  name      {identity.name[0].text!r}" if identity.name else "  name      (not stated)",
+        f"  name      given {identity.name[0].given!r}, family {identity.name[0].family!r}"
+        if identity.name
+        else "  name      (not stated)",
         f"  gender    {identity.gender!r}" if identity.gender else "  gender    (no mapped value, so no element)",
+        f"  telecom   {identity.telecom[0].value!r}" if identity.telecom else "  telecom   (no phone held)",
     ]
     if identity.birth_date is not None:
         lines.append(f"  birthDate {identity.birth_date!r}")

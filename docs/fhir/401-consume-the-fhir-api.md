@@ -516,7 +516,7 @@ $ curl -s 'localhost:8391/Patient?identifier=NO-SUCH-ID' | jq '.type, .total'
 #### What a record comes back as
 
 **The Patient is identity, plus whatever the instance nominated.** No `name`, no
-`gender`, no `birthDate` unless
+`gender`, no `birthDate`, no `telecom`, no `address` unless
 [`[ips.identity]`](301-what-goes-in.md#ips-identity) says which tracked entity
 attribute holds each one - DHIS2 has no attribute that means any of those, and
 which of an instance's attributes do is a decision each instance makes for

@@ -492,7 +492,7 @@ questions because the question is what a reader needs in order to weigh the answ
 
 | Decision | The answer |
 | --- | --- |
-| The `[ips.identity]` nominations | The dial exists: `name`, `birth_date`, `sex`, and a four-code `administrative_gender` map beside `sex`. One text name, no given/family split |
+| The `[ips.identity]` nominations | The dial exists: `name`, `birth_date`, `sex`, and a four-code `administrative_gender` map beside `sex`. A name is one text attribute, or given and family nominated apart by the keys that say which half each is - never split out of one value. `phone` and `[ips.identity.address]` fill `telecom` and `address` the same way, a unit picked from the hierarchy read as its published name |
 | The section mapping source | Option C. `fhir.toml` is the input, `D2Section_CM` is the published output, and the server performs the file |
 | The serving surface and its name | `$summary`, scoped to the register resources FHIR gives a person, in both the instance and the identifier form, gated by `[ips] enabled` |
 | Whether an all-empty summary may be built | It is served, with the caveat stated in `Composition.text` and beside the response |

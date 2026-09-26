@@ -8,7 +8,9 @@ a patient summary, are decisions every instance makes for itself, usually differ
 nominated or both are nothing, and this module holds the two nominations and the reading of them.
 
 `[ips.identity]` fills `Patient.name`, `Patient.birthDate`, and `Patient.gender` on the register
-projection, which is what section 9's phase 1 asked of it - before any summary document exists.
+projection, which is what section 9's phase 1 asked of it - before any summary document exists - and
+`Patient.telecom` and `Patient.address` beside them, from a phone attribute and one attribute per
+address part.
 `[ips.sections]` says which recorded values a summary's clinical sections carry, and phase 2 maps
 exactly one section: `Immunizations`. A section with no table is a section this project maps
 nothing into, and the document states that rather than inventing content for it
@@ -25,11 +27,17 @@ string this server cannot read as a date states the same absence under `error` r
 `unknown`, because "nobody recorded one" and "what was recorded is not a date" are different
 answers and a summary that flattened them would be less true than the instance is.
 
-`name` and `gender` state no absence, because neither is a required element on the resource the
-register serves: a `HumanName` carrying nothing but a data-absent extension satisfies no reader and
-no invariant, and `Patient.gender` is `0..1`. What the instance holds is never lost either way - the
-raw attribute value rides the `D2TrackedEntityAttributeValue` extension exactly as it always has, so
-a nomination adds a reading of a value and removes nothing.
+`name`, `gender`, `telecom`, and `address` state no absence, because none is a required element on
+the resource the register serves: a `HumanName` carrying nothing but a data-absent extension
+satisfies no reader and no invariant, and the other three are `0..1` or `0..*`. What the instance
+holds is never lost either way - the raw attribute value rides the `D2TrackedEntityAttributeValue`
+extension exactly as it always has, so a nomination adds a reading of a value and removes nothing.
+
+**A place is read, not copied.** An address part nominated as an `ORGANISATION_UNIT` attribute holds
+a unit's UID, and `Patient.address.district` wants the district's name. The name is the one the guide
+itself publishes for that unit - its own Location, or its registry package's - so the address and the
+`Location/<uid>` a client reads agree. A unit the guide publishes nothing about has no name here to
+read, so that part is left out rather than filled with a UID nobody can read as a place.
 """
 
 from __future__ import annotations
@@ -40,10 +48,10 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from dhis2w_fhir.names import is_dhis2_uid
-from dhis2w_fhir.r4 import DATA_ABSENT_REASON_EXTENSION_URL, Element, Extension, HumanName
+from dhis2w_fhir.r4 import DATA_ABSENT_REASON_EXTENSION_URL, Address, ContactPoint, Element, Extension, HumanName
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Collection, Mapping
 
 __all__ = [
     "ADMINISTRATIVE_GENDER_CODES",
@@ -52,6 +60,8 @@ __all__ = [
     "DATA_ABSENT_ERROR",
     "DATA_ABSENT_UNKNOWN",
     "NOMINATION_VALUE_TYPES",
+    "ORGANISATION_UNIT_VALUE_TYPE",
+    "AddressNominations",
     "AdministrativeGender",
     "IdentityNominations",
     "ImmunizationsMapping",
@@ -85,28 +95,94 @@ DATA_ABSENT_ERROR = "error"
 #: The DHIS2 value types each nomination accepts, checked against `D2TEA_CS` at startup
 #: (design/ips.md section 4, "Value-shape validation"). A `sex` attribute is checked as `TEXT`
 #: alone: the guide publishes an attribute's value type and not the option set behind it, so
-#: whether the text comes from a list is a fact the vocabulary does not carry.
+#: whether the text comes from a list is a fact the vocabulary does not carry. Every part of
+#: `address` shares one row: a part is a place's name, typed in or read off an organisation unit.
 NOMINATION_VALUE_TYPES: dict[str, tuple[str, ...]] = {
     "name": ("TEXT", "LONG_TEXT", "LETTER"),
+    "given_name": ("TEXT", "LONG_TEXT", "LETTER"),
+    "family_name": ("TEXT", "LONG_TEXT", "LETTER"),
     "birth_date": ("DATE",),
     "sex": ("TEXT",),
+    "phone": ("PHONE_NUMBER", "TEXT"),
+    "address": ("ORGANISATION_UNIT", "TEXT", "LONG_TEXT"),
 }
+
+#: The DHIS2 value type whose value is an organisation unit's UID rather than text to publish as is.
+ORGANISATION_UNIT_VALUE_TYPE = "ORGANISATION_UNIT"
+
+
+def _nominated_uid(value: str | None) -> str | None:
+    """Every nomination names a DHIS2 object by UID - a name or a code here would nominate nothing."""
+    if value is None:
+        return value
+    if not is_dhis2_uid(value):
+        raise ValueError(
+            f"{value!r} is not a DHIS2 UID (one letter followed by ten alphanumeric places): "
+            "nominate the tracked entity attribute by its UID, since names and codes are not "
+            "unique in DHIS2 and change without notice"
+        )
+    return value
+
+
+class AddressNominations(BaseModel):
+    """Which tracked entity attribute carries which part of a person's address - `[ips.identity.address]`.
+
+    One attribute per part, because DHIS2 has no address field and an instance that records one keeps
+    each part in an attribute of its own, usually an organisation unit picked from the hierarchy. The
+    keys are R4's own `Address` parts, `postal_code` spelled the way this file spells every key.
+    `line` fills the single entry of `Address.line`. Nothing here parses one string into parts: which
+    part a value is, is what the key says.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    line: str | None = None
+    city: str | None = None
+    district: str | None = None
+    state: str | None = None
+    postal_code: str | None = None
+    country: str | None = None
+
+    @field_validator("line", "city", "district", "state", "postal_code", "country")
+    @classmethod
+    def _dhis2_uid(cls, value: str | None) -> str | None:
+        """Every part names a tracked entity attribute by UID."""
+        return _nominated_uid(value)
+
+    def parts(self) -> tuple[tuple[str, str], ...]:
+        """Every nominated part as `(key, attribute uid)`, in R4's own order."""
+        return tuple(
+            (key, uid)
+            for key, uid in (
+                ("line", self.line),
+                ("city", self.city),
+                ("district", self.district),
+                ("state", self.state),
+                ("postal_code", self.postal_code),
+                ("country", self.country),
+            )
+            if uid is not None
+        )
 
 
 class IdentityNominations(BaseModel):
     """Which tracked entity attribute carries which demographic fact - the `[ips.identity]` table.
 
-    Three attributes are nominated by UID and a fourth key states what a sex value means.
+    Attributes are nominated by UID, one per element, and one key states what a sex value means.
     `administrative_gender` maps the value DHIS2 stores against the `sex` attribute - the option's
     DHIS2 code on an option-set-bound attribute - onto one of R4's four `administrative-gender`
     codes. It is a map rather than a rename because the binding on `Patient.gender` is required, and
     it is the smallest possible instance of the clinical-vocabulary source `docs/fhir/design/ips.md`
     section 3 says does not exist yet: four codes rather than forty thousand.
 
-    `name` publishes as `Patient.name[0].text` and nothing else. A single text name satisfies the IPS
-    invariant `ips-pat-1`, which asks for `family`, `given`, **or** `text`, and an instance whose
-    given and family names sit in two attributes states the one it wants read rather than having this
-    project guess which half is which.
+    `name` publishes as `Patient.name[0].text`, `given_name` as `name[0].given`, and `family_name`
+    as `name[0].family`, all on one `HumanName`. Any one of them satisfies the IPS invariant
+    `ips-pat-1`, which asks for `family`, `given`, **or** `text`. An instance whose given and family
+    names sit in two attributes nominates each by the key that says which half it is; nothing here
+    splits one value into halves, and no key is guessed from an attribute's name.
+
+    `phone` publishes as one `Patient.telecom` entry with system `phone`. `address` names one
+    attribute per address part and publishes one `Patient.address` - see `AddressNominations`.
 
     An empty table nominates nothing, which is what every project that never wrote it states: the
     register serves the identity it always served, which is none.
@@ -117,28 +193,32 @@ class IdentityNominations(BaseModel):
     name: str | None = None
     """The tracked entity attribute whose value is published as `Patient.name[0].text`."""
 
+    given_name: str | None = None
+    """The tracked entity attribute whose value is published as `Patient.name[0].given[0]`."""
+
+    family_name: str | None = None
+    """The tracked entity attribute whose value is published as `Patient.name[0].family`."""
+
     birth_date: str | None = None
     """The tracked entity attribute whose value is published as `Patient.birthDate`."""
 
     sex: str | None = None
     """The tracked entity attribute whose value `administrative_gender` reads as `Patient.gender`."""
 
+    phone: str | None = None
+    """The tracked entity attribute whose value is published as a `Patient.telecom` phone number."""
+
+    address: AddressNominations = Field(default_factory=AddressNominations)
+    """One tracked entity attribute per part of `Patient.address`."""
+
     administrative_gender: dict[str, str] = Field(default_factory=dict)
     """One DHIS2 value of the `sex` attribute per key, mapped onto `male`, `female`, `other`, or `unknown`."""
 
-    @field_validator("name", "birth_date", "sex")
+    @field_validator("name", "given_name", "family_name", "birth_date", "sex", "phone")
     @classmethod
     def _dhis2_uid(cls, value: str | None) -> str | None:
         """Every nomination names a DHIS2 object by UID - a name or a code here would nominate nothing."""
-        if value is None:
-            return value
-        if not is_dhis2_uid(value):
-            raise ValueError(
-                f"{value!r} is not a DHIS2 UID (one letter followed by ten alphanumeric places): "
-                "nominate the tracked entity attribute by its UID, since names and codes are not "
-                "unique in DHIS2 and change without notice"
-            )
-        return value
+        return _nominated_uid(value)
 
     @field_validator("administrative_gender")
     @classmethod
@@ -174,13 +254,26 @@ class IdentityNominations(BaseModel):
             )
         return self
 
+    def nominated_keys(self) -> tuple[tuple[str, str], ...]:
+        """Every nomination as `(key, attribute uid)` in the order the keys are declared, parts as `address.<part>`."""
+        own = (
+            ("name", self.name),
+            ("given_name", self.given_name),
+            ("family_name", self.family_name),
+            ("birth_date", self.birth_date),
+            ("sex", self.sex),
+            ("phone", self.phone),
+        )
+        stated = tuple((key, uid) for key, uid in own if uid is not None)
+        return stated + tuple((f"address.{key}", uid) for key, uid in self.address.parts())
+
     def nominates_anything(self) -> bool:
         """Whether this table nominates a single attribute, which is what every caller asks first."""
-        return any((self.name, self.birth_date, self.sex))
+        return bool(self.nominated_keys())
 
     def nominated_attribute_uids(self) -> tuple[str, ...]:
         """Every attribute this table nominates, once each, in the order the keys are declared."""
-        return tuple(dict.fromkeys(uid for uid in (self.name, self.birth_date, self.sex) if uid is not None))
+        return tuple(dict.fromkeys(uid for _, uid in self.nominated_keys()))
 
 
 class ImmunizationsMapping(BaseModel):
@@ -291,6 +384,9 @@ class ServedIdentity(BaseModel):
     birth_date_element: Element | None = None
     """The `_birthDate` sibling carrying the data-absent-reason extension, when the date is absent."""
 
+    telecom: list[ContactPoint] | None = None
+    address: list[Address] | None = None
+
 
 class NominatedValueTypeIssue(BaseModel):
     """One nominated attribute whose published DHIS2 value type is not one the FHIR element accepts."""
@@ -326,10 +422,8 @@ def nominated_value_type_issues(
     attribute outstates what the vocabulary happens to carry about it.
     """
     issues: list[NominatedValueTypeIssue] = []
-    for key, accepted in NOMINATION_VALUE_TYPES.items():
-        attribute_uid = getattr(nominations, key)
-        if attribute_uid is None:
-            continue
+    for key, attribute_uid in nominations.nominated_keys():
+        accepted = NOMINATION_VALUE_TYPES[key.split(".", 1)[0]]
         value_type = value_types.get(attribute_uid)
         if value_type is None or value_type in accepted:
             continue
@@ -339,19 +433,56 @@ def nominated_value_type_issues(
     return issues
 
 
-def served_identity(values: Mapping[str, str], nominations: IdentityNominations) -> ServedIdentity:
+def served_identity(
+    values: Mapping[str, str],
+    nominations: IdentityNominations,
+    *,
+    organisation_unit_names: Mapping[str, str] | None = None,
+    organisation_unit_attributes: Collection[str] = (),
+) -> ServedIdentity:
     """Read one person's nominated attribute values as the demographic elements they were nominated for.
 
     `values` is that person's attribute values keyed by attribute UID. A nomination the person holds
     no value for, and a value this server cannot read, are both per-person facts rather than
     instance-wide ones - see this module's docstring for which of them states what.
+
+    `organisation_unit_names` is every unit the guide publishes, by UID, and
+    `organisation_unit_attributes` the attributes it publishes as `ORGANISATION_UNIT`: together they
+    are how an address part holding a unit's UID is read as that unit's name.
     """
     return ServedIdentity(
-        name=_served_name(_stated(values, nominations.name)),
+        name=_served_name(
+            _stated(values, nominations.name),
+            _stated(values, nominations.given_name),
+            _stated(values, nominations.family_name),
+        ),
         gender=_served_gender(_stated(values, nominations.sex), nominations.administrative_gender),
         birth_date=_served_birth_date(_stated(values, nominations.birth_date)),
         birth_date_element=_birth_date_absence(nominations.birth_date, _stated(values, nominations.birth_date)),
+        telecom=_served_telecom(_stated(values, nominations.phone)),
+        address=_served_address(
+            values, nominations.address, organisation_unit_names or {}, organisation_unit_attributes
+        ),
     )
+
+
+def _read_place(
+    attribute_uid: str, value: str, unit_names: Mapping[str, str], unit_attributes: Collection[str]
+) -> str | None:
+    """One address part's value as the place it names: a unit's published name, the text itself, or None.
+
+    A value naming a unit the guide publishes reads as that unit's name whatever the attribute's type,
+    since an attribute outside the guide's vocabulary still holds UIDs if it holds units. A value of an
+    attribute published as `ORGANISATION_UNIT` that names no published unit is left out: it is a UID,
+    and a UID in `Address.district` reads as nobody's district. The names are read in place, never
+    copied, because a national hierarchy is tens of thousands of them and a page serves fifty people.
+    """
+    name = unit_names.get(value)
+    if name is not None:
+        return name
+    if attribute_uid in unit_attributes:
+        return None
+    return value
 
 
 def _stated(values: Mapping[str, str], attribute_uid: str | None) -> str | None:
@@ -366,9 +497,52 @@ def _stated(values: Mapping[str, str], attribute_uid: str | None) -> str | None:
     return None if value is None or not value.strip() else value
 
 
-def _served_name(value: str | None) -> list[HumanName] | None:
-    """The nominated name as `Patient.name[0].text`, or nothing where the person holds none."""
-    return None if value is None else [HumanName(text=value.strip())]
+def _served_name(text: str | None, given: str | None, family: str | None) -> list[HumanName] | None:
+    """The nominated name parts as one `HumanName`, or nothing where the person holds none of them."""
+    if text is None and given is None and family is None:
+        return None
+    return [
+        HumanName(
+            text=None if text is None else text.strip(),
+            family=None if family is None else family.strip(),
+            given=None if given is None else [given.strip()],
+        )
+    ]
+
+
+def _served_telecom(value: str | None) -> list[ContactPoint] | None:
+    """The nominated phone attribute as one `phone` contact point, or nothing where the person holds none."""
+    return None if value is None else [ContactPoint(system="phone", value=value.strip())]
+
+
+def _served_address(
+    values: Mapping[str, str],
+    nominations: AddressNominations,
+    unit_names: Mapping[str, str],
+    unit_attributes: Collection[str],
+) -> list[Address] | None:
+    """The nominated address parts as one `Address`, or nothing where the person holds no part this reads."""
+    parts: dict[str, str] = {}
+    for key, attribute_uid in nominations.parts():
+        value = _stated(values, attribute_uid)
+        if value is None:
+            continue
+        place = _read_place(attribute_uid, value.strip(), unit_names, unit_attributes)
+        if place is not None:
+            parts[key] = place
+    if not parts:
+        return None
+    line = parts.get("line")
+    return [
+        Address(
+            line=None if line is None else [line],
+            city=parts.get("city"),
+            district=parts.get("district"),
+            state=parts.get("state"),
+            postalCode=parts.get("postal_code"),
+            country=parts.get("country"),
+        )
+    ]
 
 
 def _served_gender(value: str | None, administrative_gender: Mapping[str, str]) -> AdministrativeGender | None:

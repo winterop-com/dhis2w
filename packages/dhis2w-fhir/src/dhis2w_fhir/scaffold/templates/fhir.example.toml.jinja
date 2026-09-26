@@ -224,13 +224,16 @@ url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 enabled = false
 
 [ips.identity]
-# Which tracked entity attribute holds a person's name, birth date, and sex on this instance.
-# DHIS2 has no field that means any of the three, so a served person carries a name only when
-# a line here says which attribute it is. UIDs only - names and codes are not unique in DHIS2.
+# Which tracked entity attribute holds a person's name, birth date, sex, phone, and address on
+# this instance. DHIS2 has no field that means any of them, so a served person carries a name only
+# when a line here says which attribute it is. UIDs only - names and codes are not unique in DHIS2.
 # Nominate nothing and the register answers exactly what it always did. -> 301-what-goes-in#ips-identity
 # name = "w75KJ2mc4zz"               # published as Patient.name[0].text -> 301-what-goes-in#ips-name
+# given_name = "w75KJ2mc4zz"         # published as Patient.name[0].given -> 301-what-goes-in#ips-given_name
+# family_name = "zDhUuAYrxNC"        # published as Patient.name[0].family -> 301-what-goes-in#ips-given_name
 # birth_date = "iESIqZ0R0R0"         # published as Patient.birthDate -> 301-what-goes-in#ips-birth_date
 # sex = "cejWyOfXge6"                # read through the map below -> 301-what-goes-in#ips-sex
+# phone = "P2cwLGskgxn"              # published as a Patient.telecom phone -> 301-what-goes-in#ips-phone
 
 [ips.identity.administrative_gender]
 # What each value of the sex attribute means, in FHIR's four words: male, female, other, unknown.
@@ -239,6 +242,15 @@ enabled = false
 # reads the translation without holding this file. -> 301-what-goes-in#ips-administrative_gender
 # "Male" = "male"
 # "Female" = "female"
+
+[ips.identity.address]
+# One attribute per part of a person's address: line, city, district, state, postal_code,
+# country. A part picked from the hierarchy (an ORGANISATION_UNIT attribute) is published as the
+# unit's name as this guide publishes it; a unit the guide does not publish leaves its part out.
+# -> 301-what-goes-in#ips-address
+# state = "AddrProvnc1"              # Province
+# district = "AddrDistrc1"           # District
+# city = "AddrVillag1"               # Village
 
 [ips.sections.immunizations]
 # Which recorded values a summary's Immunizations section carries. DHIS2 marks no data element
