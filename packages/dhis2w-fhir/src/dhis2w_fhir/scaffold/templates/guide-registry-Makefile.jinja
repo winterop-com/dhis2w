@@ -113,6 +113,20 @@ forward:  ## Dry-run the guide's capture spool against DHIS2 - nothing is writte
 .PHONY: all
 all: generate build  ## Generate and build both, end to end
 
+.PHONY: refresh
+refresh:  ## Wipe build output, pull latest tooling, regenerate, revalidate, rebuild both (keeps the caches)
+# Not each project's own `refresh` twice over: the two share one docker image, and each of those
+# rebuilds it from scratch. So the steps are spelled out here, and the image is rebuilt once.
+	@$(MAKE) clean
+	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) upgrade
+	@$(MAKE) generate
+# Both validate, because each grades the instance by what it publishes: the registry its units,
+# the guide its forms. The leading dash keeps the rebuild going past validate's by-design exit 1 on
+# instance code errors, as each project's own refresh does.
+	-@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) validate
+	-@$(MAKE) -C $(GUIDE) $(PROJECT_FLAGS) validate
+	@$(MAKE) build
+
 .PHONY: clean
 clean:  ## Remove build output from both, keeping the caches that cost hours to refill
 	@$(MAKE) -C $(REGISTRY) $(PROJECT_FLAGS) clean

@@ -60,6 +60,10 @@ on that directory refreshes both projects, rewrites the Makefile from the
 current scaffold, and writes the README only when the current render reproduces
 every line already in it, so what you add to it stays. `make update` in that
 directory moves both projects to the current release and then does that refresh.
+`make refresh` there wipes both projects' build output, rebuilds the shared docker
+image once, regenerates both, validates both without stopping on their findings,
+and builds the registry and then the guide; the caches stay, as they do in each
+project's own `make refresh`.
 
 The two halves, spelled out. The registry becomes a project of its own,
 scaffolded with `--publishes organisation-units`.
@@ -183,7 +187,7 @@ refuses naming the registry's own `make build`:
 
 ```console
 $ make sushi
-../registry/ig/output/package.tgz: no such file - run 'make build' in the registry project first.
+../registry/ig/output/package.tgz: no such file - build the registry first: make -C ../registry build
   Only a compile needs it. 'd2w fhir serve --live' and 'd2w fhir forward' read the two projects as they stand, so neither needs a build of either one.
 ```
 

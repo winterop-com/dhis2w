@@ -651,7 +651,11 @@ chain in one command.
   `generate-registry` and `generate-guide` are each a target to run in its own
   shell. `make update` there moves both projects to the current release - each
   one's own `make update`, then a refresh of the pair through the guide's moved
-  toolchain. `d2w fhir init --refresh` on that directory refreshes both projects and
+  toolchain. `make refresh` there is each project's refresh done once for the
+  pair: both cleaned, the shared image rebuilt once rather than twice, both
+  generated, both validated non-fatally - each grades the instance by what it
+  publishes - then the registry built before the guide.
+  `d2w fhir init --refresh` on that directory refreshes both projects and
   the two files no project's `fhir.toml` describes: the Makefile is the
   scaffold's own and is rewritten whole, and the README takes the line rule every
   other file takes, so a deployment note written into it is reported and kept
@@ -719,8 +723,8 @@ chain in one command.
 
 ### Build and publish
 
-- **The scaffolded Makefile.** `make refresh` chains clean-all, upgrade,
-  generate, a non-fatal validate, sushi, and build. `make update` re-runs the
+- **The scaffolded Makefile.** `make refresh` chains clean, upgrade,
+  generate, a non-fatal validate, and build, keeping the caches. `make update` re-runs the
   scaffold refresh. `make serve` / `make serve-live` read the `[serve]` table
   and serve the capture UI at `/`; `make forward` / `make forward-import` drive
   the drain.

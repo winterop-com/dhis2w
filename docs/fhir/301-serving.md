@@ -38,11 +38,12 @@ Two things to know before the options:
 
 - The server serves what was last generated and compiled. Starting it in a
   project that has never been built stops with the line below, which names the
-  two commands that produce one. (`d2w fhir serve --live` skips the compile by
-  reading straight from the DHIS2 server instead.)
+  two commands that produce one and the live way round them. A guide that
+  depends on a registry package also names the registry build its compile waits
+  on (`make -C ../registry build`).
 
     ```text
-    error: no compiled IG at ig/fsh-generated/resources - run `d2w fhir generate`, then `make sushi` in the project, and serve again.
+    error: no compiled IG at ig/fsh-generated/resources - run `d2w fhir generate`, then `make sushi` in the project, and serve again. `d2w fhir serve --live` serves straight from DHIS2 and needs no compile.
     ```
 
 - The server asks nobody who they are until you tell it to. `auth = "none"` -
