@@ -124,6 +124,19 @@ def test_the_level_cap_reaches_both_because_they_must_mean_the_same_units(tmp_pa
     assert guide.generate.organisation_units.max_level == 3
 
 
+def test_geometry_reaches_the_registry_alone_because_it_publishes_the_locations(tmp_path: Path) -> None:
+    """The guide names no Location of its own, so the setting lands in the package and both still load."""
+    _write(tmp_path, _OPTIONS.model_copy(update={"geometry": "position"}))
+
+    registry = load_project(tmp_path / REGISTRY_RELATIVE_ROOT).config
+    guide = load_project(tmp_path / GUIDE_RELATIVE_ROOT).config
+
+    assert registry.generate.organisation_units.geometry == "position"
+    assert guide.generate.organisation_units.geometry == "full"
+    guide_text = (tmp_path / GUIDE_RELATIVE_ROOT / "fhir.toml").read_text(encoding="utf-8")
+    assert "geometry =" not in guide_text
+
+
 def test_the_selection_goes_to_the_guide_and_the_package_keeps_none(tmp_path: Path) -> None:
     """A package publishing a data set is refused when its fhir.toml loads, so it is never given one."""
     _write(tmp_path)

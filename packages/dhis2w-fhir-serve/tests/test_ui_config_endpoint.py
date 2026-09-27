@@ -158,6 +158,7 @@ async def test_the_settings_carry_nothing_a_browser_has_no_business_knowing(
         "auth",
         "capture",
         "publishes",
+        "organisation_unit_geometry",
         "basemaps",
         "dhis2_base_url",
         "tracked_entities",
@@ -172,6 +173,17 @@ async def test_the_settings_carry_nothing_a_browser_has_no_business_knowing(
 async def test_a_guide_states_no_package_content(ui_config_client: httpx2.AsyncClient) -> None:
     """`publishes` is what a package holds, so a guide answers null and the screen advises a generate."""
     assert (await ui_config_client.get(UI_CONFIG_ADDRESS)).json()["publishes"] is None
+
+
+async def test_the_geometry_the_units_were_generated_under_reaches_the_screen(compiled_project: FhirProject) -> None:
+    """The map says why a unit has no boundary, so it is told what the guide chose to publish."""
+    for geometry in ("full", "position", "none", None):
+        app = create_app(ServeSettings(project_dir=compiled_project.project_root, organisation_unit_geometry=geometry))
+        async with app.router.lifespan_context(app):
+            transport = httpx2.ASGITransport(app=app)
+            async with httpx2.AsyncClient(transport=transport, base_url="http://serve.test") as client:
+                body = (await client.get(UI_CONFIG_ADDRESS)).json()
+        assert body["organisation_unit_geometry"] == geometry
 
 
 async def test_a_compiled_run_reports_no_register_surface_to_navigate_to(

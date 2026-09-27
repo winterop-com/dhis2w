@@ -236,6 +236,7 @@ the file refuses.
 | `[generate.tracked_entity_types]` | [UID = kind](301-what-goes-in.md#tracked_entity_types) | every type is a person | what each tracked entity type actually is |
 | `[generate.organisation_units]` | [`max_level`](301-what-goes-in.md#max_level) | every level | the deepest hierarchy level published - the size lever |
 | `[generate.organisation_units]` | [`root`](301-what-goes-in.md#root) | the whole tree | which branch of the hierarchy is published |
+| `[generate.organisation_units]` | [`geometry`](301-what-goes-in.md#geometry) | `"full"` | whether each Location carries its position and boundary, its position alone, or neither |
 | `[generate.organisation_units]` | [`terminology`](301-what-goes-in.md#terminology) | `false` | whether the organisation units are also published as a code list |
 | `[generate.organisation_units.registry]` | [`id`, `canonical`, `version`, `path`](301-what-goes-in.md#registry) | absent | the registry package publishing the units instead of this guide |
 | `[generate.examples]` | [`per_target`](301-what-goes-in.md#per_target) | `1` | how many example responses each form ships with |

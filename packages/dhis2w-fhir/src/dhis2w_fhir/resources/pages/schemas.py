@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from dhis2w_fhir.foundation.schemas import NamingSystemDeclaration
 from dhis2w_fhir.r4 import DEFAULT_SUBJECT_RESOURCE_TYPE
 from dhis2w_fhir.resources.option_sets.schemas import OptionSetIn
-from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitIn
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitGeometry, OrganisationUnitIn
 from dhis2w_fhir.resources.questionnaires.schemas import FormKind, QuestionnaireSourceIn
 
 #: The day the period examples on `periods.md` are resolved against. A fixed date rather than
@@ -146,6 +146,8 @@ class RegistryView(BaseModel):
     root_uid: str = ""
     position_count: int = 0
     boundary_count: int = 0
+    geometry: OrganisationUnitGeometry = "full"
+    """The `[generate.organisation_units] geometry` the units were published under."""
     organization_profile: str = ""
     location_profile: str = ""
     levels: list[LevelRow] = Field(default_factory=list)

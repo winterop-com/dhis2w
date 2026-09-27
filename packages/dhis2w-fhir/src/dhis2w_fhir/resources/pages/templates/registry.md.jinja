@@ -41,8 +41,16 @@ No organisation units matched the configured selection.
 {% endif %}
 Both halves of each pair are profiled: `{{ registry.organization_profile }}` slices the
 identifier into the DHIS2 UID and code, and types the unit by its hierarchy level;
+{% if registry.geometry == "position" %}
+`{{ registry.location_profile }}` adds the position - the unit's DHIS2 point, or the centre of
+its boundary. This guide publishes no boundaries. Walk the hierarchy in
+{% elif registry.geometry == "none" %}
+`{{ registry.location_profile }}` holds the unit's place in the hierarchy. This guide publishes
+no position and no boundary. Walk the hierarchy in
+{% else %}
 `{{ registry.location_profile }}` adds the position and carries the unit's full DHIS2
 geometry losslessly through the `location-boundary-geojson` extension. Walk the hierarchy in
+{% endif %}
 either direction through `partOf`: it points at the parent unit's `Organization` and
 `Location` respectively, and is absent exactly for the root and for any unit whose parent
 falls outside the published selection.

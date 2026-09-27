@@ -139,6 +139,44 @@ def test_init_max_level_seeds_registry_cap(workdir: Path) -> None:
     assert rejected.exit_code != 0
 
 
+def test_init_geometry_seeds_the_organisation_unit_table(workdir: Path) -> None:
+    """`--geometry` lands in fhir.toml; left out, the key is not written and the default stands."""
+    import tomllib
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--geometry", "position"])
+    assert result.exit_code == 0, result.output
+    raw = tomllib.loads((workdir / "project" / "fhir.toml").read_text(encoding="utf-8"))
+    assert raw["generate"]["organisation_units"]["geometry"] == "position"
+
+    assert _runner.invoke(build_app(), ["fhir", "init", "plain"]).exit_code == 0
+    plain = tomllib.loads((workdir / "plain" / "fhir.toml").read_text(encoding="utf-8"))
+    assert "geometry" not in plain.get("generate", {}).get("organisation_units", {})
+
+    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--geometry", "points"])
+    assert rejected.exit_code != 0
+
+
+def test_init_geometry_is_refused_for_a_guide_naming_a_registry_package(workdir: Path) -> None:
+    """A guide depending on a registry publishes no Location, so it has no geometry to narrow."""
+    result = _runner.invoke(
+        build_app(),
+        [
+            "fhir",
+            "init",
+            "project",
+            "--registry-id",
+            "dhis2.fhir.registry",
+            "--registry-canonical",
+            "http://example.org/fhir/registry",
+            "--geometry",
+            "none",
+        ],
+    )
+    assert result.exit_code != 0
+    assert "--geometry" in result.output
+    assert not (workdir / "project").exists()
+
+
 def test_init_status_flag(workdir: Path) -> None:
     """`--status active` lands in fhir.toml and sushi-config; anything else is a usage error."""
     result = _runner.invoke(build_app(), ["fhir", "init", "project", "--status", "active"])

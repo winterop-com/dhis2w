@@ -916,7 +916,12 @@ that.
   unit, because DHIS2 hangs no assignment on a tracked entity type;
   **Captured here** is the receipts this server holds
   for captures at that unit, linked into Responses; **Children** is the
-  subtree as a mini tree, and selecting a row re-roots the rail. The map
+  subtree as a mini tree, and selecting a row re-roots the rail. A project
+  generated with `geometry = "none"` (see
+  [What goes in](301-what-goes-in.md#geometry)) has no map: the hierarchy and
+  the details share the page, and narrower viewports open on **Details**. Under
+  `geometry = "position"` the map draws the organisation units as points and
+  says the guide publishes no boundaries. The map
   draws the published boundaries and points over the raster layers
   `[serve.basemaps]` names (see [Configure serving](301-serving.md)), and a
   layers control in the corner offers each of them plus **None** - so a

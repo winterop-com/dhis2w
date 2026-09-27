@@ -132,6 +132,7 @@ def read_project_scaffold_state(directory: Path) -> ProjectScaffoldState:
         sushi_timeout=int(sushi_timeout.group(1)) if sushi_timeout else DEFAULT_SUSHI_TIMEOUT_SECONDS,
         identifier_system_base=config.generate.identifier_system_base,
         max_level=config.generate.organisation_units.max_level,
+        geometry=config.generate.organisation_units.geometry,
         data_set_ids=list(config.generate.data_sets.include_ids),
         event_program_ids=list(config.generate.event_programs.include_ids),
         tracker_program_ids=list(config.generate.tracker_programs.include_ids),

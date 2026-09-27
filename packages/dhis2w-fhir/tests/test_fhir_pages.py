@@ -299,6 +299,21 @@ def test_registry_page_summarises_the_hierarchy() -> None:
     assert "`partOf`" in registry
 
 
+def test_registry_page_says_what_geometry_the_guide_publishes() -> None:
+    """The profile paragraph follows `geometry`: the boundary extension is named only when it is published."""
+    from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitSelection
+
+    full = _pages()["registry.md"]
+    position = _pages(GenerateConfig(organisation_units=OrganisationUnitSelection(geometry="position")))["registry.md"]
+    none = _pages(GenerateConfig(organisation_units=OrganisationUnitSelection(geometry="none")))["registry.md"]
+
+    assert "`location-boundary-geojson` extension" in full
+    assert "This guide publishes no boundaries." in position
+    assert "location-boundary-geojson" not in position
+    assert "This guide publishes\nno position and no boundary." in none
+    assert "location-boundary-geojson" not in none
+
+
 def test_terminology_page_links_every_option_set_and_the_support_systems() -> None:
     """terminology.md catalogs the option sets by concept count and links the support CodeSystems the run emits."""
     terminology = _pages()["terminology.md"]

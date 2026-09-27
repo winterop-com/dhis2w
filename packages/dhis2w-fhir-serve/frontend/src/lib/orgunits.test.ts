@@ -22,6 +22,10 @@ import {
     descendantIdsOf,
     expandedForSelection,
     hasGeometry,
+    mapLeftOut,
+    missingCoordinatesLead,
+    noCoordinatesStatement,
+    pointsOnlyCaption,
     levelLabel,
     levelOf,
     matchesUnit,
@@ -37,6 +41,7 @@ import {
     unitExtent,
     visibleBrowseRows,
 } from '@/lib/orgunits'
+import { DEFAULT_UI_CONFIG, type OrganisationUnitGeometry, type UiConfig } from '@/lib/uiconfig'
 import { bundleResources, type Bundle, type Location, type Questionnaire, type ResourceList } from '@/lib/fhir'
 
 /**
@@ -1005,5 +1010,60 @@ describe('reading the unit a response reports from', () => {
         expect(referencedUnitId({ reference: 'Organization/DiszpKrYNg8' })).toBeNull()
         expect(referencedUnitId({ reference: 'Location/DiszpKrYNg8/_history/1' })).toBeNull()
         expect(referencedUnitId(null)).toBeNull()
+    })
+})
+
+describe('the map under a geometry setting', () => {
+    const square: [number, number][][] = [
+        [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 0],
+        ],
+    ]
+    const empty = { boundaries: [], points: [], unreadableGeometries: 0 }
+    const pointsOnly = { ...empty, points: [{ unitId: 'Fac00000001', longitude: 1, latitude: 2 }] }
+    const withBoundary = {
+        ...pointsOnly,
+        boundaries: [{ unitId: 'Dis00000001', geometry: { type: 'Polygon' as const, coordinates: square } }],
+    }
+    const configured = (geometry: OrganisationUnitGeometry | null, publishes: string | null = null): UiConfig => ({
+        ...DEFAULT_UI_CONFIG,
+        organisation_unit_geometry: geometry,
+        publishes,
+    })
+
+    it('leaves the map out only when the project publishes none and the registry carries none', () => {
+        expect(mapLeftOut(configured('none'), empty)).toBe(true)
+        expect(mapLeftOut(configured('none'), pointsOnly)).toBe(false)
+        expect(mapLeftOut(configured('position'), empty)).toBe(false)
+        expect(mapLeftOut(configured(null), empty)).toBe(false)
+    })
+
+    it('says why a unit has no coordinates in the words that are true under each setting', () => {
+        expect(missingCoordinatesLead(configured('full'), 'Bo')).toBe('This DHIS2 instance stores no boundary for Bo')
+        expect(missingCoordinatesLead(configured('position'), 'Bo')).toBe(
+            'This DHIS2 instance stores no coordinates for Bo',
+        )
+        expect(missingCoordinatesLead(configured(null), 'Bo')).toBe('This registry publishes no coordinates for Bo')
+    })
+
+    it('captions a points-only map when the project chose points, naming a guide or a package', () => {
+        expect(pointsOnlyCaption(configured('position'), pointsOnly)).toBe(
+            'This guide publishes organisation units as points, without boundaries.',
+        )
+        expect(pointsOnlyCaption(configured('position', 'organisation-units'), pointsOnly)).toBe(
+            'This package publishes organisation units as points, without boundaries.',
+        )
+        expect(pointsOnlyCaption(configured('position'), withBoundary)).toBeNull()
+        expect(pointsOnlyCaption(configured('full'), pointsOnly)).toBeNull()
+    })
+
+    it('blames the instance for an empty map only when this server knows what was generated', () => {
+        expect(noCoordinatesStatement(configured('full'))).toContain('this DHIS2 instance stores neither')
+        expect(noCoordinatesStatement(configured(null))).toBe(
+            'This registry publishes no coordinates for any of its organisation units, so there is nothing to draw.',
+        )
     })
 })

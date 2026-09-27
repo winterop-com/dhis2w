@@ -482,6 +482,43 @@ negative) and the registry comes out nearly or completely empty; too large
 simply means "everything". You find out from the run's counts and the build
 time.
 
+### `geometry`
+
+**In plain words.** How much of each organisation unit's DHIS2 geometry its
+published Location carries. `"full"` gives the unit's position and its
+boundary (the full map shape). `"position"` gives the position alone - the
+unit's point, or the centre of its boundary - and no shape. `"none"` gives
+neither, and the run does not read the geometry from DHIS2 at all.
+
+**When you would change it.** When the guide's readers do not need map shapes.
+Boundaries are most of the size of a registry on an instance with detailed
+district and facility polygons, so `"position"` makes a much smaller guide that
+still places every organisation unit on a map. Choose `"none"` when nothing
+needs a location, only the hierarchy.
+
+**Example.**
+
+```toml
+[generate.organisation_units]
+geometry = "position"
+```
+
+Every Location carries `position`; none carries the
+`location-boundary-geojson` extension. The capture server's organisation units
+page draws the organisation units as points and says the guide publishes no
+boundaries. Under `"none"` the page shows the hierarchy and the details with no
+map.
+
+**Default:** `"full"` - **If you leave it out:** every organisation unit with
+usable DHIS2 geometry is published with its position and its boundary.
+
+**If you get it wrong:** a value other than the three is refused when
+`fhir.toml` loads. A guide that names a
+[registry package](#registry) publishes no Location of its own, so it is
+refused a `geometry` other than `"full"`: set it in the registry package's
+`fhir.toml`, which is the project that publishes the Locations. Changing the
+value takes effect on the next `d2w fhir generate`.
+
 ### `terminology`
 
 **In plain words.** Besides the registry entries, also publish the organisation

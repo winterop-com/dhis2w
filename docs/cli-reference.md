@@ -34,7 +34,6 @@ $ d2w [OPTIONS] COMMAND [ARGS]...
 * `metadata`: DHIS2 metadata inspection.
 * `profile`: Manage DHIS2 profiles.
 * `route`: DHIS2 integration routes.
-* `security`: DHIS2 security posture (read-only).
 * `system`: DHIS2 system info.
 * `user`: DHIS2 user administration.
 
@@ -2040,6 +2039,7 @@ $ d2w fhir init [OPTIONS] [directory]
 * `--profile <str>`: DHIS2 profile to seed the `profile` key of the scaffolded fhir.toml with, so `d2w fhir generate` reads that instance without a flag. Offline: the name is written as given, never resolved against profiles.toml.
 * `--sushi-timeout <int>`: Seconds the IG publisher gives its internal SUSHI run, written to `[FSH] timeout` of ig/fsh.ini. It bounds the FSH targets alone - the registry and the terminology ship as pre-built JSON - and an overrun fails the build with exit 143.  [default: 1800]
 * `--max-level <int>`: Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this is the dial that bounds how much the IG publisher renders. Offline: written as given.
+* `--geometry <full|position|none>`: How much of each organisation unit&#x27;s DHIS2 geometry its Location carries, seeding `[generate.organisation_units]` geometry: full (the position and the boundary, the default), position (the point, or the centre of the boundary, alone) or none. Boundaries are most of a registry&#x27;s size, so position is the usual choice for a guide whose readers need no map shapes. With --with-registry the value lands in the registry package, which publishes the Locations.
 * `--data-set <str>`: Data set UID to seed `[generate.data_sets]` include_ids with (repeatable). Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming data sets here still publishes every event program and every tracker program. Narrow those with --event-program and --tracker-program, or by writing `[generate.event_programs]` and `[generate.tracker_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
 * `--event-program <str>`: Event program UID to seed `[generate.event_programs]` include_ids with (repeatable). Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming event programs here still publishes every data set and every tracker program. Narrow those with --data-set and --tracker-program, or by writing `[generate.data_sets]` and `[generate.tracker_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
 * `--tracker-program <str>`: Tracker program UID to seed `[generate.tracker_programs]` include_ids with (repeatable); the program emits one Questionnaire per program stage. Naming one family narrows that family alone: a selection table that is absent - or whose include_ids is an empty list - means every member of its kind, so a guide naming tracker programs here still publishes every data set and every event program. Narrow those with --data-set and --event-program, or by writing `[generate.data_sets]` and `[generate.event_programs]` in fhir.toml; `enabled = false` is what publishes none of a kind. Offline: the UID shape is checked here, never the instance.
@@ -9728,102 +9728,6 @@ $ d2w route run [OPTIONS] {route}
 * `-X, --method <str>`: [default: GET]
 * `--body <path>`: JSON body file for POST/PUT.
 * `--path <str>`: Additional path segment appended to the route&#x27;s target URL.
-* `--help`: Show this message and exit.
-
-## `d2w security`
-
-DHIS2 security posture (read-only).
-
-**Usage**:
-
-```console
-$ d2w security [OPTIONS] COMMAND [ARGS]...
-```
-
-**Options**:
-
-* `--help`: Show this message and exit.
-
-**Commands**:
-
-* `settings`: Show the server&#x27;s security-relevant system...
-* `authorities`: Show my effective authorities, categorised...
-* `audit`: Run the security checks step by step and...
-* `report`: Re-render an existing run&#x27;s report files...
-
-### `d2w security settings`
-
-Show the server&#x27;s security-relevant system settings. `--json` for the full payload.
-
-**Usage**:
-
-```console
-$ d2w security settings [OPTIONS]
-```
-
-**Options**:
-
-* `--help`: Show this message and exit.
-
-### `d2w security authorities`
-
-Show my effective authorities, categorised by security risk. `--json` for the full payload.
-
-**Usage**:
-
-```console
-$ d2w security authorities [OPTIONS]
-```
-
-**Options**:
-
-* `--help`: Show this message and exit.
-
-### `d2w security audit`
-
-Run the security checks step by step and stream a report to a folder. `--json` prints the report.
-
-**Usage**:
-
-```console
-$ d2w security audit [OPTIONS]
-```
-
-**Options**:
-
-* `--output-dir <directory>`: Parent directory for the run folder (default: current dir).
-* `--format <str>`: Comma-separated formats: md,txt,csv,html (default: all).
-* `--checks <str>`: Comma-separated check keys to run (default: all). Valid keys: version, transport, settings, authorities, roles, hygiene, credential-probe, guest, apps, sharing, auth-methods, tokens, routes, audit-config.
-* `--skip <str>`: Comma-separated check keys to skip.
-* `--progress / --no-progress`: Animate step-by-step progress on a TTY.  [default: progress]
-* `--credential-probe / --no-credential-probe`: Actively test the default admin/district login against /api/me (on by default).  [default: credential-probe]
-* `--stale-days <int range>`: Days without login before a privileged account is stale.  [default: 90; x&gt;=1]
-* `--max-password-age <int range>`: Days before an unchanged password is treated as stale.  [default: 365; x&gt;=1]
-* `--two-factor-detail / --no-two-factor-detail`: On v42+, also list each superuser lacking 2FA (per-user /api/users/twoFactor read).  [default: no-two-factor-detail]
-* `--max-objects <int range>`: Max objects the sharing scan inspects across all types before stopping (default 5000; truncation is loud).  [x&gt;=1]
-* `--sharing-graph, --visualize`: Also write the interactive d3 sharing explorer (sharing-explorer.html) into the run folder.
-* `--resume <directory>`: Resume an interrupted run folder.
-* `--dhis-conf <file>`: Path to a local COPY of the server&#x27;s dhis.conf for the audit-config check. The audit posture is not API-readable; secrets are reported set/not-set only and never echoed.  [env var: DHIS2_CONF_LOCATION]
-* `--version-fallback / --no-version-fallback`: When the server&#x27;s exact generated tree is not shipped (e.g. a dev/master build), bind the nearest lower generated tree instead of failing.  [default: no-version-fallback]
-* `--help`: Show this message and exit.
-
-### `d2w security report`
-
-Re-render an existing run&#x27;s report files from its JSONL spine, without re-scanning.
-
-**Usage**:
-
-```console
-$ d2w security report [OPTIONS] {folder}
-```
-
-**Arguments**:
-
-* `folder`: An existing run folder to re-render.  [required]
-
-**Options**:
-
-* `--format <str>`: Comma-separated formats (default: all).
 * `--help`: Show this message and exit.
 
 ## `d2w system`

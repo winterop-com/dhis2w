@@ -88,6 +88,14 @@ class IgStatusChoice(StrEnum):
     ACTIVE = "active"
 
 
+class GeometryChoice(StrEnum):
+    """What `--geometry` accepts, mirroring the `OrganisationUnitGeometry` literal."""
+
+    FULL = "full"
+    POSITION = "position"
+    NONE = "none"
+
+
 class PublishesChoice(StrEnum):
     """What `--publishes` accepts, mirroring the `PackageContent` literal.
 
@@ -394,6 +402,18 @@ def init_command(
             "is the dial that bounds how much the IG publisher renders. Offline: written as given.",
         ),
     ] = None,
+    geometry: Annotated[
+        GeometryChoice | None,
+        typer.Option(
+            "--geometry",
+            help="How much of each organisation unit's DHIS2 geometry its Location carries, seeding "
+            "`\\[generate.organisation_units]` geometry: full (the position and the boundary, the default), "
+            "position (the point, or the centre of the boundary, alone) or none. Boundaries are most of a "
+            "registry's size, so position is the usual choice for a guide whose readers need no map "
+            "shapes. With --with-registry the value lands in the registry package, which publishes the "
+            "Locations.",
+        ),
+    ] = None,
     data_set_ids: Annotated[
         list[str] | None,
         typer.Option(
@@ -541,6 +561,7 @@ def init_command(
             profile=profile,
             sushi_timeout=sushi_timeout,
             max_level=max_level,
+            geometry=geometry,
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
             tracker_program_ids=tracker_program_ids,
@@ -578,6 +599,11 @@ def init_command(
         event_program_ids=event_program_ids,
         tracker_program_ids=tracker_program_ids,
     )
+    if registry is not None and geometry not in (None, GeometryChoice.FULL):
+        raise typer.BadParameter(
+            f"--geometry {geometry} narrows Locations, and a guide naming a registry package publishes none: "
+            "set it on the registry package's own `d2w fhir init --publishes organisation-units`"
+        )
     project_template = _resolve_project_template(template) if template is not None else None
     if project_template is not None:
         if publishes is not None:
@@ -588,6 +614,7 @@ def init_command(
         _reject_selection_flags(
             template=project_template.name,
             max_level=max_level,
+            geometry=geometry,
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
             tracker_program_ids=tracker_program_ids,
@@ -614,6 +641,7 @@ def init_command(
         profile=profile,
         sushi_timeout=sushi_timeout,
         max_level=max_level,
+        geometry=geometry.value if geometry is not None else None,
         data_set_ids=data_set_ids or [],
         event_program_ids=event_program_ids or [],
         tracker_program_ids=tracker_program_ids or [],
@@ -829,6 +857,7 @@ def _reject_selection_flags(
     *,
     template: str,
     max_level: int | None,
+    geometry: GeometryChoice | None,
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
     tracker_program_ids: list[str] | None,
@@ -843,6 +872,7 @@ def _reject_selection_flags(
     """
     given = {
         "--max-level": max_level is not None,
+        "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
         "--tracker-program": bool(tracker_program_ids),
@@ -970,6 +1000,7 @@ def _reject_scaffold_flags(
     profile: str | None,
     sushi_timeout: int,
     max_level: int | None,
+    geometry: GeometryChoice | None,
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
     tracker_program_ids: list[str] | None,
@@ -997,6 +1028,7 @@ def _reject_scaffold_flags(
         "--profile": profile is not None,
         "--sushi-timeout": sushi_timeout != DEFAULT_SUSHI_TIMEOUT_SECONDS,
         "--max-level": max_level is not None,
+        "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
         "--tracker-program": bool(tracker_program_ids),

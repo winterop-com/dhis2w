@@ -637,6 +637,9 @@ chain in one command.
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
   `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
+  **`--geometry`** seeds `[generate.organisation_units] geometry` (`full`,
+  `position` or `none`), landing in the registry package under
+  `--with-registry` and refused for a guide naming a registry package;
   **`--with-registry`** scaffolds the guide *and* the registry package it depends
   on, as `registry/` and `guide/` under one directory plus a Makefile driving
   both in the order that resolves and a README describing the pair - the
@@ -1702,6 +1705,13 @@ registration form become `Questionnaire` instances.
   halves. On the Location the boundary extension is emitted first, the
   attribute values after it, and the `D2OrganisationUnitLevel` extension last,
   so a regenerate of an unchanged unit stays byte-identical.
+- **`[generate.organisation_units] geometry`** decides how much of that
+  geometry each Location carries: `full` (the default - the position and the
+  boundary), `position` (the point, or the polygon centroid, and no boundary
+  extension) or `none` (neither, with `geometry` left out of the DHIS2 read).
+  The registry page and the scaffolded `index.md` describe what was chosen, and
+  the capture server hands the setting to the organisation units page through
+  `GET /facade/uiconfig`, which draws points only, or no map at all, to match.
 - **Shipped as pre-built R4 JSON** under `ig/input/resources/registry/`, one
   `Organization-<stem>.json` and one `Location-<stem>.json` per unit,
   serialised from the `dhis2w_fhir.r4` models and loaded by SUSHI as predefined
@@ -4393,7 +4403,7 @@ full key set and refuses anything else.
 | `[generate.naming]` | `source` plus `prefix` and the eight artifact tokens |
 | `[generate.option_sets]` | Terminology selection |
 | `[generate.categories]` | Category selection, `include_default` |
-| `[generate.organisation_units]` | `root`, `max_level`, `terminology` |
+| `[generate.organisation_units]` | `root`, `max_level`, `geometry`, `terminology` |
 | `[generate.data_sets]` | Aggregate form selection, `enabled` |
 | `[generate.event_programs]` | Event program selection (WITHOUT_REGISTRATION), `enabled` |
 | `[generate.tracker_programs]` | Tracker program selection (WITH_REGISTRATION), `enabled` |
