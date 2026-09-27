@@ -19,6 +19,7 @@ from dhis2w_fhir.config import (
     basemaps_from_options,
 )
 from dhis2w_fhir.registry_package import resolve_registry_source
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitGeometry
 from dhis2w_fhir.service import GenerationProfile, resolve_generation_profile
 from dhis2w_fhir.spool import SPOOL_RELATIVE_PATH
 from pydantic import BaseModel, ConfigDict, Field
@@ -127,6 +128,13 @@ class ServeSettings(BaseModel):
     not taken yet, so it stops advising a generate that would not produce any.
     """
 
+    organisation_unit_geometry: OrganisationUnitGeometry | None = None
+    """The `[generate.organisation_units] geometry` the served units were generated under.
+
+    None when another package publishes the units: its `fhir.toml` is not this project's, so this
+    process does not know which setting they were generated under.
+    """
+
     registry_package: Path | None = None
     """The registry package named on the command line, for a guide whose units another package publishes.
 
@@ -227,6 +235,11 @@ class ServeSettings(BaseModel):
             settings=cls(
                 project_dir=project.project_root,
                 publishes=project.config.ig.publishes,
+                organisation_unit_geometry=(
+                    None
+                    if project.config.registry_dependency is not None
+                    else project.config.generate.organisation_units.geometry
+                ),
                 registry_package=registry_package,
                 live=live,
                 profile=profile,

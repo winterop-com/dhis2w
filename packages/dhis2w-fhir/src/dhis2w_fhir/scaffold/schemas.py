@@ -8,7 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from dhis2w_fhir.names import strip_trailing_slash
-from dhis2w_fhir.resources.organisation_units.schemas import RegistryDependency
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitGeometry, RegistryDependency
 from dhis2w_fhir.status import ORGANISATION_UNIT_PACKAGE, IgStatus, PackageContent, ProjectKind
 
 _NON_PROJECT_NAME_CHARACTERS = re.compile(r"[^a-z0-9]+")
@@ -33,6 +33,8 @@ class InitOptions(BaseModel):
     never resolved or checked against an instance. `sushi_timeout` is the `[FSH] timeout` of
     `ig/fsh.ini`, the ceiling the IG publisher gives its internal SUSHI run. `max_level` caps the
     organisation-unit registry, the usual reason an IG is too large to compile inside that ceiling.
+    `geometry` seeds `[generate.organisation_units] geometry` when given, and is left unwritten (the
+    `full` default) when not.
     `identifier_system_base` is the stem the six `special-url` lines of `ig/sushi-config.yaml`
     carry, and matches the default of `GenerateConfig.identifier_system_base` that a scaffolded
     `fhir.toml` leaves unwritten.
@@ -55,6 +57,7 @@ class InitOptions(BaseModel):
     sushi_timeout: int = DEFAULT_SUSHI_TIMEOUT_SECONDS
     identifier_system_base: str = "http://dhis2.org/fhir"
     max_level: int | None = None
+    geometry: OrganisationUnitGeometry | None = None
     data_set_ids: list[str] = Field(default_factory=list)
     event_program_ids: list[str] = Field(default_factory=list)
     tracker_program_ids: list[str] = Field(default_factory=list)

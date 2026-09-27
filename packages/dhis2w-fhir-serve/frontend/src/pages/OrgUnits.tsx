@@ -41,8 +41,12 @@ import {
     descendantIdsOf,
     hasGeometry,
     levelLabel,
+    mapLeftOut,
     matchesUnit,
     matchingUnitIds,
+    missingCoordinatesLead,
+    noCoordinatesStatement,
+    pointsOnlyCaption,
     readGeometry,
     reportableFormsAt,
     unitExtent,
@@ -58,7 +62,7 @@ import {
     type SpoolResponseSummary,
 } from '@/lib/spool'
 import { identifierBadges } from '@/lib/terminology'
-import { servesForms, type BasemapLayer } from '@/lib/uiconfig'
+import { servesForms, type BasemapLayer, type UiConfig } from '@/lib/uiconfig'
 import { cn, countedNoun, formatCount, RESIZE_HANDLE_TINT } from '@/lib/utils'
 
 /**
@@ -111,6 +115,10 @@ const RAIL_COLLAPSED_SIZE = '2.5rem'
  */
 const PANES_LAYOUT_ID = 'organisation-unit-panes'
 const PANE_IDS = ['hierarchy', 'map', 'rail']
+
+/** The same, for a project that publishes no geometry: the hierarchy and the details, no map. */
+const PANES_WITHOUT_MAP_LAYOUT_ID = 'organisation-unit-panes-without-map'
+const PANE_IDS_WITHOUT_MAP = ['hierarchy', 'details']
 
 /** Whether the viewport is wide enough for the three-pane layout, tracked live. */
 function useThreePane(): boolean {
@@ -175,6 +183,13 @@ export function OrgUnits() {
         panelIds: PANE_IDS,
         onlySaveAfterUserInteractions: true,
     })
+    // The two-pane layout a project without a map gets keeps its own widths: a hierarchy dragged
+    // wide beside the details is not a width that fits beside a map, nor the other way round.
+    const panesWithoutMap = useDefaultLayout({
+        id: PANES_WITHOUT_MAP_LAYOUT_ID,
+        panelIds: PANE_IDS_WITHOUT_MAP,
+        onlySaveAfterUserInteractions: true,
+    })
 
     // The panel mounts expanded (its defaultSize) and is collapsed before first paint when the
     // mirror says closed - which is also what re-collapses it when the viewport crosses back over
@@ -192,6 +207,9 @@ export function OrgUnits() {
 
     const tree = useMemo(() => buildOrgUnitTree(registry.resources), [registry.resources])
     const geometry = useMemo(() => readGeometry(registry.resources), [registry.resources])
+    // A project publishing no geometry gets no map at all - see `mapLeftOut`. Decided once the
+    // settings land, so a guide with a map never opens on the layout without one.
+    const showMap = settings.loading || !mapLeftOut(settings.config, geometry)
     const assignmentIndex = useMemo(
         () => buildFormAssignments(forms.resources, assignments.resources),
         [forms.resources, assignments.resources],
@@ -360,6 +378,36 @@ export function OrgUnits() {
         </section>
     )
 
+    // What the inspector holds about the selection, shared by the rail beside a map and by the
+    // details pane a project without one gets in its place.
+    const inspector =
+        selected === null || catalog === null ? (
+            <NothingSelected total={tree.total} loading={registry.loading} requested={requested} />
+        ) : (
+            <>
+                <UnitHeader
+                    tree={tree}
+                    node={selected}
+                    onSelect={select}
+                    dhis2BaseUrl={settings.config.dhis2_base_url}
+                />
+                {servingForms && (
+                    <>
+                        <FormCatalogSections
+                            catalog={catalog}
+                            published={formsById.size}
+                            unresolvedAssignmentFormIds={assignmentIndex.unresolvedAssignmentFormIds}
+                            loading={forms.loading || assignments.loading}
+                            error={forms.error ?? assignments.error}
+                            dhis2BaseUrl={settings.config.dhis2_base_url}
+                        />
+                        <CapturedHere node={selected} formsById={formsById} spool={spool} />
+                    </>
+                )}
+                <UnitChildren key={selected.id} node={selected} onSelect={select} />
+            </>
+        )
+
     return (
         // The one page in this app that claims the viewport rather than growing to its content:
         // the map is worth more the bigger it is, and a fixed-height box with dead space under it
@@ -380,7 +428,34 @@ export function OrgUnits() {
                 aside={<ApiLink path={selected === null ? '/Location' : `/Location/${selected.id}`} />}
             />
 
-            {threePane ? (
+            {threePane && !showMap ? (
+                // No map: the hierarchy and the details, side by side and resizable. The details
+                // pane is never folded - with no map there is nothing it would be making room for.
+                <ResizablePanelGroup
+                    className="min-h-[30rem] flex-1"
+                    defaultLayout={panesWithoutMap.defaultLayout}
+                    onLayoutChanged={panesWithoutMap.onLayoutChanged}
+                >
+                    <ResizablePanel
+                        id="hierarchy"
+                        defaultSize="32%"
+                        minSize="20%"
+                        maxSize="50%"
+                        className="flex min-h-0 flex-col"
+                    >
+                        {hierarchyPane}
+                    </ResizablePanel>
+                    <ResizableHandle aria-label="Resize the hierarchy" className={PANE_HANDLE} />
+                    <ResizablePanel id="details" minSize="30%" className="flex min-h-0 min-w-0 flex-col">
+                        <aside
+                            aria-label="Organisation unit details"
+                            className="show-scrollbars scroll-fade-bottom min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 pb-2 pl-4"
+                        >
+                            {inspector}
+                        </aside>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            ) : threePane ? (
                 // Three resizable panes, their widths kept the way every other drag edge in this
                 // app keeps its width - see `PANES_LAYOUT_ID`. The `min-h` floor is what keeps a
                 // short viewport scrolling `main` instead of crushing the panes - a panel group
@@ -411,6 +486,7 @@ export function OrgUnits() {
                                 loading={registry.loading}
                                 onSelect={select}
                                 basemaps={settings.config.basemaps}
+                                config={settings.config}
                                 settingsLoading={settings.loading}
                             />
                         </section>
@@ -436,38 +512,7 @@ export function OrgUnits() {
                         className="flex min-h-0 flex-col"
                     >
                         <InspectorRail open={railOpen} onToggle={toggleRail}>
-                            {selected === null || catalog === null ? (
-                                <NothingSelected total={tree.total} loading={registry.loading} requested={requested} />
-                            ) : (
-                                <>
-                                    <UnitHeader
-                                        tree={tree}
-                                        node={selected}
-                                        onSelect={select}
-                                        dhis2BaseUrl={settings.config.dhis2_base_url}
-                                    />
-                                    {servingForms && (
-                                        <>
-                                            <FormCatalogSections
-                                                catalog={catalog}
-                                                published={formsById.size}
-                                                unresolvedAssignmentFormIds={
-                                                    assignmentIndex.unresolvedAssignmentFormIds
-                                                }
-                                                loading={forms.loading || assignments.loading}
-                                                error={forms.error ?? assignments.error}
-                                                dhis2BaseUrl={settings.config.dhis2_base_url}
-                                            />
-                                            <CapturedHere
-                                                node={selected}
-                                                formsById={formsById}
-                                                spool={spool}
-                                            />
-                                        </>
-                                    )}
-                                    <UnitChildren key={selected.id} node={selected} onSelect={select} />
-                                </>
-                            )}
+                            {inspector}
                         </InspectorRail>
                     </ResizablePanel>
                 </ResizablePanelGroup>
@@ -482,15 +527,18 @@ export function OrgUnits() {
                         {selected === null || catalog === null ? (
                             <>
                                 <NothingSelected total={tree.total} loading={registry.loading} requested={requested} />
-                                <MapPanel
-                                    tree={tree}
-                                    geometry={geometry}
-                                    selected={null}
-                                    loading={registry.loading}
-                                    onSelect={select}
-                                    basemaps={settings.config.basemaps}
-                                    settingsLoading={settings.loading}
-                                />
+                                {showMap && (
+                                    <MapPanel
+                                        tree={tree}
+                                        geometry={geometry}
+                                        selected={null}
+                                        loading={registry.loading}
+                                        onSelect={select}
+                                        basemaps={settings.config.basemaps}
+                                        config={settings.config}
+                                        settingsLoading={settings.loading}
+                                    />
+                                )}
                             </>
                         ) : (
                             <>
@@ -511,6 +559,8 @@ export function OrgUnits() {
                                     formsError={forms.error ?? assignments.error}
                                     registryLoading={registry.loading}
                                     basemaps={settings.config.basemaps}
+                                    config={settings.config}
+                                    showMap={showMap}
                                     settingsLoading={settings.loading}
                                     formsById={formsById}
                                     spool={spool}
@@ -881,6 +931,8 @@ function UnitTabs({
     formsError,
     registryLoading,
     basemaps,
+    config,
+    showMap,
     settingsLoading,
     formsById,
     spool,
@@ -898,6 +950,9 @@ function UnitTabs({
     formsError: string | null
     registryLoading: boolean
     basemaps: BasemapLayer[]
+    config: UiConfig
+    /** False on a project publishing no geometry, which gets no Map tab and opens on Details. */
+    showMap: boolean
     settingsLoading: boolean
     formsById: Map<string, Questionnaire>
     spool: SpoolState
@@ -906,8 +961,9 @@ function UnitTabs({
     onSelect: (unitId: string) => void
     dhis2BaseUrl: string | null
 }) {
-    const [choice, setChoice] = useState<{ unitId: string; tab: UnitTab }>({ unitId: node.id, tab: 'map' })
-    const tab = choice.unitId === node.id ? choice.tab : 'map'
+    const opening: UnitTab = showMap ? 'map' : 'details'
+    const [choice, setChoice] = useState<{ unitId: string; tab: UnitTab }>({ unitId: node.id, tab: opening })
+    const tab = choice.unitId === node.id && (showMap || choice.tab !== 'map') ? choice.tab : opening
 
     return (
         <Tabs
@@ -916,7 +972,7 @@ function UnitTabs({
             className="flex-1 gap-3"
         >
             <TabsList>
-                <TabsTrigger value="map">Map</TabsTrigger>
+                {showMap && <TabsTrigger value="map">Map</TabsTrigger>}
                 {servingForms && <TabsTrigger value="forms">Forms</TabsTrigger>}
                 <TabsTrigger value="details">Details</TabsTrigger>
             </TabsList>
@@ -924,17 +980,20 @@ function UnitTabs({
                 engine and rebuild the whole scene on the way back. Hidden, the container is
                 zero-sized; the ResizeObserver inside OrgUnitMap picks the size back up the moment
                 the tab returns. */}
-            <TabsContent value="map" forceMount className="flex flex-col data-[state=inactive]:hidden">
-                <MapPanel
-                    tree={tree}
-                    geometry={geometry}
-                    selected={node}
-                    loading={registryLoading}
-                    onSelect={onSelect}
-                    basemaps={basemaps}
-                    settingsLoading={settingsLoading}
-                />
-            </TabsContent>
+            {showMap && (
+                <TabsContent value="map" forceMount className="flex flex-col data-[state=inactive]:hidden">
+                    <MapPanel
+                        tree={tree}
+                        geometry={geometry}
+                        selected={node}
+                        loading={registryLoading}
+                        onSelect={onSelect}
+                        basemaps={basemaps}
+                        config={config}
+                        settingsLoading={settingsLoading}
+                    />
+                </TabsContent>
+            )}
             {servingForms && (
                 <TabsContent value="forms">
                     <FormCatalogSections
@@ -1503,6 +1562,7 @@ function MapPanel({
     loading,
     onSelect,
     basemaps,
+    config,
     settingsLoading,
 }: {
     tree: OrgUnitTree
@@ -1511,6 +1571,8 @@ function MapPanel({
     loading: boolean
     onSelect: (unitId: string) => void
     basemaps: BasemapLayer[]
+    /** The run's settings, read for what the project publishes - which decides how a gap is worded. */
+    config: UiConfig
     /** True until `GET /facade/uiconfig` has answered - the map is built once, against settled settings. */
     settingsLoading: boolean
 }) {
@@ -1526,6 +1588,8 @@ function MapPanel({
         [tree, selected, geometry],
     )
 
+    const pointsCaption = pointsOnlyCaption(config, geometry)
+
     if (loading) return null
     if (!hasGeometry(geometry)) {
         return (
@@ -1533,9 +1597,7 @@ function MapPanel({
                 <h3 className="text-base font-semibold">Map</h3>
                 <Card>
                     <CardContent className="text-muted-foreground py-6 text-sm">
-                        This registry holds no coordinates - this DHIS2 instance stores neither a point
-                        nor a boundary for any of the published organisation units, so there is nothing
-                        to draw.
+                        {noCoordinatesStatement(config)}
                     </CardContent>
                 </Card>
             </section>
@@ -1581,16 +1643,21 @@ function MapPanel({
                     />
                 )}
             </Suspense>
+            {pointsCaption !== null && (
+                <p data-testid="org-unit-map-points-only" className="text-muted-foreground text-xs">
+                    {pointsCaption}
+                </p>
+            )}
             {selected !== null && extent !== null && extent.coverage !== 'own' && (
                 <p data-testid="org-unit-map-note" className="text-muted-foreground text-xs">
                     {extent.coverage === 'descendants' &&
-                        `This DHIS2 instance stores no boundary for ${selected.name}, so the map frames the organisation units below it.`}
+                        `${missingCoordinatesLead(config, selected.name)}, so the map frames the organisation units below it.`}
                     {extent.coverage === 'ancestor' &&
-                        `This DHIS2 instance stores no boundary for ${selected.name}, so the map frames ${
+                        `${missingCoordinatesLead(config, selected.name)}, so the map frames ${
                             tree.byId.get(extent.framedOnUnitId ?? '')?.name ?? extent.framedOnUnitId
                         } - the nearest organisation unit above it that has one.`}
                     {extent.coverage === 'registry' &&
-                        `This DHIS2 instance stores no boundary for ${selected.name}, and none for any organisation unit above or below it, so the map shows the whole registry instead.`}
+                        `${missingCoordinatesLead(config, selected.name)}, and none for any organisation unit above or below it, so the map shows the whole registry instead.`}
                 </p>
             )}
             {geometry.unreadableGeometries > 0 && (

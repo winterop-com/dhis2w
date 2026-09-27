@@ -130,6 +130,9 @@ source = "synthetic"
 # root = "ImspTQPwCqd"
 # Deepest level to include (absent = every level). -> 301-what-goes-in#max_level
 # max_level = 4
+# How much of each unit's geometry its Location carries: "full" (the position and the boundary),
+# "position" (the point, or the centre of the boundary, alone) or "none". -> 301-what-goes-in#geometry
+# geometry = "full"
 # Also publish the organisation unit code list. -> 301-what-goes-in#terminology
 terminology = false
 # The registry package publishing the units instead of this guide (absent = published inline): its package

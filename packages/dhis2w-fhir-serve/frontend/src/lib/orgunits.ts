@@ -39,6 +39,7 @@ import type {
     ResourceList,
 } from '@/lib/fhir'
 import { FORM_TYPE_EXTENSION_SUFFIX, formIdentifier } from '@/lib/fhir'
+import { isPackage, type UiConfig } from '@/lib/uiconfig'
 
 /**
  * The extension a Location states its DHIS2 hierarchy level on.
@@ -831,6 +832,56 @@ export function pointOf(location: Location): OrgUnitPoint | null {
 /** Whether the registry holds any geometry at all - which is what decides the map panel exists. */
 export function hasGeometry(geometry: OrgUnitGeometry): boolean {
     return geometry.boundaries.length > 0 || geometry.points.length > 0
+}
+
+/**
+ * Whether the page leaves the map out: the project publishes no geometry, and the registry agrees.
+ *
+ * THE SETTING DECIDES, THE DATA OVERRULES. `geometry = "none"` is a guide saying it publishes no
+ * coordinates, and an empty map card under it would be a panel for something the project chose not
+ * to have. But the setting is read off `fhir.toml` as it stands, and the Locations are what the last
+ * generate wrote - so a registry that still carries shapes gets its map, drawn from what is there.
+ */
+export function mapLeftOut(config: UiConfig, geometry: OrgUnitGeometry): boolean {
+    return config.organisation_unit_geometry === 'none' && !hasGeometry(geometry)
+}
+
+/**
+ * The opening of the note under the map when the selected unit has no coordinates of its own.
+ *
+ * WHICH SUBJECT IS ACCURATE depends on what the project publishes. Under `full` a unit with no shape
+ * is one the instance stores no boundary for; under `position` every unit the instance locates gets
+ * a point, so one without is a unit the instance stores no coordinates for. With the setting
+ * unknown - another package publishes the units - only what the registry holds is a fact.
+ */
+export function missingCoordinatesLead(config: UiConfig, unitName: string): string {
+    const setting = config.organisation_unit_geometry ?? null
+    if (setting === 'full') return `This DHIS2 instance stores no boundary for ${unitName}`
+    if (setting === 'position') return `This DHIS2 instance stores no coordinates for ${unitName}`
+    return `This registry publishes no coordinates for ${unitName}`
+}
+
+/**
+ * The caption saying the map draws points because the project chose to publish no boundaries.
+ *
+ * Null unless `geometry = "position"` and the registry carries no boundary: a registry still holding
+ * shapes from an earlier generate is drawn as it is, and a caption denying them would be wrong.
+ */
+export function pointsOnlyCaption(config: UiConfig, geometry: OrgUnitGeometry): string | null {
+    if (config.organisation_unit_geometry !== 'position' || geometry.boundaries.length > 0) return null
+    const subject = isPackage(config) ? 'This package' : 'This guide'
+    return `${subject} publishes organisation units as points, without boundaries.`
+}
+
+/** The sentence the map section shows in place of a map when the registry holds no coordinates. */
+export function noCoordinatesStatement(config: UiConfig): string {
+    if ((config.organisation_unit_geometry ?? null) === null) {
+        return 'This registry publishes no coordinates for any of its organisation units, so there is nothing to draw.'
+    }
+    return (
+        'This registry holds no coordinates - this DHIS2 instance stores neither a point nor a boundary ' +
+        'for any of the published organisation units, so there is nothing to draw.'
+    )
 }
 
 /**

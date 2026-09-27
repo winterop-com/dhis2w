@@ -51,6 +51,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit, urlunsplit
 
 from dhis2w_fhir.config import DEFAULT_BASEMAP_TEMPLATE, BasemapSource, ServeAuth, ServeAuthScope
+from dhis2w_fhir.resources.organisation_units.schemas import OrganisationUnitGeometry
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import Request
@@ -321,6 +322,14 @@ class UiConfig(BaseModel):
     thing to say to a project whose shape is to have none.
     """
 
+    organisation_unit_geometry: OrganisationUnitGeometry | None = None
+    """How much geometry the served Locations were generated with: `full`, `position` or `none`.
+
+    A screen reads it to say why a unit has no boundary - the guide left boundaries out, rather
+    than the instance storing none. None when another package publishes the units, which reads as
+    "not known" and is answered with wording that blames neither.
+    """
+
     auth: AuthUiConfig = Field(default_factory=AuthUiConfig)
     basemaps: list[BasemapLayer] = Field(default_factory=list)
     dhis2_base_url: str | None = None
@@ -352,6 +361,7 @@ async def read_ui_config(request: Request) -> UiConfig:
     return UiConfig(
         capture=settings.capture,
         publishes=settings.publishes,
+        organisation_unit_geometry=settings.organisation_unit_geometry,
         auth=AuthUiConfig(
             posture=settings.auth,
             scope=settings.auth_scope,

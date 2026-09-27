@@ -175,8 +175,11 @@ def build_guide_and_registry_files(options: InitOptions, *, copyright_year: int 
     `max_level` reaches both on purpose. The guide's `[generate.organisation_units]` says which
     units its forms may refer to and the registry's says which it publishes; the two have to agree,
     and `d2w fhir check-artifacts` reports every reference where they do not.
+
+    `geometry` reaches the registry alone: it narrows the Locations, and the registry is the
+    project that publishes them.
     """
-    guide = options.model_copy(update={"registry": _registry_dependency_for(options)})
+    guide = options.model_copy(update={"registry": _registry_dependency_for(options), "geometry": None})
     registry = _registry_options_for(options)
     files = [
         *_under(REGISTRY_RELATIVE_ROOT, build_scaffold_files(registry, copyright_year=copyright_year)),
@@ -258,6 +261,7 @@ def _render(relative_path: str, template_name: str, options: InitOptions, **extr
         profile=options.profile,
         sushi_timeout=options.sushi_timeout,
         max_level=options.max_level,
+        geometry=options.geometry,
         data_set_ids=options.data_set_ids,
         event_program_ids=options.event_program_ids,
         tracker_program_ids=options.tracker_program_ids,

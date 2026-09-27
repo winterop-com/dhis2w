@@ -14,16 +14,19 @@ set -euo pipefail
 #   --profile         seeds the `profile` key, so later commands need no -p
 #   --data-set / --event-program / --tracker-program      seed the selection tables (repeatable)
 #   --max-level       caps the organisation-unit registry depth - the build wall-clock dial
+#   --geometry        what each Location carries: full, position (no boundaries) or none
 #   --sushi-timeout   the ceiling the IG publisher gives its embedded SUSHI run
 d2w fhir init demo-init \
     --id dhis2.fhir.initdemo \
     --canonical http://example.org/fhir/init-demo \
     --publisher "Demo Org" \
     --data-set BfMAe6Itzgt \
-    --max-level 2
+    --max-level 2 \
+    --geometry position
 
 # What landed: the twelve scaffold files, fhir.toml carrying the seeded selection.
 ls demo-init
 grep -A2 "generate.data_sets" demo-init/fhir.toml
+grep "^geometry" demo-init/fhir.toml
 
 rm -rf demo-init

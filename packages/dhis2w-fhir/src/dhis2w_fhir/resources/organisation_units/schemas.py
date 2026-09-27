@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from dhis2w_fhir.attributes import AttributeValueIn
 from dhis2w_fhir.coded import CodedProjectionIn
@@ -73,18 +74,29 @@ class RegistryDependency(BaseModel):
         return value.strip()
 
 
+#: How much of each organisation unit's DHIS2 geometry its Location carries. `full` is the position and
+#: the boundary, `position` the Point or polygon centroid alone, `none` neither.
+OrganisationUnitGeometry = Literal["full", "position", "none"]
+
+
 class OrganisationUnitSelection(BaseModel):
     """Which DHIS2 organisation units to generate - the `[generate.organisation_units]` table of `fhir.toml`.
 
     Without `registry` the selection is published inline, as pre-built JSON under
     `ig/input/resources/registry/`. With it, the same selection is published by the registry
     package named there and this guide only resolves the stems its forms refer to.
+
+    `geometry` says how much of each unit's DHIS2 geometry its Location carries: `full` (the
+    position and the boundary), `position` (the Point, or the polygon centroid, alone) or `none`.
+    It belongs to whichever project publishes the Locations, so a guide naming a `registry` leaves
+    it to that package.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     root: str | None = None
     max_level: int | None = None
+    geometry: OrganisationUnitGeometry = "full"
     terminology: bool = False
     registry: RegistryDependency | None = None
 
@@ -99,6 +111,16 @@ class OrganisationUnitSelection(BaseModel):
     def _zero_level_is_none(cls, value: object) -> object:
         """Treat the scaffolded `max_level = 0` placeholder as unset."""
         return None if value == 0 else value
+
+    @model_validator(mode="after")
+    def _geometry_belongs_to_the_publisher(self) -> OrganisationUnitSelection:
+        """A guide depending on a registry package publishes no Location, so it has no geometry to narrow."""
+        if self.registry is not None and self.geometry != "full":
+            raise ValueError(
+                f'geometry = "{self.geometry}" narrows Locations this guide does not publish; set it in the '
+                "[generate.organisation_units] table of the registry package's fhir.toml instead"
+            )
+        return self
 
 
 class GeoPoint(BaseModel):

@@ -40,13 +40,18 @@ hostile_names = "substitute"
 
 {{ selection.generate_keys }}
 {% endif %}
-{% if max_level or registry %}
+{% if max_level or geometry or registry %}
 
 [generate.organisation_units]
 {% if max_level %}
 # Every unit emits two instances, an Organization and a Location, and a hierarchy fans out at
 # the bottom - so the deepest level is usually most of the IG, and most of its compile time.
 max_level = {{ max_level }}
+{% endif %}
+{% if geometry %}
+# How much of each unit's DHIS2 geometry its Location carries: "full" (the position and the
+# boundary), "position" (the point, or the centre of the boundary, alone) or "none".
+geometry = "{{ geometry }}"
 {% endif %}
 {% if registry %}
 

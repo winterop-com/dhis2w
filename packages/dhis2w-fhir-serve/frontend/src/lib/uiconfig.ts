@@ -210,6 +210,16 @@ export interface UiConfig {
      * the wrong thing to say to a project whose shape is to have no forms at all.
      */
     publishes?: string | null
+    /**
+     * How much geometry the served Locations were generated with, off `[generate.organisation_units]
+     * geometry`: `full` (the position and the boundary), `position` (the point, or the centre of
+     * the boundary, alone) or `none`.
+     *
+     * Absent or null means another package publishes the units, so this server does not know which
+     * setting they were generated under - and the map words a missing boundary so it blames neither
+     * the instance nor the guide.
+     */
+    organisation_unit_geometry?: OrganisationUnitGeometry | null
     auth?: AuthSettings
     basemaps: BasemapLayer[]
     dhis2_base_url: string | null
@@ -217,6 +227,9 @@ export interface UiConfig {
     /** Whether this run reaches a DHIS2 instance and so has metadata to report the health of. */
     metadata_health?: MetadataHealthSettings | null
 }
+
+/** The `[generate.organisation_units] geometry` values, as the wire spells them. */
+export type OrganisationUnitGeometry = 'full' | 'position' | 'none'
 
 /** What a server stating nothing is read as: no routes, so no listing, no record, and no register. */
 export const NO_REGISTER_OFFERED: TrackedEntitiesSettings = {

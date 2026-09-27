@@ -379,6 +379,7 @@ def _registry_page(
         root_uid=root.uid if root is not None else "",
         position_count=sum(1 for item in organisation_units if item.latitude is not None),
         boundary_count=sum(1 for item in organisation_units if item.boundary_geojson is not None),
+        geometry=config.organisation_units.geometry,
         organization_profile=names.organization_profile,
         location_profile=names.location_profile,
         levels=[LevelRow(level=level, unit_count=levels[level]) for level in sorted(levels)],
