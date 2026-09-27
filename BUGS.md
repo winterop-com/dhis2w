@@ -104,7 +104,7 @@ Every entry in the file is listed here, including the four that carried no Index
 - [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value) — `importStrategy=DELETE` of a never-written value materialises a tombstone on v43 **[FIXED v41 + v42]**
 - [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted) — inline `"deleted": true` is counted as `updated` on v43 **[FIXED v41 + v42]**
 - [#125](#125-a-top-level-dataset-key-on-a-apidatavaluesets-payload-makes-every-later-import-answer-409-e7644-with-the-period-rendered-as-null-and-a-freshly-created-data-set-is-invisible-to-the-open-periods-check-for-about-two-minutes) — A top-level `dataSet` key makes later imports answer `E7644` with a null period; a new data set is invisible for two minutes **[STILL]**
-- [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements) — a dry-run data value import answers 500 for five of one data set's nineteen data elements **[STILL]**
+- [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements) — a dry-run data value import answers 500 for five of one data set's nineteen data elements, on 2.43 only **[STILL]**
 - [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway) — `POST /api/dataValues` accepts `dryRun=true` and writes the value anyway **[STILL]**
 - [#131](#131-a-program-rule-assigns-infinity-to-a-number-data-element-and-dhis2-then-refuses-its-own-assignment-with-e1302) — a program rule assigns `-Infinity` and DHIS2 refuses its own assignment **[STILL]**
 
@@ -8069,6 +8069,8 @@ poisoned payload and drain the rest is a follow-up this entry does not assume.
 **How to know it's fixed:** the first post above answers 200 with an import summary.
 
 **Verifier:** none yet.
+
+**Status (2026-09-26):** STILL on `2.43.3-SNAPSHOT` (`https://play.im.dhis2.org/dev-2-43`), and absent on `2.42.7-SNAPSHOT` (`https://play.im.dhis2.org/dev-2-42`): the same one-value dry-run posts for `TLSChlBcw7L` (`TRUE_ONLY`) and `sJWqKsx0ghX` (`LONG_TEXT`) answer 500 with the same message on the first and an import summary with status `OK` on the second, so it is a 2.43 regression. The organisation unit does not matter: a facility, `DiszpKrYNg8` (Ngelehun CHC), answers 500 exactly as the root `ImspTQPwCqd` does. `BOOLEAN`, `DATE`, `TIME` and option-set elements of the same data set answer 200 in the same run. Met through a guide generated against `dev-2-43`, whose own worked example of `V8MHeZHIrcP` answers these elements: forwarding all 64 of the guide's examples as a dry run stopped at that one receipt with 41 not posted, and set aside, the other 63 posted with none rejected.
 
 ---
 
