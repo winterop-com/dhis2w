@@ -47,7 +47,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from dhis2w_fhir.names import is_dhis2_uid
+from dhis2w_fhir.names import contact_value, is_dhis2_uid
 from dhis2w_fhir.r4 import DATA_ABSENT_REASON_EXTENSION_URL, Address, ContactPoint, Element, Extension, HumanName
 
 if TYPE_CHECKING:
@@ -512,7 +512,7 @@ def _served_name(text: str | None, given: str | None, family: str | None) -> lis
 
 def _served_telecom(value: str | None) -> list[ContactPoint] | None:
     """The nominated phone attribute as one `phone` contact point, or nothing where the person holds none."""
-    return None if value is None else [ContactPoint(system="phone", value=value.strip())]
+    return None if value is None else [ContactPoint(system="phone", value=contact_value(value))]
 
 
 def _served_address(

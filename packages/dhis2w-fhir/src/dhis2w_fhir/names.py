@@ -10,6 +10,7 @@ and every other emitted literal share.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Sequence
 from typing import Literal
@@ -60,6 +61,18 @@ def escape_fsh_string(value: str) -> str:
 def flatten_whitespace(value: str) -> str:
     """Collapse every run of whitespace into single spaces - the one-line form an element value carries."""
     return " ".join((value or "").split())
+
+
+def contact_value(value: str) -> str:
+    """A phone number or email as a ContactPoint carries it: one line, and no invisible format characters.
+
+    A zero-width space pasted into a DHIS2 phone number is invisible in every screen that shows it, but
+    the IG publisher renders a phone contact as a `tel:` link and refuses that URL as invalid. Format
+    characters (Unicode category Cf - zero-width spaces and joiners, the byte-order mark, direction
+    marks) carry no digit or letter of the value, so they are dropped rather than published.
+    """
+    visible = "".join(character for character in value or "" if unicodedata.category(character) != "Cf")
+    return flatten_whitespace(visible)
 
 
 def quote(value: str) -> str:

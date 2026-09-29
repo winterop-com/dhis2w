@@ -230,3 +230,9 @@ def test_pdf_renders_an_empty_code_distinctly() -> None:
     assert _code_cell("X") == "X"
     report = FhirValidationReport(findings=[_finding("error", "dataElements", "Blank", code="")])
     assert render_validation_pdf(report, "probe", _GENERATED_AT).startswith(b"%PDF")
+
+
+def test_display_code_shows_a_zero_width_space_as_its_escape() -> None:
+    """A format character prints as nothing, so the report spells it the way the JSON escape would."""
+    assert display_code("B. Hin\u200bTang") == "B. Hin\\u200bTang"
+    assert display_code("\ufeffCODE") == "\\ufeffCODE"
