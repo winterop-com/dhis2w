@@ -290,10 +290,10 @@ uv run d2w maintenance dataintegrity result orgunits_invalid_geometry
 
 ## 9. MCP — every tool via `fastmcp.Client` in-process
 
-Run every `examples/mcp/*.py` to cover the full surface (`python infra/scripts/verify_examples.py` does this for you plus the CLI + client sides). Or enumerate the tool list directly:
+The MCP server is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack. Run every script in [its `examples/`](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) to cover the full surface, or enumerate the tool list directly with the pack installed alongside the workspace:
 
 ```bash
-uv run python - <<'PY'
+uv run --with dhis2w-mcp python - <<'PY'
 import asyncio
 from collections import Counter
 from fastmcp import Client
@@ -310,7 +310,7 @@ asyncio.run(main())
 PY
 ```
 
-Expect roughly 304 tools across 13 groups (regenerated counts live in `docs/mcp-reference.md`; the per-group breakdown ages with each release):
+Expect roughly 304 tools across 13 groups (regenerated counts live in the pack's [tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/); the per-group breakdown ages with each release):
 
 ```
 analytics: 5     messaging: 11
@@ -322,7 +322,7 @@ files: 5         user: 16
 maintenance: 15
 ```
 
-A missing group = regression in plugin wiring. The `metadata` group is the largest because every authoring triple (`organisation-units`, `data-elements`, `indicators`, `program-indicators`, `category-options`) plus `legend-sets` and the workflow sub-apps (`options`, `attribute`, `program-rule`, `sql-view`, `viz`, `dashboard`, `map`) all register tools under it. [MCP reference](mcp-reference.md) has the full tool list with signatures + docstrings.
+A missing group = regression in plugin wiring. The `metadata` group is the largest because every authoring triple (`organisation-units`, `data-elements`, `indicators`, `program-indicators`, `category-options`) plus `legend-sets` and the workflow sub-apps (`options`, `attribute`, `program-rule`, `sql-view`, `viz`, `dashboard`, `map`) all register tools under it. [MCP reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/) has the full tool list with signatures + docstrings.
 
 ---
 

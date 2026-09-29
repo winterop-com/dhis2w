@@ -10,12 +10,12 @@ class _DataPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w data` and the `data_aggregate_*` / `data_tracker_*` MCP tools."""
+        """Contribute `d2w data`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="data",
             description="DHIS2 data values — aggregate (dataValueSets) and tracker (entities, events, ...).",
             cli_module="dhis2w_core.v42.plugins.data.cli",
-            mcp_module="dhis2w_core.v42.plugins.data.mcp",
+            mcp_module=None,
         )
 
 

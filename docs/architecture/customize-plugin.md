@@ -3,7 +3,7 @@
 The `customize` plugin is a thin, typed surface over DHIS2's three branding
 endpoint families. One `d2w customize apply DIR` re-brands an instance;
 the same library call (`Dhis2Client.customize`) lets Python code do it
-programmatically; the same MCP tool set lets an agent do it.
+programmatically; the same MCP tool set, from the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack, lets an agent do it.
 
 ## Surfaces
 
@@ -11,7 +11,7 @@ programmatically; the same MCP tool set lets an agent do it.
 | --- | --- | --- |
 | Library | `Dhis2Client.customize` | `packages/dhis2w-client/src/dhis2w_client/customize.py` |
 | CLI | `d2w customize …` | `packages/dhis2w-core/src/dhis2w_core/v42/plugins/customize/cli.py` |
-| MCP | `customize_*` tools | `packages/dhis2w-core/src/dhis2w_core/v42/plugins/customize/mcp.py` |
+| MCP | `customize_*` tools | `dhis2w_mcp/tools/v42/customize.py` in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack |
 | Committed preset | `infra/login-customization/` | Applied by the seed in `infra/scripts/build_e2e_dump.py` |
 
 ## DHIS2 endpoint mapping

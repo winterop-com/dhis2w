@@ -10,15 +10,15 @@ class _AppsPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w apps` and the `apps_*` MCP tools."""
+        """Contribute `d2w apps`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="apps",
             description=(
-                "DHIS2 apps: `/api/apps` + `/api/appHub`. CLI + MCP surfaces for list, add (from local zip or App Hub "
+                "DHIS2 apps: `/api/apps` + `/api/appHub`. CLI for list, add (from local zip or App Hub "
                 "version), remove, update (one / --all), reload."
             ),
             cli_module="dhis2w_core.v41.plugins.apps.cli",
-            mcp_module="dhis2w_core.v41.plugins.apps.mcp",
+            mcp_module=None,
         )
 
 

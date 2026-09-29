@@ -21,14 +21,14 @@ from verify_examples import (  # noqa: E402 — path-prepend intentional
 )
 
 
-def test_discover_examples_returns_cli_client_mcp() -> None:
+def test_discover_examples_returns_cli_and_client() -> None:
     """Discovery yields files under every existing surface."""
     paths = discover_examples("v42")
     assert paths, "expected at least one example in the repo"
     surfaces = {p.parent.name for p in paths}
-    # The workspace always ships all three common surfaces plus the FHIR group's
+    # The workspace always ships both common surfaces plus the FHIR group's
     # engine directory; make the test tolerant in case one is empty on an oddly-pruned checkout.
-    assert surfaces.issubset({"cli", "client", "mcp", "engine"})
+    assert surfaces.issubset({"cli", "client", "engine"})
     # _runner.py and other helper underscore-files must be excluded.
     assert all(not p.name.startswith("_") for p in paths)
     assert all(p.suffix in {".sh", ".py"} for p in paths)
@@ -112,7 +112,7 @@ def test_render_summary_counts_every_status() -> None:
         ExampleResult(path="examples/cli/b.sh", surface="cli", status="FAIL", seconds=0.1),
         ExampleResult(path="examples/client/c.py", surface="client", status="PASS", seconds=0.1),
         ExampleResult(path="examples/client/d.py", surface="client", status="TIMEOUT", seconds=180.0),
-        ExampleResult(path="examples/mcp/e.py", surface="mcp", status="SKIP", seconds=0.0),
+        ExampleResult(path="examples/client/e.py", surface="client", status="SKIP", seconds=0.0),
     ]
     rc = render_summary(results, console=Console(force_terminal=False, width=120))
     assert rc == 1  # one FAIL + one TIMEOUT → failure exit

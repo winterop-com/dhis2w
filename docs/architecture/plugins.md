@@ -1,6 +1,6 @@
 # Plugin runtime
 
-`dhis2w-core` is the shared runtime that both `dhis2w-cli` and `dhis2w-mcp` build on. Its central contract is the **plugin** — a small object that every capability (system info, metadata CRUD, tracker, analytics, codegen, …) implements so the CLI and MCP surfaces never drift out of parity.
+`dhis2w-core` is the shared runtime that both `dhis2w-cli` and the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack build on. Its central contract is the **plugin** — a small object that every capability (system info, metadata CRUD, tracker, analytics, codegen, …) implements so the CLI and MCP surfaces never drift out of parity.
 
 ## The contract
 
@@ -29,12 +29,12 @@ class _SystemPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w system` and the `whoami` / `system_info` MCP tools."""
+        """Contribute `d2w system`."""
         return Contribution(
             name="system",
             description="DHIS2 system info and current-user access.",
             cli_module="dhis2w_core.v43.plugins.system.cli",
-            mcp_module="dhis2w_core.v43.plugins.system.mcp",
+            mcp_module=None,
         )
 
 
@@ -43,9 +43,13 @@ plugin = _SystemPlugin()
 
 The object is a plain class, never a pydantic model: pluginkit scans the object's
 attributes to find the extension, and a `BaseModel` subclass raises during that
-scan. A plugin with one surface leaves the other module unset — `schema` and `dev`
-have no `mcp_module`, `user-group` and `user-role` no `cli_module` (the `user`
-plugin mounts their commands as sub-groups).
+scan. A plugin with one surface leaves the other module unset. The built-in
+plugins in `dhis2w-core` contribute a `cli_module` only: their MCP tools are the
+[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack's `dhis2w_mcp/tools/v{41,42,43}/<name>.py`,
+registered through one `mcp` contribution of that pack. The `user-group` and
+`user-role` packages carry no plugin object (the `user` plugin mounts their
+commands as `d2w user group` / `d2w user role`). An external pack may still name
+an `mcp_module` of its own.
 
 Naming a module rather than passing a callable keeps the import lazy: nothing under
 `mcp_module` is imported until the MCP server registers, so `d2w --help` never pays
@@ -84,20 +88,20 @@ Every first-party plugin lives in `packages/dhis2w-core/src/dhis2w_core/v43/plug
 ├── __init__.py        # exports `plugin = _MyPlugin()`
 ├── service.py         # async pure functions — single source of truth
 ├── cli.py             # Typer sub-app + register(app) helper
-├── mcp.py             # FastMCP tool registrations + register(server) helper
 └── models.py          # (optional) plugin-internal pydantic view-models
 ```
 
 - `service.py` holds the **real work** — async functions that take a `Profile` and return typed results.
 - `cli.py` wraps `service.py` with Typer decorators + rich printing.
-- `mcp.py` wraps `service.py` with `@server.tool()` decorators.
+- The plugin's MCP tools live in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack as `dhis2w_mcp/tools/v43/<name>.py`, wrapping the same `service.py` with `@server.tool()` decorators.
 
-Both `cli.py` and `mcp.py` are thin — they format I/O and nothing else. The CLI and MCP surfaces cannot drift because they share the same underlying function.
+Both `cli.py` and the pack's tool module are thin — they format I/O and nothing else. The CLI and MCP surfaces cannot drift because they share the same underlying function.
 
 ## The `system` plugin as a reference
 
 The smallest complete plugin lives at `dhis2w_core/v43/plugins/system/` — its
-`__init__.py` is the descriptor above, and the three modules beside it are:
+`__init__.py` is the descriptor above; `service.py` and `cli.py` sit beside it,
+and the pack's `dhis2w_mcp/tools/v43/system.py` carries the MCP tools:
 
 ```python
 # service.py
@@ -120,7 +124,7 @@ def whoami_command() -> None:
 ```
 
 ```python
-# mcp.py
+# dhis2w_mcp/tools/v43/system.py, in the dhis2w-mcp pack
 def register(server: Any) -> None:
     @server.tool()
     async def whoami() -> Me:

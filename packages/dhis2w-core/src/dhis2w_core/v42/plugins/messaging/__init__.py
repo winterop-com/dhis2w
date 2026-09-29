@@ -10,15 +10,15 @@ class _MessagingPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w messaging` and the `messaging_*` MCP tools."""
+        """Contribute `d2w messaging`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="messaging",
             description=(
-                "DHIS2 internal messaging. CLI + MCP surfaces for /api/messageConversations — list, read, send, reply, "
+                "DHIS2 internal messaging. CLI for /api/messageConversations — list, read, send, reply, "
                 "mark-read, delete. Pairs with the files plugin for MESSAGE_ATTACHMENT fileResources."
             ),
             cli_module="dhis2w_core.v42.plugins.messaging.cli",
-            mcp_module="dhis2w_core.v42.plugins.messaging.mcp",
+            mcp_module=None,
         )
 
 

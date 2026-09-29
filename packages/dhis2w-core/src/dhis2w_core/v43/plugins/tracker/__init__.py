@@ -1,1 +1,1 @@
-"""Tracker plugin module — cli/mcp mounted by the `data` plugin."""
+"""Tracker plugin module — its CLI mounted by the `data` plugin."""

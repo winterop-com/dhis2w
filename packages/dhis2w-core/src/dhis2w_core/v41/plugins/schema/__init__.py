@@ -10,7 +10,7 @@ class _SchemaPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute the `schema` command; the plugin has no MCP surface."""
+        """Contribute the `schema` command; it has no MCP tool."""
         return Contribution(
             name="schema",
             description="Describe a generated type's fields (metadata or instance-side).",

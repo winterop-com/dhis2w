@@ -9,12 +9,12 @@ to look at".
 
 Targets every script under:
 
-- `examples/{cli,client,mcp}/` — the version-neutral set, run on whichever
+- `examples/{cli,client}/` — the version-neutral set, run on whichever
   DHIS2 major the active profile points at.
 - `examples/fhir/{cli,client,engine}/` — the FHIR surface. `dhis2w-fhir`,
   `dhis2w-fhir-serve` and `dhis2w-fhir-engine` are not per-version packages,
   so these run on every major from one copy.
-- `examples/{cli,client,mcp}/v{N}/` — the variants that exist only for one
+- `examples/{cli,client}/v{N}/` — the variants that exist only for one
   DHIS2 major, run only when that major is the active one.
 
 The active major is resolved exactly like the CLI / MCP runtime resolve their
@@ -63,7 +63,7 @@ from rich.table import Table
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-SURFACES = ("cli", "client", "mcp")
+SURFACES = ("cli", "client")
 VERSION_KEYS = ("v41", "v42", "v43")
 
 # The FHIR group is driven from the command line and from Python, and has no MCP
@@ -96,8 +96,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         # Creates a Route pointing at https://example.com/ — external network
         # egress out of the docker DHIS2 instance, not guaranteed in CI.
         "client/routes_run.py",
-        # Same Route + external egress as the cli/client siblings.
-        "mcp/route_register_and_run.py",
         # --- Slow server-side jobs --------------------------------------
         # Kicks `d2w maintenance refresh analytics --watch`; analytics
         # rebuilds legitimately take several minutes on a populated stack.
@@ -150,7 +148,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         # the CLI + library wrap the same endpoint, skip both.
         "cli/analytics_outlier_tracked_entities.sh",
         "client/analytics_outlier_tracked_entities.py",
-        "mcp/analytics_outlier_tracked_entities.py",
     },
 )
 
@@ -171,7 +168,6 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
             # v41 and v42, which is why they live in the common set.
             "client/analytics_events_enrollments.py",
             "client/analytics_event_query.py",
-            "mcp/analytics_events_enrollments.py",
         }
     ),
 }
@@ -257,7 +253,7 @@ def _surface_directories(version_key: str) -> list[Path]:
 def discover_examples(version_key: str) -> list[Path]:
     """Return every example file this major runs, sorted by path.
 
-    The common `examples/{cli,client,mcp}/` set and the version-agnostic
+    The common `examples/{cli,client}/` set and the version-agnostic
     `examples/fhir/` set run on every major. A `examples/{surface}/v{N}/`
     directory holds the examples that exist only for one major, so only the
     active one's variants are picked up — the other majors' variants are not
@@ -276,7 +272,7 @@ def discover_examples(version_key: str) -> list[Path]:
 
 
 def _surface_of(path: Path) -> str:
-    """Name the summary row an example belongs under: `cli`, `client`, `mcp`, or `fhir/<surface>`.
+    """Name the summary row an example belongs under: `cli`, `client`, or `fhir/<surface>`.
 
     A version-variant directory reports under its surface rather than under the
     major, because what a reader wants counted is how the CLI examples did.

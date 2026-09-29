@@ -34,7 +34,7 @@ packages/dhis2w-core/src/dhis2w_core/
 ├── token_store.py       #   (generic over the tree's OAuth2Token), PAT and OAuth2
 ├── ...                  #   registration
 ├── v43/client_context.py  # binds the tree: opens a connected dhis2w_client.v43.Dhis2Client
-├── v43/plugins/<name>/  # canonical plugin tree (cli.py, mcp.py, service.py, ...)
+├── v43/plugins/<name>/  # canonical plugin tree (cli.py, service.py, ...)
 ├── v41/plugins/<name>/  # mirror of v43, diverges per-file as v41 quirks land
 └── v42/plugins/<name>/  # mirror of v43, diverges per-file as v42 quirks land
 ```

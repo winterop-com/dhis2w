@@ -9,7 +9,7 @@
 - Driving a complex workflow that doesn't fit a single CLI command.
 - Writing tests that need typed access to wire responses.
 
-For one-shot operations from a terminal, the [CLI](../cli/index.md) is friendlier. For agent-driven workflows, the [MCP server](../mcp/index.md) is the right surface.
+For one-shot operations from a terminal, the [CLI](../cli/index.md) is friendlier. For agent-driven workflows, the [MCP server](https://winterop-com.github.io/dhis2w-mcp/) of the `dhis2w-mcp` plugin pack is the right surface.
 
 ## Install
 

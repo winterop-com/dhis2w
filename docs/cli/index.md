@@ -1,6 +1,6 @@
 # `d2w` CLI
 
-`dhis2w-cli` is a Typer console script (`d2w …`) that bundles every `dhis2w-core` plugin into one entry point. Every command has a matching MCP tool and a matching client accessor — they share the same typed service functions, so the three surfaces stay aligned.
+`dhis2w-cli` is a Typer console script (`d2w …`) that bundles every `dhis2w-core` plugin into one entry point. Every command has a matching MCP tool (in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack) and a matching client accessor — they share the same typed service functions, so the three surfaces stay aligned.
 
 ## When to reach for it
 
@@ -9,7 +9,7 @@
 - CI / cron jobs (every command exits non-zero on failure).
 - Day-to-day admin (the [walkthrough](../walkthrough.md) is a good end-to-end taste).
 
-For embedding DHIS2 calls inside a Python service use the [Python client](../client/index.md). For agent-driven workflows use the [MCP server](../mcp/index.md).
+For embedding DHIS2 calls inside a Python service use the [Python client](../client/index.md). For agent-driven workflows use the [MCP server](https://winterop-com.github.io/dhis2w-mcp/) of the `dhis2w-mcp` pack.
 
 ## Install
 

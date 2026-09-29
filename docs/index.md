@@ -1,6 +1,6 @@
 # dhis2w
 
-Python tooling for DHIS2. A `uv` workspace with an async client library, a Typer CLI, a FastMCP server, a Playwright browser helper, a code generator, and a shared plugin runtime.
+Python tooling for DHIS2. A `uv` workspace with an async client library, a Typer CLI, FHIR Implementation Guide tooling, a code generator, and a shared plugin runtime. The FastMCP server ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)) and the Playwright browser helper ([`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser)) are plugin packs in repositories of their own.
 
 ## Where to start
 
@@ -8,7 +8,7 @@ Everything here talks to DHIS2. Pick the surface you want to talk to it *through
 
 - **[Python client](client/index.md)** — async library for ETL scripts, embedded DHIS2 calls inside another service, and tests that need typed access. Pairs with the [Python library tutorial](client/tutorial.md).
 - **[`d2w` CLI](cli/index.md)** — terminal use, shell pipelines, CI / cron jobs, day-to-day admin. Pairs with the [CLI tutorial](cli/tutorial.md).
-- **[`dhis2w-mcp` MCP server](mcp/index.md)** — LLM-driven workflows (Claude Desktop, Claude Code, Cursor, Continue, Cline). Pairs with the [MCP tutorial](mcp/tutorial.md).
+- **[`dhis2w-mcp` MCP server](https://winterop-com.github.io/dhis2w-mcp/)** — LLM-driven workflows (Claude Desktop, Claude Code, Cursor, Continue, Cline), from the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack with its own documentation site. Pairs with the [MCP tutorial](https://winterop-com.github.io/dhis2w-mcp/tutorial/).
 - **[`d2w fhir`](fhir/index.md)** — publish an instance's metadata as a FHIR Implementation Guide, serve it as a capture endpoint, and forward what it captures back into DHIS2. Graded 100-501, opening at the introduction; start at the [Introduction](fhir/100-introduction.md).
 
 Whichever you pick:
@@ -25,21 +25,18 @@ Whichever you pick:
 | `dhis2w-client` | Async DHIS2 API client with pluggable auth and pydantic models | [`dhis2w-client`](https://pypi.org/project/dhis2w-client/) |
 | `dhis2w-core` | Profile discovery, plugin registry, first-party plugins | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) |
 | `dhis2w-cli` | Typer console script `d2w` (mounts plugins from `dhis2w-core`) | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) |
-| `dhis2w-mcp` | FastMCP server `dhis2w-mcp` (mounts the same plugins) | [`dhis2w-mcp`](https://pypi.org/project/dhis2w-mcp/) |
-| `dhis2w-mcp-bridge` | Single-tool MCP bridge exposing the `d2w` CLI for small local models | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) |
 | `dhis2w-codegen` | Version-aware client generator | _workspace-only_ |
-| `dhis2w-mcp-router` | Search + dispatch over upstream MCP servers | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) |
 | `dhis2w-fhir` | `d2w fhir`: generate an Implementation Guide from an instance, convert captures, drain the spool | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
 | `dhis2w-fhir-serve` | The FHIR capture facade `d2w fhir serve` runs on, capture UI included | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
 | `dhis2w-fhir-engine` | FHIRPath, CQL, and quality-measure evaluation over FHIR data, no DHIS2 dependency | [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) |
 
-Plugin packs ship from their own repositories and mount their own commands on the same CLI: `uv tool install 'dhis2w-cli[security]'` brings the security posture scanner, and `'dhis2w-cli[browser]'` the Playwright-driven screenshots and PAT minting of [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser). The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every pack into one environment; see [AI agent testing](ai-agent-testing.md).
+Plugin packs ship from their own repositories and mount their own commands on the same CLI: `uv tool install 'dhis2w-cli[security]'` brings the security posture scanner, and `'dhis2w-cli[browser]'` the Playwright-driven screenshots and PAT minting of [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser). The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack: the `dhis2w-mcp` server carrying the MCP tools of every built-in plugin (`uvx dhis2w-mcp`), the single-tool `dhis2w-mcp-bridge` for small local models, and the `dhis2w-mcp-router` search + dispatch router, documented at <https://winterop-com.github.io/dhis2w-mcp/>. The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every pack into one environment; see [AI agent testing](ai-agent-testing.md).
 
 Plus `infra/`, a docker-compose stack for running a local DHIS2 instance with pre-seeded PATs and an OAuth2 client.
 
 ## Capability matrix
 
-The generated [MCP reference](mcp-reference.md) currently reports around 315 tools across 14 plugin groups (the auto-regenerated count is the source of truth; the per-group numbers below age with each release). 19 top-level CLI domains, plus whatever a plugin pack mounts. Every MCP tool accepts an optional `profile: str | None` kwarg so an agent can target any configured profile per call. Most operational read/write commands ship as both a CLI command and a matching MCP tool sharing one typed service call. A few surfaces are intentionally CLI-only — they involve local-machine state, interactive prompts, or out-of-process subprocesses that don't fit the MCP stdio model:
+The generated [MCP tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/) of the `dhis2w-mcp` pack currently reports around 315 tools across 14 plugin groups (the auto-regenerated count is the source of truth; the per-group numbers below age with each release). 19 top-level CLI domains, plus whatever a plugin pack mounts. Every MCP tool accepts an optional `profile: str | None` kwarg so an agent can target any configured profile per call. Most operational read/write commands ship as both a CLI command and a matching MCP tool sharing one typed service call. A few surfaces are intentionally CLI-only — they involve local-machine state, interactive prompts, or out-of-process subprocesses that don't fit the MCP stdio model:
 
 - **`d2w dev`** — codegen, sample-fixture generation, ad-hoc UID minting. Local developer workflow; not exposed via MCP.
 - **`d2w browser`** — Playwright-driven PAT mint, OIDC login, dashboard / viz / map screenshots. Runs Chromium out-of-process; not exposed via MCP.

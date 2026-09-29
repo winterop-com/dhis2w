@@ -10,12 +10,12 @@ class _ProfilePlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w profile` and the read-only profile MCP tools."""
+        """Contribute `d2w profile`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="profile",
             description="List, verify, switch, add, and remove DHIS2 profiles.",
             cli_module="dhis2w_core.v43.plugins.profile.cli",
-            mcp_module="dhis2w_core.v43.plugins.profile.mcp",
+            mcp_module=None,
         )
 
 

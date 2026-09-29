@@ -10,12 +10,12 @@ class _MaintenancePlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w maintenance` and the maintenance MCP tools."""
+        """Contribute `d2w maintenance`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="maintenance",
             description="DHIS2 maintenance: task polling, cache clear, soft-delete cleanup, data-integrity checks.",
             cli_module="dhis2w_core.v42.plugins.maintenance.cli",
-            mcp_module="dhis2w_core.v42.plugins.maintenance.mcp",
+            mcp_module=None,
         )
 
 

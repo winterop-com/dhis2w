@@ -72,7 +72,7 @@ d2w hello say --greeting "Hei"
 uv remove dhis2w-plugin-hello
 ```
 
-MCP equivalent:
+MCP equivalent, with the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack installed alongside:
 
 ```python
 from fastmcp import Client

@@ -5,7 +5,6 @@ examples/
   fhir/    cli/  client/           # d2w fhir - DHIS2 metadata as a FHIR Implementation Guide
   cli/                              # d2w ... Typer CLI, one script per topic
   client/                           # dhis2w-client Python library
-  mcp/                              # dhis2w-mcp FastMCP tools, called in-process
   plugin-external/                  # a third-party plugin registered via entry points
 ```
 
@@ -41,15 +40,15 @@ major from `/api/system/info` - so this group is one copy that runs against v41,
 Serving needs the extra: `pip install 'dhis2w-cli[serve]'` or `uv add dhis2w-fhir-serve`.
 The [`d2w fhir` guide series](../docs/fhir/index.md) is the narrative these scripts sit under.
 
-## The three surfaces
+## The surfaces
 
 | Surface | Best for | Auth handling |
 | --- | --- | --- |
 | [`client/`](client/) - `dhis2w-client` library | Your own Python tooling; scripts in-process | You pass `AuthProvider` explicitly (Basic, PAT, OAuth2) - no profile layer |
 | [`cli/`](cli/) - `d2w <cmd>` | Day-to-day dev, pipelines, human use | Reads `~/.config/dhis2/profiles.toml` + env; `d2w profile add/login` manages creds |
-| [`mcp/`](mcp/) - `dhis2w-mcp` | Agents, automation over the MCP protocol | Same profile layer as the CLI; every CLI command has a matching MCP tool |
+| [`examples/`](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) of the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack - `dhis2w-mcp` | Agents, automation over the MCP protocol | Same profile layer as the CLI; every CLI command has a matching MCP tool |
 
-All three hit DHIS2 through `Dhis2Client`. Pick the shape that fits your caller. See
+The MCP examples live in the `dhis2w-mcp` repository, beside the MCP server. All three hit DHIS2 through `Dhis2Client`. Pick the shape that fits your caller. See
 [Workspace layout](../docs/architecture/workspace.md) for the dependency arrows.
 
 ## What every example must be
@@ -66,15 +65,14 @@ Two rules, and a new example meets both or it does not land:
    reason is a gap to close, not a resting place.
 
 `make check-examples` is the static half: every `d2w` command an example invokes resolves in the
-Typer tree, every `call_tool("...")` names a registered tool, and every example path an example
-mentions exists.
+Typer tree, and every example path an example mentions exists.
 
 ## DHIS2 majors
 
 **One copy of each example, and it runs on v41, v42, and v43.** The wire is the same for almost
 everything the examples touch, so a version-neutral file is the honest default.
 
-- CLI and MCP examples name no major at all.
+- CLI examples name no major at all.
 - Client examples that need a version-pinned import are written against **v43, the canonical
   baseline**, and carry one comment saying to swap `.v43` for `.v41` / `.v42` to pin another major.
   Most examples do not need the pin: `dhis2w_core.client_context.open_client(profile)` detects the
@@ -96,7 +94,6 @@ set -a; source infra/home/credentials/.env.auth; set +a
 
 uv run python examples/client/whoami.py
 bash examples/cli/whoami.sh
-uv run python examples/mcp/whoami.py
 ```
 
 Swap `v42` for `v41` or `v43` to boot another stack; the same example files run against all three.
@@ -104,7 +101,7 @@ Swap `v42` for `v41` or `v43` to boot another stack; the same example files run 
 
 > **Canonical catalogue**: [`docs/examples.md`](../docs/examples.md) is the curated index - the
 > headline examples per topic with links to the concept docs that explain each one. It is not
-> exhaustive; `ls examples/{cli,client,mcp,fhir/*}/` is the source of truth for what is on disk.
+> exhaustive; `ls examples/{cli,client,fhir/*}/` is the source of truth for what is on disk.
 
 ## Environment
 

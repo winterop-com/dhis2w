@@ -154,7 +154,7 @@ The flag sets `DHIS2_PROFILE` for the rest of the invocation, which flows throug
 
 ## MCP
 
-**Every tool** accepts an optional `profile: str | None = None` kwarg. Agent flow:
+The MCP server is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack; it resolves profiles through this same chain in `dhis2w-core`. **Every tool** accepts an optional `profile: str | None = None` kwarg. Agent flow:
 
 ```
 1. Agent calls `profile_list` →
@@ -184,11 +184,11 @@ Easiest way to connect one agent to several DHIS2 instances is register multiple
 {
   "mcpServers": {
     "dhis2-local": {
-      "command": "uv", "args": ["run", "dhis2w-mcp"],
+      "command": "uvx", "args": ["dhis2w-mcp"],
       "env": { "DHIS2_PROFILE": "local" }
     },
     "dhis2-prod": {
-      "command": "uv", "args": ["run", "dhis2w-mcp"],
+      "command": "uvx", "args": ["dhis2w-mcp"],
       "env": { "DHIS2_PROFILE": "prod" }
     }
   }

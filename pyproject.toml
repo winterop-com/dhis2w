@@ -5,8 +5,6 @@ members = ["packages/*"]
 dhis2w-client = { workspace = true }
 dhis2w-core = { workspace = true }
 dhis2w-cli = { workspace = true }
-dhis2w-mcp = { workspace = true }
-dhis2w-mcp-bridge = { workspace = true }
 dhis2w-codegen = { workspace = true }
 dhis2w-fhir = { workspace = true }
 
@@ -91,9 +89,8 @@ relative_files = true
 source = ["packages"]
 omit = [
   # v41/v43 CORE trees: every plugin SERVICE is exercised across all three trees by parametrized
-  # parity tests (`tests/runtime/test_<plugin>_parity.py`), every plugin CLI by invoke tests
-  # (`test_<plugin>_cli_parity.py`), and every plugin MCP registration by `test_mcp_register_parity.py`
-  # — so service/cli/mcp modules are measured + counted, NOT omitted. What stays omitted, with reasons:
+  # parity tests (`tests/runtime/test_<plugin>_parity.py`) and every plugin CLI by invoke tests
+  # (`test_<plugin>_cli_parity.py`) — so service and cli modules are measured + counted, NOT omitted. What stays omitted, with reasons:
   #   - metadata/dev CLI: huge / interactive command surfaces not invoke-tested.
   #   - per-plugin view-models (models.py): pure pydantic data classes.
   #   - non-plugin core modules (auth / token store / cli infra): mechanical copies, deferred.

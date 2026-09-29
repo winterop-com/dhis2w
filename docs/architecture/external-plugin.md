@@ -58,7 +58,8 @@ Three things make a package a valid plugin pack:
 2. `cli_module` and `mcp_module` name modules, not objects. Each is imported
    lazily — only when that surface is mounted — and must expose a `register`
    function: `register(app)` adds the Typer sub-app to the root CLI,
-   `register(server)` adds the tools to the FastMCP server. Either field may be
+   `register(server)` adds the tools to the FastMCP server of the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)
+   pack, when that server is installed. Either field may be
    left unset; the corresponding surface then stays empty.
 
 3. An entry-point line in `pyproject.toml` pointing at the plugin object:
@@ -105,8 +106,9 @@ d2w hello say
 
 ## Why CLI + MCP parity is voluntary
 
-Every first-party plugin ships both — same typed call from either surface
-is a hard rule in this workspace. External plugins aren't obligated. A
+Every first-party plugin ships both — its CLI here and its MCP tools in the
+[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack, the same typed call from either surface, is a hard
+rule in this workspace. External plugins aren't obligated. A
 plugin that only makes sense in a terminal can skip MCP registration; an
 agent-only tool can skip the CLI side. Leave the field unset:
 

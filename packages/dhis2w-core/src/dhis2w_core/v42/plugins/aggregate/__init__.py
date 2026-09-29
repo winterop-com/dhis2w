@@ -1,1 +1,1 @@
-"""Aggregate data-values plugin module — cli/mcp mounted by the `data` plugin."""
+"""Aggregate data-values plugin module — its CLI mounted by the `data` plugin."""

@@ -84,4 +84,4 @@ Resource names use the singular form of the DHIS2 path: `/api/dataElements` → 
 
 ## Where this is enforced
 
-Nowhere automatically. There is no linter check; new tools are reviewed by hand. The `make docs-mcp` target (which regenerates `docs/mcp-reference.md`) sorts every tool alphabetically and groups by plugin — that is the easiest place to spot a new tool that breaks the pattern.
+Nowhere automatically. There is no linter check; new tools are reviewed by hand. The generated [MCP tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/) of the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack sorts every tool alphabetically and groups by plugin — that is the easiest place to spot a new tool that breaks the pattern.

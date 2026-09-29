@@ -56,10 +56,8 @@ jobs:
       - name: Sync workspace
         run: make install
 
-      - name: Regenerate CLI + MCP reference (autogen pages)
-        run: |
-          make docs-cli
-          make docs-mcp
+      - name: Regenerate the CLI reference (autogen page)
+        run: make docs-cli
 
       - name: Build site
         run: uv run mkdocs build --strict

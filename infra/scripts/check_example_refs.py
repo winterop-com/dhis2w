@@ -1,19 +1,16 @@
-"""Guard: every command / tool an example invokes must exist.
+"""Guard: every command an example invokes must exist.
 
-Examples only execute live in the nightly e2e, so a renamed CLI command or a removed MCP tool
-hides until then. This validates statically (no DHIS2 stack):
-
-- CLI examples (*.sh): each `d2w <group> <subcommand> ...` path must resolve in the Typer tree.
-  Leaf arguments are not flagged — only a command-like token under a *group* that has no such
-  child counts as a broken reference.
-- MCP examples (*.py): each `call_tool("name", ...)` name must be a registered tool.
+Examples only execute live in the nightly e2e, so a renamed CLI command hides until then. This
+validates statically (no DHIS2 stack): each `d2w <group> <subcommand> ...` path in a CLI example
+(*.sh) must resolve in the Typer tree. Leaf arguments are not flagged — only a command-like token
+under a *group* that has no such child counts as a broken reference. The MCP examples and their
+tool check live with the MCP server, in the dhis2w-mcp pack.
 
 Run via `make check-examples` alongside the per-version sync check.
 """
 
 from __future__ import annotations
 
-import asyncio
 import re
 import shlex
 import sys
@@ -23,7 +20,6 @@ from typing import Any
 import click
 import typer
 from dhis2w_cli.main import build_app
-from dhis2w_mcp.server import build_server
 
 ROOT = Path(__file__).resolve().parents[2] / "examples"
 _GLOBAL_OPTS_WITH_VALUE = {"-p", "--profile"}
@@ -67,37 +63,26 @@ def _bad_cli_refs(text: str, root: Any) -> set[str]:
     return bad
 
 
-async def _live_tools() -> set[str]:
-    """Every registered MCP tool name."""
-    return {tool.name for tool in await build_server().list_tools()}
-
-
 def _example_files(pattern: str) -> list[Path]:
     """Every example source matching `pattern`, skipping the virtual environments example projects create."""
     return [p for p in ROOT.rglob(pattern) if ".venv" not in p.parts and "node_modules" not in p.parts]
 
 
 def main() -> int:
-    """Validate every example's CLI commands + MCP tool calls; exit 1 on any broken reference."""
+    """Validate every example's CLI commands; exit 1 on any broken reference."""
     root = _command_tree()
-    tools = asyncio.run(_live_tools())
     problems: list[str] = []
 
     for path in sorted(_example_files("*.sh")):
         for ref in sorted(_bad_cli_refs(path.read_text(), root)):
             problems.append(f"{path.relative_to(ROOT.parent)}: unknown command `{ref}`")
 
-    for path in sorted(_example_files("*.py")):
-        for name in sorted(set(re.findall(r'call_tool\(\s*"([a-z0-9_]+)"', _strip_comments(path.read_text())))):
-            if name not in tools:
-                problems.append(f"{path.relative_to(ROOT.parent)}: unknown MCP tool `{name}`")
-
     if problems:
         print("Example references that don't resolve:")
         for line in problems:
             print(f"  - {line}")
         return 1
-    print("all example CLI commands + MCP tool calls resolve")
+    print("all example CLI commands resolve")
     return 0
 
 

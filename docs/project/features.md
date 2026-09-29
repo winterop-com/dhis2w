@@ -5,14 +5,16 @@ title: Feature catalog
 # Feature catalog
 
 A complete Python toolkit for DHIS2 v41, v42, and v43; async client library,
-CLI, MCP servers, browser automation, a FHIR IG generator with its own serving
-facade, and codegen, organized as a `uv` workspace with ten publishable packages
-and two workspace-only ones.
+CLI, a FHIR IG generator with its own serving facade, and codegen, organized as
+a `uv` workspace with six publishable packages and a workspace-only generator.
+The MCP servers ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)) and
+browser automation ([`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser))
+are plugin packs in repositories of their own, catalogued here beside the rest.
 
 !!! note "Scope of this page"
     This is the user-facing capability inventory across all surfaces. The exact
     command and tool counts are regenerated per release; the auto-built
-    [CLI reference](../cli-reference.md) and [MCP tool reference](../mcp-reference.md)
+    [CLI reference](../cli-reference.md) and [MCP tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/)
     are the source of truth when a number here drifts. For where the project is
     heading, see the [Roadmap](../roadmap.md).
 
@@ -23,8 +25,9 @@ and two workspace-only ones.
 - [Client Library (dhis2w-client)](#client-library)
 - [Plugin Runtime (dhis2w-core)](#plugin-runtime)
 - [Command-Line Interface (dhis2w-cli)](#command-line-interface)
-- [MCP Server (dhis2w-mcp)](#mcp-server)
-- [MCP CLI Bridge (dhis2w-mcp-bridge)](#mcp-cli-bridge)
+- [MCP Server (the dhis2w-mcp pack)](#mcp-server)
+- [MCP CLI Bridge (the dhis2w-mcp pack)](#mcp-cli-bridge)
+- [MCP Router (the dhis2w-mcp pack)](#mcp-router)
 - [Browser Automation (dhis2w-browser)](#browser-automation)
 - [FHIR IG Toolchain (dhis2w-fhir, dhis2w-fhir-serve)](#fhir-ig-toolchain)
 - [FHIR Evaluation Engine (dhis2w-fhir-engine)](#fhir-evaluation-engine)
@@ -139,7 +142,9 @@ refresh on expiry.
 ### First-Party Plugins
 
 22 built-in plugins, each with a service layer (`service.py`) and CLI
-commands (`cli.py`); most also expose MCP tools (`mcp.py`). Every built-in
+commands (`cli.py`); most also have MCP tools, which live in the
+[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack as
+`dhis2w_mcp/tools/v{41,42,43}/<plugin>.py` and call the same `service.py`. Every built-in
 plugin exists in three version trees (v41, v42, v43). The version-neutral
 **fhir** plugin ships as its own `dhis2w-fhir` package and mounts through
 the external entry-point mechanism.
@@ -459,11 +464,16 @@ d2w metadata list dataSets --fields 'id,name,organisationUnits~size'
 
 ## MCP Server
 
-**Package:** `dhis2w-mcp` | **Install:** `uv tool install dhis2w-mcp`
+**Package:** `dhis2w-mcp`, a plugin pack in its own repository
+([winterop-com/dhis2w-mcp](https://github.com/winterop-com/dhis2w-mcp), documented at
+<https://winterop-com.github.io/dhis2w-mcp/>) | **Install:** `uv tool install dhis2w-mcp`
 
 FastMCP server (`dhis2`) exposing every plugin as typed MCP tools: 315 tools
-across 14 plugin groups, plus whatever a plugin pack registers. The full catalog is auto-generated into
-`docs/mcp-reference.md` (`make docs-mcp`).
+across 14 plugin groups, plus whatever a plugin pack registers. The tools of the
+built-in plugins live in the pack as `dhis2w_mcp/tools/v{41,42,43}/<plugin>.py`,
+registered through one `mcp` plugin contribution, and call the same core
+`service.py` as the CLI. The full catalog is auto-generated into the pack's
+[tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/).
 
 ### Tool Naming
 
@@ -510,14 +520,30 @@ one source of truth in `dhis2w_core`:
 
 ## MCP CLI Bridge
 
-**Package:** `dhis2w-mcp-bridge` | **Install:** `uv tool install dhis2w-mcp-bridge`
+**Package:** `dhis2w-mcp-bridge`, from the `dhis2w-mcp` plugin pack
+([winterop-com/dhis2w-mcp](https://github.com/winterop-com/dhis2w-mcp)) | **Install:** `uv tool install dhis2w-mcp-bridge`
 
 FastMCP server (`dhis2w-mcp-bridge`) that exposes the whole `d2w` CLI as a
 single `dhis2_cli` tool: one tool schema instead of ~313, sized for small
 local models (LM Studio, Ollama, llama.cpp) that drive it by progressive
 `--help` discovery. Supports a read-only mode via `DHIS2_MCP_READONLY=1`.
 Use the full `dhis2w-mcp` server for capable cloud models; the design
-rationale lives in `docs/architecture/mcp-bridge.md`.
+rationale lives in the pack's
+[bridge design](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/).
+
+---
+
+## MCP Router
+
+**Package:** `dhis2w-mcp-router`, from the `dhis2w-mcp` plugin pack
+([winterop-com/dhis2w-mcp](https://github.com/winterop-com/dhis2w-mcp)) | **Install:** `uv tool install dhis2w-mcp-router`
+
+Domain-neutral MCP router: it fronts many upstream MCP servers behind two
+meta-tools, search and dispatch, so an agent gets lazy, searchable tool
+discovery instead of the whole tool payload up front. The design lives in the
+pack's [router design](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/),
+and the [surfaces comparison](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-surfaces/)
+sets it beside the full server and the bridge.
 
 ---
 
@@ -4769,12 +4795,14 @@ Every feature ships as a plugin with three surfaces sharing one service layer:
 plugin/
   service.py   <-- async business logic (shared)
   cli.py       <-- Typer commands
-  mcp.py       <-- FastMCP tool definitions
   models.py    <-- pydantic view-models
   tests/       <-- pytest suite
 ```
 
-Adding a new plugin automatically wires it into both the CLI and MCP server.
+The FastMCP tool definitions for a plugin live in the
+[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack as
+`dhis2w_mcp/tools/v{41,42,43}/<plugin>.py`, calling the same `service.py`.
+Adding a new plugin wires it into the CLI; its MCP tools land in the pack.
 
 ### Pydantic Everywhere
 
@@ -4831,7 +4859,8 @@ against DHIS2 v41, v42, and v43.
 - **`examples/client/`**: 80+ Python examples (whoami, CRUD, analytics, OIDC,
   bulk import, tracker lifecycle, sharing, error handling, ...)
 - **`examples/cli/`**: 60+ shell scripts covering every CLI domain
-- **`examples/mcp/`**: 40+ Python examples showing MCP tool usage
+- **MCP examples**: 40+ Python examples showing MCP tool usage, in the
+  [`dhis2w-mcp` repository's `examples/`](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples)
 
 Examples that exist for one major only live under that major's subdirectory -
 `examples/client/v41/` (3 v41 wire quirks) and `examples/client/v43/`
@@ -4844,14 +4873,12 @@ executed by `make verify-examples`.
 
 ```
 dhis2w-cli --------> dhis2w-core ------> dhis2w-client
-dhis2w-mcp --------> dhis2w-core            |
-dhis2w-mcp-bridge -> dhis2w-cli             |
+dhis2w-mcp --------> dhis2w-core    (the dhis2w-mcp pack, own repository)
 
 dhis2w-cli ..(optional [browser] / [security] extras)..> the dhis2w-browser and
               dhis2w-security packs, each in its own repository
 
 dhis2w-cli --------> dhis2w-fhir -----> dhis2w-core
-dhis2w-mcp --------> dhis2w-fhir            |
 dhis2w-fhir-serve -> dhis2w-fhir            |
        |               |                     |
        +---------------+---> dhis2w-fhir-engine

@@ -698,7 +698,8 @@ contains, listed so that disagreeing with one is easy.
 - **D9 - Whether slice 12 is ever built.** Enrollment and tracked-entity withdrawal is
   designed and deliberately unscheduled, because of the collateral-receipt problem.
 - **D10 - Whether the MCP read-only gate gains a destructive tier.** Today
-  `packages/dhis2w-mcp/src/dhis2w_mcp/readonly.py` classifies `push` as a write, so a delete
+  `dhis2w_mcp/readonly.py` in the
+  [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack classifies `push` as a write, so a delete
   and an append carry identical privilege.
 
 ---

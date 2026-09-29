@@ -10,7 +10,7 @@ class _DoctorPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w doctor` and the `doctor_run` MCP tool."""
+        """Contribute `d2w doctor`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="doctor",
             description=(
@@ -18,7 +18,7 @@ class _DoctorPlugin:
                 "reads, pass/warn/fail per probe with BUGS.md cross-refs."
             ),
             cli_module="dhis2w_core.v41.plugins.doctor.cli",
-            mcp_module="dhis2w_core.v41.plugins.doctor.mcp",
+            mcp_module=None,
         )
 
 
