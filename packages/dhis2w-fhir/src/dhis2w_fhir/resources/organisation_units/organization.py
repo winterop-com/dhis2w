@@ -36,6 +36,7 @@ from dhis2w_fhir.names import (
     StemResolution,
     StemSubject,
     code_or_uid,
+    contact_value,
     flatten_whitespace,
     page_text,
     quote,
@@ -409,9 +410,9 @@ def _telecom(organisation_unit: OrganisationUnitIn) -> list[ContactPoint]:
     """The unit's DHIS2 phone number then email as contact points, either of which may be absent."""
     points: list[ContactPoint] = []
     if organisation_unit.phone_number is not None:
-        points.append(ContactPoint(system="phone", value=flatten_whitespace(organisation_unit.phone_number)))
+        points.append(ContactPoint(system="phone", value=contact_value(organisation_unit.phone_number)))
     if organisation_unit.email is not None:
-        points.append(ContactPoint(system="email", value=flatten_whitespace(organisation_unit.email)))
+        points.append(ContactPoint(system="email", value=contact_value(organisation_unit.email)))
     return points
 
 

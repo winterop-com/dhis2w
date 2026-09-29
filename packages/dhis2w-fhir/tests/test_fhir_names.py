@@ -9,6 +9,7 @@ from dhis2w_fhir.config import GenerateConfig, NamingConfig
 from dhis2w_fhir.foundation import build_foundation_artifacts
 from dhis2w_fhir.names import (
     code_or_uid,
+    contact_value,
     describe_code_defect,
     fsh_code,
     is_valid_fhir_code,
@@ -255,3 +256,11 @@ def test_page_text_escapes_markup_before_quoting(value: str, expected: str) -> N
 def test_page_text_leaves_ordinary_names_alone() -> None:
     """A name with no markup character reads exactly as `quote` renders it."""
     assert page_text("Child Health") == quote("Child Health")
+
+
+def test_a_contact_value_drops_the_invisible_characters_a_tel_link_refuses() -> None:
+    """A zero-width space pasted into a DHIS2 phone number is invisible, and the IG publisher rejects its link."""
+    assert contact_value("+856\u200b2091141000") == "+8562091141000"
+    assert contact_value("\ufeff020 5555 1234\u200d") == "020 5555 1234"
+    assert contact_value("  98770095,\n 0309342578 ") == "98770095, 0309342578"
+    assert contact_value("ບ້ານ@example.org") == "ບ້ານ@example.org"
