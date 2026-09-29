@@ -347,16 +347,28 @@ boundary attachment states its media type, that field binds to the IETF BCP
 13 media types, and only a terminology server can answer that value set.
 Those errors are the whole difference, and they go away online.
 
-**`JAVA_HEAP`** is the publisher's JVM heap ceiling, and the Makefile sizes it
-to the machine rather than writing a number down: the memory docker reports,
-less 2 GB, floored at `4g`, capped at `31g`, and falling back to `8g` when
-docker cannot be asked. A literal would be wrong somewhere either way - too
-small for a national registry on a workstation, too large to survive on a
-laptop - and docker knows what it has. Every build states what it derived:
+**`JAVA_HEAP`** is the publisher's JVM heap ceiling. Left unset, the Makefile
+derives it from the machine: the memory docker reports, less 6 GB, capped at
+`8g`, floored at `4g`, and `8g` when docker cannot be asked. Every build
+states what it derived:
 
 ```text
-publisher heap 22g, docker memory 24.0 GB
+publisher heap 8g, docker memory 24.0 GB
 ```
+
+The 6 GB is what a build holds besides the heap. The JVM keeps about 2 GB of
+its own around the heap, and Jekyll renders the site at the very end as a
+second process in the same container - about 4 GB on a registry of twenty
+thousand resources - while the JVM is still resident.
+
+The `8g` cap matters more than it looks. The JVM grows into whatever ceiling it
+is given rather than collecting sooner, so a larger heap is more memory held,
+not more room. Measured on one registry of 10,453 organisation units (20,906
+resources): the publisher never used more than 7 GB of heap at `8g` or at
+`16g`, but at `16g` the JVM held about 10 GB more, and with Jekyll beside it
+that is the kernel's out-of-memory kill on a 24 GB docker. A guide that truly
+needs more than `8g` stops with a Java `OutOfMemoryError` instead, which names
+itself - raise the ceiling for that one.
 
 The daemon is asked once per build, on first use, so `help`, `clean` and
 `generate` never wake it and the banner, the `-Xmx` and the kill report all
@@ -367,10 +379,7 @@ Two things about that figure are worth knowing. `docker info --format
 whole machine's RAM on Linux - where the derivation sees everything the host
 has, whatever else is running on it. That is why CI pins `JAVA_HEAP: 4g` rather
 than deriving: a shared build host would hand the publisher a ceiling sized to
-a machine it does not have to itself. And `31g` is the top wherever the number
-comes from, because the JVM drops compressed object pointers above roughly
-32 GB and the same live set suddenly costs materially more heap; the largest
-guide measured here peaked at 16.
+a machine it does not have to itself.
 
 It is a ceiling, not a reservation: a guide that needs less simply uses less.
 Set it yourself on the command line or in the environment whenever you want a
@@ -403,11 +412,11 @@ cgroup's `oom_kill` count as it exits, and a non-zero one is what makes the
 build say this was the kernel's out-of-memory killer rather than a `docker
 stop`, a `docker kill`, or a timeout around the build - all of which exit 137
 too, and get a shorter message saying so. The out-of-memory report names the
-ceiling, the memory docker reports, the peak the container actually reached,
-and the containers running when it was sampled. The publisher and Jekyll share
-one container and Jekyll renders while the JVM is still resident, which is why
-kills land in the last phase and why stopping everything else is the first
-thing to try.
+ceiling, the memory docker reports, and the containers running when it was
+sampled. The publisher and Jekyll share one container and Jekyll renders while
+the JVM is still resident, which is why kills land in the last phase. Stopping
+everything else is the first thing to try, and a smaller heap the second: a
+ceiling above `8g` is the usual cause.
 
 **Out of memory** - the ceiling is too small for the guide:
 
@@ -423,27 +432,27 @@ Confirm a suspected kill by dropping `--rm` from the run and then
 
 ### What that costs in practice
 
-The two failures squeeze against each other, and the 2 GB the derivation keeps
-back is a deliberately generous setting of that squeeze. A publisher build is a
-monthly act: give it the machine, stop the other containers, and let the kill
-report be the safety net on the rare run where that was not enough. An 8 GB heap
-needs roughly 10 GB of room once metaspace, JVM native memory and the OS are
-counted, and the 2 GB is what covers the difference on a machine doing nothing
-else.
+Every build prints two peaks as it finishes:
 
-On a machine that is too small for its guide, the squeeze is tight enough that
-the first run can be killed. Measured on one 16 GB docker VM against one
-national guide: `4g` dies in validation, `10g` clears validation and is then
-OOM-killed at Jekyll, and `8g` completes the whole build - about 21 minutes,
-site, package, and QA report. The derivation would hand that VM `14g`, which is
-inside that kill range: the first build reports the kill, names the peak the
-container reached, and `make build JAVA_HEAP=8g` is the answer it points at.
+```text
+peak memory in use 13.5 GB - the heap, the JVM around it and Jekyll, sampled every 5 seconds
+peak container memory 20.6 GB, counting file cache the kernel reclaims when memory runs short
+```
 
-Measured on a national instance publishing all five levels - 12,581
-organisation units, 25,162 instances - the registry package peaked at 14-16 GB
-and the guide depending on it at 9.3-9.7 GB. A build at that scale needs docker
-sized accordingly, and the derivation will hand it whatever docker reports, up
-to the `31g` cap.
+The first is what the machine has to hold: the heap, the JVM around it, and
+Jekyll. The second is the container's own high-water mark, and it also counts
+the file cache the site's writes leave behind, which the kernel takes back
+when memory runs short - several gigabytes on a large registry. Size docker by
+the first, with some room over it.
+
+The two failures squeeze against each other. Measured on one 16 GB docker VM
+against one national guide: `4g` dies in validation, `10g` clears validation
+and is then killed at Jekyll, and `8g` completes the whole build. Measured on a
+registry package of 10,453 organisation units in five levels (20,906
+resources): at `8g` the build holds about 13.5 GB, so a 20 GB docker with
+nothing else running builds it; depth (seven levels instead of five) and
+organisation unit geometry (a national set of boundaries and points) each
+changed that by less than 0.3 GB. What moves it is the number of resources.
 
 To run the publisher by hand with a heap of your own choosing:
 

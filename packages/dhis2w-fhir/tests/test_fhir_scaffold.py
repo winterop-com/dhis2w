@@ -745,10 +745,17 @@ def test_both_publisher_builds_report_the_peak_and_the_kill_count(target: str) -
 
     The peak is the only thing that ever answers "is the ceiling big enough" with a measurement
     rather than a guess, and the cgroup's out-of-memory count is what tells one 137 from the other.
+    Two peaks, because `memory.peak` counts file cache the kernel reclaims and overstates the need.
     """
-    recipe = _makefile_recipe(_by_path()["Makefile"], target)
-    assert "/sys/fs/cgroup/memory.peak" in recipe
-    assert "peak container memory" in recipe
+    makefile = _by_path()["Makefile"]
+    recipe = _makefile_recipe(makefile, target)
+    assert "$(MEMORY_WATCH_START)" in recipe
+    assert "$(MEMORY_WATCH_REPORT)" in recipe
+    watch = makefile.split("MEMORY_WATCH_START := ", 1)[1].split("\n#", 1)[0]
+    assert "/sys/fs/cgroup/memory.stat" in watch
+    assert "peak memory in use" in watch
+    assert "/sys/fs/cgroup/memory.peak" in watch
+    assert "peak container memory" in watch
     assert "/sys/fs/cgroup/memory.events" in recipe
     assert "container out-of-memory kills: %d" in recipe
 
@@ -775,13 +782,14 @@ def _heap_derivation_program(makefile: str) -> str:
     [
         ("0\n", "4g", "0.0 GB"),
         (f"{2 * 1024**3}\n", "4g", "2.0 GB"),
-        (f"{8 * 1024**3}\n", "6g", "8.0 GB"),
-        (f"{16 * 1024**3}\n", "14g", "16.0 GB"),
-        (f"{32 * 1024**3}\n", "30g", "32.0 GB"),
-        (f"{64 * 1024**3}\n", "31g", "64.0 GB"),
+        (f"{8 * 1024**3}\n", "4g", "8.0 GB"),
+        (f"{12 * 1024**3}\n", "6g", "12.0 GB"),
+        (f"{16 * 1024**3}\n", "8g", "16.0 GB"),
+        (f"{24 * 1024**3}\n", "8g", "24.0 GB"),
+        (f"{64 * 1024**3}\n", "8g", "64.0 GB"),
         ("", "8g", "unknown"),
         ("Cannot connect to the Docker daemon\n", "8g", "unknown"),
-        (f"{16 * 1024**3}\nWARNING: a daemon with something to add\n", "14g", "16.0 GB"),
+        (f"{16 * 1024**3}\nWARNING: a daemon with something to add\n", "8g", "16.0 GB"),
     ],
 )
 def test_the_heap_derivation_answers_one_ceiling_for_what_docker_reports(
@@ -789,9 +797,10 @@ def test_the_heap_derivation_answers_one_ceiling_for_what_docker_reports(
 ) -> None:
     """Run the pipeline the Makefile carries: a substring check passes on an awk that cannot parse.
 
-    The floor keeps a small machine buildable, the 31g cap keeps the JVM on compressed object
-    pointers, a daemon that cannot be reached lands on 8g rather than on the floor, and a second
-    line of output is ignored rather than turned into a second `-Xmx` argument.
+    The 6G held back is the JVM's own memory and Jekyll's, the floor keeps a small machine
+    buildable, the 8g cap stops the JVM growing into memory Jekyll needs, a daemon that cannot be
+    reached lands on 8g rather than on the floor, and a second line of output is ignored rather
+    than turned into a second `-Xmx` argument.
     """
     program = _heap_derivation_program(_by_path()["Makefile"])
     answer = subprocess.run(
@@ -807,10 +816,10 @@ def test_the_heap_derivation_answers_one_ceiling_for_what_docker_reports(
     [
         (["-n", "help"], None, 0, None),
         (["-n", "clean"], None, 0, None),
-        (["-n", "build"], None, 1, "-Xmx14g"),
+        (["-n", "build"], None, 1, "-Xmx8g"),
         (["-n", "build", "JAVA_HEAP=4g"], None, 0, "-Xmx4g"),
-        (["-n", "build", "JAVA_HEAP="], None, 1, "-Xmx14g"),
-        (["-n", "build"], "", 1, "-Xmx14g"),
+        (["-n", "build", "JAVA_HEAP="], None, 1, "-Xmx8g"),
+        (["-n", "build"], "", 1, "-Xmx8g"),
     ],
 )
 def test_make_asks_docker_once_per_build_and_never_outside_one(

@@ -3346,9 +3346,9 @@ def _registry_scale_notes(organisation_unit_count: int) -> list[GenerateNote]:
             GenerateNoteCategory.BUILD_COST,
             f"{organisation_unit_count} organisation units emit {instance_count} instances. They ship as "
             "pre-built JSON so SUSHI never compiles them, but the IG publisher validates and renders every "
-            "resource, so they set the wall clock of `make build` - a registry this size is hours, not "
-            "minutes. Narrow it with `[generate.organisation_units]` max_level or root if the build is "
-            "longer than you want; serving needs no build at all.",
+            "resource, so they set the wall clock and the memory of `make build`. Narrow it with "
+            "`[generate.organisation_units]` max_level or root if the build takes longer, or holds more, "
+            "than this machine gives it; serving needs no build at all.",
         )
     ]
 

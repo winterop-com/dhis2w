@@ -786,9 +786,12 @@ chain in one command.
   still exits 0; what it costs is the form, and the scan says so instead of
   letting a guide full of unusable forms read as clean.
 - **`JAVA_HEAP`** is the publisher's JVM heap ceiling, derived from the memory
-  docker reports less 2 GB (floored at `4g`, capped at `31g` where the JVM
-  drops compressed object pointers, falling back to `8g` when docker cannot be
-  asked) and stated on every build. The daemon is asked once per build, on
+  docker reports less 6 GB - the JVM's own memory and Jekyll's - capped at
+  `8g` because the JVM grows into a larger ceiling without needing it, floored
+  at `4g`, falling back to `8g` when docker cannot be asked, and stated on
+  every build. Each build ends by printing two peaks: the memory in use (the
+  heap, the JVM and Jekyll, sampled inside the container) and the container's
+  `memory.peak`, which also counts reclaimable file cache. The daemon is asked once per build, on
   first use, so `help`, `clean` and `generate` never wake it and every line of
   a build quotes one answer. A value set on the command line or in the
   environment is taken as it stands and asks docker nothing; an empty one
