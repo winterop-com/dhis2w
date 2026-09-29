@@ -39,6 +39,7 @@ not a menu - the pages build on each other left to right.
 | --- | --- |
 | **You are new here and want the shape of it** | [Introduction](100-introduction.md), then whichever step you need depth on |
 | **You run a DHIS2 instance and want its forms available as FHIR** | [Introduction](100-introduction.md), [What `d2w fhir` is and why](101-what-and-why.md), [Quickstart](101-quickstart.md), then the 201 pages from [Check an instance with doctor](201-doctor.md) onward |
+| **You publish a national instance - its organisation units as a registry, its forms as a guide** | [Build a registry and a guide](201-registry-and-guide.md), start to finish, then [Publish the registry as a package](201-registry-package.md) for the reference behind it |
 | **You have to get a facade up on a real instance, reachable and forwarding** | [Run a secured facade on a real instance](201-run-a-secured-facade.md), following each step's link where you need the depth |
 | **You are deciding whether your ministry should publish a guide at all** | [What `d2w fhir` is and why](101-what-and-why.md), then the project-level design records: the [FHIR roadmap and review guide](design/roadmap.md), the [DHIS2 fidelity audit](design/dhis2-fidelity.md), and the [harmonization design](design/harmonization.md) |
 | **You integrate a system against a guide someone else published** | [Glossary](glossary.md), [FHIR for DHIS2 people](101-fhir-concepts.md), then the 401 pages from [The capture contract](401-capture-contract.md) |
@@ -81,6 +82,9 @@ not a menu - the pages build on each other left to right.
   each one writes.
 - [Build and publish the guide](201-build-and-publish.md) - SUSHI, the IG
   publisher, build time, and the two caches.
+- [Build a registry and a guide](201-registry-and-guide.md) - a national
+  instance as two projects: the organisation units as a registry package and
+  the forms as a guide depending on it, step by step with a check after each.
 - [Serve the guide](201-serve.md) - the read-and-capture facade, and what a
   live run serves that a compiled run does not.
 - [Secure the facade](201-secure.md) - security is opt-in: the loopback-only
