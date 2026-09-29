@@ -70,7 +70,7 @@ object it can find, calls `contribute(version_key)` once per plugin, and returns
     my-capability = "my_package.plugin:plugin"
     ```
 
-    `dhis2w-fhir` already does this — `d2w fhir` mounts without any code living under `dhis2w-core`. See [Shipping an external plugin](external-plugin.md).
+    The [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir), [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) packs already do this — `d2w fhir`, `d2w browser`, and `d2w security` mount without any code living under `dhis2w-core`. See [Shipping an external plugin](external-plugin.md).
 
 The contract version is part of the group name, so an incompatible contract would
 ship as `dhis2w.plugins.v2` rather than breaking installed packs. A pack that fails

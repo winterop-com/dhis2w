@@ -16,12 +16,10 @@ Each shippable unit of code is a `uv` workspace member under `packages/`:
 | `dhis2w-core` | TOML profile resolution, OAuth2 token store, plugin registry, first-party plugins. | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) |
 | `dhis2w-cli` | Thin Typer console-script shell. | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) |
 | `dhis2w-codegen` | Version-aware client generator. | _workspace-only_ |
-| `dhis2w-fhir` | FHIR IG generation from DHIS2 metadata. Builds on `dhis2w-core` and mounts `d2w fhir` through the `dhis2w.plugins.v1` entry point. | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
-| `dhis2w-fhir-serve` | FastAPI FHIR facade over a generated IG: serves its resources and receives QuestionnaireResponse captures. Runs behind `d2w fhir serve`, installed through the `dhis2w-cli[serve]` extra. | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
 
-The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack, in a repository of its own: the `dhis2w-mcp` server, the single-tool `dhis2w-mcp-bridge` for small local models, and the `dhis2w-mcp-router` search + dispatch router, all published to PyPI at this workspace's version and documented at <https://winterop-com.github.io/dhis2w-mcp/>. The Playwright browser automation is the [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser) pack.
+The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack, in a repository of its own: the `dhis2w-mcp` server, the single-tool `dhis2w-mcp-bridge` for small local models, and the `dhis2w-mcp-router` search + dispatch router, all published to PyPI at this workspace's version and documented at <https://winterop-com.github.io/dhis2w-mcp/>. The Playwright browser automation is the [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser) pack, and the FHIR Implementation Guide tooling is the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) pack (`dhis2w-fhir`, `dhis2w-fhir-serve`, `dhis2w-fhir-engine`, documented at <https://winterop-com.github.io/dhis2w-fhir/>), installed through the `dhis2w-cli[fhir]` extra.
 
-New surfaces land as new members, with no edits required to existing ones. `dhis2w-fhir-serve` is the worked example: `d2w fhir serve` needs FastAPI and uvicorn, the generator needs neither, so the HTTP surface is its own member and an API-only install of `dhis2w-fhir` stays free of both.
+New surfaces land as new members, or as a plugin pack in a repository of its own, with no edits required to existing ones.
 
 ### 2. Plugins inside `dhis2w-core`
 
@@ -41,7 +39,7 @@ A plugin contributes its CLI module; its MCP tools are the [`dhis2w-mcp`](https:
 The plugin machinery is [pluginkit](https://pypi.org/project/pluginkit/): `load_plugin_host(version_key)` collects a `Contribution` from every plugin it can find, from two sources:
 
 - **Built-ins** — iterate the plugin tree `resolve_startup_version()` picks at startup, `dhis2w_core.v43.plugins.*` on the default.
-- **External** — the `dhis2w.plugins.v1` entry-point group. An external package (like `dhis2w-fhir`) can add commands/tools without a PR.
+- **External** — the `dhis2w.plugins.v1` entry-point group. An external package (like the `dhis2w-fhir` pack) can add commands/tools without a PR.
 
 ### 3. Auth providers inside `dhis2w-client`
 
@@ -56,18 +54,14 @@ graph LR
     core["dhis2w-core"]
     codegen["dhis2w-codegen"]
     client["dhis2w-client"]
-    fhir["dhis2w-fhir"]
-    fhirserve["dhis2w-fhir-serve"]
 
     cli --> core
     mcp --> core
-    cli --> fhir
-    fhir --> core
-    fhirserve --> fhir
     core --> client
     codegen --> client
     cli -.->|"optional [browser] extra"| browser["dhis2w-browser (own repository)"]
-    cli -.->|"optional [serve] extra"| fhirserve
+    cli -.->|"optional [fhir] extra"| fhir["dhis2w-fhir (own repository)"]
+    cli -.->|"optional [security] extra"| security["dhis2w-security (own repository)"]
 ```
 
 No cycles. `dhis2w-client` is the foundation everything builds on, which is what lets it ship to PyPI independently.
@@ -82,7 +76,7 @@ dhis2w_client/generated/{v41,v42,v43}/   # auto-generated wire types per major
 dhis2w_core/{v41,v42,v43}/plugins/  # plugin tree per major
 ```
 
-v43 is the canonical baseline: new behaviour is written against the v43 tree first and copied to v41 and v42, and the trees diverge per-file as version-specific quirks land (CategoryCombo COC regeneration on v43, the `categorys` -> `categories` rename, v41's missing `OAuth2ClientCredentialsAuthScheme`, etc.). The version-neutral packages (`dhis2w-fhir`, `dhis2w-fhir-serve`) import their generated models from `dhis2w_client.generated.v43.*`.
+v43 is the canonical baseline: new behaviour is written against the v43 tree first and copied to v41 and v42, and the trees diverge per-file as version-specific quirks land (CategoryCombo COC regeneration on v43, the `categorys` -> `categories` rename, v41's missing `OAuth2ClientCredentialsAuthScheme`, etc.). The version-neutral `dhis2w-fhir` pack imports its generated models from `dhis2w_client.generated.v43.*`.
 
 **When you add, rename, or remove anything,** apply the change to all three trees. New plugin commands ship as three plugin files; bug fixes that aren't version-specific land in all three. Examples are the exception — they ship as **one** file under `examples/{cli,client}/` (the MCP examples live in the `dhis2w-mcp` repository), because the wire is the same for almost everything they touch; only an example that exists for a single major lives under that major's subdirectory (`examples/client/v43/`). The CLAUDE.md hard requirements section spells this out at "Per-version subpackages" — the codebase enforces three-tree symmetry by convention, not by tooling, so the diff is the only check.
 

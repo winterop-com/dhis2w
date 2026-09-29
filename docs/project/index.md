@@ -31,50 +31,15 @@ reference.
 
     [See the roadmap](../roadmap.md)
 
-- **FHIR roadmap + review guide**
+- **FHIR design**
 
     ---
 
-    The `dhis2w-fhir` plan in one place: what exists, the settled and open
-    decisions, four review dimensions, and the build measurements.
+    The `dhis2w-fhir` pack's roadmap and review guide, the conversion layer,
+    corrections and withdrawals, the DHIS2 fidelity audit, and harmonization
+    across country guides, in the pack's own documentation.
 
-    [Open the FHIR guide](../fhir/design/roadmap.md)
-
-- **FHIR conversion layer**
-
-    ---
-
-    How data crosses between DHIS2 and FHIR in both directions, and where the
-    mapping definition lives.
-
-    [Read the conversion plan](../fhir/design/conversion.md)
-
-- **Corrections and withdrawals**
-
-    ---
-
-    How a submitter corrects a value that already reached DHIS2, how a
-    submission is retracted, and why withdrawal is terminal.
-
-    [Read the lifecycle design](../fhir/design/data-lifecycle.md)
-
-- **DHIS2 fidelity audit**
-
-    ---
-
-    Every concept that makes DHIS2 distinctively DHIS2, with a verdict: carried,
-    worth carrying with a named carrier, or deliberately not with the reason.
-
-    [Read the fidelity audit](../fhir/design/dhis2-fidelity.md)
-
-- **FHIR harmonization**
-
-    ---
-
-    How N country guides relate: terminology alignment, a master guide, and
-    indicator comparability, with the prerequisites each tier waits on.
-
-    [Read the harmonization design](../fhir/design/harmonization.md)
+    [Open the FHIR design pages](https://winterop-com.github.io/dhis2w-fhir/design/roadmap/)
 
 - **Upstream DHIS2 quirks**
 

@@ -11,9 +11,6 @@ Targets every script under:
 
 - `examples/{cli,client}/` — the version-neutral set, run on whichever
   DHIS2 major the active profile points at.
-- `examples/fhir/{cli,client,engine}/` — the FHIR surface. `dhis2w-fhir`,
-  `dhis2w-fhir-serve` and `dhis2w-fhir-engine` are not per-version packages,
-  so these run on every major from one copy.
 - `examples/{cli,client}/v{N}/` — the variants that exist only for one
   DHIS2 major, run only when that major is the active one.
 
@@ -28,18 +25,10 @@ Each example runs via `bash <path>` for `.sh` and `uv run python <path>`
 for `.py`, inheriting the parent environment plus `DHIS2_PROFILE` so
 profile-driven examples pick the right stack.
 
-Two things the suite arranges before the loop, because a batch pass can afford
-them once where a single example cannot:
-
-- **One shared FHIR fixture.** Every `examples/fhir/client/` example stands up a
-  scaffolded project and a `d2w fhir serve --live` facade of its own when the
-  `D2W_FHIR_EXAMPLE_PROJECT` / `D2W_FHIR_EXAMPLE_FACADE` seams are unset. The
-  suite stands one up, exports the seams, and stops the facade after the last
-  example — so a pass boots one server rather than a dozen.
-- **Environment-conditional skips.** An example reading a real secret or endpoint
-  out of the environment runs when every variable it names is set and skips
-  naming the missing ones otherwise. An unprovisioned machine is a fact about
-  the machine, not a defect in the example.
+Environment-conditional skips: an example reading a real secret or endpoint out
+of the environment runs when every variable it names is set and skips naming the
+missing ones otherwise. An unprovisioned machine is a fact about the machine, not
+a defect in the example.
 
 Usage:
     uv run python infra/scripts/verify_examples.py            # follows the active profile
@@ -54,7 +43,6 @@ import shutil
 import subprocess
 import sys
 import time
-from collections.abc import Callable
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
@@ -65,12 +53,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 SURFACES = ("cli", "client")
 VERSION_KEYS = ("v41", "v42", "v43")
-
-# The FHIR group is driven from the command line and from Python, and has no MCP
-# examples — so its surfaces are the two shapes of caller plus the evaluation
-# engine, which is its own package and its own kind of caller: expressions over
-# FHIR-shaped data, with no DHIS2 in the picture.
-FHIR_SURFACES = ("cli", "client", "engine")
 
 # Examples that need Chromium (Playwright), a human-clicked OIDC login,
 # external network dependencies, or run slow server-side jobs unsuitable
@@ -100,48 +82,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         # Kicks `d2w maintenance refresh analytics --watch`; analytics
         # rebuilds legitimately take several minutes on a populated stack.
         "cli/maintenance.sh",
-        # Scaffolds an IG, runs the dockerized SUSHI compile, then starts
-        # `d2w fhir serve` as a background job and curls it. The compile
-        # alone is minutes on a cold docker image, and the script binds a
-        # port — neither belongs in a batch pass.
-        "fhir/cli/serve.sh",
-        # The same compile and the same bound port to fill the spool the drain
-        # reads. The dry run writes nothing to the instance; every other forward
-        # story commits, so `d2w fhir forward --import` writes data values.
-        "fhir/cli/forward_dry_run.sh",
-        "fhir/cli/forward_import.sh",
-        # The overwrite and completeness stories carry the same compile, the
-        # same bound port, and the same committing writes as forward_import.sh.
-        "fhir/cli/forward_overwrites.sh",
-        "fhir/cli/forward_completeness.sh",
-        # The withdrawal story binds the same port and makes two committing writes
-        # of its own: one creates an event in the instance, the other deletes it.
-        "fhir/cli/withdraw.sh",
-        # Creates three tracked entity types, a tracked entity attribute, three
-        # registration programmes, and a tracked entity apiece on the instance,
-        # then removes all of it - including a `d2w maintenance cleanup
-        # tracked-entities` purge, which hard-removes every soft-deleted tracked
-        # entity on the instance and not only this script's. Writes plus a
-        # purge is not a batch pass.
-        "fhir/cli/registers_many_types.sh",
-        # `d2w fhir doctor` runs the whole chain — scaffold, generate,
-        # dockerized compile, serve, capture, forward — in one command.
-        # Minutes per run, for the same compile reason as its siblings.
-        "fhir/cli/doctor_probe.sh",
-        # Each doctor story is its own run of that whole chain, and
-        # `--all-targets` runs it over every data set and every program.
-        "fhir/cli/doctor_all_targets.sh",
-        "fhir/cli/doctor_live_oracle.sh",
-        "fhir/cli/doctor_report.sh",
-        "fhir/cli/doctor_json.sh",
-        # Same whole chain, and it needs a project directory holding a guide
-        # that was generated and compiled at some earlier point to read.
-        "fhir/cli/doctor_drift.sh",
-        # Every `examples/fhir/client/` example stands its own fixture up —
-        # `_fixture.py` scaffolds a project, builds the translation context off
-        # the instance, and starts a `d2w fhir serve --live` facade it stops at
-        # exit. So none of them is skipped: what used to need "a facade already
-        # listening" or "a project with a spool" now brings its own.
         # --- Fixture gaps in the seed ----------------------------------
         # Outlier detection requires per-program data distributions the
         # 1-year Child Programme sample doesn't have enough volume for —
@@ -180,14 +120,6 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
 SKIP_WHEN_ENVIRONMENT_MISSING: dict[str, tuple[str, ...]] = {
     "client/profile_pat_pure_client.py": ("DHIS2_URL", "DHIS2_PAT"),
     "client/profile_crud.py": ("DHIS2_PAT",),
-    # The one FHIR engine example that reads DHIS2: it maps a seeded Child Programme
-    # cohort into FHIR and scores a measure over it. Every other example in that
-    # directory evaluates over inline data and needs nothing running.
-    "fhir/engine/e2e_measure_from_dhis2.py": ("DHIS2_URL", "DHIS2_USERNAME", "DHIS2_PASSWORD"),
-    # The `dhis2` posture checks a caller's own DHIS2 credentials against the instance, so the
-    # example presents a real one — a caller's, never the facade's profile. The personal access
-    # token is the same posture with no password on the wire.
-    "fhir/cli/serve_auth_postures.sh": ("DHIS2_USERNAME", "DHIS2_PASSWORD", "DHIS2_PAT"),
 }
 
 DEFAULT_PROFILE = "local_basic"
@@ -242,10 +174,9 @@ def _examples_root() -> Path:
 
 
 def _surface_directories(version_key: str) -> list[Path]:
-    """Every directory holding examples for this run: the common set, the FHIR set, this major's variants."""
+    """Every directory holding examples for this run: the common set and this major's variants."""
     root = _examples_root()
     directories = [root / surface for surface in SURFACES]
-    directories += [root / "fhir" / surface for surface in FHIR_SURFACES]
     directories += [root / surface / version_key for surface in SURFACES]
     return directories
 
@@ -253,8 +184,7 @@ def _surface_directories(version_key: str) -> list[Path]:
 def discover_examples(version_key: str) -> list[Path]:
     """Return every example file this major runs, sorted by path.
 
-    The common `examples/{cli,client}/` set and the version-agnostic
-    `examples/fhir/` set run on every major. A `examples/{surface}/v{N}/`
+    The common `examples/{cli,client}/` set runs on every major. A `examples/{surface}/v{N}/`
     directory holds the examples that exist only for one major, so only the
     active one's variants are picked up — the other majors' variants are not
     skipped, they are not this run's examples at all.
@@ -272,13 +202,13 @@ def discover_examples(version_key: str) -> list[Path]:
 
 
 def _surface_of(path: Path) -> str:
-    """Name the summary row an example belongs under: `cli`, `client`, or `fhir/<surface>`.
+    """Name the summary row an example belongs under: `cli` or `client`.
 
     A version-variant directory reports under its surface rather than under the
     major, because what a reader wants counted is how the CLI examples did.
     """
     parts = path.relative_to(_examples_root()).parts
-    return f"fhir/{parts[1]}" if parts[0] == "fhir" else parts[0]
+    return parts[0]
 
 
 def _run_one(path: Path, *, profile: str, timeout_seconds: float) -> ExampleResult:
@@ -318,9 +248,9 @@ def _run_one(path: Path, *, profile: str, timeout_seconds: float) -> ExampleResu
 def _sweep_root(root_entries_before: set[str]) -> tuple[str, ...]:
     """Remove what an example left at the repository root and name it, so the working tree stays clean.
 
-    Examples scaffold projects in the working directory (`d2w fhir init sync-demo`) and remove them
-    on their last line, which a failure or a timeout never reaches. Everything new at the root
-    after a run is the example's, never the repository's, so it is removed and reported.
+    Examples that write into the working directory remove what they wrote on their last line, which
+    a failure or a timeout never reaches. Everything new at the root after a run is the example's,
+    never the repository's, so it is removed and reported.
     """
     left_behind: list[str] = []
     for entry in sorted(REPO_ROOT.iterdir()):
@@ -332,66 +262,6 @@ def _sweep_root(root_entries_before: set[str]) -> tuple[str, ...]:
             entry.unlink(missing_ok=True)
         left_behind.append(entry.name)
     return tuple(left_behind)
-
-
-def _stand_up_shared_fhir_fixture(
-    examples: list[Path],
-    skip: frozenset[str],
-    console: Console,
-) -> Callable[[], None] | None:
-    """Stand the FHIR client examples' shared project and facade up once, for the whole suite.
-
-    Every `examples/fhir/client/` example builds its own fixture when the two seams
-    (`D2W_FHIR_EXAMPLE_PROJECT`, `D2W_FHIR_EXAMPLE_FACADE`) are unset - which in a batch pass
-    means twelve examples each booting a `d2w fhir serve --live` of their own. This stands one
-    up in this process and exports the seams, so every example reuses it, and hands back the
-    call that stops the facade and clears the seams again once the loop is done. Seams already
-    set are an operator's own fixture and are left alone, and a fixture that cannot build is
-    reported plainly - each example then builds its own, which is the behaviour with no shared
-    fixture at all. Either way the answer is `None`: there is nothing of this suite's to stop.
-
-    Two postures are deliberately not shared. `served_facade(auth=...)` honours the facade seam
-    for the open default posture only, so the two examples about authentication - one asking for
-    `token`, one for `dhis2` - each start a guarded facade of their own. A server somebody else
-    started has whatever posture they gave it, and asking an open one to prove a credential
-    would read as a bug in the feature rather than in the fixture.
-    """
-    examples_root = _examples_root()
-    wanted = any(
-        path.relative_to(examples_root).as_posix().startswith("fhir/client/")
-        and path.relative_to(examples_root).as_posix() not in skip
-        for path in examples
-    )
-    if not wanted:
-        return None
-    fixture_directory = examples_root / "fhir" / "client"
-    sys.path.insert(0, str(fixture_directory))
-    try:
-        import _fixture  # noqa: PLC0415
-
-        if os.environ.get(_fixture.PROJECT_ENVIRONMENT_VARIABLE) or os.environ.get(
-            _fixture.FACADE_ENVIRONMENT_VARIABLE
-        ):
-            return None
-        project_root = _fixture.example_project()
-        _fixture.conversion_context()
-        facade = _fixture.served_facade()
-        os.environ[_fixture.PROJECT_ENVIRONMENT_VARIABLE] = str(project_root)
-        os.environ[_fixture.FACADE_ENVIRONMENT_VARIABLE] = facade
-        console.print(f"shared FHIR fixture: project [cyan]{project_root}[/cyan], facade [cyan]{facade}[/cyan]")
-    except Exception as error:  # noqa: BLE001 - the fallback is the point: each example builds its own
-        console.print(f"[yellow]shared FHIR fixture unavailable ({error}); each example builds its own[/yellow]")
-        return None
-    finally:
-        sys.path.remove(str(fixture_directory))
-
-    def tear_down() -> None:
-        """Stop the shared facade and clear the seams, so nothing outlives the loop that started it."""
-        _fixture.stop_facades()
-        os.environ.pop(_fixture.PROJECT_ENVIRONMENT_VARIABLE, None)
-        os.environ.pop(_fixture.FACADE_ENVIRONMENT_VARIABLE, None)
-
-    return tear_down
 
 
 def run_suite(
@@ -417,18 +287,13 @@ def run_suite(
         f"profile=[cyan]{profile}[/cyan], timeout={int(timeout_seconds)}s, "
         f"skip-default={'on' if not include_browser else 'off'})",
     )
-    tear_down_shared_fixture = _stand_up_shared_fhir_fixture(examples, skip, console)
-    try:
-        return _run_every_example(
-            examples,
-            skip=skip,
-            profile=profile,
-            timeout_seconds=timeout_seconds,
-            console=console,
-        )
-    finally:
-        if tear_down_shared_fixture is not None:
-            tear_down_shared_fixture()
+    return _run_every_example(
+        examples,
+        skip=skip,
+        profile=profile,
+        timeout_seconds=timeout_seconds,
+        console=console,
+    )
 
 
 def _run_every_example(
@@ -445,7 +310,7 @@ def _run_every_example(
     for path in examples:
         rel = path.relative_to(REPO_ROOT).as_posix()
         # Skip-list entries are relative to `examples/` (e.g.
-        # `cli/profile_oidc_login.sh`, `fhir/cli/serve.sh`).
+        # `cli/profile_oidc_login.sh`).
         rel_to_examples = path.relative_to(examples_root).as_posix()
         missing_environment = [
             name for name in SKIP_WHEN_ENVIRONMENT_MISSING.get(rel_to_examples, ()) if not os.environ.get(name)
