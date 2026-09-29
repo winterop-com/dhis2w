@@ -7,7 +7,6 @@ The eleven publishable workspace members ship to PyPI in lockstep — every rele
 | `dhis2w-client` | https://pypi.org/project/dhis2w-client/ |
 | `dhis2w-core` | https://pypi.org/project/dhis2w-core/ |
 | `dhis2w-cli` | https://pypi.org/project/dhis2w-cli/ |
-| `dhis2w-browser` | https://pypi.org/project/dhis2w-browser/ |
 | `dhis2w-mcp` | https://pypi.org/project/dhis2w-mcp/ |
 | `dhis2w-mcp-bridge` | https://pypi.org/project/dhis2w-mcp-bridge/ |
 | `dhis2w-mcp-router` | https://pypi.org/project/dhis2w-mcp-router/ (from 1.2.0) |

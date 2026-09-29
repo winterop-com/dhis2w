@@ -61,7 +61,6 @@ def test_skip_list_covers_known_interactive_flows() -> None:
     """
     assert "cli/profile_oidc_login.sh" in SKIP_BY_DEFAULT
     assert "client/oidc_login.py" in SKIP_BY_DEFAULT
-    assert "cli/map_screenshot.sh" in SKIP_BY_DEFAULT
     assert "cli/route_register_and_run.sh" in SKIP_BY_DEFAULT
     assert "fhir/cli/serve.sh" in SKIP_BY_DEFAULT
 

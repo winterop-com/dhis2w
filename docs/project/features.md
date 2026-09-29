@@ -523,10 +523,13 @@ rationale lives in `docs/architecture/mcp-bridge.md`.
 
 ## Browser Automation
 
-**Package:** `dhis2w-browser` | **Install:** `uv add dhis2w-browser`
+**Package:** `dhis2w-browser`, a plugin pack in its own repository
+([winterop-com/dhis2w-browser](https://github.com/winterop-com/dhis2w-browser), documented at
+<https://winterop-com.github.io/dhis2w-browser/>) | **Install:** `uv tool install 'dhis2w-cli[browser]'`, or
+`uv add dhis2w-browser` for the library alone
 
-Playwright-based DHIS2 UI automation. Separated from the client so API-only
-installs never pull Chromium.
+Playwright-based DHIS2 UI automation, together with the `d2w browser` plugin. It lives outside
+this repository so API-only installs never pull Chromium.
 
 ### Library API
 
@@ -4843,10 +4846,9 @@ executed by `make verify-examples`.
 dhis2w-cli --------> dhis2w-core ------> dhis2w-client
 dhis2w-mcp --------> dhis2w-core            |
 dhis2w-mcp-bridge -> dhis2w-cli             |
-                       |                     |
-dhis2w-browser --------+---------------------+
-                       |
-              (optional [browser] extra)
+
+dhis2w-cli ..(optional [browser] / [security] extras)..> the dhis2w-browser and
+              dhis2w-security packs, each in its own repository
 
 dhis2w-cli --------> dhis2w-fhir -----> dhis2w-core
 dhis2w-mcp --------> dhis2w-fhir            |
@@ -4862,6 +4864,6 @@ dhis2w-codegen        workspace-only generator
 No dependency cycles. `dhis2w-client` is standalone, and so is
 `dhis2w-fhir-engine`: it depends on nothing else in this workspace, and both
 `dhis2w-fhir` and `dhis2w-fhir-serve` depend on it for the R4 resource models
-and for FHIRPath and CQL evaluation. Browser automation and the FHIR serving
-facade are always optional.
+and for FHIRPath and CQL evaluation. The FHIR serving facade and the plugin
+packs are always optional.
 

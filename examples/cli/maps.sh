@@ -7,10 +7,9 @@
 # maps (thematic + boundary + facility) need raw construction from the
 # library side.
 #
-# The browser-driven screenshot capture lives in the sibling
-# `map_screenshot.sh` — it needs the `[browser]` extra + Chromium and
-# is skipped from the default verify-examples run (opt in via
-# `verify_examples.py --include-browser`).
+# The browser-driven screenshot capture, `d2w browser map screenshot`, is
+# the dhis2w-browser pack's (the `[browser]` extra + Chromium); its example
+# lives in that repository.
 set -euo pipefail
 
 # Seeded thematic choropleths shipped with the e2e dump.

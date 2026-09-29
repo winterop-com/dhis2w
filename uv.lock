@@ -9,7 +9,6 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "dhis2w-browser",
     "dhis2w-cli",
     "dhis2w-client",
     "dhis2w-codegen",
@@ -29,6 +28,7 @@ dev = [
     { name = "hypothesis", specifier = ">=6.168.0" },
     { name = "mkdocs", specifier = ">=1.6" },
     { name = "mkdocs-material", specifier = ">=9.7.7" },
+    { name = "mkdocs-redirects", specifier = ">=1.2.3" },
     { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.6" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "pillow", specifier = ">=12.3.0" },
@@ -698,20 +698,16 @@ wheels = [
 [[package]]
 name = "dhis2w-browser"
 version = "1.28.1"
-source = { editable = "packages/dhis2w-browser" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dhis2w-client" },
     { name = "pillow" },
     { name = "playwright" },
     { name = "pydantic" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "dhis2w-client", editable = "packages/dhis2w-client" },
-    { name = "pillow", specifier = ">=12.3.0" },
-    { name = "playwright", specifier = ">=1.61.0" },
-    { name = "pydantic", specifier = ">=2.13" },
+sdist = { url = "https://files.pythonhosted.org/packages/1f/c1/3bfdda88b369e66fe49fec7f350d8a115aa852cac4c11685f98ec4bc79d7/dhis2w_browser-1.28.1.tar.gz", hash = "sha256:f1a9001eaff88856aef55d5e41e4131ac0b94cf30bde1c5371ce2899ff6d75b0", size = 16372, upload-time = "2026-09-29T10:55:53.381Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/5f/4905371fdbe212d3c890f85d60e93076fb617ed0beca45a297719171f30a/dhis2w_browser-1.28.1-py3-none-any.whl", hash = "sha256:7f2f9b032d8e9d0642d04ba03e440563afca199516b52e9dc34539612ffccb83", size = 22803, upload-time = "2026-09-29T10:55:36.904Z" },
 ]
 
 [[package]]
@@ -738,7 +734,7 @@ serve = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dhis2w-browser", marker = "extra == 'browser'", editable = "packages/dhis2w-browser" },
+    { name = "dhis2w-browser", marker = "extra == 'browser'", specifier = ">=1.28.1,<2.0" },
     { name = "dhis2w-core", editable = "packages/dhis2w-core" },
     { name = "dhis2w-fhir", editable = "packages/dhis2w-fhir" },
     { name = "dhis2w-fhir-serve", marker = "extra == 'serve'", editable = "packages/dhis2w-fhir-serve" },
@@ -938,7 +934,7 @@ browser = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dhis2w-browser", marker = "extra == 'browser'", editable = "packages/dhis2w-browser" },
+    { name = "dhis2w-browser", marker = "extra == 'browser'", specifier = ">=1.28.1,<2.0" },
     { name = "dhis2w-core", editable = "packages/dhis2w-core" },
     { name = "dhis2w-fhir", editable = "packages/dhis2w-fhir" },
     { name = "fastmcp", specifier = ">=3.4.7" },
@@ -1868,6 +1864,19 @@ wheels = [
 ]
 
 [[package]]
+name = "mkdocs-redirects"
+version = "1.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mkdocs" },
+    { name = "properdocs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/25/49725f78ca5d3026b09973f7a2b3a8b179cc2e8c15e43d5a13bc79f6b274/mkdocs_redirects-1.2.3.tar.gz", hash = "sha256:5e980330999299729a2d6a125347d1af78023d68a23681a4de3053ce7dfe2e51", size = 7712, upload-time = "2026-03-28T13:57:41.766Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c6/90/871b1cddc01d2ba1637b858eeeabc2e3013dc8df591306b5567b98ef0870/mkdocs_redirects-1.2.3-py3-none-any.whl", hash = "sha256:ec7312fff462d03ec16395d0c001006a418f8d0c21cdf2b47ff11cf839dc3ce0", size = 6245, upload-time = "2026-03-28T13:57:40.466Z" },
+]
+
+[[package]]
 name = "mkdocstrings"
 version = "1.0.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2156,6 +2165,29 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7d/ea/39b988c938f75cb75d7045b5c69f8bfed47ee2152c8837fb403de29d6fb8/prompt_toolkit-3.0.53.tar.gz", hash = "sha256:9ec8a0ad96d5c56148b3f914aa79c1564c3fde5d2e6b876e7bc327e353cf8fa6", size = 435492, upload-time = "2026-07-26T20:56:14.758Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/6f/84908cad2d6aa5144abcf7b42709fe4fdb459bc640ec7ac5786e7693dabc/prompt_toolkit-3.0.53-py3-none-any.whl", hash = "sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2", size = 392288, upload-time = "2026-07-26T20:56:12.512Z" },
+]
+
+[[package]]
+name = "properdocs"
+version = "1.6.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "ghp-import" },
+    { name = "jinja2" },
+    { name = "markdown" },
+    { name = "markupsafe" },
+    { name = "packaging" },
+    { name = "pathspec" },
+    { name = "platformdirs" },
+    { name = "pyyaml" },
+    { name = "pyyaml-env-tag" },
+    { name = "watchdog" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ec/29/f27a4e1eddf72ed3db6e47818fbafe6debbf09fd7051f9c1a007239b46ef/properdocs-1.6.7.tar.gz", hash = "sha256:adc7b16e562890af0e098a7e5b02e3a81c20894a87d6a28d345c9300de73c26e", size = 276141, upload-time = "2026-03-20T20:07:48.167Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/4d/fc923f5c85318ee8cc903566dc4e0ebe41b2dfc1d2ecf5546db232397ed6/properdocs-1.6.7-py3-none-any.whl", hash = "sha256:6fa0cfa2e01bf338f684892c8a506cf70ea88ae7f3479c933b6fa20168101cbd", size = 225406, upload-time = "2026-03-20T20:07:46.875Z" },
 ]
 
 [[package]]

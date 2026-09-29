@@ -90,10 +90,6 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
         # at the local DHIS2 always hits its login HTML. Run against
         # Keycloak / Auth0 / Google / etc. directly when needed.
         "cli/profile_oidc_config.sh",
-        # Playwright browser workflows: open Chromium, drive UI.
-        "cli/map_screenshot.sh",
-        "cli/visualization_screenshot.sh",
-        "client/oidc_playwright_login.py",
         # --- External network / non-deterministic -----------------------
         # Hits httpbin.org over the public internet.
         "cli/route_register_and_run.sh",

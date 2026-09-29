@@ -40,7 +40,7 @@ Three paths:
 
     See [Local DHIS2 setup § Seeded auth](../local-setup.md#seeded-auth) for what each variation does.
 
-3. **Playwright helper.** `make -C infra pat` drives the DHIS2 UI via Playwright to mint one token against any instance you can log into with username + password. Useful when you want a PAT for a remote server without clicking through the UI manually. See [Playwright PAT helper](../pat-helper.md).
+3. **Playwright helper.** `make -C infra pat` drives the DHIS2 UI via Playwright to mint one token against any instance you can log into with username + password. Useful when you want a PAT for a remote server without clicking through the UI manually. See [Playwright PAT helper](https://winterop-com.github.io/dhis2w-browser/pat-helper/).
 
 ### Adding the PAT as a profile
 
@@ -432,7 +432,7 @@ The session lives (and dies) server-side; there is nothing to refresh client-sid
 
 Note that `profile env` exports `DHIS2_SESSION_COOKIE` (and `DHIS2_SESSION_XSRF` when the profile carries a CSRF token), but the raw-env fallback (`DHIS2_URL` + secret, no TOML) handles PAT and Basic only — a session binding always needs the saved profile. The command prints a caveat note saying exactly that when the profile is a session one.
 
-Session profiles also drive the Playwright browser workflows (`d2w browser viz screenshot`, dashboard captures): the stored cookie is injected into the browser context directly — see [Browser automation](../architecture/browser.md).
+Session profiles also drive the Playwright browser workflows (`d2w browser viz screenshot`, dashboard captures): the stored cookie is injected into the browser context directly — see [Browser automation](https://winterop-com.github.io/dhis2w-browser/).
 
 See `examples/cli/profile_session.sh` for the end-to-end flow.
 
@@ -503,4 +503,4 @@ User profile → Edit details → **OpenID** field. Save. Works for any user.
 - [Pluggable auth](../architecture/auth.md) — the `AuthProvider` Protocol, `OAuth2Auth` internals, `TokenStore` design.
 - [Profiles](../architecture/profiles.md) — how `profiles.toml` is discovered and resolved across scopes.
 - [Local DHIS2 setup](../local-setup.md) — running the Docker stack + what `make dhis2-seed` writes.
-- [Playwright PAT helper](../pat-helper.md) — minting PATs against any DHIS2 by driving the UI.
+- [Playwright PAT helper](https://winterop-com.github.io/dhis2w-browser/pat-helper/) — minting PATs against any DHIS2 by driving the UI.
