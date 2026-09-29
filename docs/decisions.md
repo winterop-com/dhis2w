@@ -2,6 +2,32 @@
 
 Running list of architectural choices and the reasoning behind them. Each entry is a terse "we decided X because Y, alternatives were Z". This file is a first stop when you're wondering "why is it done that way?".
 
+## 2026-09-29 — A clean core: MCP, FHIR and the browser leave as repositories of their own
+
+**Decision:** the `dhis2w` repository keeps the client, the core, the CLI and codegen, and nothing else. Four repositories sit beside it, each a pack reaching the CLI through an extra on `dhis2w-cli`:
+
+| Repository | Holds |
+| --- | --- |
+| `dhis2w` | `dhis2w-client`, `dhis2w-core` (its plugins' CLI and services, no MCP tools, no `fastmcp`), `dhis2w-cli`, `dhis2w-codegen` (workspace-only), and the local DHIS2 stack |
+| `dhis2w-mcp` | `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-mcp-router`, and the MCP tools of every built-in plugin - the `mcp.py` modules that live in core today - contributed as one `mcp` plugin |
+| `dhis2w-fhir` | `dhis2w-fhir`, `dhis2w-fhir-engine`, `dhis2w-fhir-serve` with its frontend, `examples/fhir`, `docs/fhir`, and the FHIR scripts and workflows |
+| `dhis2w-browser` | `dhis2w-browser` and core's `browser` plugin |
+| `dhis2w-security` | as it is |
+
+The order is the browser first, as the smallest move and a rehearsal of the process, then MCP, then FHIR. Each repository publishes its own documentation site, and the host site links to it; the pages that move leave redirects behind, so a published URL keeps working. FHIR's git history moves with it (`git filter-repo`), as the query engine's did.
+
+**Why:** the FHIR packages are 6,706 of the host's 8,595 test functions, about half of its documentation and most of its CI minutes, and most users of the client and the core never install them. MCP threads through core itself - fifty-four `mcp.py` modules and a `fastmcp` dependency that nothing but MCP needs - so a core without MCP is a core without them. The browser plugin carries a Playwright-facing surface the core has no use for. Each already reaches the CLI through the plugin contract, so what moves is repositories, pins and tests rather than seams.
+
+**Alternatives rejected:** keeping FHIR, MCP and the browser as workspace members that only register through the contract (the 2026-09-11 position: it leaves the tests, the CI and the documentation where they were, which is most of the cost); moving the browser into MCP (the browser plugin is reached through `d2w browser`, and contributes no MCP tool); one documentation hub built from every repository (the host's docs build would then depend on each pack's).
+
+## 2026-09-29 — Every repository releases the same version
+
+**Decision:** the host and every pack repository release the same `vX.Y.Z`, the way dirigent and its packs do. The host is released first; each pack then relocks against the published host, moves to the same version, and is tagged. A pack pins the host packages it depends on to that exact release. This replaces the rule of 2026-09-11 below, under which a pack carried the host's `major.minor` and a patch of its own.
+
+**Why:** one number answers every compatibility question without a matrix, and it forces the re-verification the old rule left to chance - `dhis2w-security` stayed at 1.19.0 through nine host releases. The order is not a preference: a pack locks against the host from PyPI, so a pack released before the host cannot resolve, which is how `dhis2w-security`'s first CI run failed.
+
+**Alternatives rejected:** the host-`major.minor` rule (it lets a pack drift, and FHIR releases more often than the host); packs installing the host from git at `main` for their releases (a release has to name what it was verified against).
+
 ## 2026-09-11 — Plugins are pluginkit extensions
 
 **Decision:** `dhis2w_core.plugin` is a [pluginkit](https://pypi.org/project/pluginkit/) host. It declares one collecting extension point, `contribute(version_key) -> Contribution`, and `load_plugin_host(version_key)` calls it once per registered plugin and returns the contributions sorted by name. The entry-point group is `dhis2w.plugins.v1`: the contract version is part of the group name, so an incompatible contract ships as `dhis2w.plugins.v2` and packs built against v1 stay loadable by the hosts that still speak it. A plugin object is a **plain class**, never a pydantic model — pluginkit scans the object's attributes to find the extension, and a `BaseModel` subclass raises during that scan. Built-in plugins register under their module path (`dhis2w_core.v43.plugins.system`), packs under their entry-point name (`fhir`), and a plugin that is not installed as a distribution comes in through `extra=`. A pack that fails to load is reported in `PluginHost.failures`, never raised: a broken pack must not take `d2w --help` down with it.
@@ -13,6 +39,8 @@ Running list of architectural choices and the reasoning behind them. Each entry 
 ## 2026-09-11 — Plugin packs release at the host version
 
 **Decision:** a plugin pack that lives in its own repository — `dhis2w-security` is the first — carries the `major.minor` of the dhis2w release it was verified against plus its own patch number. A pack verified against dhis2w 1.18 releases as `1.18.0`, then `1.18.1`, `1.18.2` as the pack itself changes; the next verification against 1.19 starts `1.19.0`. The pack pins `dhis2w-core>=X.Y.0,<(X+1).0` — `dhis2w-core>=1.18.0,<2.0` for that example. The workspace members keep their lockstep version: every package under `packages/` releases the same number on the same day, and a pack's number is not part of that lockstep.
+
+Replaced by "Every repository releases the same version" (2026-09-29).
 
 **Why:** the version answers the question a pack's user actually has — which dhis2w this was tested against — without a compatibility matrix to look up. The patch digit stays the pack's own, so a pack can ship four fixes against one host release. The floor-and-ceiling pin lets the pack take host patch and minor releases, and stops at the major where the plugin contract may move.
 

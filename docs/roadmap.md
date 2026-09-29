@@ -346,21 +346,59 @@ Niche but valuable for compliance + forensics use cases.
   repository registers exactly like one living here, which is what the repository
   split below depends on. The next extension seams - contribute an auth provider,
   contribute a FHIR capability - are new extension points beside `contribute`.
-- **Split the workspace into multiple repositories.** Eleven members, one lock,
-  one CI, one release train - the single repository is getting out of hand, and
-  the seams the members already draw are the candidate cut lines: the client
-  foundation (`dhis2w-client` + `dhis2w-codegen`), the toolkit
-  (`dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`,
-  `dhis2w-mcp-router`, `dhis2w-browser`), and the
-  FHIR product (`dhis2w-fhir`, `dhis2w-fhir-engine`, `dhis2w-fhir-serve`).
-  What must be true first, in order: the library surfaces published and
-  drift-tested (done in the 1.7.0 line), plugin contracts on `pluginkit` so
-  cross-repository plugins are first-class (the item above), and per-repository
-  version trains with explicit cross-repository pins replacing the workspace lock.
-  Owner decisions reserved: the exact seam lines, where `infra/` and the local
-  stack live, whether the
-  docs site stays one hub or splits with its packages, and the release cadence
-  each repository runs on.
+- **A clean core: the browser, MCP and FHIR leave as repositories of their own.**
+  Decided 2026-09-29 (see [decisions](decisions.md)): the host keeps the client,
+  the core, the CLI and codegen; `dhis2w-browser`, `dhis2w-mcp` and `dhis2w-fhir`
+  become pack repositories beside `dhis2w-security`, each reaching the CLI through
+  an extra on `dhis2w-cli`, each with its own documentation site, and every
+  repository releases the same version. The order is the browser, then MCP, then
+  FHIR.
+
+  **Every move repeats the same steps**, each a pull request that ships on its own:
+
+  1. *Loosen the host's grip, in the host.* Host tests that assume the pack is
+     installed switch on `importlib.util.find_spec`, or move into the pack. The
+     pack's tests mount its contribution on a bare Typer app or FastMCP server
+     (`tests/_app.py` in `dhis2w-security`) rather than importing
+     `dhis2w_cli.main`, which would be a cycle across the boundary. A test that
+     reads a file outside its own package by path gets that file of its own. The
+     pack declares every dependency it imports. `dhis2w-cli` depends on it through
+     an extra, not a hard dependency.
+  2. *Create the repository.* Its own workspace, `uv.lock`, CI and publish
+     workflow, root `conftest.py` on `dhis2w_core.testing`, `CLAUDE.md` deferring
+     to the host's, and documentation site. The PyPI Trusted Publishers of the
+     packages that move are pointed at it before its first tag.
+  3. *Release the host first, then the pack at the same version.* The pack locks
+     against the published host, so the host release comes first.
+  4. *Remove it from the host.* The moved files go; the moved documentation pages
+     leave redirects; the Makefile, workflows, `CLAUDE.md`, the feature list and
+     `BUGS.md` follow. `dhis2w-integration` lists the pack in `ecosystem.yaml`.
+
+  **What each move adds to that:**
+
+  - **Browser** - the `dhis2w-browser` package and core's `browser` plugin
+    (`dhis2w_core/v4x/plugins/browser/`) move together. The smallest move, and the
+    rehearsal for the other two.
+  - **MCP** - the three MCP members, and the fifty-four `mcp.py` modules of core's
+    built-in plugins, which leave core as the MCP pack's own tool modules,
+    registered through one `mcp` contribution. Core drops `fastmcp`, and its
+    plugins contribute CLI modules only. `dhis2w-mcp` stops depending on
+    `dhis2w-fhir`, which contributes no MCP tool.
+  - **FHIR** - the three FHIR members with the capture UI frontend and its
+    toolchain; `examples/fhir` with the committed guides; `docs/fhir`; the FHIR
+    scripts (`verify_igs.py`, `publisher_qa_summary.py`) and workflows (frontend,
+    publisher check). The git history moves with it. `BUGS.md` splits: the IG
+    publisher entries move, and each DHIS2 bug keeps its entry here with its
+    workaround linked in the FHIR repository. Known work before the move: 17 FHIR
+    tests import `dhis2w_cli.main`; six read files outside their package (the API
+    pages, `examples/fhir/igs`, one package's test data from another);
+    `dhis2w-fhir-serve` imports the client and the core without declaring them;
+    two client tests import from `dhis2w-fhir-serve`; five core tests assert
+    `fhir` is installed.
+
+  **Housekeeping that comes first:** `dhis2w-security` is re-verified and
+  released at the current host version, and `dhis2w-integration`'s notes that
+  predate the security move are brought up to date.
 
 ## Long-term / exploratory
 
