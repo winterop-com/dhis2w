@@ -276,7 +276,7 @@ def test_building_the_registry_reaches_the_registry_project(tmp_path: Path) -> N
     completed = run_make(tmp_path, stub, "-n", "build-registry")
 
     assert completed.returncode == 0, completed.stderr
-    assert "-Xmx14g -jar /home/publisher/.ig-publisher/publisher.jar" in completed.stdout
+    assert "-Xmx8g -jar /home/publisher/.ig-publisher/publisher.jar" in completed.stdout
 
 
 def test_clean_all_reaches_both_terminology_caches() -> None:

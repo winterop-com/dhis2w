@@ -6,18 +6,19 @@ DOCKER_IMAGE := fhir-ig
 IG_DIR := ig
 TX_SERVER ?= http://tx.fhir.org
 # The publisher JVM heap ceiling. Leave it empty and each build sizes it to this machine: the
-# memory docker reports, less 2G, floored at 4g and capped at 31g. On macOS and Windows that figure
+# memory docker reports less 6G, capped at 8g and floored at 4g. On macOS and Windows that figure
 # is the VM Docker Desktop runs; on Linux it is the whole machine's RAM, whatever else is running on
 # it - so name a ceiling yourself on a shared build host.
 #
-# The 2G of headroom is deliberately generous. A publisher build is a monthly act and it wants the
-# machine to itself: the publisher and Jekyll share one container, Jekyll renders the site at the
-# very end with the JVM still resident, and a heap has the JVM's own metaspace and native memory
-# around it. Stop your other containers for the run, and if the kernel's out-of-memory killer takes
-# the publisher anyway, the build says so and names every way out.
+# The heap is not all a build holds. The JVM keeps about 2G of its own around the heap, and Jekyll
+# renders the site at the very end as a second process in the same container, taking about 4G on a
+# registry of twenty thousand resources while the JVM is still resident. The 6G is those two.
 #
-# 31g is the top because the JVM drops compressed object pointers above roughly 32 GB, where the
-# same live set suddenly costs materially more heap; the largest guide measured peaked at 16.
+# 8g is the top because a larger heap costs memory without buying anything: the JVM grows into the
+# ceiling it is given rather than collecting, so a 16g heap on a registry whose publisher never used
+# more than 7G held 10G more than an 8g one did, and with Jekyll beside it that is the kernel's
+# out-of-memory kill. A guide that truly needs more stops with an OutOfMemoryError and a Java stack
+# trace, which names itself, and `make build JAVA_HEAP=12g` is the answer to that one.
 #
 # It is a ceiling, not a reservation: a guide that needs less simply uses less. Set JAVA_HEAP
 # whenever you want a particular ceiling - on the command line (`make build JAVA_HEAP=8g`) or in the
@@ -31,8 +32,8 @@ JAVA_HEAP ?=
 # hand make two values and the publisher two -Xmx arguments - and anything but a number lands on 8g
 # with the memory reported as unknown. The answer is "<ceiling> <memory>", split apart below.
 DOCKER_MEMORY_READING = $(eval DOCKER_MEMORY_READING := $(shell docker info --format '{% raw %}{{.MemTotal}}{% endraw %}' 2>/dev/null \
-	| awk 'NR == 1 { if ($$1 ~ /^[0-9]+$$/) { gigabytes = int(($$1 / 1073741824) - 2); \
-		if (gigabytes < 4) gigabytes = 4; if (gigabytes > 31) gigabytes = 31; \
+	| awk 'NR == 1 { if ($$1 ~ /^[0-9]+$$/) { gigabytes = int(($$1 / 1073741824) - 6); \
+		if (gigabytes < 4) gigabytes = 4; if (gigabytes > 8) gigabytes = 8; \
 		printf "%dg %.1f GB\n", gigabytes, $$1 / 1073741824 } else print "8g unknown"; exit } \
 		END { if (NR == 0) print "8g unknown" }'))$(DOCKER_MEMORY_READING)
 # What the publisher is actually given, and where that number came from. A JAVA_HEAP set to a value
@@ -52,6 +53,21 @@ BUILD_WORKDIR := /home/publisher/work
 # and package caches the next build reuses. `temp/` and `template/` stay behind: nothing reads them,
 # and they are the bulk of what a build writes.
 BUILD_CARRIED_BACK := output fsh-generated input-cache
+# What a build holds that the kernel cannot take back: the heap, the JVM around it, and Jekyll. The
+# cgroup's own `memory.peak` also counts the file cache the site's writes leave behind, which the
+# kernel reclaims under pressure - several gigabytes on a large registry - so it overstates what a
+# build needs. The cgroup keeps no peak of the unreclaimable part, so the container samples it every
+# five seconds while the publisher runs and keeps the largest. A spike shorter than that can be
+# missed; the figure is a floor on the need, and `memory.peak` beside it is the ceiling.
+MEMORY_WATCH_START := ( peak=0; while sleep 5; do \
+				in_use=$$(awk "/^anon / { print \$$2 }" /sys/fs/cgroup/memory.stat 2>/dev/null); \
+				if [ -n "$$in_use" ] && [ "$$in_use" -gt "$$peak" ]; then peak=$$in_use; echo $$peak > /tmp/memory-in-use-peak; fi; \
+			done ) & watcher=$$!
+MEMORY_WATCH_REPORT := kill $$watcher 2>/dev/null || true; \
+			awk "{ printf \"peak memory in use %.1f GB - the heap, the JVM around it and Jekyll, sampled every 5 seconds\n\", \$$1 / 1073741824 }" \
+				/tmp/memory-in-use-peak 2>/dev/null || true; \
+			awk "{ printf \"peak container memory %.1f GB, counting file cache the kernel reclaims when memory runs short\n\", \$$1 / 1073741824 }" \
+				/sys/fs/cgroup/memory.peak 2>/dev/null || true
 
 # The tail both builds run once the container is gone: read what the run left behind, say which
 # kill it was, and hand the publisher's own status back to make. Exit 137 says only that something
@@ -113,11 +129,16 @@ define REPORT_OOM_KILL
 		printf '%s\n' '       build wants the machine to itself.'; \
 		step=$$((step + 1)); \
 	fi; \
+	heap='$(PUBLISHER_HEAP)'; lower='<smaller>'; \
+	case "$$heap" in *[gG]) if [ "$${heap%[gG]}" -gt 8 ] 2>/dev/null; then lower=8g; fi;; esac; \
+	printf '    %d. Lower the ceiling:  make build JAVA_HEAP=%s\n' $$step "$$lower"; \
+	printf '%s\n' '       The JVM grows into whatever ceiling it is given, and Jekyll' \
+		'       needs about 4G beside it at the end - a larger heap is more' \
+		'       memory held, not more room.'; \
+	step=$$((step + 1)); \
 	printf '    %d. Give docker more memory. Docker Desktop: Settings >\n' $$step; \
 	printf '%s\n' '       Resources > Memory. Linux: docker uses the memory of' \
 		'       the machine it runs on, so free some there.'; \
-	step=$$((step + 1)); \
-	printf '    %d. Lower the ceiling:  make build JAVA_HEAP=<smaller>\n' $$step; \
 	printf '%s\n' \
 		'' \
 		'  The opposite failure looks different: OutOfMemoryError with a Java' \
@@ -282,10 +303,10 @@ build: cache-init  ## Run the full IG publisher
 				| tar -C $(BUILD_WORKDIR) -xf -; \
 			cd $(BUILD_WORKDIR); \
 			status=0; \
+			$(MEMORY_WATCH_START); \
 			java -Xmx$(PUBLISHER_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
 				|| status=$$?; \
-			awk "{ printf \"peak container memory %.1f GB\n\", \$$1 / 1073741824 }" \
-				/sys/fs/cgroup/memory.peak 2>/dev/null || true; \
+			$(MEMORY_WATCH_REPORT); \
 			awk "/^oom_kill / { printf \"container out-of-memory kills: %d\n\", \$$2 }" \
 				/sys/fs/cgroup/memory.events 2>/dev/null || true; \
 			for carried in $(BUILD_CARRIED_BACK); do \
@@ -314,10 +335,10 @@ build-bind: cache-init  ## Run the publisher straight over the mounted project, 
 	@run=$$(mktemp -d "$${TMPDIR:-/tmp}/publisher-build.XXXXXX") || exit 1; \
 	{ docker run --rm -v $$(pwd)/$(IG_DIR):/home/publisher/ig -v $(CACHE_VOLUME):/home/publisher/.fhir \
 		$(DOCKER_IMAGE) bash -c 'status=0; \
+			$(MEMORY_WATCH_START); \
 			java -Xmx$(PUBLISHER_HEAP) -jar /home/publisher/.ig-publisher/publisher.jar ig.ini -ig . -tx $(TX_SERVER) \
 				|| status=$$?; \
-			awk "{ printf \"peak container memory %.1f GB\n\", \$$1 / 1073741824 }" \
-				/sys/fs/cgroup/memory.peak 2>/dev/null || true; \
+			$(MEMORY_WATCH_REPORT); \
 			awk "/^oom_kill / { printf \"container out-of-memory kills: %d\n\", \$$2 }" \
 				/sys/fs/cgroup/memory.events 2>/dev/null || true; \
 			exit $$status'; echo $$? > "$$run/status"; } | tee "$$run/log"; \
