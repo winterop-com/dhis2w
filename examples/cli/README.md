@@ -2,7 +2,7 @@
 
 Shell invocations of the `d2w` Typer CLI (installed with `uv sync`). Every CLI command resolves a DHIS2 profile first (from `.dhis2/profiles.toml`, `~/.config/dhis2/profiles.toml`, or `DHIS2_URL`+`DHIS2_PAT` env) and calls into the matching `dhis2w-core` plugin.
 
-One copy of each script, and it runs against DHIS2 v41, v42, and v43 alike — the CLI resolves its plugin tree from the instance. The `d2w fhir` scripts live in their own group at [`examples/fhir/cli/`](../fhir/cli/).
+One copy of each script, and it runs against DHIS2 v41, v42, and v43 alike — the CLI resolves its plugin tree from the instance. The `d2w fhir` scripts live in the [`dhis2w-fhir` pack's `examples/cli/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples/cli).
 
 > **Canonical catalogue**: [`docs/examples.md`](../../docs/examples.md) is a curated example index — headline examples per topic, with links to the concept docs that explain each one (not exhaustive; `ls examples/cli/` is the source of truth). [`docs/cli-reference.md`](../../docs/cli-reference.md) is the auto-generated reference for every command + flag.
 

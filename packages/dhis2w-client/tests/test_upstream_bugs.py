@@ -1567,16 +1567,6 @@ async def test_bug_115_enrollments_ordered_by_created_at_answer_409() -> None:
     )
 
 
-@pytest.mark.upstream_bug
-def test_bug_115_workaround_enrollment_poll_orders_by_enrolled_at() -> None:
-    """BUGS.md #115 — workaround-works: the fhir-serve enrollment poll orders by `enrolledAt`, never `createdAt`."""
-    pytest.importorskip("dhis2w_fhir_serve")
-    from dhis2w_fhir_serve.register.wire import ENROLLMENT_POLL_ORDER, POLL_ORDER
-
-    assert ENROLLMENT_POLL_ORDER == "enrolledAt:asc"
-    assert POLL_ORDER == "createdAt:asc", "the tracked entity poll keeps creation order; only enrollments diverge"
-
-
 # ---------------------------------------------------------------------------
 # BUGS.md #116 — 2.42.6 refuses a type-scoped tracked entity read with includeDeleted=true.
 # ---------------------------------------------------------------------------
@@ -1617,24 +1607,5 @@ async def test_bug_116_v42_type_scoped_tombstone_read_answers_409() -> None:
     assert isinstance(error_body, dict)
     assert "trailing junk after numeric literal" in str(error_body.get("devMessage")), (
         "BUGS.md #116: a 2.42.6 type-scoped read with includeDeleted=true should still fail inside DHIS2's SQL. "
-        "If this changes, re-run the repro in BUGS.md #116 and drop the retry branch in fhir-serve's poll."
+        "If this changes, re-run the repro in BUGS.md #116 and drop the retry branch in the dhis2w-fhir pack's poll."
     )
-
-
-@pytest.mark.upstream_bug
-def test_bug_116_workaround_poll_recognises_the_refusal() -> None:
-    """BUGS.md #116 — workaround-works: the fhir-serve poll recognises exactly this refusal and no other 409."""
-    pytest.importorskip("dhis2w_fhir_serve")
-    from dhis2w_fhir_serve.register.wire import _is_tombstone_read_syntax_refusal
-
-    refused = Dhis2ApiError(
-        status_code=409,
-        message="",
-        body={
-            "message": "Query failed because of a syntax error (SqlState: 42601)",
-            "devMessage": 'ERROR: trailing junk after numeric literal at or near "1903ORDER"',
-        },
-    )
-    other = Dhis2ApiError(status_code=409, message="", body={"message": "Data value not found or not accessible"})
-    assert _is_tombstone_read_syntax_refusal(refused)
-    assert not _is_tombstone_read_syntax_refusal(other)

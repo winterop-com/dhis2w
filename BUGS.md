@@ -828,7 +828,7 @@ surface answered empty (`/api/audits/dataValue` `total:0` system-wide, event and
 tracked-entity `changeLogs` `[]`), because this stack disables auditing in `infra/v{41,42,43}/dhis.conf`
 for the reason #3 and #53 describe; and `/api/tracker/enrollments/{uid}/changeLogs` is a
 `404` on `2.43.1` — not a resource at all. The design consequences are in
-`docs/fhir/design/data-lifecycle.md`.
+[the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/).
 
 ### 2026-06-09 — full sweep (dev read-only + real-release write/data, v41/v42/v43)
 
@@ -1085,11 +1085,11 @@ curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
 
 **Impact:** any enrollment poll that pages in creation order. `d2w fhir serve` walks a program's enrollments to find tracked entities whose projection is stale, and `d2w fhir sync` runs the same walk.
 
-**Workaround in this repo:** `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` orders the enrollment poll by `enrolledAt:asc`, the field every release accepts; the tracked entity poll keeps `createdAt:asc` (`POLL_ORDER`). The enrollment UID is not an order field on any major, so a total immutable order is not available for this read.
+**Workaround in the dhis2w-fhir pack:** `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` orders the enrollment poll by `enrolledAt:asc`, the field every release accepts; the tracked entity poll keeps `createdAt:asc` (`POLL_ORDER`). The enrollment UID is not an order field on any major, so a total immutable order is not available for this read.
 
 **Status (2026-09-11):** STILL on `2.41.10` and `2.42.6`, absent on `2.43.1`. `2.41.10` answers `409 {"message":"ERROR: column reference \"created\" is ambiguous\n  Position: 1382"}` for `createdAt` and the same on `"lastupdated"` for `updatedAt`; `2.42.6` answers the identical pair at `Position: 1421`. Both are bare `WebMessage`s with no `errorCode` and no `devMessage`. `dhis2w_fhir_serve.register.wire.ENROLLMENT_POLL_ORDER` keeps ordering the enrollment poll by `enrolledAt` for both majors.
 
-**Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py` asserts the enrollment poll's `order`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_115_*` carries the mocked wire shape and the order constants.
+**Verifier:** [`packages/dhis2w-fhir-serve/tests/test_projection_sync.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/tests/test_projection_sync.py) asserts the enrollment poll's `order`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_115_*` carries the mocked wire shape and the order constants.
 
 **How to know it's fixed:** the first repro answers 200 on a `2.41.x` and a `2.42.x` release; then the enrollment poll may order by `createdAt` again.
 
@@ -1130,13 +1130,13 @@ curl -g -s -o /dev/null -w '%{http_code}\n' -u admin:district \
 
 **Actual:** 409 with a PostgreSQL syntax error; the flag that makes removals visible to a cursor poll is unusable for a type-scoped read on this release.
 
-**Impact:** `d2w fhir sync` and the served projection: the tracked entity poll walks each served type with `includeDeleted=true` so a removed person leaves the projection (`docs/fhir/design/projection.md`). On 2.42.6 that read is refused outright.
+**Impact:** `d2w fhir sync` and the served projection: the tracked entity poll walks each served type with `includeDeleted=true` so a removed person leaves the projection ([the dhis2w-fhir `design/projection` page](https://winterop-com.github.io/dhis2w-fhir/design/projection/)). On 2.42.6 that read is refused outright.
 
-**Workaround in this repo:** `dhis2w_fhir_serve.register.wire.poll_tracked_entities` recognises this refusal, reads the page again without `includeDeleted`, and marks the page `tombstones_visible=False`; `run_sync` carries that onto `SyncReport.tombstones_visible` and `d2w fhir sync` prints a note, because a removal is then learned only when an enrollment of the person moves (the enrollment poll still carries the flag and answers 200) or when the projection is rebuilt.
+**Workaround in the dhis2w-fhir pack:** `dhis2w_fhir_serve.register.wire.poll_tracked_entities` recognises this refusal, reads the page again without `includeDeleted`, and marks the page `tombstones_visible=False`; `run_sync` carries that onto `SyncReport.tombstones_visible` and `d2w fhir sync` prints a note, because a removal is then learned only when an enrollment of the person moves (the enrollment poll still carries the flag and answers 200) or when the projection is rebuilt.
 
 **Status (2026-09-11):** v42-only, as the entry says. Reproduced verbatim on `2.42.6` including `trailing junk after numeric literal at or near "1903ORDER"`, and a second type gave `"3676ORDER"`, so the number is the type's internal id concatenated with the `ORDER` keyword. The same type-scoped `includeDeleted=true` read answers `200` on `2.41.10` and on `2.43.1`, so the retry-without-`includeDeleted` branch in `dhis2w_fhir_serve` is needed on v42 alone.
 
-**Verifier:** `packages/dhis2w-fhir-serve/tests/test_projection_sync.py::test_a_refused_tombstone_read_is_retried_without_the_flag_and_reported`; `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_116_*`.
+**Verifier:** [`packages/dhis2w-fhir-serve/tests/test_projection_sync.py::test_a_refused_tombstone_read_is_retried_without_the_flag_and_reported`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/tests/test_projection_sync.py); `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_116_*`.
 
 **How to know it's fixed:** the first repro answers 200 on a `2.42.x` release; then the retry branch and the report field come out.
 
@@ -3689,8 +3689,8 @@ straight through fails validation - `fsh-sushi` rejects it with
 type: dateTime`. The same applies to every other consumer that types the field
 strictly rather than as free text.
 
-**Workaround in this repo:** `zoned_date_time` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/r4/primitives.py` gives the value an offset
+**Workaround in the dhis2w-fhir pack:** `zoned_date_time` in
+[`packages/dhis2w-fhir/src/dhis2w_fhir/r4/primitives.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/r4/primitives.py) gives the value an offset
 whenever it carries a time but none of its own, and is applied to both the example
 response's `authored` and its `DATETIME` answers. Which offset comes from the
 project: `[generate] timezone` in `fhir.toml` names the IANA zone the instance's
@@ -3754,8 +3754,8 @@ output on every run, which defeats content-addressed caching and makes a committ
 churn for no reason. It also makes two separate reads of the same data set disagree with each
 other, so a document generated from one read cannot reference the other by position.
 
-**Workaround in this repo:** `_data_set_source` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py` sorts the mapped members by name and UID
+**Workaround in the dhis2w-fhir pack:** `_data_set_source` in
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py) sorts the mapped members by name and UID
 before building the questionnaire projection. That makes `d2w fhir generate questionnaires`
 byte-stable across runs and lets `d2w fhir generate examples` - a separate fetch - answer the
 questionnaire's items in the questionnaire's own order, which the FHIR validator requires
@@ -4047,7 +4047,7 @@ curl -s -u $A -H "$H" -X POST "$U/api/metadata?importStrategy=DELETE" -d @delete
 
 **Impact:** any cleanup that removes a graph of objects in one post: the example tidy-ups under `examples/`, and `d2w` callers that post a DELETE bundle.
 
-**Workaround in this repo:** the examples delete one object per request in dependency order (`examples/fhir/cli/registers_many_types.sh` already does; #104 records the sort-order half).
+**Workaround in the dhis2w-fhir pack:** the examples delete one object per request in dependency order ([`examples/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w-fhir/blob/main/examples/cli/registers_many_types.sh) already does; #104 records the sort-order half).
 
 **Status (2026-09-11):** STILL on all three: `500 "Transaction silently rolled back because it has been marked as rollback-only"` naming no object, and the three-type sub-bundle commits partially (`deleted: 3, ignored: 1` on `2.41.10`).
 
@@ -4821,8 +4821,8 @@ create, and the Maintenance app offers no way to make one without it.
 at all. `/api/programStages` counts 29 stages while only 28 are reachable through any program, so
 any consumer that joins stages through programs silently disagrees with the flat count.
 
-**Workaround applied in this repo:** none needed - the generator walks stages through their
-programs (`packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/`), so the orphan is
+**Workaround applied in the dhis2w-fhir pack:** none needed - the generator walks stages through their
+programs ([`packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/)), so the orphan is
 never published. Recorded because a stage count read off `/api/programStages` will not match what
 the guide serves, and that is the instance's inconsistency, not the projection's.
 
@@ -4869,8 +4869,8 @@ on any of the three seeds or the six play channels.
 itself; the API will not have done it. A consumer that assumes the opposite — that names arrive
 pre-escaped — double-escapes.
 
-**Workaround in this repo:**
-`packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py` matches both spellings of each
+**Workaround in the dhis2w-fhir pack:**
+[`packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py) matches both spellings of each
 comparison, the character and the entity, so the substitute posture rewrites
 `"Mortality &lt; 5 years"` and `"Mortality < 5 years"` to the same published wording, with the
 stored spelling kept recoverable as the `dhis2-name` property. The entity half of that match is a
@@ -5565,9 +5565,9 @@ dependency on `program`.
 **Impact:** every per-stage read must carry the program UID alongside the stage UID,
 and a client parsing error bodies as JSON gets a parse failure instead of a message.
 
-**Workaround in this repo:** the FHIR examples target sends `program` beside
+**Workaround in the dhis2w-fhir pack:** the FHIR examples target sends `program` beside
 `programStage` when reading a stage's events - see `_fetch_event_responses` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`.
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py).
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `programStage=` without `program=` answers `400 text/html`.
 
@@ -5631,24 +5631,24 @@ enrollment named in an `E1079` against the enrollments minted by the refused
 registrations (24 of 24). The wording is not stable across builds of one major either,
 so a rollup keying on the message rather than the code reads one refusal as two.
 
-**Workaround in this repo:** none possible on the read side - the code is what DHIS2
+**Workaround in the dhis2w-fhir pack:** none possible on the read side - the code is what DHIS2
 sends. The cause is addressed instead: `d2w fhir generate load-set` answers a `unique`
 tracked entity attribute from the minting response's own identity so the `E1064` never
 happens (`distinct_unique_value` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/resources/examples/__init__.py`), and
+[`packages/dhis2w-fhir/src/dhis2w_fhir/resources/examples/__init__.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/resources/examples/__init__.py)), and
 `d2w fhir forward` posts registrations before events so an enrollment exists by the
 time its events are read (`FORWARD_TARGET_ORDER` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/conversion/schemas.py`). The dry run cannot be
+[`packages/dhis2w-fhir/src/dhis2w_fhir/conversion/schemas.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/conversion/schemas.py)). The dry run cannot be
 addressed that way - `importMode=VALIDATE` writes nothing, so the enrollment is absent
 however the run is ordered - so a dry-run rejection carrying only this pair against an
 enrollment one of the run's own registrations mints is counted `unverifiable` rather
 than `rejected`, with a reason stating the fact rather than the codes (`_is_unverifiable`
-in `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`). An event naming an enrollment no
+in [`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py)). An event naming an enrollment no
 registration of the run mints stays a rejection. The other source of a fabricated
 enrollment is closed at the same place it was minted: a `$generate` stage response
 answers against the pair a spooled registration of its program minted, and mints one
 of its own only where no such registration exists (`adopted_tracker_pair` in
-`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py`).
+[`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py)).
 
 **Also observed with no earlier refusal at all** (2.42.6-SNAPSHOT, 2.43.1 rev
 `9cbfbf3`, and 2.43.2-SNAPSHOT rev `94e14ed`, all 2026-08-11): an event naming a
@@ -6026,7 +6026,7 @@ valid: ...`` - the identifier is absent entirely.
 **Impact:** a rejection rollup or an operator reading the import report has no way to
 locate the failing question on a form with many data elements of the same value type.
 
-**Workaround in this repo:** none possible on the read side - the message is DHIS2's.
+**Workaround in the dhis2w-fhir pack:** none possible on the read side - the message is DHIS2's.
 The cause is addressed instead: `$generate` and the examples emitter draw
 format-constrained value types (COORDINATE, PHONE_NUMBER, EMAIL, LETTER, USERNAME)
 through `seeded_format_constrained_value`, so generated corpora no longer trip `E1302`
@@ -6071,9 +6071,9 @@ the refused value a `WARNING` inside a 409; 2.43 calls it an `ERROR`.
 the counts and the rule survive, the data element does not. Any tooling reading
 `conflict.object` silently loses it on v43.
 
-**Workaround in this repo:** none possible - the field is absent from the wire.
+**Workaround in the dhis2w-fhir pack:** none possible - the field is absent from the wire.
 `ForwardImportIssue.subject` is `None` for these on v43, and the per-version fixture
-tests (`packages/dhis2w-fhir/tests/data/forward-409/`) pin each major's actual shape
+tests ([`packages/dhis2w-fhir/tests/data/forward-409/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/packages/dhis2w-fhir/tests/data/forward-409/)) pin each major's actual shape
 so a change in either direction surfaces.
 
 **Status per major (local stacks, 2026-09-07):** the divergence stands. `2.43.1.0` answers `status: ERROR` with an `E8122` conflict that names no `object` or `property`; `2.41.9.1` and `2.42.6.0` answer `status: WARNING` with `E7619`, `object` and `property: "value"` (the controls the entry describes).
@@ -6124,8 +6124,8 @@ response drops the identifier that found them, which reads to a user as the wron
 A caller has to know to ask for `enrollments[...attributes...]` explicitly, and to fold
 the two attribute lists itself.
 
-**Workaround in this repo:** every read in
-`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py` names its `fields`
+**Workaround in the dhis2w-fhir pack:** every read in
+[`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py) names its `fields`
 in full, enrollments and their attributes included, and
 `register/projection.py` folds the entity-level and enrollment-level values into one
 list deduplicated by attribute and value.
@@ -6163,11 +6163,11 @@ curl -s -u $A -H Accept:application/json \
 
 **Actual:** a stored registration.
 
-**Workaround in this repo:** the forwarder never sends `completeDate` on a data value
+**Workaround in the dhis2w-fhir pack:** the forwarder never sends `completeDate` on a data value
 set - the completeness claim is a separate `POST /api/completeDataSetRegistrations`
 made only after a real import succeeds (`translate_aggregate_response` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/conversion/payloads.py`; `_register_completeness`
-in `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`).
+[`packages/dhis2w-fhir/src/dhis2w_fhir/conversion/payloads.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/conversion/payloads.py); `_register_completeness`
+in [`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py)).
 
 **Status per major (local stacks, 2026-09-07):** STILL on the released `2.42.6.0` (the dry run stores the registration and persists no value); not present on `2.43.1.0`, as the entry says.
 
@@ -6192,7 +6192,7 @@ instance refuses.
 
 **Actual (2.42):** HTTP 409 with the conflict, and the registration stored.
 
-**Workaround in this repo:** same as entry 78 - `completeDate` is never sent; the
+**Workaround in the dhis2w-fhir pack:** same as entry 78 - `completeDate` is never sent; the
 separate completeness call fires only after the import report says the values landed.
 
 **Status per major (local stacks, 2026-09-07):** STILL on the released `2.42.6.0` (the registration is stored while every value is refused with `E7641`); not present on `2.43.1.0`.
@@ -6250,7 +6250,7 @@ BatchHandler"`, empty `conflicts`, all counts zero - indistinguishable from a re
 refusal; the byte-identical retry succeeds because the first attempt created the
 period row as a side effect.
 
-**Workaround in this repo:** none needed in practice - the forwarder posts the data
+**Workaround in the dhis2w-fhir pack:** none needed in practice - the forwarder posts the data
 values first, which persists the period properly, so the completeness call never sees
 a virgin period.
 
@@ -6348,7 +6348,7 @@ an author-chosen order, and the hash order shifts whenever a translation VALUE c
 an edit to one string reshuffles the file around it. A generator has to impose an order of
 its own or accept churn unrelated to the change being made.
 
-**Workaround in this repo:** `packages/dhis2w-fhir/src/dhis2w_fhir/i18n.py` sorts every
+**Workaround in the dhis2w-fhir pack:** [`packages/dhis2w-fhir/src/dhis2w_fhir/i18n.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/i18n.py) sorts every
 selected translation list by the normalised locale tag and deduplicates on it, so the
 generated file carries an order this repo chose rather than the one DHIS2 derived, and an
 unrelated value edit does not reshuffle it.
@@ -6409,7 +6409,7 @@ make an accidental re-send fail loudly, which is exactly what the FHIR forwarder
 for tracker events, gets a silent last-write-wins on the aggregate side, with no way to
 learn from the response that anything was clobbered (compounded by #85).
 
-**Workaround in this repo:** none in code. `docs/fhir/design/data-lifecycle.md` records
+**Workaround in the dhis2w-fhir pack:** none in code. [the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) records
 this as the reason the FHIR forwarder's aggregate leg cannot detect an overwrite, and
 designs the overwrite report off our own spool instead.
 
@@ -6459,7 +6459,7 @@ caller reconciling counts - a forwarder, a migration, a nightly sync - has to re
 back before writing to learn what it is about to do. Combined with #84 there is no
 wire-level defence against a silent clobber at all.
 
-**Workaround in this repo:** none in code. `docs/fhir/design/data-lifecycle.md` records
+**Workaround in the dhis2w-fhir pack:** none in code. [the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) records
 that the spool, not the import summary, is where an aggregate overwrite has to be detected.
 
 **How to know it's fixed:** the post above returns `"imported":1,"updated":0`.
@@ -6513,7 +6513,7 @@ consequences in #2 and #87.
 entry needs a per-version table, because the same correcting payload would erase on one
 major and be refused on another.
 
-**Workaround in this repo:** none in code. `docs/fhir/design/data-lifecycle.md` requires a
+**Workaround in the dhis2w-fhir pack:** none in code. [the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) requires a
 correcting payload to carry complete state on both surfaces, so a cleared answer is always
 an explicit value rather than an omission.
 
@@ -6572,7 +6572,7 @@ that was never there, and fabricates a value in the deleted-row history that no 
 ever asserted. Deletion becomes a one-way ratchet on metadata lifecycle: a client that
 issues deletes speculatively will slowly make its own metadata unremovable.
 
-**Workaround in this repo:** none in code yet. `docs/fhir/design/data-lifecycle.md` makes
+**Workaround in the dhis2w-fhir pack:** none in code yet. [the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) makes
 "read before you delete" a requirement of the aggregate withdrawal slice for exactly this
 reason, and orders that slice after the event one because of it.
 
@@ -6625,8 +6625,8 @@ information at all.
 from a create. Anything auditing "how many values did this run remove?" from the import
 summary is reading a number structurally incapable of answering.
 
-**Workaround in this repo:** the FHIR forwarder never sends inline `deleted`; the withdrawal
-design in `docs/fhir/design/data-lifecycle.md` uses `importStrategy=DELETE` and records the
+**Workaround in the dhis2w-fhir pack:** the FHIR forwarder never sends inline `deleted`; the withdrawal
+design in [the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) uses `importStrategy=DELETE` and records the
 outcome in the receipt's own sidecar rather than trusting the counters.
 
 **How to know it's fixed:** the second post above reports `"deleted":1`.
@@ -6676,8 +6676,8 @@ directly. It has to reconstruct a collection query - which needs `program`, and 
 also trips #67 and #91 - and filter client-side. A client that holds only the UID, which is
 the normal case after a delete, has no direct read at all.
 
-**Workaround in this repo:** none in code yet. Recorded in
-`docs/fhir/design/data-lifecycle.md` as a constraint on how a withdrawn receipt's DHIS2
+**Workaround in the dhis2w-fhir pack:** none in code yet. Recorded in
+[the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) as a constraint on how a withdrawn receipt's DHIS2
 state can be verified.
 
 **How to know it's fixed:** `GET /api/tracker/events/{uid}?includeDeleted=true` returns the
@@ -6722,8 +6722,8 @@ explicitly asks for deleted rows, yet remains enumerable to anyone who already k
 UID. Any workflow that answers "was this person ever registered here?" from an identifier
 search answers "no" for someone who was.
 
-**Workaround in this repo:** none in code. Recorded in
-`docs/fhir/design/data-lifecycle.md` alongside the cascade findings, as one reason
+**Workaround in the dhis2w-fhir pack:** none in code. Recorded in
+[the dhis2w-fhir `design/data-lifecycle` page](https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/) alongside the cascade findings, as one reason
 tracked-entity withdrawal is designed but deliberately unscheduled.
 
 **How to know it's fixed:** the filtered search above returns the entity with
@@ -6884,11 +6884,11 @@ reaching a parameter that *is* recognised at the top level.
 of it, which also means it cannot page the timeline at the source: a "first ten events" read of a
 collection in an unstated order is ten arbitrary events.
 
-**Workaround applied in this repo.** The record surface orders the events itself, newest first, by
+**Workaround applied in the dhis2w-fhir pack.** The record surface orders the events itself, newest first, by
 `occurredAt` and then by the event UID as the tie-break, and pages the ordered result rather than
 the answer:
 `recorded_entity` in
-`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/history/wire.py`. The tie-break is what makes two
+[`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/history/wire.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/history/wire.py). The tie-break is what makes two
 reads of an unchanged record answer the same bytes.
 
 **How to know it's fixed:** the nested read answers in `occurredAt` order, or honours the `order=`
@@ -7018,9 +7018,9 @@ first version of this repository's fetch asked for `programRules[...]` on the pr
 projection, got a clean 200 for every program, and concluded the instance held no program
 rules at all.
 
-**Workaround in this repo:** `_PROGRAM_RULE_VARIABLE_FIELDS` rides the program projection
+**Workaround in the dhis2w-fhir pack:** `_PROGRAM_RULE_VARIABLE_FIELDS` rides the program projection
 and `_fetch_program_rules` reads `/api/programRules` unfiltered in one further request; see
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`. The rules are then indexed by
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py). The rules are then indexed by
 `program[id]` and carried onto every form that program publishes.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: `programRules` is not on the Program schema and `fields=programRules[...]` is dropped without a word, while `programRuleVariables[...]` answers.
@@ -7085,8 +7085,8 @@ reader written against one shape silently yields None against the other, and the
 invisible: every rule is skipped and the run reports no rules rather than an error. Teaching
 the emitter to consume `itemPropertyType` / `itemKlass` closes it without any upstream change.
 
-**Workaround in this repo:** `_referenced_uid` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py` reads both shapes, so each call site names
+**Workaround in the dhis2w-fhir pack:** `_referenced_uid` in
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py) reads both shapes, so each call site names
 the DHIS2 fact rather than the wire encoding it happened to arrive in.
 
 **Status on v43 (`2.43.1.0`, local stack 2026-09-07):** STILL: the same `{id}` reference is typed under two component names in the OpenAPI document; the wire carries `{"id": ...}` on both sides.
@@ -7301,10 +7301,10 @@ identifier and must pick a temporal key instead. That is a weaker guarantee: two
 the same millisecond have no defined relative order under `createdAt`, so a page is stable in
 practice rather than by contract.
 
-**Workaround in this repo:** every tracked-entity read that needs a fixed cohort orders by
+**Workaround in the dhis2w-fhir pack:** every tracked-entity read that needs a fixed cohort orders by
 `createdAt:asc` instead. The engine's end-to-end tests in
-`packages/dhis2w-fhir-engine/tests/e2e_dhis2/` (see `conftest.py`, `read_seeded_cohort`) and the
-matching example `examples/fhir/engine/e2e_measure_from_dhis2.py` both do so, each with a comment
+[`packages/dhis2w-fhir-engine/tests/e2e_dhis2/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/packages/dhis2w-fhir-engine/tests/e2e_dhis2/) (see `conftest.py`, `read_seeded_cohort`) and the
+matching example [`examples/engine/e2e_measure_from_dhis2.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/examples/engine/e2e_measure_from_dhis2.py) both do so, each with a comment
 citing this entry.
 
 **Status (2026-09-07):** STILL on `2.43.1.0` (local) and on `stable-2-43-1` / `dev-2-43` (`409 E7145`); v43-only: `stable-2-41-9-1`, `dev-2-41`, `stable-2-42-6` and `dev-2-42` answer 200 to `order=trackedEntity:asc`.
@@ -7388,12 +7388,12 @@ person's data to another. For an incremental syncer the same hole swallows `upda
 `includeDeleted` is the only way to see a deletion, so a typo there is silent permanent data loss
 in the consumer.
 
-**Workaround in this repo:** tracked-entity reads address one entity by the plural
+**Workaround in the dhis2w-fhir pack:** tracked-entity reads address one entity by the plural
 `trackedEntities=` or by the item route, never by the singular. The FHIR facade's
 `fetch_tracked_entity` in
-`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py` uses the item route
+[`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py) uses the item route
 `GET /api/tracker/trackedEntities/{uid}` and so is unaffected. The measurement that surfaced
-this is written up in `docs/fhir/design/projection.md` section 3.4.
+this is written up in [the dhis2w-fhir `design/projection` page](https://winterop-com.github.io/dhis2w-fhir/design/projection/) section 3.4.
 
 **How to know it's fixed:** query (b) with `trackedEntity=` either returns one entity or answers
 a DHIS2 JSON error naming the parameter it did not recognise, and the OpenAPI document in (c)
@@ -7698,10 +7698,10 @@ its scope did nothing). The second is the content type: two sibling collections 
 prefix refuse the same shape of mistake, one in the API's own error envelope and one in the servlet
 container's HTML.
 
-**Workaround applied in this repo.** A sync's enrollment poll is scoped by programme, walking the
+**Workaround applied in the dhis2w-fhir pack.** A sync's enrollment poll is scoped by programme, walking the
 programmes the published guide names rather than the tracked entity types the register serves —
 `poll_enrollments` in
-`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py`, over
+[`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/register/wire.py), over
 `TrackedEntityIndex.program_uids()`. The event collection is not polled at all, for a reason that
 is about the projection rather than about this bug
 (`dhis2w_fhir_serve.projection.base.ProjectionEndpoint`), so the HTML refusal costs this repo
@@ -7762,8 +7762,8 @@ reference that blocks it.
 and the failure surfaces as a raw PostgreSQL foreign-key message - constraint name, table name, and
 an internal integer primary key - rather than as an import conflict a caller can act on.
 
-**Workaround applied in this repo.** Two posts, referencing objects first:
-`examples/fhir/cli/registers_many_types.sh` writes `delete-programmes.json`, `delete-types.json`,
+**Workaround applied in the dhis2w-fhir pack.** Two posts, referencing objects first:
+[`examples/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w-fhir/blob/main/examples/cli/registers_many_types.sh) writes `delete-programmes.json`, `delete-types.json`,
 and `delete-attribute.json` and posts them in that order in its `cleanup` function.
 
 **How to know it's fixed:** the single-bundle `DELETE` above answers `status: OK` and removes both
@@ -7813,10 +7813,10 @@ parameter for it (compare #89, #90) - or `E4030` names the entity that is blocki
 refusal names only the class of object. An operator holding both answers - "there are no entities"
 and "an entity is in the way" - has no query that reconciles them.
 
-**Workaround applied in this repo.** `d2w maintenance cleanup tracked-entities` (`POST
+**Workaround applied in the dhis2w-fhir pack.** `d2w maintenance cleanup tracked-entities` (`POST
 /api/maintenance/softDeletedTrackedEntityRemoval`, the path form every release's OpenAPI
 document declares on 2.42.6 and 2.43.1) runs before the metadata delete;
-`examples/fhir/cli/registers_many_types.sh` does it in its `cleanup` function and says why.
+[`examples/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w-fhir/blob/main/examples/cli/registers_many_types.sh) does it in its `cleanup` function and says why.
 
 **The query-flag spelling is release-specific, and an unknown flag is a silent no-op
 (2026-09-07):** `POST /api/maintenance?<flag>=true` answers 204 (2.41.9.1, 2.42.6.0) or 200
@@ -7875,8 +7875,8 @@ the answer to distinguish "the instance holds none" from "the instance holds the
 you". Sharing is not the discriminator - the seeded types this was compared against carry `rw------`
 (no data sharing at all) and answer fine, because a program tracks them.
 
-**Workaround applied in this repo.** A tracked entity type whose register is meant to be readable
-gets a tracker program: `examples/fhir/cli/registers_many_types.sh` creates one registration
+**Workaround applied in the dhis2w-fhir pack.** A tracked entity type whose register is meant to be readable
+gets a tracker program: [`examples/cli/registers_many_types.sh`](https://github.com/winterop-com/dhis2w-fhir/blob/main/examples/cli/registers_many_types.sh) creates one registration
 programme per demo type and says why in its section 2.
 
 **Status per major (local stacks, 2026-09-07):** the type-scoped list answers an empty page on
@@ -7931,13 +7931,13 @@ question about either. It also makes the operator's name misleading in exactly t
 direction that is hard to notice: a caller tests with the stored spelling, sees the right
 answer, and never learns the filter is wider than the name says.
 
-**Workaround applied in this repo:** none in the request - `dhis2w_fhir_serve.register.wire`
+**Workaround applied in the dhis2w-fhir pack:** none in the request - `dhis2w_fhir_serve.register.wire`
 sends `eq` as it is. What the workaround shapes is the OTHER backend: the register's value
 filter (`d2-attribute`, `dhis2w_fhir_serve.register.filtering`) is answered from the
 materialized projection as well as from the instance, so the projection matches the FOLDED
 value (`ProjectedNameRow.folded`) to keep the two backends answering the same records. The
 declarations - `/metadata`'s search parameter documentation, `/uiconfig`, and
-`docs/fhir/301-serving.md` - all state that the filter ignores case, and name this entry.
+[the dhis2w-fhir `301-serving` page](https://winterop-com.github.io/dhis2w-fhir/301-serving/) - all state that the filter ignores case, and name this entry.
 
 **How to know it's fixed:** the second `curl` above answers `0`.
 
@@ -7996,12 +7996,12 @@ had. An import of several thousand values refused on this code tells an operator
 act on without a second round of metadata reads, and the rule that closes a period from inside is
 not one a reader would guess from "startDate / endDate".
 
-**Workaround applied in this repo:** the generator reads `categoryOptions[].startDate,endDate` in
+**Workaround applied in the dhis2w-fhir pack:** the generator reads `categoryOptions[].startDate,endDate` in
 the same request it reads `organisationUnits` (`fetch_attribute_option_restrictions` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`) and publishes the narrowest window of a combo's
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py)) and publishes the narrowest window of a combo's
 options on the combo concept as `dhis2-valid-from` / `dhis2-valid-to`
-(`packages/dhis2w-fhir/src/dhis2w_fhir/resources/attribute_combos/restrictions.py`). The facade then
-draws and grades against it (`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py`,
+([`packages/dhis2w-fhir/src/dhis2w_fhir/resources/attribute_combos/restrictions.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/resources/attribute_combos/restrictions.py)). The facade then
+draws and grades against it ([`packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/synthesize.py),
 `.../capture/validate.py`), so a client is told which window closed and on what day before DHIS2
 ever sees the payload.
 
@@ -8060,10 +8060,10 @@ identical across the split.
 unforwardable. `d2w fhir forward` drains a spool one payload at a time; a 500 is not an import
 report, so the drain stops and the rest of the queue is untouched.
 
-**Workaround applied in this repo:** none - there is nothing a caller can do about it. The drain
+**Workaround applied in the dhis2w-fhir pack:** none - there is nothing a caller can do about it. The drain
 stops honestly rather than guessing: it names the receipt it stopped at, states that the instance
 answered 500 rather than an import report, leaves every unposted response in the queue, and exits 1
-(`forward_responses` in `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`). A flag to skip one
+(`forward_responses` in [`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py)). A flag to skip one
 poisoned payload and drain the rest is a follow-up this entry does not assume.
 
 **How to know it's fixed:** the first post above answers 200 with an import summary.
@@ -8110,10 +8110,10 @@ so the value is still there.
 they are not sure the payload is safe. Two sibling endpoints that spell it the same way and mean
 opposite things is the shape of mistake that only shows up on production data.
 
-**Workaround applied in this repo:** the forwarder only ever posts data values through
+**Workaround applied in the dhis2w-fhir pack:** the forwarder only ever posts data values through
 `POST /api/dataValueSets`, which honours `dryRun`, and never through `POST /api/dataValues`
 (`_DATA_VALUE_SETS_PATH`, the one aggregate import path `forward_responses` posts to, in
-`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`).
+[`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py)).
 
 **How to know it's fixed:** the third read above comes back empty, or the second call is refused.
 
@@ -8163,10 +8163,10 @@ element it targets is one the caller cannot pre-empt - an empty answer is exactl
 for the assignment. A caller reading the conflict has nothing to act on, because the offending value
 is not in the payload they sent.
 
-**Workaround applied in this repo:** none is possible on the caller's side. Every example this
+**Workaround applied in the dhis2w-fhir pack:** none is possible on the caller's side. Every example this
 toolchain publishes already leaves an assigned question unanswered, which is what `E1307` asks for
 (`_computed_answer_text` and `PublishedProgramRule.assigns` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/program_rules.py`), and the run says
+[`packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/program_rules.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/resources/questionnaires/program_rules.py)), and the run says
 out loud which questions those are. The `E1302` that remains is the instance refusing its own
 arithmetic.
 
@@ -8245,21 +8245,21 @@ The same character in an `identifier[].value` fails a little earlier and a littl
 publisher also writes raw. A `>` and a bare `&` are tolerated by the parse and render as a malformed
 page rather than an aborted build, so `<` is the one character seen to be fatal.
 
-**Workaround applied in this repo.** Three, at three distances from the publisher:
+**Workaround applied in the dhis2w-fhir pack.** Three, at three distances from the publisher:
 
 - `d2w fhir generate` refuses a run whose selected DHIS2 names or codes carry `<`, naming the object
   before a file is written - `_refuse_build_aborting_objects` and its siblings in
-  `packages/dhis2w-fhir/src/dhis2w_fhir/service.py`, over the
+  [`packages/dhis2w-fhir/src/dhis2w_fhir/service.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/service.py), over the
   `build_aborting_name` / `build_aborting_code` predicates in
-  `packages/dhis2w-fhir/src/dhis2w_fhir/validation/__init__.py`.
+  [`packages/dhis2w-fhir/src/dhis2w_fhir/validation/__init__.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/validation/__init__.py).
 - `d2w fhir generate --substitute-hostile-names` publishes the name in wording the publisher
   survives instead - `5 to under 15 years, Female` - leaving DHIS2 and every emitted identifier
-  untouched: `packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py` and
-  `packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py`. This exists because refusing is the wrong
+  untouched: [`packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/validation/substitution.py) and
+  [`packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py). This exists because refusing is the wrong
   answer for an instance whose age bands are all named this way.
 - `d2w fhir check-artifacts` applies the same predicates to the files already on disk, which is what
   `make build` runs first:
-  `packages/dhis2w-fhir/src/dhis2w_fhir/validation/artifacts.py`.
+  [`packages/dhis2w-fhir/src/dhis2w_fhir/validation/artifacts.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/validation/artifacts.py).
 
 **How to know it's fixed:** a guide holding the repro CodeSystem builds to completion, and the
 rendered page shows `5 to &lt; 15 years, Female`. The refusal and the rewrite both become optional
@@ -8310,22 +8310,22 @@ itself calls malformed.
 **Actual.** One anchor id for both rows, a QA error per collision, and an `Internal error in
 location` line above it. The build still exits 0 - the errors are QA-level.
 
-**Workaround applied in this repo:** posture-dependent, and never a merge. Two codes that differ
+**Workaround applied in the dhis2w-fhir pack:** posture-dependent, and never a merge. Two codes that differ
 only in whitespace stay two concepts either way - merging them would make a `content: complete`
 claim false, and `_distinct_concepts` in
-`packages/dhis2w-fhir/src/dhis2w_fhir/resources/identifier_terminology.py` still dedupes exact
+[`packages/dhis2w-fhir/src/dhis2w_fhir/resources/identifier_terminology.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/resources/identifier_terminology.py) still dedupes exact
 duplicates only.
 
 Under `hostile_names = "substitute"` the run publishes no space-carrying code at all:
-`packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py` hyphenates every space in a DHIS2 code
-before emission (`packages/dhis2w-fhir/src/dhis2w_fhir/coded.py` holds the rewrite and the
+[`packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/hostile_names.py) hyphenates every space in a DHIS2 code
+before emission ([`packages/dhis2w-fhir/src/dhis2w_fhir/coded.py`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/coded.py) holds the rewrite and the
 de-collision ordinal), so `Pre eclampsia` is published as `Pre-eclampsia`, `Preeclampsia` keeps
 its own spelling, and the two anchor ids differ. The DHIS2 code rides along byte-true as a
 `dhis2-code` concept property, so nothing about the join back to the instance is lost.
 
 Under `hostile_names = "refuse"` and with the key unset, the codes reach the guide byte-true and
 the QA errors remain - cosmetic, and counted among a guide's expected errors.
-`docs/fhir/201-troubleshooting.md` names the symptom and both postures.
+[the dhis2w-fhir `201-troubleshooting` page](https://winterop-com.github.io/dhis2w-fhir/201-troubleshooting/) names the symptom and both postures.
 
 **Status (2026-09-07):** not part of this sweep (HL7 IG publisher, not DHIS2); `make verify-igs` was not run.
 
@@ -8364,9 +8364,9 @@ The fresh-directory case is the loud one. On a build over an `output/` a previou
 the same step reads that **previous** run's `package.tgz` and writes a combined package from stale
 content without a word.
 
-**Workaround applied in this repo.** None is possible from outside the publisher, and nothing here
+**Workaround applied in the dhis2w-fhir pack.** None is possible from outside the publisher, and nothing here
 reads `package-combined.tgz`. The scaffolded Makefile's `REPORT_RUN`
-(`packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/templates/Makefile.jinja`) notices the line in a
+([`packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/templates/Makefile.jinja`](https://github.com/winterop-com/dhis2w-fhir/blob/main/packages/dhis2w-fhir/src/dhis2w_fhir/scaffold/templates/Makefile.jinja)) notices the line in a
 build that exited 0 and prints a note saying what it is, so it is not read as a failed build. The
 copy-in `make build` never carries `output/` into the container, so it always takes the loud path
 rather than the stale one.

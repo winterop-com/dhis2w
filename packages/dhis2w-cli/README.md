@@ -15,9 +15,17 @@ uv tool install 'dhis2w-cli[security]'
 uv tool install 'dhis2w-cli[browser]'
 playwright install chromium    # one-time, after the install above
 
+# With FHIR Implementation Guide tooling (the dhis2w-fhir pack mounts `d2w fhir`);
+# add `serve` for the capture facade behind `d2w fhir serve`
+uv tool install 'dhis2w-cli[fhir]'
+uv tool install 'dhis2w-cli[fhir,serve]'
+
 # Update later
 uv tool upgrade dhis2w-cli
 ```
+
+Extras combine (`'dhis2w-cli[fhir,security]'`). A pack's command without the pack installed -
+`d2w fhir`, `d2w browser`, `d2w security` - prints the install command that adds it.
 
 Or run on demand without installing:
 
@@ -50,7 +58,7 @@ d2w browser      Playwright UI automation (only with [browser] extra).
 d2w data         DHIS2 data values (aggregate + tracker).
 d2w dev          Developer/operator tools.
 d2w doctor       Probe a DHIS2 instance for known gotchas + requirements.
-d2w fhir         FHIR IG generation (SUSHI/FSH) from DHIS2 metadata.
+d2w fhir         FHIR IG generation, serving and capture (only with [fhir] extra).
 d2w files        Manage DHIS2 documents + file resources.
 d2w maintenance  DHIS2 maintenance (tasks, cache, integrity, cleanup, refresh).
 d2w messaging    DHIS2 internal messaging.

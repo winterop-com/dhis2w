@@ -40,11 +40,12 @@ theme:
     - content.code.copy
 
 nav:
-  # One tab per feature surface - Client, CLI, MCP, FHIR -
-  # and each one is a self-contained directory under docs/ holding its own
-  # guides, reference, and design. "Get started" is onboarding only;
-  # "Architecture" is what the surfaces share; "Project" carries the
-  # catalog, the roadmap, and everything maintainer-facing.
+  # One tab per feature surface - Client, CLI, MCP, FHIR. Client and CLI are
+  # self-contained directories under docs/ holding their own guides, reference,
+  # and design; MCP and FHIR are packs whose tabs point at their own sites.
+  # "Get started" is onboarding only; "Architecture" is what the surfaces
+  # share; "Project" carries the catalog, the roadmap, and everything
+  # maintainer-facing.
   - Get started:
       - Home: index.md
       - Why dhis2w?: announcement.md
@@ -85,7 +86,7 @@ nav:
           - Apps plugin: architecture/apps-plugin.md
           - Route plugin: architecture/route-plugin.md
           - Doctor plugin: architecture/doctor-plugin.md
-          - FHIR plugin: fhir/architecture.md
+          - FHIR plugin: https://winterop-com.github.io/dhis2w-fhir/architecture/
   - Client:
       - Introduction: client/index.md
       - Tutorial: client/tutorial.md
@@ -161,68 +162,7 @@ nav:
           - Design: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/
       - Router:
           - Design: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/
-  - FHIR:
-      - Overview: fhir/index.md
-      - Introduction: fhir/100-introduction.md
-      - 101 - Understand:
-          - Glossary: fhir/glossary.md
-          - What and why: fhir/101-what-and-why.md
-          - FHIR for DHIS2 people: fhir/101-fhir-concepts.md
-          - Quickstart: fhir/101-quickstart.md
-      - 201 - Operate a project:
-          - Run a secured facade: fhir/201-run-a-secured-facade.md
-          - Check an instance with doctor: fhir/201-doctor.md
-          - Set up a project: fhir/201-set-up-a-project.md
-          - Validate an instance: fhir/201-validate.md
-          - Generate the IG source: fhir/201-generate.md
-          - Build and publish the guide: fhir/201-build-and-publish.md
-          - Build a registry and a guide: fhir/201-registry-and-guide.md
-          - Publish the registry as a package: fhir/201-registry-package.md
-          - Serve the guide: fhir/201-serve.md
-          - Secure the facade: fhir/201-secure.md
-          - Capture in the browser: fhir/201-capture-ui.md
-          - Forward captures into DHIS2: fhir/201-forward.md
-          - Troubleshooting: fhir/201-troubleshooting.md
-      - 301 - Configure fhir.toml:
-          - The settings file: fhir/301-fhir-toml.md
-          - Identity - profile and ig: fhir/301-identity.md
-          - What goes in - selection: fhir/301-what-goes-in.md
-          - How things are generated: fhir/301-generation.md
-          - Serving: fhir/301-serving.md
-      - 401 - Integrate and extend:
-          - The capture contract: fhir/401-capture-contract.md
-          - Consume the FHIR API: fhir/401-consume-the-fhir-api.md
-          - Embed the facade: fhir/401-embed-the-facade.md
-          - Build your own facade: fhir/401-build-your-own-facade.md
-          - Identifiers and extensions: fhir/401-identifiers-and-extensions.md
-          - Terminology and ConceptMaps: fhir/401-terminology-and-conceptmaps.md
-          - Custom subject types: fhir/401-custom-subject-types.md
-          - Regeneration and hand-authoring: fhir/401-regeneration-and-hand-authoring.md
-      - 501 - Evaluate:
-          - FHIRPath: fhir/501-fhirpath.md
-          - CQL: fhir/501-cql.md
-          - Quality measures: fhir/501-measures.md
-          - The FHIR version binding: fhir/501-version-binding.md
-      - Reference:
-          - Runnable examples: examples.md
-          - dhis2w_fhir API: fhir/api-dhis2w-fhir.md
-          - dhis2w_fhir_serve API: fhir/api-dhis2w-fhir-serve.md
-          - dhis2w_fhir_engine API: fhir/api-dhis2w-fhir-engine.md
-      - Design:
-          - Architecture: fhir/architecture.md
-          - Roadmap + review guide: fhir/design/roadmap.md
-          - The conversion layer: fhir/design/conversion.md
-          - What a concept's code is: fhir/design/concept-codes.md
-          - Endpoint naming: fhir/design/endpoint-naming.md
-          - Aggregate read-back: fhir/design/aggregate-read-back.md
-          - Corrections and withdrawals: fhir/design/data-lifecycle.md
-          - DHIS2 fidelity audit: fhir/design/dhis2-fidelity.md
-          - The enrollment resource: fhir/design/enrollment-resource.md
-          - The IPS document: fhir/design/ips.md
-          - Harmonization: fhir/design/harmonization.md
-          - The library surface: fhir/design/library.md
-          - Native FHIR resource intake: fhir/design/native-intake.md
-          - The materialized projection: fhir/design/projection.md
+  - FHIR: https://winterop-com.github.io/dhis2w-fhir/
   - Project:
       - Overview: project/index.md
       - Feature catalog: project/features.md
@@ -301,6 +241,59 @@ plugins:
         architecture/mcp-router.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/
         architecture/mcp-surfaces.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-surfaces/
         mcp-reference.md: https://winterop-com.github.io/dhis2w-mcp/tool-reference/
+        fhir/100-introduction.md: https://winterop-com.github.io/dhis2w-fhir/100-introduction/
+        fhir/101-fhir-concepts.md: https://winterop-com.github.io/dhis2w-fhir/101-fhir-concepts/
+        fhir/101-quickstart.md: https://winterop-com.github.io/dhis2w-fhir/101-quickstart/
+        fhir/101-what-and-why.md: https://winterop-com.github.io/dhis2w-fhir/101-what-and-why/
+        fhir/201-build-and-publish.md: https://winterop-com.github.io/dhis2w-fhir/201-build-and-publish/
+        fhir/201-capture-ui.md: https://winterop-com.github.io/dhis2w-fhir/201-capture-ui/
+        fhir/201-doctor.md: https://winterop-com.github.io/dhis2w-fhir/201-doctor/
+        fhir/201-forward.md: https://winterop-com.github.io/dhis2w-fhir/201-forward/
+        fhir/201-generate.md: https://winterop-com.github.io/dhis2w-fhir/201-generate/
+        fhir/201-registry-and-guide.md: https://winterop-com.github.io/dhis2w-fhir/201-registry-and-guide/
+        fhir/201-registry-package.md: https://winterop-com.github.io/dhis2w-fhir/201-registry-package/
+        fhir/201-run-a-secured-facade.md: https://winterop-com.github.io/dhis2w-fhir/201-run-a-secured-facade/
+        fhir/201-secure.md: https://winterop-com.github.io/dhis2w-fhir/201-secure/
+        fhir/201-serve.md: https://winterop-com.github.io/dhis2w-fhir/201-serve/
+        fhir/201-set-up-a-project.md: https://winterop-com.github.io/dhis2w-fhir/201-set-up-a-project/
+        fhir/201-troubleshooting.md: https://winterop-com.github.io/dhis2w-fhir/201-troubleshooting/
+        fhir/201-validate.md: https://winterop-com.github.io/dhis2w-fhir/201-validate/
+        fhir/301-fhir-toml.md: https://winterop-com.github.io/dhis2w-fhir/301-fhir-toml/
+        fhir/301-generation.md: https://winterop-com.github.io/dhis2w-fhir/301-generation/
+        fhir/301-identity.md: https://winterop-com.github.io/dhis2w-fhir/301-identity/
+        fhir/301-serving.md: https://winterop-com.github.io/dhis2w-fhir/301-serving/
+        fhir/301-what-goes-in.md: https://winterop-com.github.io/dhis2w-fhir/301-what-goes-in/
+        fhir/401-build-your-own-facade.md: https://winterop-com.github.io/dhis2w-fhir/401-build-your-own-facade/
+        fhir/401-capture-contract.md: https://winterop-com.github.io/dhis2w-fhir/401-capture-contract/
+        fhir/401-consume-the-fhir-api.md: https://winterop-com.github.io/dhis2w-fhir/401-consume-the-fhir-api/
+        fhir/401-custom-subject-types.md: https://winterop-com.github.io/dhis2w-fhir/401-custom-subject-types/
+        fhir/401-embed-the-facade.md: https://winterop-com.github.io/dhis2w-fhir/401-embed-the-facade/
+        fhir/401-identifiers-and-extensions.md: https://winterop-com.github.io/dhis2w-fhir/401-identifiers-and-extensions/
+        fhir/401-regeneration-and-hand-authoring.md: https://winterop-com.github.io/dhis2w-fhir/401-regeneration-and-hand-authoring/
+        fhir/401-terminology-and-conceptmaps.md: https://winterop-com.github.io/dhis2w-fhir/401-terminology-and-conceptmaps/
+        fhir/501-cql.md: https://winterop-com.github.io/dhis2w-fhir/501-cql/
+        fhir/501-fhirpath.md: https://winterop-com.github.io/dhis2w-fhir/501-fhirpath/
+        fhir/501-measures.md: https://winterop-com.github.io/dhis2w-fhir/501-measures/
+        fhir/501-version-binding.md: https://winterop-com.github.io/dhis2w-fhir/501-version-binding/
+        fhir/api-dhis2w-fhir-engine.md: https://winterop-com.github.io/dhis2w-fhir/api-dhis2w-fhir-engine/
+        fhir/api-dhis2w-fhir-serve.md: https://winterop-com.github.io/dhis2w-fhir/api-dhis2w-fhir-serve/
+        fhir/api-dhis2w-fhir.md: https://winterop-com.github.io/dhis2w-fhir/api-dhis2w-fhir/
+        fhir/architecture.md: https://winterop-com.github.io/dhis2w-fhir/architecture/
+        fhir/design/aggregate-read-back.md: https://winterop-com.github.io/dhis2w-fhir/design/aggregate-read-back/
+        fhir/design/concept-codes.md: https://winterop-com.github.io/dhis2w-fhir/design/concept-codes/
+        fhir/design/conversion.md: https://winterop-com.github.io/dhis2w-fhir/design/conversion/
+        fhir/design/data-lifecycle.md: https://winterop-com.github.io/dhis2w-fhir/design/data-lifecycle/
+        fhir/design/dhis2-fidelity.md: https://winterop-com.github.io/dhis2w-fhir/design/dhis2-fidelity/
+        fhir/design/endpoint-naming.md: https://winterop-com.github.io/dhis2w-fhir/design/endpoint-naming/
+        fhir/design/enrollment-resource.md: https://winterop-com.github.io/dhis2w-fhir/design/enrollment-resource/
+        fhir/design/harmonization.md: https://winterop-com.github.io/dhis2w-fhir/design/harmonization/
+        fhir/design/ips.md: https://winterop-com.github.io/dhis2w-fhir/design/ips/
+        fhir/design/library.md: https://winterop-com.github.io/dhis2w-fhir/design/library/
+        fhir/design/native-intake.md: https://winterop-com.github.io/dhis2w-fhir/design/native-intake/
+        fhir/design/projection.md: https://winterop-com.github.io/dhis2w-fhir/design/projection/
+        fhir/design/roadmap.md: https://winterop-com.github.io/dhis2w-fhir/design/roadmap/
+        fhir/glossary.md: https://winterop-com.github.io/dhis2w-fhir/glossary/
+        fhir/index.md: https://winterop-com.github.io/dhis2w-fhir/
   - mkdocstrings:
       handlers:
         python:

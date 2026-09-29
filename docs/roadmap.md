@@ -2,7 +2,7 @@
 
 A running inventory of what the workspace covers today, gaps surfaced during use, and the near-term plan. Every item is a judgment call about priority, not a commitment.
 
-The FHIR plugin keeps its own plan: roadmap, settled and open decisions, review dimensions, and build measurements all live in the [FHIR roadmap and review guide](fhir/design/roadmap.md), and this page does not restate them.
+The FHIR pack keeps its own plan: roadmap, settled and open decisions, review dimensions, and build measurements all live in the [FHIR roadmap and review guide](https://winterop-com.github.io/dhis2w-fhir/design/roadmap/) of the `dhis2w-fhir` pack, and this page does not restate them.
 
 **Open source at 2.0.0.** The workspace ships under a proprietary license today; the 2.0.0 release makes it fully open source. The license choice and the relicensing mechanics are settled as part of cutting that release, not before.
 
@@ -109,9 +109,9 @@ Public distribution is active — every workspace member (except `dhis2w-codegen
 
 - Auto-generated **CLI reference** (`docs/cli-reference.md`, ~10,300 lines from the Typer app), regenerated on every `make docs-build`. The **MCP tool reference** (roughly 315 tools across 14 groups) is generated in the `dhis2w-mcp` pack and published at <https://winterop-com.github.io/dhis2w-mcp/tool-reference/>. The counts age with each release.
 - **Narrative tutorials**: `docs/cli/tutorial.md`, `docs/client/tutorial.md`, `docs/guides/visualizations.md` (step-by-step viz + dashboard composition).
-- **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client}/` hold a single copy of each example that runs against v41, v42, and v43 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run, and `examples/fhir/{cli,client}/` beside them. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
+- **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client}/` hold a single copy of each example that runs against v41, v42, and v43 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run. The FHIR examples live in the `dhis2w-fhir` pack. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
 - **Architecture docs** cover every plugin, the client, auth, profiles, codegen, typed schemas, plugins runtime, external plugins, versioning. MCP and browser automation are documented on their packs' own sites.
-- **One directory per feature surface**: `docs/{client,cli,fhir,query}/` each hold their own guides, reference, and design, and each has a navigation tab of its own. `docs/guides/` keeps only what is genuinely cross-cutting, and `docs/project/` is the catalog, the roadmap, the upstream quirks, and the maintainer-facing pages.
+- **One directory per feature surface**: `docs/{client,cli,query}/` each hold their own guides, reference, and design, and each has a navigation tab of its own; the MCP, browser, and FHIR tabs point at their packs' sites. `docs/guides/` keeps only what is genuinely cross-cutting, and `docs/project/` is the catalog, the roadmap, the upstream quirks, and the maintainer-facing pages.
 - **`BUGS.md`** — nearly a hundred upstream DHIS2 quirks with live `curl` repros + v43 re-audit status (entry count drifts as new ones land; the file itself is the source of truth).
 
 ### Test coverage
@@ -260,7 +260,7 @@ per-version trees into one version-neutral tree that `make verify-examples` exec
 the documentation gained a directory per feature surface.
 
 **What a drain does about an unmarked aggregate overwrite is `[forward] overwrites`**
-(decision D8 in the [FHIR roadmap](fhir/design/roadmap.md)). `"allow"` - the default - posts
+(decision D8 in the [FHIR roadmap](https://winterop-com.github.io/dhis2w-fhir/design/roadmap/)). `"allow"` - the default - posts
 the value and names it, which is DHIS2's own last-write-wins semantics taken as a posture
 rather than inherited by omission; `"refuse"` sends no payload holding one and leaves the
 response in the queue with every covered cell written down beside it. The corrections and
@@ -350,8 +350,10 @@ Niche but valuable for compliance + forensics use cases.
   repository registers exactly like one living here, which is what the repository
   split below depends on. The next extension seams - contribute an auth provider,
   contribute a FHIR capability - are new extension points beside `contribute`.
-- **A clean core: the browser, MCP and FHIR leave as repositories of their own.**
-  Decided 2026-09-29 (see [decisions](decisions.md)): the host keeps the client,
+- **A clean core: the browser, MCP and FHIR leave as repositories of their own - done.**
+  The browser and MCP packs released at 1.29.0; FHIR is the `dhis2w-fhir` pack
+  ([winterop-com/dhis2w-fhir](https://github.com/winterop-com/dhis2w-fhir)), reached
+  through the `[fhir]` extra. Decided 2026-09-29 (see [decisions](decisions.md)): the host keeps the client,
   the core, the CLI and codegen; `dhis2w-browser`, `dhis2w-mcp` and `dhis2w-fhir`
   become pack repositories beside `dhis2w-security`, each reaching the CLI through
   an extra on `dhis2w-cli`, each with its own documentation site, and every

@@ -6,7 +6,6 @@ dhis2w-client = { workspace = true }
 dhis2w-core = { workspace = true }
 dhis2w-cli = { workspace = true }
 dhis2w-codegen = { workspace = true }
-dhis2w-fhir = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -130,21 +129,6 @@ mypy_path = ["infra/scripts", "examples/client"]
 module = ["seed_auth", "_seed_auth_oauth2", "_seed_auth_variations"]
 ignore_missing_imports = true
 
-# `examples/fhir/client/_fixture.py` is resolved the same way — by its own
-# directory being on sys.path at runtime. It cannot join `mypy_path`, because
-# that directory also holds a `_runner.py` and mypy refuses two modules of one
-# name. Pyright reaches it through `extraPaths` below.
-[[tool.mypy.overrides]]
-module = ["_fixture"]
-ignore_missing_imports = true
-
-# `examples/fhir/engine/_bundle.py` is the same shape: every example there reads it
-# by its own directory being on sys.path at runtime. Pyright reaches it through
-# `extraPaths` below.
-[[tool.mypy.overrides]]
-module = ["_bundle"]
-ignore_missing_imports = true
-
 [tool.pyright]
 include = ["packages", "infra", "examples"]
 exclude = ["**/.venv", "**/site", "**/build", "**/dist"]
@@ -157,8 +141,6 @@ extraPaths = [
   "examples/client",
   "examples/client/v41",
   "examples/client/v43",
-  "examples/fhir/client",
-  "examples/fhir/engine",
   "infra/scripts",
 ]
 pythonVersion = "3.13"

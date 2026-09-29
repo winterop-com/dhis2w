@@ -1,15 +1,14 @@
 """Guard: the example tree stays version-neutral, and every example points at a path that exists.
 
-Examples live at `examples/{cli,client,mcp}/` in one copy, with `examples/fhir/`
-beside them and `examples/{surface}/v{N}/` holding only what one DHIS2 major has
-and the others do not. Two ways that erodes, both caught here:
+Examples live at `examples/{cli,client}/` in one copy, with `examples/{surface}/v{N}/`
+holding only what one DHIS2 major has and the others do not. Two ways that erodes, both caught here:
 
 - A file resurrects the old per-version tree by naming `examples/v41|v42|v43/...`
   in a docstring, a usage line, or a link. Those paths do not exist.
 - A file points at a sibling example that is not there — a rename that updated the
   file but not the three places naming it.
 
-Run via `make check-examples` alongside the CLI / MCP reference check.
+Run via `make check-examples` alongside the CLI reference check.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ EXAMPLES = REPO_ROOT / "examples"
 SUFFIXES = {".py", ".sh", ".md"}
 
 _VERSION_TREE = re.compile(r"examples/v(?:4[123]|\{)")
-_EXAMPLE_PATH = re.compile(r"examples/(?:cli|client|mcp|fhir)/[\w./-]*\.(?:py|sh)")
+_EXAMPLE_PATH = re.compile(r"examples/(?:cli|client)/[\w./-]*\.(?:py|sh)")
 
 
 def _sources() -> list[Path]:

@@ -1,15 +1,6 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui ui-if-available lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
-
-# The capture UI. It is the one part of this workspace that needs node, and it is
-# deliberately kept out of `make lint` / `make test` so those stay a pure-Python run
-# on a machine with no node at all. CI runs these targets in their own workflow,
-# .github/workflows/frontend.yml, path-filtered to the package that owns the UI.
-FRONTEND_DIR := packages/dhis2w-fhir-serve/frontend
-# Where a running `d2w fhir serve` is, for the dev server to proxy FHIR calls to.
-# Match `[serve] port` in the project you are serving.
-SERVE_TARGET ?= http://127.0.0.1:8080
 
 # Silence Material for MkDocs' "Currently unlicensed" / MkDocs 2.0 build notice.
 # https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/
@@ -19,14 +10,14 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Development:"
-	@echo "  install          Sync workspace deps (all members, dev group included); builds the capture UI where pnpm is installed"
+	@echo "  install          Sync workspace deps (all members, dev group included)"
 	@echo "  lint             Run ruff format + ruff check + mypy + pyright"
 	@echo "  test             Run tests (excludes slow)"
 	@echo "  test-slow        Run slow tests only"
 	@echo "  test-contract    Run live-schema contract tests against play.im.dhis2.org"
 	@echo "  test-durations   Show 20 slowest tests"
 	@echo "  coverage         Run tests with coverage reporting"
-	@echo "  build            Build all workspace wheels (run 'make ui' first, or the wheel ships no UI)"
+	@echo "  build            Build all workspace wheels"
 	@echo "  publish-<member> Build + upload one dhis2w-<member> to PyPI (requires UV_PUBLISH_TOKEN env)"
 	@echo "                   Members: $(PUBLISHABLE_MEMBERS)"
 	@echo "                   VERSION=X.Y.Z asserts the package's pyproject version before building"
@@ -34,19 +25,7 @@ help:
 	@echo "                   VERSION=X.Y.Z asserts every member's pyproject version before building"
 	@echo "  deps-upgrade     Re-resolve uv.lock to pick up newer versions"
 	@echo "  clean            Remove caches, build artifacts, coverage output, and run artifacts"
-	@echo "  clean-artifacts  Remove run artifacts alone: reports, screenshots, browser state, regenerated IG catalog trees"
-	@echo ""
-	@echo "Capture UI (needs node + pnpm; not part of lint/test):"
-	@echo "  frontend-dev     Vite dev server, proxying FHIR calls to \$$(SERVE_TARGET) (default :8080)"
-	@echo "  ui               Build the React app into dhis2w-fhir-serve's static/, stamped with the source it read"
-	@echo "                   (run before 'make build'; 'make install' runs it where pnpm is on PATH)"
-	@echo "  lint-frontend    oxlint + tsc --noEmit over the frontend"
-	@echo "  test-frontend    vitest run over the frontend"
-	@echo "  e2e-frontend     Playwright specs against a real 'd2w fhir serve --ui' on :8377"
-	@echo "                   (prereqs, not run for you: 'make ui' and"
-	@echo "                    'cd $(FRONTEND_DIR) && pnpm exec playwright install chromium')"
-	@echo "  screenshot       Re-shoot the docs images into docs/img/fhir (builds the bundle first);"
-	@echo "                   set D2W_SCREENSHOT_PROJECT=<project> to also shoot the live-only pages"
+	@echo "  clean-artifacts  Remove run artifacts alone: reports, screenshots, browser and property-test state"
 	@echo ""
 	@echo "Docs:"
 	@echo "  docs             Alias for docs-serve"
@@ -68,15 +47,12 @@ help:
 	@echo "  dhis2-codegen-all     Spin up DHIS2 v41/v42/v43 in turn and regenerate each v{N}/ (~40 min; pass VERSIONS=\"v41 v42 v43\" to narrow)"
 	@echo "  dhis2-codegen-play    Refresh v42 + v43 generated/ trees against play.im.dhis2.org (no docker)"
 	@echo "  verify-examples       Run every non-interactive example + print PASS/FAIL summary"
-	@echo "  verify-igs            Refresh, validate, generate + dockerized SUSHI compile every example IG (on demand; needs docker)"
-	@echo "  publisher-check-summary  Summarise an IG publisher QA report: version, counts, error families (QA=<path to qa.json>)"
 	@echo ""
 	@echo "  For niche targets (versions, wait, status, logs, pat) use 'make -C infra help'."
 
 install:
 	@echo ">>> Syncing workspace"
 	@$(UV) sync --all-packages --all-extras
-	@$(MAKE) ui-if-available
 
 lint:
 	@echo ">>> Running linter"
@@ -145,84 +121,8 @@ docs-build: docs-cli
 
 docs: docs-serve
 
-frontend-dev:
-	@echo ">>> Vite dev server; FHIR calls proxy to $(SERVE_TARGET)"
-	@echo "    Start the endpoint it talks to first: 'd2w fhir serve' in your IG project"
-	@cd $(FRONTEND_DIR) && VITE_SERVE_TARGET=$(SERVE_TARGET) pnpm dev
-
-ui:
-	@echo ">>> Building the capture UI into packages/dhis2w-fhir-serve/src/dhis2w_fhir_serve/static"
-	@cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile && pnpm build
-# The stamp is what `d2w fhir serve --ui` grades a checkout's bundle against: it names the frontend
-# source this build read, so a bundle older than the source in front of you refuses rather than
-# serving JavaScript nobody is looking at.
-	@$(UV) run python -c "from dhis2w_fhir_serve.ui import write_build_stamp; print('>>> ' + write_build_stamp().describe())"
-
-# `make install` builds the UI where node is installed and says so where it is not. The workspace is
-# Python; node is a build dependency of one package's frontend and never a requirement of an
-# API-only install, so a machine without pnpm syncs, lints and tests exactly as before.
-ui-if-available:
-	@if command -v pnpm >/dev/null 2>&1; then \
-		$(MAKE) ui; \
-	else \
-		echo ">>> Skipping the capture UI: no pnpm on PATH"; \
-		echo "    An API-only install needs none. To serve the UI, install pnpm and run 'make ui'."; \
-	fi
-
-lint-frontend:
-	@echo ">>> Linting the capture UI (oxlint)"
-	@cd $(FRONTEND_DIR) && pnpm exec oxlint
-	@echo ">>> Type-checking the capture UI (tsc)"
-	@cd $(FRONTEND_DIR) && pnpm exec tsc -b --force
-
-test-frontend:
-	@echo ">>> Running capture UI tests (vitest)"
-	@cd $(FRONTEND_DIR) && pnpm exec vitest run
-
-# Boots a real `d2w fhir serve --ui` on 8377 over a fixture IG project the config
-# writes from tests/fixture_project.py, so the suite exercises the actual router
-# table rather than a mock. Neither prerequisite is run automatically: the build
-# writes into the Python package, and downloading a browser is not something a
-# test command should do behind your back.
-e2e-frontend:
-	@echo ">>> Running capture UI browser tests (playwright, chromium, :8377)"
-	@echo "    Needs 'make ui' first, and chromium installed once:"
-	@echo "    cd $(FRONTEND_DIR) && pnpm exec playwright install chromium"
-	@cd $(FRONTEND_DIR) && pnpm exec playwright test
-
-# The two screenshot producers behind docs/fhir/201-capture-ui.md. Both are skipped
-# unless DOCS_SCREENSHOTS=1, and both run ALONE rather than inside the suite: the
-# compiled shoot counts the receipts it posted itself, and another spec posting
-# beside it would be in those counts.
-#
-# THE COMPILED SHOOT always runs, over the fixture project the browser suite uses.
-# Any server left on 8377 is killed first, because Playwright reuses one it finds
-# and its spool is then what gets shot rather than a fresh one.
-#
-# THE LIVE SHOOT runs only where D2W_SCREENSHOT_PROJECT names a FHIR project, and
-# covers the three surfaces a compiled guide cannot draw at all - Metadata health,
-# one tracked entity's record, and the record under the Responses table. It stands
-# up its own `d2w fhir serve --live` on 8378 over a COPY of that project's
-# fhir.toml whose spool_dir points into a temporary directory, so the project's
-# own receipts are never written to, and it only ever reads.
-screenshot: ui
-	@echo ">>> Re-shooting docs/img/fhir from the compiled fixture server (:8377)"
-	@lsof -ti:8377 | xargs kill 2>/dev/null || true
-	@cd $(FRONTEND_DIR) && DOCS_SCREENSHOTS=1 pnpm exec playwright test e2e/docs-screenshots.spec.ts
-ifeq ($(strip $(D2W_SCREENSHOT_PROJECT)),)
-	@echo ">>> Skipping the live-only pages: D2W_SCREENSHOT_PROJECT names no project"
-	@echo "    Metadata health, a tracked entity's record, and the record under Responses"
-	@echo "    need a live run: make screenshot D2W_SCREENSHOT_PROJECT=~/path/to/project"
-else
-	@echo ">>> Re-shooting the live-only pages from $(D2W_SCREENSHOT_PROJECT) (:8378)"
-	@lsof -ti:8378 | xargs kill 2>/dev/null || true
-	@cd $(FRONTEND_DIR) && DOCS_SCREENSHOTS=1 D2W_SCREENSHOT_PROJECT="$(D2W_SCREENSHOT_PROJECT)" \
-		pnpm exec playwright test e2e/docs-screenshots-live.spec.ts
-endif
-
 build:
 	@echo ">>> Building all workspace wheels"
-	@echo "    (the dhis2w-fhir-serve wheel ships whatever 'make ui' last produced)"
 	@$(UV) build --all-packages
 
 # Releasing from the terminal. The other path to PyPI is a tag: push vX.Y.Z and
@@ -237,7 +137,7 @@ build:
 # to offer a PyPI consumer.
 #
 # Names here are the suffix after `dhis2w-`; the targets are `publish-<suffix>`.
-PUBLISHABLE_MEMBERS := client core fhir fhir-engine fhir-serve cli
+PUBLISHABLE_MEMBERS := client core cli
 
 # The release version, when the caller names one: `make publish-all VERSION=1.2.0`
 # asserts every member's `project.version` equals it before anything is built,
@@ -280,7 +180,6 @@ publish-all:
 	}
 	@echo ">>> Publishing every dhis2w-* package in dependency order:"
 	@echo "    $(PUBLISHABLE_MEMBERS)"
-	@echo "    (the dhis2w-fhir-serve wheel ships whatever 'make ui' last produced)"
 	@for member in $(PUBLISHABLE_MEMBERS); do \
 		$(MAKE) --no-print-directory publish-$$member VERSION="$(VERSION)" || exit 1; \
 	done
@@ -342,21 +241,6 @@ verify-examples:
 		DHIS2_VERSION=$(DHIS2_VERSION) $(UV) run python -u infra/scripts/verify_examples.py; \
 	fi
 
-verify-igs:
-	@echo ">>> Verifying every example IG under examples/fhir/igs against profile $${DHIS2_PROFILE:-local_basic}"
-	@echo "    refresh, validate, generate, dockerized SUSHI compile - on demand, not part of 'make test'"
-	@if [ -f infra/home/credentials/.env.auth ]; then \
-		set -a; . infra/home/credentials/.env.auth; set +a; \
-		$(UV) run python -u infra/scripts/verify_igs.py; \
-	else \
-		echo "    note: infra/home/credentials/.env.auth missing - the guides need a reachable DHIS2 instance"; \
-		$(UV) run python -u infra/scripts/verify_igs.py; \
-	fi
-
-publisher-check-summary:
-	@test -n "$(QA)" || { echo "usage: make publisher-check-summary QA=<path to ig/output/qa.json>"; exit 2; }
-	@$(UV) run python -u infra/scripts/publisher_qa_summary.py --qa $(QA)
-
 refresh-setup:
 	@echo ">>> [1/2] Rebuilding e2e dump (wipes + reseeds the stack)"
 	@$(MAKE) dhis2-build-e2e-dump
@@ -389,13 +273,7 @@ clean: clean-artifacts
 clean-artifacts:
 	@echo ">>> Removing run artifacts (reports, screenshots, browser and property-test state)"
 	@rm -rf .hypothesis .playwright-mcp
-	@rm -rf packages/dhis2w-fhir-serve/frontend/test-results
-	@rm -rf packages/dhis2w-fhir-serve/frontend/playwright-report
 	@find . -maxdepth 1 -type f -name "*.png" -delete
-	@echo ">>> Removing what 'make verify-igs' regenerated under examples/fhir/igs"
-	@# Ignored files only, so every committed input of a guide stays - including the
-	@# hand-authored aliases.fsh, index.md, and patient-summary's IPS resources.
-	@git clean -qfdX examples/fhir/igs 2>/dev/null || true
 	@echo "    the working tree holds no run output; regenerate any of it by re-running its command"
 
 .DEFAULT_GOAL := help

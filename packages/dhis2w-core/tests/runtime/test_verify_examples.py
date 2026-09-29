@@ -26,21 +26,11 @@ def test_discover_examples_returns_cli_and_client() -> None:
     paths = discover_examples("v42")
     assert paths, "expected at least one example in the repo"
     surfaces = {p.parent.name for p in paths}
-    # The workspace always ships both common surfaces plus the FHIR group's
-    # engine directory; make the test tolerant in case one is empty on an oddly-pruned checkout.
-    assert surfaces.issubset({"cli", "client", "engine"})
+    # The workspace ships both common surfaces; the version-variant directories are named v4N.
+    assert surfaces.issubset({"cli", "client", "v41", "v42", "v43"})
     # _runner.py and other helper underscore-files must be excluded.
     assert all(not p.name.startswith("_") for p in paths)
     assert all(p.suffix in {".sh", ".py"} for p in paths)
-
-
-def test_discover_examples_includes_the_fhir_group_on_every_major() -> None:
-    """`examples/fhir/` is version-agnostic, so every major discovers it."""
-    for version_key in ("v41", "v42", "v43"):
-        discovered = {p.as_posix() for p in discover_examples(version_key)}
-        assert any(path.endswith("examples/fhir/cli/generate_full_run.sh") for path in discovered)
-        assert any(path.endswith("examples/fhir/client/consume_facade.py") for path in discovered)
-        assert any(path.endswith("examples/fhir/engine/measure_report.py") for path in discovered)
 
 
 def test_discover_examples_takes_only_the_active_majors_variants() -> None:
@@ -57,12 +47,11 @@ def test_skip_list_covers_known_interactive_flows() -> None:
     """The default skip list covers OIDC + browser + external-network examples.
 
     Skip-list keys are relative to `examples/`, so one set covers the common
-    surfaces, the FHIR group, and the per-major variant directories alike.
+    surfaces and the per-major variant directories alike.
     """
     assert "cli/profile_oidc_login.sh" in SKIP_BY_DEFAULT
     assert "client/oidc_login.py" in SKIP_BY_DEFAULT
     assert "cli/route_register_and_run.sh" in SKIP_BY_DEFAULT
-    assert "fhir/cli/serve.sh" in SKIP_BY_DEFAULT
 
 
 def test_skip_list_entries_name_files_that_exist() -> None:

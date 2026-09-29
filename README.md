@@ -6,9 +6,9 @@
 [![DHIS2](https://img.shields.io/badge/DHIS2-41%20%7C%2042%20%7C%2043-2C6693)](https://winterop-com.github.io/dhis2w/architecture/versioning/)
 [![License](https://img.shields.io/badge/license-Proprietary-lightgrey)](LICENSE)
 
-A Python toolkit for DHIS2 — pure client library, CLI, FHIR Implementation Guide tooling, and a shared plugin runtime, in one `uv` workspace, with the MCP server and Playwright browser automation as plugin packs in their own repositories. Targets DHIS2 v41, v42, and v43.
+A Python toolkit for DHIS2 — pure client library, CLI, and a shared plugin runtime, in one `uv` workspace, with the MCP server, the FHIR Implementation Guide tooling, and Playwright browser automation as plugin packs in their own repositories. Targets DHIS2 v41, v42, and v43.
 
-The repo lives at `winterop-com/dhis2w`; PyPI ships the six publishable members, and the plugin packs, under the `dhis2w-*` prefix. Not affiliated with DHIS2.
+The repo lives at `winterop-com/dhis2w`; PyPI ships the three publishable members, and the plugin packs, under the `dhis2w-*` prefix. Not affiliated with DHIS2.
 
 > **Learning path · step 1 of 8** — You are here. Quick install + profile + first CLI / Python call below. Next: the [contributor walkthrough](docs/walkthrough.md) for the local docker stack, or jump to a surface-specific tutorial — [CLI](docs/cli/tutorial.md), [Python](docs/client/tutorial.md), [MCP](https://winterop-com.github.io/dhis2w-mcp/tutorial/).
 
@@ -32,12 +32,9 @@ Reach for the official client when you want the smallest possible dependency and
 | [`dhis2w-client`](https://pypi.org/project/dhis2w-client/) | `uv add dhis2w-client` | Pure async httpx2 + pydantic DHIS2 client with pluggable auth (Basic, PAT, OAuth2/OIDC). Typed models from both `/api/schemas` and `/api/openapi.json` codegen. |
 | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) | `uv add dhis2w-core` | Shared runtime: profile discovery, plugin registry, auth factory, token store, first-party plugins. |
 | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) | `uv tool install dhis2w-cli` | Typer console script `d2w`. |
-| [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) | `uv add dhis2w-fhir` | FHIR IG generation: `init` scaffolds a SUSHI project as a uv project with a pinned toolchain and `init --refresh` brings an existing project's scaffold-managed files up to date without dropping an edit; `generate foundation / option-sets / categories / questionnaires / examples / org-units / pages / all` emits FSH, pre-built R4 JSON, and narrative from DHIS2 metadata, including the capture contract (QuestionnaireResponse profiles + a D2CaptureServer CapabilityStatement); `validate` checks an instance's codes for FHIR-safety with md/csv/pdf reports; `generate load-set` writes a synthetic QuestionnaireResponse corpus; `doctor` runs the whole chain against an instance in a throwaway workspace and reports what it breaks; `serve` runs the IG as a FHIR read + capture facade (through `dhis2w-fhir-serve`); `forward` drains the capture spool back into DHIS2, dry run by default. Mounts `d2w fhir` via the plugin entry point. |
-| [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) | `uv add dhis2w-fhir-serve` | The FHIR facade behind `d2w fhir serve`: a FastAPI app that serves one generated IG's resources (compiled off disk, or built live off a DHIS2 instance at startup), publishes the instance's tracked entities as a register, answers `$translate` over the ConceptMaps, and receives `QuestionnaireResponse` captures, storing each as a receipt. `--ui` mounts a browser capture UI at `/`. Installed with the `[serve]` extra on `dhis2w-cli`. |
-| [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) | `uv add dhis2w-fhir-engine` | FHIRPath, CQL, and quality-measure evaluation over FHIR data, with the R4 resource models; no DHIS2 dependency. |
 | `dhis2w-codegen` | _workspace-only_ | Generator that emits pydantic models + `StrEnum`s + CRUD accessors into `dhis2w_client.generated.v{N}/`. Two source-of-truth paths: `/api/schemas` for metadata resources, `/api/openapi.json` for instance-side shapes (tracker writes, envelopes, auth schemes). |
 
-All six publishable packages release together (lockstep versioning); see [`docs/releasing.md`](docs/releasing.md).
+All three publishable packages release together (lockstep versioning); see [`docs/releasing.md`](docs/releasing.md).
 
 ## Plugin packs
 
@@ -49,6 +46,9 @@ These live in repositories of their own, publish to PyPI at the same version as 
 | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) | [`winterop-com/dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) | FastMCP server `dhis2w-mcp-bridge` — exposes the whole `d2w` CLI as a single `dhis2_cli` tool for small local models. |
 | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) | [`winterop-com/dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) | Domain-neutral MCP router — fronts many upstream MCP servers behind two meta-tools (search + dispatch) so an agent gets lazy, searchable tool discovery instead of a huge up-front tool payload. |
 | [`dhis2w-browser`](https://pypi.org/project/dhis2w-browser/) | [`winterop-com/dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser) | Playwright helpers for DHIS2 UI automation — PAT minting, Playwright-driven OIDC login + consent, dashboard / viz / map screenshot capture. Mounted under `d2w browser` when the `[browser]` extra is installed on `dhis2w-cli`. |
+| [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) | [`winterop-com/dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) | FHIR Implementation Guide tooling mounted as `d2w fhir` through the `[fhir]` extra on `dhis2w-cli`: `init`, `generate`, `validate`, `forward`, `doctor`. Documented at <https://winterop-com.github.io/dhis2w-fhir/>. |
+| [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) | [`winterop-com/dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) | The FastAPI facade behind `d2w fhir serve`, with the browser capture UI. Installed with the `[serve]` extra on `dhis2w-cli`. |
+| [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) | [`winterop-com/dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) | FHIRPath, CQL, and quality-measure evaluation over FHIR data, with the R4 resource models; no DHIS2 dependency. |
 | [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) | [`winterop-com/dhis2w-security`](https://github.com/winterop-com/dhis2w-security) | Security posture scanner mounted as `d2w security` through the `[security]` extra on `dhis2w-cli`. |
 
 The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every plugin pack into one environment.
@@ -70,6 +70,11 @@ uv tool install 'dhis2w-cli[security]'
 uv tool install 'dhis2w-cli[browser]'
 playwright install chromium    # one-time, after the install above
 
+# With FHIR Implementation Guide tooling (the dhis2w-fhir pack mounts `d2w fhir`);
+# add `serve` for the capture facade behind `d2w fhir serve`
+uv tool install 'dhis2w-cli[fhir]'
+uv tool install 'dhis2w-cli[fhir,serve]'
+
 # Update to the latest release
 uv tool upgrade dhis2w-cli
 
@@ -82,6 +87,11 @@ uv tool list
 # Remove
 uv tool uninstall dhis2w-cli
 ```
+
+**FHIR support** is the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) plugin pack, documented at
+<https://winterop-com.github.io/dhis2w-fhir/>: install `'dhis2w-cli[fhir]'` for `d2w fhir`, and `'dhis2w-cli[fhir,serve]'`
+for the serving facade. Without the pack, `d2w fhir` prints that install command rather than failing as an unknown
+command; `d2w browser` and `d2w security` do the same for their packs.
 
 After `uv tool install dhis2w-cli`, run the CLI directly:
 
@@ -263,7 +273,7 @@ Nineteen top-level domains; every plugin shares a `service.py` between the CLI a
 | `d2w files` | `/api/documents` + `/api/fileResources` — upload / download / list binary attachments |
 | `d2w messaging` | `/api/messageConversations` — send, reply, list, mark read/unread |
 | `d2w apps` | `/api/apps` + `/api/appHub` — install / uninstall / update installed apps, browse the App Hub catalog, point DHIS2 at a custom App Hub |
-| `d2w fhir` | FHIR IG generation (via `dhis2w-fhir`) — scaffold a SUSHI project as a pinned uv project (`fhir init`, with `--refresh` to bring an existing project's scaffold up to date), generate the whole IG in one run (`fhir generate`) or one target at a time (`fhir generate foundation / option-sets / categories / questionnaires / examples / org-units / pages`) covering identifier systems, the nineteen D2 extensions, the capture contract, option-set / category / attribute-option-combo terminology and the tracked-entity-type map, forms with example responses, the organisation-unit registry carrying each unit's DHIS2 attribute values, and the narrative pages, check codes for FHIR-safety with md/csv/pdf reports (`fhir validate`), run the whole chain against an instance for one verdict (`fhir doctor`), write a synthetic load set (`fhir generate load-set`), serve the compiled or live IG as a FHIR read + capture facade with an optional browser capture UI (`fhir serve`, via the `[serve]` extra), and drain captures back into DHIS2 (`fhir forward`) |
+| `d2w fhir` | FHIR Implementation Guide generation, serving, capture and forwarding — the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) pack, only registers when the `[fhir]` extra is installed; without it, `d2w fhir` prints the install command |
 | `d2w doctor` | One-command preflight — ~100 metadata-health + integrity checks against a live instance |
 | `d2w browser` | Playwright-driven UI automation (PAT minting, dashboard / viz / map screenshot capture, automated OIDC login) — only registers when the `[browser]` extra is installed |
 | `d2w dev` | Codegen, UID gen, PAT / OAuth2 seed helpers, branding (`dev customize`), sample data |
@@ -299,6 +309,6 @@ See [`docs/guides/connecting-to-dhis2.md`](docs/guides/connecting-to-dhis2.md) f
 - Releasing: [`docs/releasing.md`](docs/releasing.md)
 - Roadmap: [`docs/roadmap.md`](docs/roadmap.md)
 - Upstream DHIS2 quirks we've tripped over: [`BUGS.md`](BUGS.md)
-- Runnable examples: [`examples/`](examples/README.md) — [`examples/fhir/`](examples/fhir/) for the FHIR Implementation Guide surface (`cli/`, `client/`), then [`examples/cli/`](examples/cli/) and [`examples/client/`](examples/client/) for everything else; the MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples). One copy of each example, running against v41, v42, and v43 alike; an example that exists for a single major lives under that major's subdirectory — [`examples/client/v43/`](examples/client/v43/) for the v43 schema divergences (`removed_resources.py`, `section_user_removed.py`, `category_combo_coc_regen.py`, …; see [`docs/architecture/schema-diff-v41-v42-v43.md`](docs/architecture/schema-diff-v41-v42-v43.md)) and [`examples/client/v41/`](examples/client/v41/) for the v41 wire quirks (`oauth2_cid_field.py`, `grid_rows_wire_shape.py`, `apps_display_name.py`).
+- Runnable examples: [`examples/`](examples/README.md) — [`examples/cli/`](examples/cli/) and [`examples/client/`](examples/client/); the MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) and the FHIR examples in the [`dhis2w-fhir` repository](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples). One copy of each example, running against v41, v42, and v43 alike; an example that exists for a single major lives under that major's subdirectory — [`examples/client/v43/`](examples/client/v43/) for the v43 schema divergences (`removed_resources.py`, `section_user_removed.py`, `category_combo_coc_regen.py`, …; see [`docs/architecture/schema-diff-v41-v42-v43.md`](docs/architecture/schema-diff-v41-v42-v43.md)) and [`examples/client/v41/`](examples/client/v41/) for the v41 wire quirks (`oauth2_cid_field.py`, `grid_rows_wire_shape.py`, `apps_display_name.py`).
 
 Hard requirements, conventions, and the plugin / auth / workspace model are documented in `CLAUDE.md` and the `docs/` site.

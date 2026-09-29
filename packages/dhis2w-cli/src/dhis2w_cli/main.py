@@ -15,6 +15,8 @@ from dhis2w_core.plugin import DEFAULT_VERSION_KEY, load_plugin_host, resolve_st
 from dhis2w_core.rich_console import STDERR_CONSOLE
 from rich.logging import RichHandler
 
+from dhis2w_cli.packs import mount_install_hints
+
 
 def _extract_profile_from_argv(argv: list[str]) -> str | None:
     """Pre-scan argv for the profile Click will apply: the last root `--profile` / `-p` value.
@@ -196,7 +198,9 @@ def build_app() -> typer.Typer:
         # invocation must not leak into the next one.
         JSON_OUTPUT.set(json_)
 
-    load_plugin_host(resolve_startup_version()).mount_cli(app)
+    host = load_plugin_host(resolve_startup_version())
+    host.mount_cli(app)
+    mount_install_hints(app, host.names)
     return app
 
 

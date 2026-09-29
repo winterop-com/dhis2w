@@ -1,6 +1,6 @@
 # Client examples
 
-Python library usage — `dhis2w-client` + `dhis2w-core.client_context.open_client()` — for callers embedding the DHIS2 client inside a larger application. Every example reads the active DHIS2 profile (via env or TOML). The `dhis2w-fhir` library path lives in its own group at [`examples/fhir/client/`](../fhir/client/).
+Python library usage — `dhis2w-client` + `dhis2w-core.client_context.open_client()` — for callers embedding the DHIS2 client inside a larger application. Every example reads the active DHIS2 profile (via env or TOML). The `dhis2w-fhir` library examples live in the [`dhis2w-fhir` pack's `examples/client/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples/client).
 
 > **Canonical catalogue**: [`docs/examples.md`](../../docs/examples.md) — curated example index — headline examples per topic with links to the concept docs that explain each one.
 

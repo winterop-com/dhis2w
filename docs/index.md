@@ -1,6 +1,6 @@
 # dhis2w
 
-Python tooling for DHIS2. A `uv` workspace with an async client library, a Typer CLI, FHIR Implementation Guide tooling, a code generator, and a shared plugin runtime. The FastMCP server ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)) and the Playwright browser helper ([`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser)) are plugin packs in repositories of their own.
+Python tooling for DHIS2. A `uv` workspace with an async client library, a Typer CLI, a code generator, and a shared plugin runtime. The FastMCP server ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)), the FHIR Implementation Guide tooling ([`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir)), and the Playwright browser helper ([`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser)) are plugin packs in repositories of their own.
 
 ## Where to start
 
@@ -9,7 +9,7 @@ Everything here talks to DHIS2. Pick the surface you want to talk to it *through
 - **[Python client](client/index.md)** — async library for ETL scripts, embedded DHIS2 calls inside another service, and tests that need typed access. Pairs with the [Python library tutorial](client/tutorial.md).
 - **[`d2w` CLI](cli/index.md)** — terminal use, shell pipelines, CI / cron jobs, day-to-day admin. Pairs with the [CLI tutorial](cli/tutorial.md).
 - **[`dhis2w-mcp` MCP server](https://winterop-com.github.io/dhis2w-mcp/)** — LLM-driven workflows (Claude Desktop, Claude Code, Cursor, Continue, Cline), from the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack with its own documentation site. Pairs with the [MCP tutorial](https://winterop-com.github.io/dhis2w-mcp/tutorial/).
-- **[`d2w fhir`](fhir/index.md)** — publish an instance's metadata as a FHIR Implementation Guide, serve it as a capture endpoint, and forward what it captures back into DHIS2. Graded 100-501, opening at the introduction; start at the [Introduction](fhir/100-introduction.md).
+- **[`d2w fhir`](https://winterop-com.github.io/dhis2w-fhir/)** — publish an instance's metadata as a FHIR Implementation Guide, serve it as a capture endpoint, and forward what it captures back into DHIS2, from the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) plugin pack with its own documentation site. See [FHIR support](#fhir-support) for installing it.
 
 Whichever you pick:
 
@@ -26,13 +26,21 @@ Whichever you pick:
 | `dhis2w-core` | Profile discovery, plugin registry, first-party plugins | [`dhis2w-core`](https://pypi.org/project/dhis2w-core/) |
 | `dhis2w-cli` | Typer console script `d2w` (mounts plugins from `dhis2w-core`) | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) |
 | `dhis2w-codegen` | Version-aware client generator | _workspace-only_ |
-| `dhis2w-fhir` | `d2w fhir`: generate an Implementation Guide from an instance, convert captures, drain the spool | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
-| `dhis2w-fhir-serve` | The FHIR capture facade `d2w fhir serve` runs on, capture UI included | [`dhis2w-fhir-serve`](https://pypi.org/project/dhis2w-fhir-serve/) |
-| `dhis2w-fhir-engine` | FHIRPath, CQL, and quality-measure evaluation over FHIR data, no DHIS2 dependency | [`dhis2w-fhir-engine`](https://pypi.org/project/dhis2w-fhir-engine/) |
 
-Plugin packs ship from their own repositories and mount their own commands on the same CLI: `uv tool install 'dhis2w-cli[security]'` brings the security posture scanner, and `'dhis2w-cli[browser]'` the Playwright-driven screenshots and PAT minting of [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser). The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack: the `dhis2w-mcp` server carrying the MCP tools of every built-in plugin (`uvx dhis2w-mcp`), the single-tool `dhis2w-mcp-bridge` for small local models, and the `dhis2w-mcp-router` search + dispatch router, documented at <https://winterop-com.github.io/dhis2w-mcp/>. The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every pack into one environment; see [AI agent testing](ai-agent-testing.md).
+Plugin packs ship from their own repositories and mount their own commands on the same CLI: `uv tool install 'dhis2w-cli[security]'` brings the security posture scanner, `'dhis2w-cli[browser]'` the Playwright-driven screenshots and PAT minting of [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and `'dhis2w-cli[fhir]'` the FHIR Implementation Guide tooling of [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir). The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack: the `dhis2w-mcp` server carrying the MCP tools of every built-in plugin (`uvx dhis2w-mcp`), the single-tool `dhis2w-mcp-bridge` for small local models, and the `dhis2w-mcp-router` search + dispatch router, documented at <https://winterop-com.github.io/dhis2w-mcp/>. The LLM benchmark harness lives in [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the control center that assembles this workspace and every pack into one environment; see [AI agent testing](ai-agent-testing.md).
 
 Plus `infra/`, a docker-compose stack for running a local DHIS2 instance with pre-seeded PATs and an OAuth2 client.
+
+## FHIR support
+
+`d2w fhir` - generating a FHIR Implementation Guide from an instance, serving it as a capture endpoint, and forwarding captures back into DHIS2 - is the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) plugin pack, documented at <https://winterop-com.github.io/dhis2w-fhir/>. Install it with the CLI:
+
+```bash
+uv tool install "dhis2w-cli[fhir]"          # d2w fhir init / generate / validate / forward / doctor
+uv tool install "dhis2w-cli[fhir,serve]"    # plus the serving facade behind d2w fhir serve
+```
+
+In a project, `uv add dhis2w-fhir` (and `dhis2w-fhir-serve`, `dhis2w-fhir-engine` for the facade and the evaluation engine as libraries). Without the pack installed, `d2w fhir` prints the install command rather than failing as an unknown command; `d2w browser` and `d2w security` do the same for their packs.
 
 ## Capability matrix
 
@@ -63,6 +71,6 @@ The generated [MCP tool reference](https://winterop-com.github.io/dhis2w-mcp/too
 | Security posture (settings, authorities, audit, report) | `d2w security` (the `dhis2w-security` pack) | 3 | [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) |
 | Dev (codegen, uid, pat, oauth2 client, sample fixtures) | `d2w dev` | — (dev-only) | [Codegen](codegen.md) |
 | Browser automation (Playwright-driven PAT mint, screenshots, OIDC login) | `d2w browser` | — (runs out-of-process) | [Browser automation](https://winterop-com.github.io/dhis2w-browser/) |
-| FHIR (init / validate / generate / serve / forward / withdraw / doctor) | `d2w fhir` | — (CLI and its own HTTP facade) | [`d2w fhir`](fhir/index.md) |
+| FHIR (init / validate / generate / serve / forward / withdraw / doctor) | `d2w fhir` (the `dhis2w-fhir` pack) | — (CLI and its own HTTP facade) | [`dhis2w-fhir`](https://winterop-com.github.io/dhis2w-fhir/) |
 
 Day-to-day workflows (`make install`, `make lint`, `make test`, `make docs-serve`) are documented in the repo root `README.md`.

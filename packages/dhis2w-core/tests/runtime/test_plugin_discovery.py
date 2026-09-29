@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any
 
@@ -68,19 +69,27 @@ def test_host_names_are_sorted() -> None:
     assert list(names) == sorted(names)
 
 
+def _installed_pack_names() -> set[str]:
+    """The plugin packs installed in this environment, by their `dhis2w.plugins.v1` entry-point name."""
+    return {entry_point.name for entry_point in entry_points(group="dhis2w.plugins.v1")}
+
+
 def test_unknown_tree_yields_only_entry_point_contributions() -> None:
     """A bogus version_key picks up no built-ins; entry-point packs still contribute."""
+    packs = _installed_pack_names()
+    if not packs:
+        pytest.skip("no plugin pack is installed in this environment")
     builtin_names = {"metadata", "system", "tracker", "aggregate"}
     host = load_plugin_host("v99")
     assert not (builtin_names & set(host.names))
-    assert "fhir" in host.names
+    assert packs <= set(host.names)
 
 
 def test_unknown_group_yields_the_builtins_only() -> None:
     """An entry-point group nobody advertises leaves the built-ins as the whole host."""
     host = load_plugin_host("v43", group="dhis2w.plugins.nonexistent")
     assert "system" in host.names
-    assert "fhir" not in host.names
+    assert not (_installed_pack_names() & set(host.names))
     assert host.failures == ()
 
 

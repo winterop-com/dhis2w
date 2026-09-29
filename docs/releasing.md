@@ -1,19 +1,16 @@
 # Releasing to PyPI
 
-The six publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` package is workspace-only and does not ship. The plugin packs in their own repositories — [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) (`dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-mcp-router`), [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) — publish their own packages at the same version, after this repository's release is on PyPI. `dhis2w-fhir` and `dhis2w-fhir-serve` first ship in 1.5.0, and `dhis2w-fhir-engine` in 1.7.0; because each is new to PyPI, register its pending Trusted Publisher on pypi.org before that tag (see [First release of a new package](#first-release-of-a-new-package) below).
+The three publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` package is workspace-only and does not ship. The plugin packs in their own repositories — [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) (`dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-mcp-router`), [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) (`dhis2w-fhir`, `dhis2w-fhir-serve`, `dhis2w-fhir-engine`), [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) — publish their own packages at the same version, after this repository's release is on PyPI.
 
 | Package | PyPI |
 | --- | --- |
 | `dhis2w-client` | https://pypi.org/project/dhis2w-client/ |
 | `dhis2w-core` | https://pypi.org/project/dhis2w-core/ |
 | `dhis2w-cli` | https://pypi.org/project/dhis2w-cli/ |
-| `dhis2w-fhir` | https://pypi.org/project/dhis2w-fhir/ (from 1.5.0) |
-| `dhis2w-fhir-serve` | https://pypi.org/project/dhis2w-fhir-serve/ (from 1.5.0) |
-| `dhis2w-fhir-engine` | https://pypi.org/project/dhis2w-fhir-engine/ (from 1.7.0) |
 
 ## Versioning policy
 
-- **Lockstep.** All six publishable packages share the same `version =` value in their `pyproject.toml`. Bump them together, never one at a time.
+- **Lockstep.** All three publishable packages share the same `version =` value in their `pyproject.toml`. Bump them together, never one at a time.
 - **SemVer.** `MAJOR.MINOR.PATCH` for stable releases; pre-releases use SemVer suffixes (`0.6.0a1`, `0.6.0rc1`). Pre-1.0 means breaking changes can land on minor bumps.
 - **Inter-package deps** are pinned to `>=<current>,<<next-major>` (e.g. `dhis2w-client>=0.5.0,<0.6`). When the next minor lands, every consumer's pin needs the same shift.
 
@@ -57,12 +54,11 @@ The six publishable workspace members ship to PyPI in lockstep — every release
 ## Releasing from the terminal
 
 `make publish-all` uploads every publishable member from the checkout in front of you, in
-dependency order — `client`, `core`, `fhir`, `fhir-engine`, `fhir-serve`, `cli` — so a resolver reading PyPI mid-release never meets a package
+dependency order — `client`, `core`, `cli` — so a resolver reading PyPI mid-release never meets a package
 naming a sibling version the index has not seen yet. `make publish-<member>` does one of them:
 
 ```bash
 export UV_PUBLISH_TOKEN=...   # a PyPI API token; both targets refuse to run without one
-make ui           # or the dhis2w-fhir-serve wheel ships no capture UI
 make publish-all VERSION=0.6.0
 ```
 
@@ -72,8 +68,7 @@ checkout carries.
 
 Each target builds the member's wheel and sdist with `uv build --package dhis2w-<member>` and
 uploads that pair alone, removing the member's earlier artifacts from `dist/` first so a stale
-version cannot ride along. `dhis2w-fhir-engine` has a target ahead of its first upload; it is not
-in the tag workflow's matrix until its PyPI project exists.
+version cannot ride along.
 
 This path and the tag are two ways to the same index, and the tag is the one to reach for: it
 builds on a clean runner and authenticates with Trusted Publishing, no token on anyone's machine.
@@ -83,11 +78,16 @@ builds on a clean runner and authenticates with Trusted Publishing, no token on 
 PyPI verifies the `repository` claim of the GitHub Actions OIDC token as an exact string, and
 GitHub's redirect from an old repository name does not reach it. The repository is
 `winterop-com/dhis2w`; every publisher entry that still names `dhis2w-utils` fails the upload with
-an invalid-publisher error. Each of the six projects carries one GitHub publisher with owner
+an invalid-publisher error. Each of the three projects carries one GitHub publisher with owner
 `winterop-com`, repository `dhis2w`, workflow `pypi-publish.yml`, environment `pypi`, managed at
 `https://pypi.org/manage/project/<name>/settings/publishing/` (web UI only; there is no API). A
-repository rename is done additively: add the entry under the new name to all six, publish once,
+repository rename is done additively: add the entry under the new name to all three, publish once,
 then remove the old entry.
+
+A package that moves into a plugin pack's repository takes the same additive route, on the
+project's own publishing page rather than the pending-publisher form (which refuses a name
+already on PyPI): add a publisher naming the pack's repository, release the pack, then remove the
+`dhis2w` entry so this repository can no longer upload that package.
 
 ## First release of a new package
 

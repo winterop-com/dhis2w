@@ -149,7 +149,7 @@ async def open_client(
     seconds, for callers that make one deliberately large request. The
     client's own 30 s default fits an ordinary API read and is what `None`
     keeps; a whole-instance read is a different shape of request and sets
-    its own ceiling. `dhis2w-fhir`'s validate sweep is the worked example —
+    its own ceiling. The `dhis2w-fhir` pack's validate sweep is the worked example —
     `/api/metadata?fields=id,name,code` is 13 MB and 58 s on a national
     instance, so the default would fail it every time.
 

@@ -2,43 +2,16 @@
 
 ```
 examples/
-  fhir/    cli/  client/           # d2w fhir - DHIS2 metadata as a FHIR Implementation Guide
   cli/                              # d2w ... Typer CLI, one script per topic
   client/                           # dhis2w-client Python library
   plugin-external/                  # a third-party plugin registered via entry points
 ```
 
-## FHIR ([`fhir/`](fhir/README.md))
+## FHIR
 
-**`d2w fhir` turns a DHIS2 instance's metadata into a FHIR Implementation Guide**, serves the
-compiled guide as a read-and-capture endpoint, and posts what that endpoint captured back into
-DHIS2. It has its own group because it is its own product surface, in two shapes of caller: the
-commands, and the Python library. Start at [`fhir/cli/`](fhir/README.md) - one small script per
-command, from `init` through `doctor` - or at [`fhir/client/`](fhir/client/README.md) -
-twenty-five examples, grouped from "build a response from my own data" through to "drive the
-toolchain" - if you are integrating against a guide.
-
-| File | Shows |
-| --- | --- |
-| [`fhir/cli/init.sh`](fhir/cli/init.sh) | `d2w fhir init` - scaffold a dockerized SUSHI IG project, offline |
-| [`fhir/cli/generate_full_run.sh`](fhir/cli/generate_full_run.sh) | `d2w fhir generate` - every target of the IG source off one pass over the instance |
-| [`fhir/cli/validate.sh`](fhir/cli/validate.sh) | `d2w fhir validate` - the FHIR-safety gate over an instance's codes and names |
-| [`fhir/cli/serve.sh`](fhir/cli/serve.sh) | `d2w fhir serve` - compile the guide, serve it, post a load set, read the receipts back |
-| [`fhir/cli/forward_dry_run.sh`](fhir/cli/forward_dry_run.sh) | `d2w fhir forward` - drain the capture spool into DHIS2, with DHIS2 judging and nothing written |
-| [`fhir/cli/forward_import.sh`](fhir/cli/forward_import.sh) | `d2w fhir forward --import` - the committing drain, and the three states it files a receipt into |
-| [`fhir/cli/doctor_probe.sh`](fhir/cli/doctor_probe.sh) | `d2w fhir doctor` - the whole chain against one instance, one verdict |
-| [`fhir/cli/spool.sh`](fhir/cli/spool.sh) | `d2w fhir spool` + `requeue` - read the capture queue and put a refused receipt back in it |
-| [`fhir/client/build_aggregate_response.py`](fhir/client/build_aggregate_response.py) | The minimal aggregate capture - a data set's numbers for one period at one organisation unit |
-| [`fhir/client/build_registration_response.py`](fhir/client/build_registration_response.py) | Registering a person and enrolling them, minting both DHIS2 UIDs client-side |
-| [`fhir/client/generate_ig.py`](fhir/client/generate_ig.py) | Generate a whole IG from Python and read the `GenerateFullReport` back as a model |
-| [`fhir/client/consume_facade.py`](fhir/client/consume_facade.py) | Plain httpx2 against a running facade - discover, fill, submit, read the receipt |
-| [`fhir/client/forward_spool.py`](fhir/client/forward_spool.py) | Dry-run a drain from Python and read the `ForwardReport` back as a model |
-
-`dhis2w-fhir` and `dhis2w-fhir-serve` are not per-version packages - the client detects the DHIS2
-major from `/api/system/info` - so this group is one copy that runs against v41, v42, and v43 alike.
-
-Serving needs the extra: `pip install 'dhis2w-cli[serve]'` or `uv add dhis2w-fhir-serve`.
-The [`d2w fhir` guide series](../docs/fhir/index.md) is the narrative these scripts sit under.
+The `d2w fhir` examples - the CLI scripts, the Python library, the evaluation engine, and nine
+complete example guides - live with the FHIR toolchain in the
+[`dhis2w-fhir` repository's `examples/`](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples), documented at <https://winterop-com.github.io/dhis2w-fhir/>.
 
 ## The surfaces
 
@@ -101,7 +74,7 @@ Swap `v42` for `v41` or `v43` to boot another stack; the same example files run 
 
 > **Canonical catalogue**: [`docs/examples.md`](../docs/examples.md) is the curated index - the
 > headline examples per topic with links to the concept docs that explain each one. It is not
-> exhaustive; `ls examples/{cli,client,fhir/*}/` is the source of truth for what is on disk.
+> exhaustive; `ls examples/{cli,client}/` is the source of truth for what is on disk.
 
 ## Environment
 
