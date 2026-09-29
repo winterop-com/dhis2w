@@ -9,11 +9,37 @@ work together:
   programs - which depends on the registry for every organisation unit its forms
   are reported from.
 
-It is the path to follow for a national instance. Every step is a command you
-run, and each step names what to check before you move to the next one, because
-a mistake made at step 2 costs a whole build to find at step 7. For why the
-registry is split out at all, and what the guide reads out of the package, see
-[Publish the registry as a package](201-registry-package.md).
+Every step is a command you run, and each step names what to check before you
+move to the next one, because a mistake made at step 2 costs a whole build to
+find at step 7.
+
+## Do you need two projects?
+
+Usually not. By default a guide publishes its organisation units itself, inline,
+and one project is simpler to build, version and hand to the people consuming
+it. That is the right shape for a district guide, for the DHIS2 demo instance
+(1,332 organisation units over four levels), and for many national ones -
+[Set up a project](201-set-up-a-project.md) is the page for it. A split pays off
+at the scale of tens of thousands of registry resources, not a few thousand.
+
+Split the organisation units out when one of these is true:
+
+- **The hierarchy is too big to build beside the forms.** A national registry
+  of five levels can be tens of thousands of resources, and its build is most of
+  the guide's. As two projects each builds in a container of its own, so the
+  registry can go as deep as you need without the forms' build carrying it.
+- **They change on different cadences.** Organisation units change monthly and
+  forms yearly. Split, a facility rename rebuilds the registry and leaves the
+  forms alone.
+- **More than one guide uses the same organisation units.** Every guide built
+  from the instance depends on one registry instead of each publishing its own.
+
+Splitting is not mainly a memory saving for the guide. The depending guide's
+build still loads the registry package, so on one national instance its peak
+heap was 6.99 GB against 7.66 GB inline. What moves out of the guide's build is
+the registry's validation and rendering. [Publish the registry as a
+package](201-registry-package.md) has the measurements and the reference behind
+this page.
 
 ## Before you start
 
