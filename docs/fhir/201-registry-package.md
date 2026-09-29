@@ -9,6 +9,10 @@ grown large enough to dominate the build, or it changes on a different cadence
 from the forms, and you want it published as a package of its own that the
 guide depends on.
 
+To build a registry and a guide from scratch, follow
+[Build a registry and a guide](201-registry-and-guide.md): it is the step-by-step
+path, with a check after each step. This page is the reference behind it.
+
 Nothing here is on by default. A `fhir.toml` without a
 `[generate.organisation_units.registry]` table behaves exactly as before.
 
