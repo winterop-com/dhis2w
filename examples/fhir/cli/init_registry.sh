@@ -5,16 +5,20 @@ set -euo pipefail
 # The short way: one command scaffolds both projects, wired. The registry's id is the guide's with
 # `.registry` appended and its canonical the guide's with `/registry`, so the four values the two
 # share are derived rather than restated - which is the mistake this flag exists to prevent.
+# `--root` and `--max-level` land in both: the guide's forms may only be assigned to organisation
+# units the registry publishes, so the two selections have to mean the same organisation units.
 d2w fhir init demo-both --with-registry \
     --id dhis2.fhir.bothdemo \
     --canonical http://example.org/fhir/both-demo \
     --publisher "Demo Org" \
+    --root ImspTQPwCqd \
     --max-level 4
 
 # Two projects under one directory, plus a Makefile that builds the registry before the guide.
 ls demo-both
 grep -nE 'kind = "package"|publishes = ' demo-both/registry/fhir.toml
 grep -A4 'organisation_units.registry' demo-both/guide/fhir.toml
+grep -h '^root' demo-both/registry/fhir.toml demo-both/guide/fhir.toml
 
 # The rest of this example is the same thing done by hand, which is what the flag expands to.
 #

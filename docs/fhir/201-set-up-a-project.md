@@ -67,6 +67,7 @@ The flags that matter, all optional:
 | `--status` | `draft` (default) or `active`; drives the sushi-config status and the status and experimental flag on every generated definitional resource. |
 | `--profile` | Seeds the `profile` key of `fhir.toml`, so `d2w fhir generate` reads that instance without a flag. |
 | `--sushi-timeout` | Seconds the IG publisher gives its internal SUSHI run (default 1800), written to `ig/fsh.ini`. |
+| `--root` | Organisation unit UID seeding `[generate.organisation_units]` `root`: the top of the subtree the project publishes, and every organisation unit its forms may be assigned to. Left out, the whole instance is read - including any subtree kept for deactivated organisation units. Under `--with-registry` it lands in both projects. Checked for UID shape. |
 | `--max-level` | Deepest organisation-unit level to generate, seeding `[generate.organisation_units]` `max_level`. Rejected below 1. |
 | `--data-set`, `--event-program`, `--tracker-program` | UIDs to seed the `[generate.*]` `include_ids` selection tables with (each repeatable). Naming one family narrows that family alone - an absent table means every member of its kind - so a guide naming data sets still publishes every event program and every tracker program until you name those too. Each UID is checked for shape (eleven characters, a letter then ten letters or digits) and refused when it is not one. |
 | `--with-registry` | Scaffold the guide **and** the organisation-unit registry package it depends on, as two wired projects under this directory - `registry/` and `guide/` - plus a Makefile driving both and a README describing the pair. Both identities derive from `--id` and `--canonical`. Rejects `--publishes`, `--template` and every `--registry-*`. See [Publish the registry as a package](201-registry-package.md). |
@@ -218,7 +219,7 @@ one from the template's address to yours, so a project with a canonical of its
 own publishes nothing under the template's name.
 
 **A template refuses a selection of its own.** `--data-set`,
-`--event-program`, `--tracker-program`, and `--max-level` are rejected beside
+`--event-program`, `--tracker-program`, `--root`, and `--max-level` are rejected beside
 `--template`: the template ships the tree its own selection produced, and
 writing a different selection into `fhir.toml` would state one thing in the
 configuration and another in the files beside it. Scaffold first, then edit

@@ -156,6 +156,21 @@ def test_init_geometry_seeds_the_organisation_unit_table(workdir: Path) -> None:
     assert rejected.exit_code != 0
 
 
+def test_init_root_seeds_the_organisation_unit_table(workdir: Path) -> None:
+    """`--root` lands in fhir.toml beside `--max-level`; a value that is not a UID is a usage error."""
+    import tomllib
+
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--root", "ImspTQPwCqd", "--max-level", "4"])
+    assert result.exit_code == 0, result.output
+    raw = tomllib.loads((workdir / "project" / "fhir.toml").read_text(encoding="utf-8"))
+    assert raw["generate"]["organisation_units"]["root"] == "ImspTQPwCqd"
+    assert raw["generate"]["organisation_units"]["max_level"] == 4
+
+    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--root", "Lao PDR"])
+    assert rejected.exit_code != 0
+    assert "--root" in rejected.output
+
+
 def test_init_geometry_is_refused_for_a_guide_naming_a_registry_package(workdir: Path) -> None:
     """A guide depending on a registry publishes no Location, so it has no geometry to narrow."""
     result = _runner.invoke(

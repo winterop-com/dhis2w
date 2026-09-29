@@ -124,6 +124,17 @@ def test_the_level_cap_reaches_both_because_they_must_mean_the_same_units(tmp_pa
     assert guide.generate.organisation_units.max_level == 3
 
 
+def test_the_root_reaches_both_because_they_must_mean_the_same_units(tmp_path: Path) -> None:
+    """A guide whose root differs from its package's keeps forms assigned to units the package never published."""
+    _write(tmp_path, _OPTIONS.model_copy(update={"root": "ImspTQPwCqd"}))
+
+    registry = load_project(tmp_path / REGISTRY_RELATIVE_ROOT).config
+    guide = load_project(tmp_path / GUIDE_RELATIVE_ROOT).config
+
+    assert registry.generate.organisation_units.root == "ImspTQPwCqd"
+    assert guide.generate.organisation_units.root == "ImspTQPwCqd"
+
+
 def test_geometry_reaches_the_registry_alone_because_it_publishes_the_locations(tmp_path: Path) -> None:
     """The guide names no Location of its own, so the setting lands in the package and both still load."""
     _write(tmp_path, _OPTIONS.model_copy(update={"geometry": "position"}))
