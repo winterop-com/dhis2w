@@ -259,7 +259,7 @@ anywhere in that everything refuses the run - which is why every guide in
 `examples/fhir/igs/` names its option sets and its categories explicitly.
 
 Or seed the same lists while scaffolding: `d2w fhir init --data-set ...
---event-program ... --tracker-program ... --max-level 4` (offline; written
+--event-program ... --tracker-program ... --org-unit-max-level 4` (offline; written
 as given). Points worth knowing:
 
 - **The two program tables select opposite `programType`s**, and a UID

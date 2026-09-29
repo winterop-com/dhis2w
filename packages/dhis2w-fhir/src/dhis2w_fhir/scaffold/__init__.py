@@ -172,7 +172,7 @@ def build_guide_and_registry_files(options: InitOptions, *, copyright_year: int 
     organisation units alone, and carries no form selection - which is what
     `FhirProjectConfig` refuses a package for anyway.
 
-    `max_level` reaches both on purpose. The guide's `[generate.organisation_units]` says which
+    `max_level` and `root` reach both on purpose. The guide's `[generate.organisation_units]` says which
     units its forms may refer to and the registry's says which it publishes; the two have to agree,
     and `d2w fhir check-artifacts` reports every reference where they do not.
 
@@ -218,7 +218,7 @@ def _registry_options_for(options: InitOptions) -> InitOptions:
 
     The selection tables are dropped rather than carried: a package publishes the organisation-unit
     registry and no form, and a package naming a data set is refused when its fhir.toml loads.
-    `max_level` is the one selection value both keep, because both have to mean the same units.
+    `max_level` and `root` are the selection values both keep, because both have to mean the same units.
     """
     return options.model_copy(
         update={
@@ -261,6 +261,7 @@ def _render(relative_path: str, template_name: str, options: InitOptions, **extr
         profile=options.profile,
         sushi_timeout=options.sushi_timeout,
         max_level=options.max_level,
+        root=options.root,
         geometry=options.geometry,
         data_set_ids=options.data_set_ids,
         event_program_ids=options.event_program_ids,

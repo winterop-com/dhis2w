@@ -14,7 +14,7 @@ BASE="http://127.0.0.1:${PORT}"
 # resources the facade serves, so a project that cannot be served cannot be forwarded either.
 d2w fhir init forward-import-demo --id dhis2.fhir.forwardimportdemo \
     --canonical http://example.org/fhir/forward-import-demo \
-    --publisher "Demo Org" --data-set TuL8IOPzpHh --event-program EVTsupVis01 --max-level 2
+    --publisher "Demo Org" --data-set TuL8IOPzpHh --event-program EVTsupVis01 --org-unit-max-level 2
 cd forward-import-demo
 
 # `init` has no flag for the terminology tables, so they are written here. A table left

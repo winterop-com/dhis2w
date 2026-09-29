@@ -37,7 +37,7 @@ FIRST_NAME="w75KJ2mc4zz"
 
 d2w fhir init demo-attribute-filter --id dhis2.fhir.attributefilterdemo \
     --canonical http://example.org/fhir/attribute-filter-demo \
-    --publisher "Demo Org" --tracker-program IpHINAT79UW --max-level 2
+    --publisher "Demo Org" --tracker-program IpHINAT79UW --org-unit-max-level 2
 cd demo-attribute-filter
 
 cat >>fhir.toml <<TOML

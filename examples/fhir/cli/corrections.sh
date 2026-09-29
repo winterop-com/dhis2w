@@ -34,7 +34,7 @@ BASE="http://127.0.0.1:${PORT}"
 
 d2w fhir init demo-corrections --id dhis2.fhir.correctionsdemo \
     --canonical http://example.org/fhir/corrections-demo \
-    --publisher "Demo Org" --event-program EVTsupVis01 --max-level 2
+    --publisher "Demo Org" --event-program EVTsupVis01 --org-unit-max-level 2
 cd demo-corrections
 
 start_facade() {

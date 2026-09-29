@@ -35,7 +35,7 @@ BASE="http://127.0.0.1:${PORT}"
 # registry capped at level 2 so each `--live` startup stays quick.
 d2w fhir init demo-serve-auth --id dhis2.fhir.serveauthdemo \
     --canonical http://example.org/fhir/serve-auth-demo \
-    --publisher "Demo Org" --event-program EVTsupVis01 --max-level 2
+    --publisher "Demo Org" --event-program EVTsupVis01 --org-unit-max-level 2
 cd demo-serve-auth
 
 cat >>fhir.toml <<'TOML'

@@ -40,9 +40,14 @@ hostile_names = "substitute"
 
 {{ selection.generate_keys }}
 {% endif %}
-{% if max_level or geometry or registry %}
+{% if root or max_level or geometry or registry %}
 
 [generate.organisation_units]
+{% if root %}
+# The top of the organisation unit subtree this project publishes, by UID. A registry package and
+# the guide depending on it state the same root, so they mean the same organisation units.
+root = "{{ root }}"
+{% endif %}
 {% if max_level %}
 # Every unit emits two instances, an Organization and a Location, and a hierarchy fans out at
 # the bottom - so the deepest level is usually most of the IG, and most of its compile time.

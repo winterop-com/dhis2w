@@ -636,7 +636,10 @@ chain in one command.
   `publisher.url` in `sushi-config.yaml`; **`--profile`** seeds the top-level
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
-  `profiles.toml`); **`--max-level`** seeds the organisation-unit depth cap;
+  `profiles.toml`); **`--org-unit-root`** seeds the organisation unit subtree the project
+  publishes (checked for UID shape, and under `--with-registry` written into both
+  projects, which have to mean the same organisation units); **`--org-unit-max-level`**
+  seeds the organisation-unit depth cap;
   **`--geometry`** seeds `[generate.organisation_units] geometry` (`full`,
   `position` or `none`), landing in the registry package under
   `--with-registry` and refused for a guide naming a registry package;
@@ -644,7 +647,7 @@ chain in one command.
   on, as `registry/` and `guide/` under one directory plus a Makefile driving
   both in the order that resolves and a README describing the pair - the
   registry's id is the guide's with `.registry` appended, its canonical the
-  guide's with `/registry`, and `max_level` reaches both because the two
+  guide's with `/registry`, and `root` and `max_level` reach both because the two
   selections have to mean the same units; `--publishes`, `--template` and every
   `--registry-*` are refused beside it, each naming what to drop. That Makefile
   runs its own targets one at a time, so `make -j2 build` and an inherited `-j`
@@ -865,6 +868,13 @@ chain in one command.
   label and a data dictionary concept display (one national selection generated
   cleanly and handed the publisher 738 of them). Every rewrite is a
   `name-substitution` note, one per distinct DHIS2 name.
+- **The substitute posture rewrites every code carrying a `<`.** A code becomes an
+  identifier value the publisher writes into a table cell unescaped and then
+  strict-parses, so a `<` in it aborts the build's last pass. Under `substitute`
+  its comparison is reworded the way a name's is and then every space is
+  hyphenated (`ENTO - IRS < 6 Months` publishes as `ENTO---IRS-under-6-Months`),
+  with the DHIS2 code stated as the `dhis2-code` property exactly as for a spaced
+  code. Under `refuse` the run is refused, naming the object.
 - **The substitute posture hyphenates every code carrying a space.** An R4 `code`
   admits single internal spaces, so `Pre eclampsia` is legal FHIR and nothing
   refuses it - and the publisher's anchor slug strips the whitespace, so it and a
@@ -2118,8 +2128,9 @@ semantics `generate` uses.
   spellings (`published as 'Vitamin A given to under 5y' ... DHIS2 keeps
   'Vitamin A given to < 5y'`), and a `spaced-code` finding names the hyphenated
   code the guide publishes; under `"refuse"` and unset the grading is the
-  refusing one. `template-hostile-code` is an error under either posture,
-  because the code substituter rewrites a space in a code and never a `<`.
+  refusing one. `template-hostile-code` follows the posture the same way: an
+  in-scope `<` code is an error under `"refuse"`, and `info` under
+  `"substitute"`, which rewrites it before any emitter reads it.
   `--hostile-names substitute|refuse` reads the instance under the other posture
   for a what-if run; the flag beats the config, the config beats unset, and exit
   1 follows the graded severities.

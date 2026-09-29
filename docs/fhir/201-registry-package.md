@@ -121,6 +121,7 @@ add the table to an existing guide's `fhir.toml` and refresh:
 
 ```toml
 [generate.organisation_units]
+root = "ImspTQPwCqd"
 max_level = 4
 
 [generate.organisation_units.registry]
@@ -136,6 +137,17 @@ d2w fhir init --refresh .
 d2w fhir generate
 make build
 ```
+
+**Give the guide the same `root` and `max_level` as the package.** The guide's
+`[generate.organisation_units]` says which organisation units its forms may be
+assigned to, and the package's says which organisation units exist. When the two
+differ, a form stays assigned to an organisation unit the package never
+published, and the IG publisher cannot resolve the reference. The usual way in is a guide table
+left empty - it then reads the whole instance, including a subtree the package's
+`root` leaves out, such as one holding deactivated organisation units.
+`d2w fhir init --with-registry` writes the same values into both, and
+`d2w fhir check-artifacts` reports every such reference as build-aborting
+before the publisher runs.
 
 The refresh lands the `dependencies:` block in `ig/sushi-config.yaml` and the
 three `REGISTRY_*` knobs in the Makefile. The guide's selection under

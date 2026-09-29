@@ -125,7 +125,8 @@ Every command and every flag, from `cli.py`.
 | `--publisher-url` | unset | Publisher home page. Omitted by default because the publisher links it from every generated page. |
 | `--profile` | unset | DHIS2 profile seeding the top-level `profile` key of the scaffolded `fhir.toml`. Offline - written as given, never resolved against `profiles.toml`. Without it the key scaffolds commented out. |
 | `--sushi-timeout` | `1800` | Seconds written to `[FSH] timeout` of `ig/fsh.ini`, the ceiling the publisher gives its embedded SUSHI run. An IG whose FSH overruns it fails the build with exit 143. |
-| `--max-level` | unset | Deepest organisation-unit level, seeding `[generate.organisation_units] max_level`. The dial on the registry's share of the publisher's rendering pass. Below 1 is a `typer.BadParameter`. |
+| `--org-unit-root` | unset | Organisation unit UID seeding `[generate.organisation_units] root`; under `--with-registry` it reaches both projects. Checked for UID shape, never against an instance. |
+| `--org-unit-max-level` | unset | Deepest organisation-unit level, seeding `[generate.organisation_units] max_level`. The dial on the registry's share of the publisher's rendering pass. Below 1 is a `typer.BadParameter`. |
 | `--data-set` | none | Repeatable data set UID seeding `[generate.data_sets] include_ids`. Offline - never checked against an instance. |
 | `--event-program` | none | Repeatable event program UID seeding `[generate.event_programs] include_ids`. Offline. |
 | `--tracker-program` | none | Repeatable tracker program UID seeding `[generate.tracker_programs] include_ids`, which emits one Questionnaire per program stage. Offline. |
@@ -767,7 +768,7 @@ every resource. `generate_organisation_units` warns once a registry passes
 build, whose 2,664 registry instances carried a multi-hour run), naming the
 `[generate.organisation_units]` `max_level` / `root` dials, so the cost surfaces
 at generate time rather than at the end of a long build - and
-`d2w fhir init --max-level` seeds the cap at scaffold time.
+`d2w fhir init --org-unit-max-level` seeds the cap at scaffold time.
 
 ## 5. Open decisions
 

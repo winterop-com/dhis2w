@@ -12,7 +12,7 @@ BASE="http://127.0.0.1:${PORT}"
 # which is enough for a capture and for the drain that follows it.
 d2w fhir init withdraw-demo --id dhis2.fhir.withdrawdemo \
     --canonical http://example.org/fhir/withdraw-demo \
-    --publisher "Demo Org" --event-program EVTsupVis01 --max-level 2
+    --publisher "Demo Org" --event-program EVTsupVis01 --org-unit-max-level 2
 cd withdraw-demo
 
 # `[forward] withdrawals` is off unless a project says otherwise. A project that publishes

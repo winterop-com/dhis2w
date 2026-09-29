@@ -696,7 +696,11 @@ class _CodedObject(BaseModel):
 
     @property
     def emitted_code(self) -> str:
-        """The identifier value the object really emits - its DHIS2 code, or the UID standing in for it."""
+        """The identifier value the object really emits - the code the guide publishes, or the UID standing in for it.
+
+        The published code, not the DHIS2 one: under `substitute` a `<` in a code has already been
+        reworded by the time the emitters read it, so the build never meets it and nothing is refused.
+        """
         return code_or_uid(self.code, self.uid)
 
 
@@ -1619,9 +1623,7 @@ def _emit_option_sets(
     )
     _refuse_build_aborting_objects(
         [
-            _CodedObject(
-                resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.dhis2_code
-            )
+            _CodedObject(resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.code)
             for option_set in option_sets
         ]
     )
@@ -1726,7 +1728,7 @@ def _emit_categories(
     )
     _refuse_build_aborting_objects(
         [
-            _CodedObject(resource_type="categories", uid=category.uid, name=category.name, code=category.dhis2_code)
+            _CodedObject(resource_type="categories", uid=category.uid, name=category.name, code=category.code)
             for category in categories
         ]
     )
@@ -2280,9 +2282,7 @@ async def _emit_examples(
     _refuse_build_aborting_form_objects(sources)
     _refuse_build_aborting_objects(
         [
-            _CodedObject(
-                resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.dhis2_code
-            )
+            _CodedObject(resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.code)
             for option_set in option_sets
         ]
     )
@@ -3136,7 +3136,7 @@ def _coded_source(source: QuestionnaireSourceIn) -> _CodedObject:
         resource_type=_SOURCE_CODE_COLLECTIONS[source.kind],
         uid=source.uid,
         name=source.name,
-        code=source.dhis2_code,
+        code=source.code,
     )
 
 
@@ -3432,7 +3432,7 @@ def _emit_organisation_units(
                 resource_type="organisationUnits",
                 uid=organisation_unit.uid,
                 name=organisation_unit.name,
-                code=organisation_unit.dhis2_code,
+                code=organisation_unit.code,
             )
             for organisation_unit in organisation_units
         ]
@@ -3770,9 +3770,7 @@ def _emit_pages(
     _refuse_build_aborting_form_objects(sources)
     _refuse_build_aborting_objects(
         [
-            _CodedObject(
-                resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.dhis2_code
-            )
+            _CodedObject(resource_type="optionSets", uid=option_set.uid, name=option_set.name, code=option_set.code)
             for option_set in option_sets
         ]
         + [
@@ -3780,7 +3778,7 @@ def _emit_pages(
                 resource_type="organisationUnits",
                 uid=organisation_unit.uid,
                 name=organisation_unit.name,
-                code=organisation_unit.dhis2_code,
+                code=organisation_unit.code,
             )
             for organisation_unit in organisation_units
         ]

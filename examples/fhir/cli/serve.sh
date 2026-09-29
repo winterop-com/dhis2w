@@ -13,7 +13,7 @@ CANONICAL="http://example.org/fhir/serve-demo"
 # Scaffold a small project. --data-set and --event-program keep the IG to two forms, which
 # is what makes the compile short enough to sit inside an example script.
 d2w fhir init serve-demo --id dhis2.fhir.servedemo --canonical "$CANONICAL" \
-    --publisher "Demo Org" --data-set TuL8IOPzpHh --event-program EVTsupVis01 --max-level 2
+    --publisher "Demo Org" --data-set TuL8IOPzpHh --event-program EVTsupVis01 --org-unit-max-level 2
 
 cd serve-demo
 

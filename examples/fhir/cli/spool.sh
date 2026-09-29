@@ -9,7 +9,7 @@ CANONICAL="http://example.org/fhir/spool-demo"
 # A scaffolded project is enough. Nothing here generates, serves, or forwards: the spool is a
 # directory under the project root, and these two verbs read and rename inside it.
 d2w fhir init spool-demo --id dhis2.fhir.spooldemo --canonical "$CANONICAL" \
-    --publisher "Demo Org" --data-set BfMAe6Itzgt --max-level 2
+    --publisher "Demo Org" --data-set BfMAe6Itzgt --org-unit-max-level 2
 
 cd spool-demo
 

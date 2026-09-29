@@ -9,7 +9,7 @@ set -euo pipefail
 d2w fhir init demo-generate --id dhis2.fhir.generatedemo \
     --canonical http://example.org/fhir/generate-demo --publisher "Demo Org" \
     --data-set TuL8IOPzpHh --event-program EVTsupVis01 --tracker-program PrAncCare01 \
-    --max-level 2
+    --org-unit-max-level 2
 cd demo-generate
 
 # `init` has a flag per data-definition table and none for the terminology, so the option sets

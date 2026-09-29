@@ -36,7 +36,8 @@ instead, in Java's voice; those are the second half of this page.
 | `Font MPDFAA+NotoSans is missing the following glyphs: ...` during `d2w fhir validate` | Not a finding about your instance. The PDF writer met a character the bundled font has no drawing for, in a DHIS2 name or code it was rendering. | Nothing - the `.md` and `.csv` reports carry the character regardless. |
 | `--refresh and --force are mutually exclusive: --force rewrites every scaffold file including the ones you edited, --refresh rewrites only what it can rewrite without losing your edits` | Both flags on one `init` run. | Pick one: `--refresh` preserves edits, `--force` overwrites everything. |
 | `--refresh takes the project's identity and generation tables from its own fhir.toml, so <flags> would be ignored: drop the flag, or edit fhir.toml and refresh` | Identity flags (`--id`, `--canonical`, ...) passed together with `--refresh`. | Edit `fhir.toml`, then refresh without the flags. |
-| `--max-level must be 1 or greater` | `d2w fhir init --max-level 0` (or negative) - it would silently produce an empty registry. | Pass a level of 1 or more, or drop the flag. |
+| `check-artifacts` reports build-aborting references to `.../registry/Location/<uid>` or `.../registry/Organization/<uid>`, with `the guide references an organisation unit the registry package it depends on does not publish` | The guide's `[generate.organisation_units]` selection is wider than the registry package's - most often an empty table in the guide, which reads the whole instance, while the package sets a `root` and a `max_level`. A form assigned to an organisation unit outside the package keeps that assignment. | Give the guide the same `root` and `max_level` as the package, then `d2w fhir generate` in the guide. See [the registry package](201-registry-package.md#what-changes-in-the-guide). |
+| `--org-unit-max-level must be 1 or greater` | `d2w fhir init --org-unit-max-level 0` (or negative) - it would silently produce an empty registry. | Pass a level of 1 or more, or drop the flag. |
 | `Invalid value: --title carries '<'. The IG publisher writes this value into pages it strict-parses after writing, ...` | A `--title` or `--name` holding `<` or `>`. The publisher aborts its last pass on it, hours into a build, once every resource has already been rendered. | Name the guide without the brackets. |
 | `Invalid value: --name yields the SUSHI name` `` `<name>` `` `, which FHIR does not accept: a name is an upper-case letter followed by up to 254 letters, digits or underscores.` | A `--name` outside the FHIR computer-friendly shape. SUSHI rewrites such a name into that shape without saying so, and the guide publishes a name nobody chose. | Pass a name in the shape - `SierraLeoneHmis` - or drop `--name` and let it derive from `--id`. |
 | `Invalid value: --data-set carries '<value>', which is not a DHIS2 UID: eleven characters, an ASCII letter followed by ten letters or digits.` | A selection flag given something that is not a UID. Written through, it would select nothing and the guide would publish no form of that kind. | Pass the UID; `d2w metadata list dataSets` names them. |
@@ -67,8 +68,11 @@ already been rendered. Change the code in DHIS2, then run `d2w fhir
 validate` for the full report.
 ```
 
-Cause: an in-scope code on an identifier surface carries `<`. Fix: change
-the code in DHIS2. Only `<` refuses; `>` and `&` stay warnings.
+Cause: an in-scope code on an identifier surface carries `<`, under
+`hostile_names = "refuse"` or with the key unset. Fix: change the code in DHIS2,
+or set `hostile_names = "substitute"`, which publishes the code with its
+comparison reworded and its spaces hyphenated, and states the DHIS2 code beside
+it as the `dhis2-code` property. Only `<` refuses; `>` and `&` stay warnings.
 
 A name refuses the same way, through its own message: a DHIS2 name stays
 byte-true on the emitted resource's title, which the publisher writes into

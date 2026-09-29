@@ -5,16 +5,20 @@ set -euo pipefail
 # The short way: one command scaffolds both projects, wired. The registry's id is the guide's with
 # `.registry` appended and its canonical the guide's with `/registry`, so the four values the two
 # share are derived rather than restated - which is the mistake this flag exists to prevent.
+# `--org-unit-root` and `--org-unit-max-level` land in both: the guide's forms may only be assigned to organisation
+# units the registry publishes, so the two selections have to mean the same organisation units.
 d2w fhir init demo-both --with-registry \
     --id dhis2.fhir.bothdemo \
     --canonical http://example.org/fhir/both-demo \
     --publisher "Demo Org" \
-    --max-level 4
+    --org-unit-root ImspTQPwCqd \
+    --org-unit-max-level 4
 
 # Two projects under one directory, plus a Makefile that builds the registry before the guide.
 ls demo-both
 grep -nE 'kind = "package"|publishes = ' demo-both/registry/fhir.toml
 grep -A4 'organisation_units.registry' demo-both/guide/fhir.toml
+grep -h '^root' demo-both/registry/fhir.toml demo-both/guide/fhir.toml
 
 # The rest of this example is the same thing done by hand, which is what the flag expands to.
 #
@@ -25,7 +29,7 @@ d2w fhir init demo-registry --publishes organisation-units \
     --id dhis2.fhir.registrydemo.registry \
     --canonical http://example.org/fhir/registry-demo/registry \
     --publisher "Demo Org" \
-    --max-level 4
+    --org-unit-max-level 4
 
 # The two [ig] keys say so - a package, and what it holds; the site is Home, Registry, Artifacts.
 grep -nE 'kind = "package"|publishes = ' demo-registry/fhir.toml
@@ -41,7 +45,7 @@ d2w fhir init demo-guide \
     --canonical http://example.org/fhir/registry-demo \
     --publisher "Demo Org" \
     --data-set BfMAe6Itzgt \
-    --max-level 4 \
+    --org-unit-max-level 4 \
     --registry-id dhis2.fhir.registrydemo.registry \
     --registry-canonical http://example.org/fhir/registry-demo/registry \
     --registry-path ../demo-registry

@@ -453,7 +453,7 @@ units it wrote - check that number after setting this.
     `max_level` is the difference between a guide that generates and builds
     comfortably and one that takes many times longer or fails the build's
     time limits. Start capped (the project may already have been created with
-    `--max-level` for exactly this reason), confirm the build is comfortable,
+    `--org-unit-max-level` for exactly this reason), confirm the build is comfortable,
     then deepen deliberately.
 
 **In plain words.** The deepest hierarchy level to include: `max_level = 3` on

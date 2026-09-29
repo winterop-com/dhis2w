@@ -28,7 +28,7 @@ BASE="http://127.0.0.1:${PORT}"
 
 d2w fhir init demo-summary --id dhis2.fhir.summarydemo \
     --canonical http://example.org/fhir/summary-demo \
-    --publisher "Demo Org" --tracker-program IpHINAT79UW --max-level 2
+    --publisher "Demo Org" --tracker-program IpHINAT79UW --org-unit-max-level 2
 cd demo-summary
 
 # The two nominations, and the dial that publishes the document at all. `[ips] enabled` is false by

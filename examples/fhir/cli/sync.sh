@@ -14,7 +14,7 @@ set -euo pipefail
 PERSON_TYPE="nEenWmSyUEp"
 
 d2w fhir init sync-demo --id dhis2.fhir.syncdemo --canonical "http://example.org/fhir/sync-demo" \
-    --publisher "Demo Org" --tracker-program IpHINAT79UW --max-level 2
+    --publisher "Demo Org" --tracker-program IpHINAT79UW --org-unit-max-level 2
 
 cd sync-demo
 

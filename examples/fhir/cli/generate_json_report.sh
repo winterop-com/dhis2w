@@ -4,7 +4,7 @@ set -euo pipefail
 
 d2w fhir init demo-generate-json --id dhis2.fhir.generatejsondemo \
     --canonical http://example.org/fhir/generate-json-demo --publisher "Demo Org" \
-    --data-set TuL8IOPzpHh --max-level 2
+    --data-set TuL8IOPzpHh --org-unit-max-level 2
 cd demo-generate-json
 
 # A table left absent selects everything of its kind, and one DHIS2 name carrying a raw '<'

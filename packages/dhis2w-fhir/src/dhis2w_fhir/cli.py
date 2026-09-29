@@ -396,10 +396,21 @@ def init_command(
     max_level: Annotated[
         int | None,
         typer.Option(
-            "--max-level",
+            "--org-unit-max-level",
             help="Deepest organisation-unit level to generate, seeding `\\[generate.organisation_units]` "
             "max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this "
             "is the dial that bounds how much the IG publisher renders. Offline: written as given.",
+        ),
+    ] = None,
+    root: Annotated[
+        str | None,
+        typer.Option(
+            "--org-unit-root",
+            help="Organisation unit UID to seed `\\[generate.organisation_units]` root with: the top of the "
+            "subtree the guide publishes, and every organisation unit its forms may be assigned to. Leave it "
+            "out and the whole instance is read - including a subtree kept for deactivated organisation units. "
+            "With --with-registry the value lands in both projects, which have to mean the same organisation "
+            "units. Offline: the UID shape is checked here, never the instance.",
         ),
     ] = None,
     geometry: Annotated[
@@ -561,6 +572,7 @@ def init_command(
             profile=profile,
             sushi_timeout=sushi_timeout,
             max_level=max_level,
+            root=root,
             geometry=geometry,
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
@@ -575,7 +587,7 @@ def init_command(
         _refresh_project(directory)
         return
     if max_level is not None and max_level < 1:
-        raise typer.BadParameter("--max-level must be 1 or greater")
+        raise typer.BadParameter("--org-unit-max-level must be 1 or greater")
     if with_registry:
         _reject_with_registry_conflicts(
             publishes=publishes,
@@ -585,6 +597,7 @@ def init_command(
             registry_version=registry_version,
             registry_path=registry_path,
         )
+    _require_uid_shape("--org-unit-root", [root] if root is not None else None)
     _require_uid_shape("--data-set", data_set_ids)
     _require_uid_shape("--event-program", event_program_ids)
     _require_uid_shape("--tracker-program", tracker_program_ids)
@@ -614,6 +627,7 @@ def init_command(
         _reject_selection_flags(
             template=project_template.name,
             max_level=max_level,
+            root=root,
             geometry=geometry,
             data_set_ids=data_set_ids,
             event_program_ids=event_program_ids,
@@ -641,6 +655,7 @@ def init_command(
         profile=profile,
         sushi_timeout=sushi_timeout,
         max_level=max_level,
+        root=root,
         geometry=geometry.value if geometry is not None else None,
         data_set_ids=data_set_ids or [],
         event_program_ids=event_program_ids or [],
@@ -857,6 +872,7 @@ def _reject_selection_flags(
     *,
     template: str,
     max_level: int | None,
+    root: str | None,
     geometry: GeometryChoice | None,
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
@@ -871,7 +887,8 @@ def _reject_selection_flags(
     an instance that holds it.
     """
     given = {
-        "--max-level": max_level is not None,
+        "--org-unit-max-level": max_level is not None,
+        "--org-unit-root": root is not None,
         "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
@@ -1000,6 +1017,7 @@ def _reject_scaffold_flags(
     profile: str | None,
     sushi_timeout: int,
     max_level: int | None,
+    root: str | None,
     geometry: GeometryChoice | None,
     data_set_ids: list[str] | None,
     event_program_ids: list[str] | None,
@@ -1027,7 +1045,8 @@ def _reject_scaffold_flags(
         "--publisher-url": publisher_url is not None,
         "--profile": profile is not None,
         "--sushi-timeout": sushi_timeout != DEFAULT_SUSHI_TIMEOUT_SECONDS,
-        "--max-level": max_level is not None,
+        "--org-unit-max-level": max_level is not None,
+        "--org-unit-root": root is not None,
         "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
@@ -1861,8 +1880,9 @@ def validate_command(
     which one it read. Under `substitute` a DHIS2 name carrying '<' is rewritten for publication
     and the build survives it, so the finding on that name is informational and says what the guide
     publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
-    an error. A DHIS2 code carrying '<' is an error under either posture: the substitution rewrites
-    a space in a code and never a '<'.
+    an error. A DHIS2 code carrying '<' is graded the same way: under `substitute` its comparison is
+    reworded and every space hyphenated, so the finding is informational, and under `refuse` it is
+    an error.
 
     The terminal says what the state is: a summary, a count per severity, scope, and category, and
     every error by name, because an error is what gates the build and the user has to know which

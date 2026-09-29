@@ -4,6 +4,7 @@ import re
 from datetime import UTC, datetime
 
 import pytest
+from dhis2w_fhir.coded import substituted_code
 from dhis2w_fhir.config import GenerateConfig, HostileNamePosture, NamingConfig
 from dhis2w_fhir.i18n import TranslationIn
 from dhis2w_fhir.resources.option_sets.schemas import OptionIn, OptionSetIn
@@ -1078,8 +1079,8 @@ def test_without_substitute_a_spaced_code_keeps_saying_what_the_quoted_form_cost
     ]
 
 
-def test_a_build_aborting_code_stays_an_error_under_substitute() -> None:
-    """The code substituter rewrites a space and never a '<', so the run is refused under either posture."""
+def test_a_build_aborting_code_is_informational_under_substitute() -> None:
+    """Under `substitute` the code is rewritten before any emitter reads it, so the build never meets the '<'."""
     report = build_code_validation(
         [],
         [
@@ -1091,9 +1092,9 @@ def test_a_build_aborting_code_stays_an_error_under_substitute() -> None:
         _SUBSTITUTE_CONFIG,
     )
     findings = _hostile_code(report)
-    assert [finding.severity for finding in findings] == ["error"]
-    assert "the substitution rewrites a space in a code and never '<'" in findings[0].message
-    assert "change the code in DHIS2" in findings[0].message
+    assert [finding.severity for finding in findings] == ["info"]
+    assert f"published as {substituted_code(_HOSTILE_CODE)!r}" in findings[0].message
+    assert "`dhis2-code` property" in findings[0].message
 
 
 def test_the_flag_overrides_the_project_in_both_directions() -> None:

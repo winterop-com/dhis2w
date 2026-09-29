@@ -312,7 +312,7 @@ def test_data_definition_targets_are_seeded_into_fhir_toml() -> None:
 
 
 def test_max_level_is_seeded_into_fhir_toml() -> None:
-    """`--max-level` caps the registry, the dial that keeps a national IG inside the SUSHI timeout."""
+    """`--org-unit-max-level` caps the registry, the dial that keeps a national IG inside the SUSHI timeout."""
     files = {
         file.relative_path: file.content for file in build_scaffold_files(_OPTIONS.model_copy(update={"max_level": 4}))
     }
@@ -321,7 +321,7 @@ def test_max_level_is_seeded_into_fhir_toml() -> None:
 
 
 def test_unseeded_fhir_toml_carries_no_registry_table() -> None:
-    """Without --max-level the registry table is absent and the selection keeps its uncapped default."""
+    """Without --org-unit-max-level the registry table is absent and the selection keeps its uncapped default."""
     body = _by_path()["fhir.toml"]
     assert "[generate.organisation_units]" not in body
     assert FhirProjectConfig.model_validate(tomllib.loads(body)).generate.organisation_units.max_level is None
