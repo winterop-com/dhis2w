@@ -1,7 +1,7 @@
 # AI agent testing
 
-This toolkit is built to be **driven by AI agents** — the CLI, the MCP server, and the single-tool
-[bridge](architecture/mcp-bridge.md) all exist so a model can operate a DHIS2 instance. This page is
+This toolkit is built to be **driven by AI agents** — the CLI, and the MCP server and the single-tool
+[bridge](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/) of the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack, all exist so a model can operate a DHIS2 instance. This page is
 how we verify that actually works, which models can do it, and what we learned. The detailed run
 logs are linked at the bottom.
 
@@ -24,7 +24,7 @@ leave the machine, driving the bridge.
 The benchmark harness lives in
 [`dhis2w-integration`](https://github.com/winterop-com/dhis2w-integration), the ecosystem's control
 center, as `dhis2w_integration.bench`. A benchmark measures the *assembled* surface — this
-workspace's CLI, bridge, MCP server and router plus every plugin pack, installed side by side — and
+workspace's CLI plus every plugin pack (the MCP server, bridge and router of `dhis2w-mcp` among them), installed side by side — and
 the integration is the only repository that holds all of it at once.
 
 Run one lane there:
@@ -62,11 +62,11 @@ Code subscription auth (no API key), so local-vs-cloud is directly comparable on
 
 ## Why this shapes the design
 
-The findings drive the [bridge design](architecture/mcp-bridge.md): because a small model can't carry
+The findings drive the [bridge design](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/): because a small model can't carry
 ~304 tool schemas or pick among hundreds of tools, the bridge gives it **one** tool and a
 self-describing CLI to discover progressively — which is only as good as the help/errors, hence the
 read-surface hardening (did-you-mean, `metadata type list`, `d2w schema <type>`, `--fields`
-warnings). See [MCP servers — which one?](mcp/index.md#three-surfaces-which-one).
+warnings). See [MCP servers — which one?](https://winterop-com.github.io/dhis2w-mcp/#three-surfaces-which-one).
 
 ## Detailed logs
 

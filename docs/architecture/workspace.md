@@ -7,7 +7,7 @@ The repo is a `uv` workspace with a virtual root (the root `pyproject.toml` has 
 Three reasons:
 
 - **`dhis2w-client` has to be publishable on its own.** A single-package layout would force PyPI users of the client to pull in Typer, FastMCP, Playwright — none of which they need. A workspace lets us ship the client lean.
-- **CLI and MCP shouldn't be the same install.** A server running `dhis2w-mcp` in a Docker image doesn't need the CLI's Typer tree. A developer running `d2w` locally doesn't need the MCP stdio loop. Separate members, separate wheels.
+- **CLI and MCP shouldn't be the same install.** A server running `dhis2w-mcp` in a Docker image doesn't need the CLI's Typer tree. A developer running `d2w` locally doesn't need the MCP stdio loop. The MCP surface is the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack, in a repository of its own, and builds on `dhis2w-core` like the CLI does.
 - **New surfaces land cleanly.** A new HTTP surface is a new folder, not a conditional import inside an existing package. `dhis2w-fhir-serve` is the worked example: `d2w fhir serve` needs FastAPI and uvicorn, `dhis2w-fhir` generates a file tree and needs neither, so the server is its own member and an API-only install of the generator stays free of both.
 
 ## Layout
@@ -26,13 +26,13 @@ dhis2w/
     ├── dhis2w-client/             # httpx2 + pydantic lib + Profile + open_client (PAT/Basic/session) (PyPI)
     ├── dhis2w-core/               # TOML profile resolution + OAuth2 token store + plugin runtime + plugins (PyPI)
     ├── dhis2w-cli/                # Typer console script `d2w` (PyPI)
-    ├── dhis2w-mcp/                # FastMCP server (PyPI)
-    ├── dhis2w-mcp-bridge/         # single-tool MCP bridge for small local models (PyPI)
     ├── dhis2w-codegen/            # generator — registers `d2w dev codegen` subcommand (workspace-only)
-    ├── dhis2w-mcp-router/         # domain-neutral MCP search + dispatch router (ships from 1.2.0)
     ├── dhis2w-fhir/               # FHIR IG generation plugin — mounts `d2w fhir` (ships from 1.5.0)
+    ├── dhis2w-fhir-engine/        # FHIRPath, CQL, and quality-measure evaluation (ships from 1.7.0)
     └── dhis2w-fhir-serve/         # FastAPI FHIR facade behind `d2w fhir serve` (ships from 1.5.0)
 ```
+
+The plugin packs live in repositories of their own: [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) (the `dhis2w-mcp` server, `dhis2w-mcp-bridge`, and `dhis2w-mcp-router`), [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security).
 
 ## Configuration split
 
@@ -41,13 +41,13 @@ All lint/type/test tooling (ruff, mypy, pyright, pytest, coverage) is configured
 Each member's `pyproject.toml` has just:
 
 - `[project]` — name, version, description, Python floor, dependencies
-- `[project.scripts]` — console entrypoints (only `dhis2w-cli` and `dhis2w-mcp`)
+- `[project.scripts]` — console entrypoints (`d2w` from `dhis2w-cli`, for example)
 - `[project.entry-points."dhis2w.plugins.v1"]` — plugin registration (for `dhis2w-fhir` and future plugin packs)
 - `[build-system]` — `uv_build` backend
 
 ## Build + publish
 
-`make build` produces wheels for all members. PyPI publishing is automated — tag a `vX.Y.Z` and `.github/workflows/pypi-publish.yml` builds + uploads every publishable member via PyPI Trusted Publishing (OIDC). Nine members ship: `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (the MCP search + dispatch router, first published in 1.2.0), `dhis2w-fhir` (the FHIR IG generation plugin, first published in 1.5.0), and `dhis2w-fhir-serve` (the FHIR facade behind `d2w fhir serve`, first published in 1.5.0 and installed through the `dhis2w-cli[serve]` extra). One stays workspace-only: `dhis2w-codegen`, a developer tool that emits committed code into `dhis2w-client`'s tree. See [Releasing to PyPI](../releasing.md) for the full bump-and-tag flow.
+`make build` produces wheels for all members. PyPI publishing is automated — tag a `vX.Y.Z` and `.github/workflows/pypi-publish.yml` builds + uploads every publishable member via PyPI Trusted Publishing (OIDC). Six members ship: `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-fhir` (the FHIR IG generation plugin, first published in 1.5.0), `dhis2w-fhir-serve` (the FHIR facade behind `d2w fhir serve`, first published in 1.5.0 and installed through the `dhis2w-cli[serve]` extra), and `dhis2w-fhir-engine` (the FHIR evaluation engine, first published in 1.7.0). The plugin packs publish their own packages from their own repositories, at the same version, after this workspace. One stays workspace-only: `dhis2w-codegen`, a developer tool that emits committed code into `dhis2w-client`'s tree. See [Releasing to PyPI](../releasing.md) for the full bump-and-tag flow.
 
 ## Open questions
 

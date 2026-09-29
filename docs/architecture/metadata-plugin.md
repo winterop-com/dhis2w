@@ -1,6 +1,6 @@
 # Metadata plugin
 
-`dhis2w-core/v43/plugins/metadata/` is the workspace's largest plugin — the `metadata_*` group registers roughly 230 MCP tools (the auto-regenerated [MCP reference](../mcp-reference.md) is the source of truth), spanning bundle workflows, cross-resource search, RFC 6902 patching, and dedicated authoring sub-apps for the highest-traffic DHIS2 resources. The generic CRUD still ships on `client.resources.<name>` (see [Metadata CRUD](metadata-crud.md)) and remains the right escape hatch when a specific resource type doesn't have a hand-written sub-app yet.
+`dhis2w-core/v43/plugins/metadata/` is the workspace's largest plugin — the `metadata_*` group registers roughly 230 MCP tools (the auto-regenerated [MCP reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/) is the source of truth), spanning bundle workflows, cross-resource search, RFC 6902 patching, and dedicated authoring sub-apps for the highest-traffic DHIS2 resources. The generic CRUD still ships on `client.resources.<name>` (see [Metadata CRUD](metadata-crud.md)) and remains the right escape hatch when a specific resource type doesn't have a hand-written sub-app yet.
 
 ## What it exposes
 
@@ -583,8 +583,8 @@ async with Dhis2Client(url, auth) as client:
 
 MCP tools: `metadata_export` + `metadata_import`. Both accept a
 `bundle_path` on disk so multi-megabyte bundles don't flow through the MCP
-channel. See `examples/mcp/metadata_export.py` and
-`examples/mcp/metadata_import.py` for the tool-call form.
+channel. See [`examples/metadata_export.py`](https://github.com/winterop-com/dhis2w-mcp/blob/main/examples/metadata_export.py) and
+[`examples/metadata_import.py`](https://github.com/winterop-com/dhis2w-mcp/blob/main/examples/metadata_import.py) in the `dhis2w-mcp` repository for the tool-call form.
 
 ## Diff — preview before importing
 
@@ -656,7 +656,7 @@ live_diff = await service.diff_bundle_against_instance(
 ```
 
 MCP tool: `metadata_diff` (pass `left_path` + `right_path`, or `left_path` +
-`live=True`). See `examples/mcp/metadata_diff.py` and
+`live=True`). See [`examples/metadata_diff.py`](https://github.com/winterop-com/dhis2w-mcp/blob/main/examples/metadata_diff.py) in the `dhis2w-mcp` repository and
 `examples/client/metadata_diff.py` for worked calls.
 
 ## `diff-profiles` — staging-vs-prod drift

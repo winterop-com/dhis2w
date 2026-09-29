@@ -16,9 +16,6 @@ members = [
     "dhis2w-fhir",
     "dhis2w-fhir-engine",
     "dhis2w-fhir-serve",
-    "dhis2w-mcp",
-    "dhis2w-mcp-bridge",
-    "dhis2w-mcp-router",
 ]
 
 [manifest.dependency-groups]
@@ -792,7 +789,6 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "bcrypt" },
     { name = "dhis2w-client" },
-    { name = "fastmcp" },
     { name = "pluginkit" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -816,7 +812,6 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22" },
     { name = "bcrypt", specifier = ">=5.0.0" },
     { name = "dhis2w-client", editable = "packages/dhis2w-client" },
-    { name = "fastmcp", specifier = ">=3.4.7" },
     { name = "pluginkit", specifier = ">=0.5.1" },
     { name = "pydantic", specifier = ">=2.13" },
     { name = "pydantic-settings", specifier = ">=2.13" },
@@ -915,62 +910,6 @@ requires-dist = [
     { name = "joserfc", specifier = ">=1.7.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.52" },
     { name = "uvicorn", specifier = ">=0.49.0" },
-]
-
-[[package]]
-name = "dhis2w-mcp"
-version = "1.28.1"
-source = { editable = "packages/dhis2w-mcp" }
-dependencies = [
-    { name = "dhis2w-core" },
-    { name = "dhis2w-fhir" },
-    { name = "fastmcp" },
-]
-
-[package.optional-dependencies]
-browser = [
-    { name = "dhis2w-browser" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dhis2w-browser", marker = "extra == 'browser'", specifier = ">=1.28.1,<2.0" },
-    { name = "dhis2w-core", editable = "packages/dhis2w-core" },
-    { name = "dhis2w-fhir", editable = "packages/dhis2w-fhir" },
-    { name = "fastmcp", specifier = ">=3.4.7" },
-]
-provides-extras = ["browser"]
-
-[[package]]
-name = "dhis2w-mcp-bridge"
-version = "1.28.1"
-source = { editable = "packages/dhis2w-mcp-bridge" }
-dependencies = [
-    { name = "dhis2w-cli" },
-    { name = "fastmcp" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dhis2w-cli", editable = "packages/dhis2w-cli" },
-    { name = "fastmcp", specifier = ">=3.4.7" },
-]
-
-[[package]]
-name = "dhis2w-mcp-router"
-version = "1.28.1"
-source = { editable = "packages/dhis2w-mcp-router" }
-dependencies = [
-    { name = "fastmcp" },
-    { name = "httpx2" },
-    { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastmcp", specifier = ">=3.4.7" },
-    { name = "httpx2", specifier = ">=2.12.0" },
-    { name = "pydantic", specifier = ">=2.13.4" },
 ]
 
 [[package]]

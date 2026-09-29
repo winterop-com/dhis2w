@@ -10,12 +10,12 @@ class _UserPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w user` and the user MCP tools."""
+        """Contribute `d2w user`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="user",
             description="List + administer DHIS2 users (invite, reinvite, password reset).",
             cli_module="dhis2w_core.v43.plugins.user.cli",
-            mcp_module="dhis2w_core.v43.plugins.user.mcp",
+            mcp_module=None,
         )
 
 

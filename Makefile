@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui ui-if-available lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli docs-mcp build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage frontend-dev ui ui-if-available lint-frontend test-frontend e2e-frontend screenshot docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples verify-igs publisher-check-summary refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -53,7 +53,6 @@ help:
 	@echo "  docs-serve       Serve mkdocs site locally at http://127.0.0.1:8000 (regens CLI ref first)"
 	@echo "  docs-build       Build mkdocs site to ./site (regens CLI ref first)"
 	@echo "  docs-cli         Regenerate docs/cli-reference.md from the Typer app"
-	@echo "  docs-mcp         Regenerate docs/mcp-reference.md from the FastMCP server"
 	@echo ""
 	@echo "DHIS2 local stack:"
 	@echo "  dhis2-run        Start the stack, seed auth, stream logs (Ctrl+C tears it down)"
@@ -136,15 +135,11 @@ docs-cli:
 	@$(DOCS_PIN) $(UV) run typer dhis2w_cli.main utils docs --name d2w --title "CLI reference" --output docs/cli-reference.md
 	@echo "    wrote docs/cli-reference.md"
 
-docs-mcp:
-	@echo ">>> Regenerating MCP tool reference from the FastMCP server (pinned to $(DOCS_DHIS2_VERSION))"
-	@$(DOCS_PIN) $(UV) run python -u infra/scripts/gen_mcp_reference.py
-
-docs-serve: docs-cli docs-mcp
+docs-serve: docs-cli
 	@echo ">>> Serving docs at http://127.0.0.1:8000"
 	@$(UV) run mkdocs serve
 
-docs-build: docs-cli docs-mcp
+docs-build: docs-cli
 	@echo ">>> Building docs site (strict — broken links / missing nav fail the build)"
 	@$(UV) run mkdocs build --strict
 
@@ -242,7 +237,7 @@ build:
 # to offer a PyPI consumer.
 #
 # Names here are the suffix after `dhis2w-`; the targets are `publish-<suffix>`.
-PUBLISHABLE_MEMBERS := client core fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
+PUBLISHABLE_MEMBERS := client core fhir fhir-engine fhir-serve cli
 
 # The release version, when the caller names one: `make publish-all VERSION=1.2.0`
 # asserts every member's `project.version` equals it before anything is built,

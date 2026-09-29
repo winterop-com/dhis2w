@@ -32,12 +32,12 @@ def test_host_includes_system() -> None:
     assert "system" in load_plugin_host().names
 
 
-def test_system_contribution_names_both_surfaces() -> None:
-    """The system contribution names a CLI module, an MCP module, and a description."""
+def test_system_contribution_names_its_cli_module() -> None:
+    """The system contribution names a CLI module and a description; its MCP tools are the dhis2w-mcp pack's."""
     system = load_plugin_host().get("system")
     assert system is not None
     assert system.cli_module is not None
-    assert system.mcp_module is not None
+    assert system.mcp_module is None
     assert system.description
 
 

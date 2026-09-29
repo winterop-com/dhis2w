@@ -1,6 +1,6 @@
 # Walkthrough
 
-> **Learning path · step 2 of 8** — Contributor / developer local-stack tour. Prev: [Home / README](https://github.com/winterop-com/dhis2w/blob/main/README.md). Next: [`d2w` CLI tutorial](cli/tutorial.md). For end-user surface tutorials skip ahead to [Client tutorial](client/tutorial.md) or [MCP tutorial](mcp/tutorial.md).
+> **Learning path · step 2 of 8** — Contributor / developer local-stack tour. Prev: [Home / README](https://github.com/winterop-com/dhis2w/blob/main/README.md). Next: [`d2w` CLI tutorial](cli/tutorial.md). For end-user surface tutorials skip ahead to [Client tutorial](client/tutorial.md) or [MCP tutorial](https://winterop-com.github.io/dhis2w-mcp/tutorial/).
 
 Step-by-step from a fresh clone to a fully working local DHIS2 development environment — docker stack, seeded profiles, codegen, and Playwright-minted PATs. Aimed at contributors who want to run the test suites + iterate on the workspace; end-user setup against an existing DHIS2 instance is shorter and lives in [Connecting to DHIS2](guides/connecting-to-dhis2.md).
 
@@ -270,7 +270,7 @@ Plugin-specific docs: [metadata](architecture/metadata-plugin.md), [aggregate](a
 
 ## Step 12 — use the MCP server
 
-The same capabilities are available to AI agents via `dhis2w-mcp`. The server exposes roughly **304 tools across 13 plugin groups** — `profile` (4), `system` (5), `metadata` (197 — spans the authoring-triple sub-apps + options + attribute + program-rule + sql-view + viz + dashboard + map + legend-sets + core `list/get/patch/search/usage/export/import/diff/merge`), `data` (15 — aggregate + tracker), `analytics` (5), `route` (7), `maintenance` (15), `files` (5), `messaging` (11), `user` (16 — user + user-group + user-role), `customize` (7), `apps` (13), `doctor` (4). The auto-regenerated [MCP reference](mcp-reference.md) is the source of truth for the current counts.
+The same capabilities are available to AI agents via `dhis2w-mcp`, the MCP server of the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) plugin pack (installed from PyPI; it reads the same profiles as `d2w`). The server exposes roughly **304 tools across 13 plugin groups** — `profile` (4), `system` (5), `metadata` (197 — spans the authoring-triple sub-apps + options + attribute + program-rule + sql-view + viz + dashboard + map + legend-sets + core `list/get/patch/search/usage/export/import/diff/merge`), `data` (15 — aggregate + tracker), `analytics` (5), `route` (7), `maintenance` (15), `files` (5), `messaging` (11), `user` (16 — user + user-group + user-role), `customize` (7), `apps` (13), `doctor` (4). The auto-regenerated [MCP reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/) is the source of truth for the current counts.
 
 ### Option A — one server, select profile per tool call
 
@@ -278,8 +278,8 @@ The same capabilities are available to AI agents via `dhis2w-mcp`. The server ex
 {
   "mcpServers": {
     "dhis2": {
-      "command": "uv",
-      "args": ["run", "dhis2w-mcp"]
+      "command": "uvx",
+      "args": ["dhis2w-mcp"]
     }
   }
 }
@@ -303,11 +303,11 @@ Agent flow:
 {
   "mcpServers": {
     "dhis2-local": {
-      "command": "uv", "args": ["run", "dhis2w-mcp"],
+      "command": "uvx", "args": ["dhis2w-mcp"],
       "env": { "DHIS2_PROFILE": "local" }
     },
     "dhis2-prod": {
-      "command": "uv", "args": ["run", "dhis2w-mcp"],
+      "command": "uvx", "args": ["dhis2w-mcp"],
       "env": { "DHIS2_PROFILE": "prod" }
     }
   }
@@ -324,7 +324,7 @@ Domain tools: `whoami`, `system_info`, `metadata_type_list`, `metadata_list`, `m
 
 **Every domain tool accepts an optional `profile: str | None = None` kwarg**, giving the agent full per-call profile control.
 
-See [dhis2w-mcp server](architecture/mcp.md) and [Profiles](architecture/profiles.md).
+See [dhis2w-mcp server](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp/) and [Profiles](architecture/profiles.md).
 
 ## Step 13 — browse the docs
 
@@ -352,7 +352,7 @@ Opens `http://127.0.0.1:8000` with the mkdocs-claude-theme site. Architecture, c
 | Profile resolution from environment | Done | `dhis2w-core/profile.py` |
 | First-party `system` plugin (CLI + MCP surfaces) | Done | `dhis2w-core/v43/plugins/system/` |
 | `d2w` CLI root with plugin mounting | Done | `dhis2w-cli/main.py` |
-| `dhis2w-mcp` FastMCP server with plugin mounting | Done | `dhis2w-mcp/server.py` |
+| `dhis2w-mcp` FastMCP server with plugin mounting | Done | `dhis2w_mcp/server.py` in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack |
 | Local Docker stack (DHIS2 + pgAdmin + Glowroot) | Done | `infra/` |
 | Seeded auth: 6 PAT variations + OAuth2 client | Done | `infra/scripts/seed_auth.py` |
 | Tests auto-source `infra/home/credentials/.env.auth` | Done | conftest fixtures |
@@ -360,7 +360,7 @@ Opens `http://127.0.0.1:8000` with the mkdocs-claude-theme site. Architecture, c
 | Integration tests against play/dev + localhost | Done | 12 passing |
 | Destructive CRUD round-trip tests (constants) | Done | `test_integration_local_pat.py` |
 | CLI end-to-end tests (`d2w system whoami/info` live) | Done | `test_cli_integration.py` |
-| MCP end-to-end tests (in-process client calls `whoami`/`system_info`) | Done | `test_mcp_integration.py` |
+| MCP end-to-end tests (in-process client calls `whoami`/`system_info`) | Done | `test_mcp_integration.py` in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack |
 | Tracker plugin (`/api/tracker/*` — tracked entities, enrollments, events, relationships) | Done | `dhis2w-core/v{N}/plugins/data/tracker_*`, `client.tracker` |
 | Data values plugin (`/api/dataValueSets`, `/api/dataValues`, streaming) | Done | `dhis2w-core/v{N}/plugins/data/aggregate_*`, `client.data_values` |
 | Analytics plugin (`/api/analytics*`, aggregate + events + enrollments + outlier + tracked-entity) | Done | `dhis2w-core/v{N}/plugins/analytics/`, `client.analytics` |

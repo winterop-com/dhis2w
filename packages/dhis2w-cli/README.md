@@ -69,4 +69,4 @@ d2w user-role    DHIS2 user-role administration.
 
 Full CLI reference: https://winterop-com.github.io/dhis2w/cli-reference/.
 
-`dhis2w-cli` is one member of the [`dhis2w`](https://github.com/winterop-com/dhis2w) workspace. The MCP server (`dhis2w-mcp`) exposes the same plugin surface as MCP tools.
+`dhis2w-cli` is one member of the [`dhis2w`](https://github.com/winterop-com/dhis2w) workspace. The MCP server ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp), a plugin pack in its own repository) exposes the same plugin surface as MCP tools.

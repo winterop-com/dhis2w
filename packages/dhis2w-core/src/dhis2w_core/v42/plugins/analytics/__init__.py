@@ -1,4 +1,4 @@
-"""Analytics plugin — CLI + MCP wrappers over /api/analytics and /api/resourceTables/analytics."""
+"""Analytics plugin — CLI wrappers over /api/analytics and /api/resourceTables/analytics."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ class _AnalyticsPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w analytics` and the analytics MCP tools."""
+        """Contribute `d2w analytics`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="analytics",
             description="Run DHIS2 analytics queries (aggregated, raw, dataValueSet) and trigger refresh.",
             cli_module="dhis2w_core.v42.plugins.analytics.cli",
-            mcp_module="dhis2w_core.v42.plugins.analytics.mcp",
+            mcp_module=None,
         )
 
 

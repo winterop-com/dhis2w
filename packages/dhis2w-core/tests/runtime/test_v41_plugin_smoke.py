@@ -26,8 +26,6 @@ EXPECTED_PLUGINS = {
     "route",
     "system",
     "user",
-    "user-group",
-    "user-role",
 }
 
 
@@ -53,4 +51,4 @@ def test_v41_system_plugin_is_v41_bound() -> None:
     # The named modules live under dhis2w_core.v41.plugins.system, confirming
     # we got the v41 tree (and not v42 by accident).
     assert system.cli_module == "dhis2w_core.v41.plugins.system.cli"
-    assert system.mcp_module == "dhis2w_core.v41.plugins.system.mcp"
+    assert system.mcp_module is None

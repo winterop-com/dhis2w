@@ -1,16 +1,15 @@
 # Examples index
 
-> **Learning path · step 5 of 8** — Curated task index. Prev: [Python tutorial](client/tutorial.md). Next: [API reference](api/index.md). `examples/{cli,client,mcp,fhir}/` is the source of truth for what's on disk; this page is the curated headline view.
+> **Learning path · step 5 of 8** — Curated task index. Prev: [Python tutorial](client/tutorial.md). Next: [API reference](api/index.md). `examples/{cli,client,fhir}/` is the source of truth for what's on disk; this page is the curated headline view.
 
 One copy of each example, running against DHIS2 v41, v42, and v43 alike. An example that exists for a single major lives under that major's subdirectory — `examples/client/v43/` for the v43 schema divergences, `examples/client/v41/` for the v41 wire quirks; see [Schema diff: v41 -> v42 -> v43](architecture/schema-diff-v41-v42-v43.md) for what they demonstrate.
 
-Each entry below: **file path → what it demonstrates → which concept doc explains it**. This page is curated — it covers the headline examples per topic; not every single file shows up here. `ls examples/{cli,client,mcp,fhir}/` is the source of truth, and each surface directory has a README of its own.
+Each entry below: **file path → what it demonstrates → which concept doc explains it**. This page is curated — it covers the headline examples per topic; not every single file shows up here. `ls examples/{cli,client,fhir}/` is the source of truth, and each surface directory has a README of its own.
 
-Examples come in four groups — the three surfaces, plus [FHIR](#fhir-examples), which carries four of its own:
+Examples come in three groups — the two surfaces, plus [FHIR](#fhir-examples), which carries four of its own; the MCP examples live in the [`dhis2w-mcp` repository](#mcp-examples):
 
 - **CLI** (`examples/cli/*.sh`) — bash invocations of the `d2w` Typer CLI. Run with `bash examples/cli/<name>.sh` with the venv on `PATH` (via `source .venv/bin/activate` or `uv run -- bash ...`).
 - **Client** (`examples/client/*.py`) — Python library usage. Run with `uv run python examples/client/<name>.py`.
-- **MCP** (`examples/mcp/*.py`) — FastMCP tool calls through an in-process client. Run with `uv run python examples/mcp/<name>.py`.
 - **FHIR** (`examples/fhir/{cli,client,engine,igs}/`) — the FHIR surface, grouped on its own because it is its own product: `cli/` and `client/` are the two shapes of caller for `d2w fhir`, `engine/` is the evaluation engine, which has no DHIS2 in it at all, and `igs/` holds nine complete project trees, one per feature story, which are also the catalog `d2w fhir init --template` scaffolds from.
 
 Every example reads the active DHIS2 profile from `.dhis2/profiles.toml` / `~/.config/dhis2/profiles.toml` / `DHIS2_PROFILE` env (see [profiles](architecture/profiles.md)). Assume a seeded local stack (`make dhis2-run`) unless stated otherwise.
@@ -275,43 +274,7 @@ Where the scripts above show one command or one library call apiece, [`examples/
 
 ## MCP examples
 
-| Example | What it demonstrates | Related docs |
-| --- | --- | --- |
-| [`whoami.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/whoami.py) | `whoami` + `system_info` MCP tools in-process | [MCP](architecture/mcp.md) |
-| [`profile_tools.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/profile_tools.py) | Read-only `profile` MCP tools | [profiles](architecture/profiles.md) |
-| [`metadata_list.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_list.py) | `metadata_type_list` + `metadata_list` — what an instance holds, paged and filtered | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_get.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_get.py) | `metadata_get` — one object by UID, whole or narrowed by `fields` | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_patch.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_patch.py) | RFC 6902 JSON Patch via the `metadata_patch` tool | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_diff.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_diff.py) | `metadata_diff` tool against two bundles | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_export.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_export.py) | `metadata_export` — a bundle written to disk, the summary answered back, dangling references named | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_import.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_import.py) | `metadata_import` — the dry run an agent should ask for first, then the commit | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_search.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_search.py) | `metadata_search` — cross-resource UID / code / name lookup for agents | [metadata plugin](architecture/metadata-plugin.md) |
-| [`metadata_usage.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/metadata_usage.py) | `metadata_usage` — "what references this UID?" reverse lookup for agents | [metadata plugin](architecture/metadata-plugin.md) |
-| [`legend_sets.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/legend_sets.py) | `metadata_legend_set_*` — list / create / get / delete via MCP | [legend sets API](api/legend-sets.md) |
-| [`organisation_units.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/organisation_units.py) | `metadata_organisation_unit_*` — tree walk + levels + group + group-set via MCP | [organisation units API](api/organisation-units.md) |
-| [`data_elements.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/data_elements.py) | `metadata_data_element_*` — DE + group + group-set round-trip via MCP | [data elements API](api/data-elements.md) |
-| [`indicators.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/indicators.py) | `metadata_indicator_*` — expression validation + create + group + group-set via MCP | [indicators API](api/indicators.md) |
-| [`program_indicators.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/program_indicators.py) | `metadata_program_indicator_*` — program-scoped expression + group round-trip via MCP | [program indicators API](api/program-indicators.md) |
-| [`category_options.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/category_options.py) | `metadata_category_option_*` — validity window + group + group-set via MCP | [category options API](api/category-options.md) |
-| [`data_sets.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/data_sets.py) | `metadata_data_set_*` + `metadata_section_*` — DataSet + Section round-trip via MCP | [data sets API](api/data-sets.md) |
-| [`validation_rules.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/validation_rules.py) | `metadata_validation_rule_*` (plus groups) — CRUD round-trip via MCP | [validation rules + predictors API](api/validation-rules-predictors.md) |
-| [`predictors.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/predictors.py) | `metadata_predictor_*` (plus groups) — CRUD round-trip via MCP | [validation rules + predictors API](api/validation-rules-predictors.md) |
-| [`tracker_schema.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/tracker_schema.py) | `metadata_tracked_entity_attribute_*` + `metadata_tracked_entity_type_*` — TEA + TET round-trip via MCP | [tracker schema API](api/tracker-schema.md) |
-| [`tracker_programs.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/tracker_programs.py) | `metadata_program_*` — tracker + event Program authoring via MCP | [tracker schema API](api/tracker-schema.md) |
-| [`aggregate_data_values.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/aggregate_data_values.py) | GET / SET / DELETE data values via MCP | [aggregate](architecture/aggregate.md) |
-| [`tracker_reads.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/tracker_reads.py) | Discover TET types, list entities/events via MCP | [tracker](architecture/tracker.md) |
-| [`tracker_workflow.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/tracker_workflow.py) | Agent flow — `tracker_register`, `tracker_add_event`, `tracker_outstanding` for a tracker program | [tracker](architecture/tracker.md) |
-| [`analytics_query.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/analytics_query.py) | Aggregated analytics + refresh via MCP | [analytics](architecture/analytics.md) |
-| [`analytics_events_enrollments.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/analytics_events_enrollments.py) | Event + enrollment analytics via MCP | [analytics](architecture/analytics.md) |
-| [`analytics_outlier_tracked_entities.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/analytics_outlier_tracked_entities.py) | Outlier detection + tracked-entity analytics via MCP | [analytics](architecture/analytics.md) |
-| [`maintenance.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/maintenance.py) | Tasks, cache, cleanup, data-integrity via MCP | [maintenance plugin](architecture/maintenance-plugin.md) |
-| [`route_register_and_run.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/route_register_and_run.py) | Route CRUD + run via MCP | [auth schemes](api/auth-schemes.md) |
-| [`doctor.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/doctor.py) | Structured probe results for an agent via `doctor_run` | [doctor plugin](architecture/doctor-plugin.md) |
-| [`user_administration.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/user_administration.py) | User plugin MCP tools | [user plugin](architecture/user-plugin.md) |
-| [`user_groups.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/user_groups.py) | User groups + their sharing block via MCP (`user_group_list`, `user_group_sharing_get`) | [user groups + roles](architecture/user-groups-and-roles.md) |
-| [`user_roles.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/user_roles.py) | User roles + their authorities via MCP (`user_role_list`, `user_role_authority_list`) | [user groups + roles](architecture/user-groups-and-roles.md) |
-| [`customize_login.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/customize_login.py) | Branding via MCP | [customize plugin](architecture/customize-plugin.md) |
-| [`apps.py`](https://github.com/winterop-com/dhis2w/blob/main/examples/mcp/apps.py) | `apps_list`, `apps_hub_list` (plus `apps_install_*`, `apps_uninstall`, `apps_update{,_all}`, `apps_hub_url_{get,set}` available) | [apps API](api/apps.md) |
+The MCP examples live with the MCP server in the [`dhis2w-mcp` plugin pack](https://github.com/winterop-com/dhis2w-mcp): its [`examples/` tree](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) carries one script per MCP plugin group, each calling the tools through an in-process FastMCP client, and its [documentation site](https://winterop-com.github.io/dhis2w-mcp/) explains the tools they call.
 
 ## External plugin example
 
@@ -331,6 +294,6 @@ Where the scripts above show one command or one library call apiece, [`examples/
 
 - **Every top-level CLI domain has at least one example.** See [CLI reference](cli-reference.md) for the full command tree.
 - **Every plugin with a service layer has both a CLI and client example.** Pairs are intentional — the CLI shows the user-facing path, the client shows what library callers do.
-- **Every MCP plugin group has representative examples.** The 40-ish v42 MCP scripts can't cover all ~304 tools 1:1, but each plugin group (`metadata_*`, `analytics_*`, `data_*`, `apps_*`, ...) gets at least one runnable example showing the expected input shape + how to unpack the `structured_content` return.
+- **Every MCP plugin group has representative examples** in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples).
 
 When adding a new plugin / command / MCP tool: update this file alongside the feature PR so the catalogue stays in sync.

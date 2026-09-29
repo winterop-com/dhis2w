@@ -1,22 +1,19 @@
 # Releasing to PyPI
 
-The eleven publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` package is workspace-only and does not ship. `dhis2w-mcp-router` first ships in 1.2.0, `dhis2w-fhir` and `dhis2w-fhir-serve` in 1.5.0, and `dhis2w-fhir-engine` in 1.7.0; because each is new to PyPI, register its pending Trusted Publisher on pypi.org before that tag (see [First release of a new package](#first-release-of-a-new-package) below).
+The six publishable workspace members ship to PyPI in lockstep — every release tags every package at the same version. The internal `dhis2w-codegen` package is workspace-only and does not ship. The plugin packs in their own repositories — [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) (`dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-mcp-router`), [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser), and [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) — publish their own packages at the same version, after this repository's release is on PyPI. `dhis2w-fhir` and `dhis2w-fhir-serve` first ship in 1.5.0, and `dhis2w-fhir-engine` in 1.7.0; because each is new to PyPI, register its pending Trusted Publisher on pypi.org before that tag (see [First release of a new package](#first-release-of-a-new-package) below).
 
 | Package | PyPI |
 | --- | --- |
 | `dhis2w-client` | https://pypi.org/project/dhis2w-client/ |
 | `dhis2w-core` | https://pypi.org/project/dhis2w-core/ |
 | `dhis2w-cli` | https://pypi.org/project/dhis2w-cli/ |
-| `dhis2w-mcp` | https://pypi.org/project/dhis2w-mcp/ |
-| `dhis2w-mcp-bridge` | https://pypi.org/project/dhis2w-mcp-bridge/ |
-| `dhis2w-mcp-router` | https://pypi.org/project/dhis2w-mcp-router/ (from 1.2.0) |
 | `dhis2w-fhir` | https://pypi.org/project/dhis2w-fhir/ (from 1.5.0) |
 | `dhis2w-fhir-serve` | https://pypi.org/project/dhis2w-fhir-serve/ (from 1.5.0) |
 | `dhis2w-fhir-engine` | https://pypi.org/project/dhis2w-fhir-engine/ (from 1.7.0) |
 
 ## Versioning policy
 
-- **Lockstep.** All ten publishable packages share the same `version =` value in their `pyproject.toml`. Bump them together, never one at a time.
+- **Lockstep.** All six publishable packages share the same `version =` value in their `pyproject.toml`. Bump them together, never one at a time.
 - **SemVer.** `MAJOR.MINOR.PATCH` for stable releases; pre-releases use SemVer suffixes (`0.6.0a1`, `0.6.0rc1`). Pre-1.0 means breaking changes can land on minor bumps.
 - **Inter-package deps** are pinned to `>=<current>,<<next-major>` (e.g. `dhis2w-client>=0.5.0,<0.6`). When the next minor lands, every consumer's pin needs the same shift.
 
@@ -60,8 +57,7 @@ The eleven publishable workspace members ship to PyPI in lockstep — every rele
 ## Releasing from the terminal
 
 `make publish-all` uploads every publishable member from the checkout in front of you, in
-dependency order — `client`, `core`, `browser`, `fhir`, `fhir-engine`, `fhir-serve`, `cli`,
-`mcp`, `mcp-bridge`, `mcp-router` — so a resolver reading PyPI mid-release never meets a package
+dependency order — `client`, `core`, `fhir`, `fhir-engine`, `fhir-serve`, `cli` — so a resolver reading PyPI mid-release never meets a package
 naming a sibling version the index has not seen yet. `make publish-<member>` does one of them:
 
 ```bash
@@ -87,10 +83,10 @@ builds on a clean runner and authenticates with Trusted Publishing, no token on 
 PyPI verifies the `repository` claim of the GitHub Actions OIDC token as an exact string, and
 GitHub's redirect from an old repository name does not reach it. The repository is
 `winterop-com/dhis2w`; every publisher entry that still names `dhis2w-utils` fails the upload with
-an invalid-publisher error. Each of the eleven projects carries one GitHub publisher with owner
+an invalid-publisher error. Each of the six projects carries one GitHub publisher with owner
 `winterop-com`, repository `dhis2w`, workflow `pypi-publish.yml`, environment `pypi`, managed at
 `https://pypi.org/manage/project/<name>/settings/publishing/` (web UI only; there is no API). A
-repository rename is done additively: add the entry under the new name to all eleven, publish once,
+repository rename is done additively: add the entry under the new name to all six, publish once,
 then remove the old entry.
 
 ## First release of a new package

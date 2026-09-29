@@ -1,22 +1,5 @@
-"""User-role plugin — list, get, authorities, grant/revoke users."""
+"""The DHIS2 user-role service and models.
 
-from __future__ import annotations
-
-from dhis2w_core.plugin import Contribution, extension
-
-
-class _UserRolePlugin:
-    """Plugin descriptor for the DHIS2 user-role administration surface."""
-
-    @extension
-    def contribute(self, version_key: str) -> Contribution:
-        """Contribute the user-role MCP tools; the `user` plugin mounts the CLI under `d2w user role`."""
-        return Contribution(
-            name="user-role",
-            description="List + administer DHIS2 user roles (authorities, user membership).",
-            cli_module=None,
-            mcp_module="dhis2w_core.v43.plugins.user_role.mcp",
-        )
-
-
-plugin = _UserRolePlugin()
+No plugin of its own: the `user` plugin mounts its commands as `d2w user role`, and the dhis2w-mcp
+pack registers its MCP tools.
+"""

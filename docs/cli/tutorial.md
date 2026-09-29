@@ -379,7 +379,7 @@ Debug output lands on stderr so stdout stays pipe-friendly — you can still `d2
 ## Where to go next
 
 - **Full command reference**: [CLI reference](../cli-reference.md) — every subcommand, every flag, auto-generated from the Typer app so it never drifts.
-- **Runnable examples**: [examples index](../examples.md) — one version-neutral copy of each script (~68 CLI + ~89 client + ~45 MCP), running against v41, v42, and v43 alike.
+- **Runnable examples**: [examples index](../examples.md) — one version-neutral copy of each script (~68 CLI + ~89 client), running against v41, v42, and v43 alike; the ~45 MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples).
 - **Library usage**: [`dhis2w-client` tutorial](../client/tutorial.md) — when you want to drive DHIS2 from Python instead of the shell.
 - **Plugin architecture**: [overview](../architecture/overview.md) — how plugins, profiles, auth providers, and codegen fit together.
 

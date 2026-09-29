@@ -10,16 +10,16 @@ class _FilesPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w files` and the `files_*` MCP tools."""
+        """Contribute `d2w files`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="files",
             description=(
-                "DHIS2 document management + file resources. CLI + MCP surfaces for `/api/documents` (user-uploaded "
+                "DHIS2 document management + file resources. CLI for `/api/documents` (user-uploaded "
                 "attachments, external URLs) and `/api/fileResources` (typed binary blobs — DATA_VALUE, ICON, "
                 "MESSAGE_ATTACHMENT)."
             ),
             cli_module="dhis2w_core.v43.plugins.files.cli",
-            mcp_module="dhis2w_core.v43.plugins.files.mcp",
+            mcp_module=None,
         )
 
 

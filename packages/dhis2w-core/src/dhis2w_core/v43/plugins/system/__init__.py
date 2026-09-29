@@ -1,4 +1,4 @@
-"""System plugin — exposes /api/system/info and /api/me as CLI + MCP surfaces."""
+"""System plugin — exposes /api/system/info and /api/me as CLI commands; its MCP tools are the dhis2w-mcp pack's."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ class _SystemPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w system` and the `whoami` / `system_info` MCP tools."""
+        """Contribute `d2w system`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="system",
             description="DHIS2 system info and current-user access.",
             cli_module="dhis2w_core.v43.plugins.system.cli",
-            mcp_module="dhis2w_core.v43.plugins.system.mcp",
+            mcp_module=None,
         )
 
 

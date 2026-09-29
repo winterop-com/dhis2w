@@ -150,17 +150,17 @@ nav:
       - Architecture: architecture/cli.md
       - Reference: cli-reference.md
   - MCP:
-      - Overview: mcp/index.md
-      - Surfaces compared: architecture/mcp-surfaces.md
+      - Overview: https://winterop-com.github.io/dhis2w-mcp/
+      - Surfaces compared: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-surfaces/
       - Full server:
-          - Tutorial: mcp/tutorial.md
-          - Architecture: architecture/mcp.md
-          - Tool reference: mcp-reference.md
+          - Tutorial: https://winterop-com.github.io/dhis2w-mcp/tutorial/
+          - Architecture: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp/
+          - Tool reference: https://winterop-com.github.io/dhis2w-mcp/tool-reference/
       - Bridge:
-          - Usage: mcp/bridge.md
-          - Design: architecture/mcp-bridge.md
+          - Usage: https://winterop-com.github.io/dhis2w-mcp/bridge/
+          - Design: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/
       - Router:
-          - Design: architecture/mcp-router.md
+          - Design: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/
   - FHIR:
       - Overview: fhir/index.md
       - Introduction: fhir/100-introduction.md
@@ -293,6 +293,14 @@ plugins:
       redirect_maps:
         architecture/browser.md: https://winterop-com.github.io/dhis2w-browser/
         pat-helper.md: https://winterop-com.github.io/dhis2w-browser/pat-helper/
+        mcp/index.md: https://winterop-com.github.io/dhis2w-mcp/
+        mcp/tutorial.md: https://winterop-com.github.io/dhis2w-mcp/tutorial/
+        mcp/bridge.md: https://winterop-com.github.io/dhis2w-mcp/bridge/
+        architecture/mcp.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp/
+        architecture/mcp-bridge.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-bridge/
+        architecture/mcp-router.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/
+        architecture/mcp-surfaces.md: https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-surfaces/
+        mcp-reference.md: https://winterop-com.github.io/dhis2w-mcp/tool-reference/
   - mkdocstrings:
       handlers:
         python:

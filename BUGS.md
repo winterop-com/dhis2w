@@ -4328,8 +4328,8 @@ target, a form builder, a test picking an aggregate target) has to page through 
 and match `periodType` client-side.
 
 **Workaround applied in this repo:** the live tests in `packages/dhis2w-cli/tests/test_cli_aggregate_integration.py`,
-`test_cli_analytics_integration.py`, `packages/dhis2w-mcp/tests/test_mcp_aggregate_integration.py` and
-`test_mcp_analytics_integration.py` list data sets with `periodType` in `fields` and match the
+`test_cli_analytics_integration.py`, and `tests/test_mcp_aggregate_integration.py` and
+`test_mcp_analytics_integration.py` in the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack, list data sets with `periodType` in `fields` and match the
 value in Python.
 
 **How to know it's fixed:** `filter=periodType:eq:Monthly` answers 200 with the monthly data sets

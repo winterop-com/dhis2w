@@ -1,4 +1,4 @@
-"""Metadata plugin — CLI + MCP wrappers over the generated CRUD resources."""
+"""Metadata plugin — CLI wrappers over the generated CRUD resources."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ class _MetadataPlugin:
 
     @extension
     def contribute(self, version_key: str) -> Contribution:
-        """Contribute `d2w metadata` and the metadata listing MCP tools."""
+        """Contribute `d2w metadata`; its MCP tools are the dhis2w-mcp pack's."""
         return Contribution(
             name="metadata",
             description="Inspect DHIS2 metadata (lists + get by UID, across every generated resource).",
             cli_module="dhis2w_core.v42.plugins.metadata.cli",
-            mcp_module="dhis2w_core.v42.plugins.metadata.mcp",
+            mcp_module=None,
         )
 
 
