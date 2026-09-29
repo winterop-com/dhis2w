@@ -192,3 +192,16 @@ def test_a_guide_depending_on_a_registry_cannot_narrow_geometry() -> None:
     assert OrganisationUnitSelection(registry=registry).geometry == "full"
     with pytest.raises(ValidationError, match="registry package's fhir.toml"):
         OrganisationUnitSelection(registry=registry, geometry="position")
+
+
+def test_an_invisible_character_in_a_phone_number_or_email_is_counted_for_a_note() -> None:
+    """The Organization publishes the contact without it, and the run names the units whose DHIS2 value has one."""
+    tally = service.GeometryTally()
+    _map(_unit("Tel1aaaaaaa", None, phoneNumber="+856\u200b2091141000"), tally)
+    _map(_unit("Tel2aaaaaaa", None, email="\ufeffhc@example.org"), tally)
+    _map(_unit("Tel3aaaaaaa", None, phoneNumber="020 5555 1234\t"), tally)
+
+    assert tally.invisible_contact_units == ["Unit Tel1aaaaaaa (Tel1aaaaaaa)", "Unit Tel2aaaaaaa (Tel2aaaaaaa)"]
+    notes = [note.message for note in tally.to_notes()]
+    assert len(notes) == 1
+    assert notes[0].startswith("2 organisation units have an invisible character")

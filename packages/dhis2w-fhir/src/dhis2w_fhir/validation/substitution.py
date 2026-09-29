@@ -36,10 +36,13 @@ refuses the run rather than being quietly renamed into a different identifier.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 __all__ = [
     "BUILD_ABORTING_SUBSTITUTIONS",
     "CONTROL_CHARACTERS",
+    "first_invisible_character",
+    "invisible_character_name",
     "XML_EXPRESSIBLE_CONTROL_CHARACTERS",
     "control_character_name",
     "first_control_character",
@@ -113,6 +116,38 @@ def control_character_name(character: str) -> str:
     as, so the message and the value it quotes spell the character one way rather than two.
     """
     return _CONTROL_CHARACTER_NAMES.get(character, f"the control character \\x{ord(character):02x}")
+
+
+def _visible_ascii(character: str) -> bool:
+    """Whether one character is a printable, non-space ASCII character - a letter, digit, or mark of Latin text."""
+    return character.isascii() and character.isprintable() and not character.isspace()
+
+
+def first_invisible_character(text: str) -> str | None:
+    """The first stray Unicode format character (category Cf) the text carries, or None when it carries none.
+
+    Stray means touching visible ASCII and nothing else: `B. Hin\u200bTang`, `+856\u200b2091141000`,
+    a byte-order mark ahead of `Clinic`. No script puts one there, so it was pasted in. Lao, Thai,
+    Khmer and Myanmar are written without spaces between words and mark each break with a
+    zero-width space, and their input methods also leave one at the start of the text or beside an
+    ordinary space - all of which is the script at work, so any neighbour that is not a visible
+    ASCII character leaves the character alone.
+    """
+    for index, character in enumerate(text):
+        if unicodedata.category(character) != "Cf":
+            continue
+        neighbours = [text[index - 1] if index > 0 else None, text[index + 1] if index + 1 < len(text) else None]
+        present = [neighbour for neighbour in neighbours if neighbour is not None]
+        if present and all(_visible_ascii(neighbour) for neighbour in present):
+            return character
+    return None
+
+
+def invisible_character_name(character: str) -> str:
+    """Name one format character in words and code point - "a zero-width space (U+200B)"."""
+    name = unicodedata.name(character, "format character").lower()
+    article = "an" if name[0] in "aeiou" else "a"
+    return f"{article} {name} (U+{ord(character):04X})"
 
 
 def first_control_character(text: str) -> str | None:

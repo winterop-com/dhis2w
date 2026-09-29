@@ -1149,3 +1149,59 @@ def test_every_renderer_states_the_posture_the_run_graded_under(
     markdown = render_validation_markdown(report, "probe", _GENERATED_AT)
     assert f"- hostile names: {report.hostile_names_line}" in markdown
     assert render_validation_pdf(report, target="probe", generated_at=_GENERATED_AT).startswith(b"%PDF")
+
+
+def test_an_invisible_character_in_a_name_is_reported_and_in_a_code_is_a_warning() -> None:
+    """No screen shows a zero-width space: a name is informational, a code reaches identifiers and URLs."""
+    report = _validate(
+        [],
+        [
+            MetadataCollectionIn(
+                resource="organisationUnits",
+                items=[
+                    MetadataItemIn(uid="Ou1aaaaaaaa", name="B. Hin​Tang", code="OU1"),
+                    MetadataItemIn(uid="Ou2aaaaaaaa", name="Clean", code="OU​2"),
+                    MetadataItemIn(uid="Ou3aaaaaaaa", name="Clean too", code="OU3"),
+                ],
+            )
+        ],
+    )
+    invisible = sorted(
+        (finding for finding in report.findings if finding.category == "invisible-character"),
+        key=lambda finding: finding.uid,
+    )
+
+    assert [(finding.uid, finding.severity) for finding in invisible] == [
+        ("Ou1aaaaaaaa", "info"),
+        ("Ou2aaaaaaaa", "warning"),
+    ]
+    assert "a zero width space (U+200B)" in invisible[0].message
+    assert "B. Hin\\u200bTang" in invisible[0].message
+    assert "change the code in DHIS2" in invisible[1].message
+
+
+def test_an_invisible_character_in_an_option_name_is_reported() -> None:
+    """Options are outside the sweep, so the deep option pass reads their names for the same character."""
+    report = _validate([_set("Aa1aaaaaaaa", "Village", [OptionIn(uid="Op1aaaaaaaa", code="V1", name="Na​Phu")])])
+
+    assert [finding.category for finding in report.findings if finding.category == "invisible-character"] == [
+        "invisible-character"
+    ]
+
+
+def test_a_zero_width_space_marking_a_word_break_in_lao_text_is_not_reported() -> None:
+    """Lao is written without spaces, and a zero-width space is how its word breaks are marked."""
+    report = _validate(
+        [],
+        [
+            MetadataCollectionIn(
+                resource="organisationUnits",
+                items=[
+                    MetadataItemIn(uid="Ou1aaaaaaaa", name="ຈຳ​ນວນ​ຜູ້​ໃຊ້", code="OU1"),
+                    MetadataItemIn(uid="Ou2aaaaaaaa", name="﻿Clinic", code="OU2"),
+                ],
+            )
+        ],
+    )
+
+    assert [finding.uid for finding in report.findings if finding.category == "invisible-character"] == ["Ou2aaaaaaaa"]

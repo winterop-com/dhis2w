@@ -299,6 +299,34 @@ defect on different evidence - no HTML template is what breaks - and because
 `<` alone is what the generate refusal gates on. A `control-character-name`
 error does not refuse a generate run.
 
+A third check reads the invisible characters a value picks up when it is pasted
+from somewhere else: `invisible-character`, raised on a name, form name, option
+name, or code holding a stray Unicode format character - a zero-width space, a
+zero-width joiner, a byte-order mark, a direction mark. No screen shows one, so
+the value looks right everywhere, while search, sorting and matching read it as
+a different string from the one people see.
+
+"Stray" is deliberate. Lao, Thai, Khmer and Myanmar are written without spaces
+between words and mark each word break with a zero-width space, and their input
+methods also leave one at the start of the text or beside an ordinary space. All
+of that is the script at work, so the check reports a format character only when
+everything it touches is visible ASCII: `B. Hin\u200bTang`, a code `OU\u200b2`, a
+byte-order mark ahead of `Clinic`.
+
+The grade follows what the value is for. A **code** is a **warning** in scope: it
+is published in identifiers and, under a code-sourced naming, in resource ids and
+URLs, where nobody can see or type what it holds. A **name** or **form name** is
+**info**: the build survives it and the guide publishes it as DHIS2 holds it. The
+reports print the character as its escape (`\u200b`), and the fix is to retype
+the value in DHIS2 - editing around a character nobody can see does not remove
+it.
+
+Phone numbers and emails are not read by validate. `d2w fhir generate` drops an
+invisible format character from an organisation unit's phone number or email as
+it publishes the Organization - the IG publisher renders a phone contact as a
+`tel:` link and fails QA on one - and raises a note naming each organisation unit
+whose DHIS2 value carried one.
+
 `template-hostile-name`'s sibling `template-hostile-code` grades the same three characters the same
 way, on the collections whose codes become identifier values (`optionSets`,
 `categories`, `organisationUnits`, `dataSets`, `programs`,

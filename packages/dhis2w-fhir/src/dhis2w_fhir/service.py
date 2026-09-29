@@ -72,7 +72,7 @@ from dhis2w_fhir.foundation import build_foundation_artifacts, build_registry_fo
 from dhis2w_fhir.grouping import ReportedForm, group_data_values
 from dhis2w_fhir.hostile_names import HostileNameGate
 from dhis2w_fhir.i18n import TranslationIn
-from dhis2w_fhir.names import StemResolution, StemSubject, code_or_uid
+from dhis2w_fhir.names import StemResolution, StemSubject, code_or_uid, contact_value, flatten_whitespace
 from dhis2w_fhir.notes import GenerateNote, GenerateNoteCategory, aggregate_generate_note, generate_note, pluralize
 from dhis2w_fhir.overwrite import (
     AggregateCell,
@@ -5718,9 +5718,14 @@ class GeometryTally(BaseModel):
 
     `boundaries_embedded` is False when `[generate.organisation_units] geometry = "position"`, so
     the note on a geometry with no position says the unit is published with no geometry at all.
+
+    `invisible_contact_units` is the one tally that is not geometry: the units whose DHIS2 phone
+    number or email carries an invisible format character, which the Organization publishes
+    without (`contact_value`). The hierarchy read is where both are seen, so both are counted here.
     """
 
     boundaries_embedded: bool = True
+    invisible_contact_units: list[str] = Field(default_factory=list)
     other_geometry_units: list[str] = Field(default_factory=list)
     other_geometry_types: set[str] = Field(default_factory=set)
     malformed_units: list[str] = Field(default_factory=list)
@@ -5736,6 +5741,16 @@ class GeometryTally(BaseModel):
                     f"{len(self.other_geometry_units)} organisation units have {type_names} geometry; "
                     + ("embedded without position" if self.boundaries_embedded else "published without geometry"),
                     self.other_geometry_units,
+                )
+            )
+        if self.invisible_contact_units:
+            notes.append(
+                aggregate_generate_note(
+                    GenerateNoteCategory.INSTANCE_DATA_GAP,
+                    f"{len(self.invisible_contact_units)} organisation units have an invisible character (a "
+                    "zero-width space or another format character) in their DHIS2 phone number or email; published "
+                    "without it, and DHIS2 keeps the value it holds - retype the value in DHIS2 to remove it",
+                    self.invisible_contact_units,
                 )
             )
         if self.malformed_units:
@@ -5802,6 +5817,9 @@ def _organisation_unit_input(
     level = model.level if model.level is not None else len([part for part in path.split("/") if part])
     position: GeoPoint | None = None
     boundary_geojson: str | None = None
+    contacts = [value for value in (model.phoneNumber, model.email) if value is not None]
+    if any(contact_value(value) != flatten_whitespace(value) for value in contacts):
+        tally.invisible_contact_units.append(label)
     unit_geometry = model.geometry if geometry != "none" else None
     if isinstance(unit_geometry, dict):
         geometry_type = str(unit_geometry.get("type"))

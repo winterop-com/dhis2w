@@ -2093,6 +2093,16 @@ semantics `generate` uses.
   finding is `info` and names both spellings. It is a category of its own, not a
   `template-hostile-name`: no HTML template is what breaks, and a
   `control-character-name` error does not refuse a generate run.
+- **`invisible-character`** fires on a name, form name, option name, or code
+  holding a stray Unicode format character (a zero-width space, zero-width
+  joiner, byte-order mark, direction mark): one touching only visible ASCII. A
+  zero-width space inside Lao, Thai, Khmer or Myanmar text is how those scripts
+  mark word breaks and is not reported. A code is a warning in scope, since it
+  reaches identifiers, resource ids and URLs; a name or form name is `info` and
+  is published as DHIS2 holds it. `display_code` prints the character as its
+  `\uXXXX` escape. Organisation unit phone numbers and emails are cleaned by
+  `d2w fhir generate` instead (`contact_value`), which drops the format
+  character on publish and raises a note naming each affected unit.
 - **Both hostile-character checks are graded the same way**: an error for an in-scope `<`, a warning for
   an in-scope `>` / `&`, and `info` for either out of scope - because a name
   and an identifier value alike land in HTML the publisher writes unescaped and

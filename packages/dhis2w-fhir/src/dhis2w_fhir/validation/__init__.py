@@ -39,6 +39,18 @@ and the publisher writes an XML rendering of every resource beside the JSON one,
 are errors. It is a category of its own rather than a `template-hostile-name`: no HTML
 template is what breaks, and `<` alone is what the generate refusal gates on.
 
+A third check reads the stray invisible format characters (Unicode category Cf) a value
+pasted from elsewhere carries - a zero-width space, a zero-width joiner, a byte-order mark,
+a direction mark (`invisible-character`). Stray means touching visible ASCII and nothing
+else: Lao, Thai, Khmer and Myanmar mark word breaks with a zero-width space, and their input
+methods leave one at the start of the text or beside a space too, so one touching anything
+else is the script at work and is not reported. No
+screen shows one, so a name carrying a stray one looks right everywhere while search,
+sorting and matching read it as a different string. The build survives it, so a name or
+form name is informational and published as DHIS2 holds it. A code is a warning in scope:
+it reaches identifiers and, under a code-sourced naming, resource ids and URLs, where an
+invisible character makes a value nobody can type.
+
 ## What the deep passes do not repeat, and why
 
 The deep passes cover what the sweep structurally cannot: the objects it excludes
@@ -158,6 +170,8 @@ from dhis2w_fhir.validation.substitution import (
     XML_EXPRESSIBLE_CONTROL_CHARACTERS,
     control_character_name,
     first_control_character,
+    first_invisible_character,
+    invisible_character_name,
     substitute_build_aborting_text,
 )
 
@@ -230,6 +244,7 @@ _TEMPLATE_HOSTILE_CHARACTERS = ("<", ">", "&")
 #: refusal in `service.py` gates on. Grading a control character under that name would claim a gate
 #: it does not have.
 _CONTROL_CHARACTER_CATEGORY = "control-character-name"
+_INVISIBLE_CHARACTER_CATEGORY = "invisible-character"
 
 #: The swept collections whose objects emit a resource carrying the DHIS2 code as an identifier value -
 #: option sets and categories on both halves of their CodeSystem/ValueSet pair, organisation units on both
@@ -314,6 +329,10 @@ def build_code_validation(
         findings.extend(
             _rescoped(finding, set_in_scope)
             for finding in _control_character_option_findings(option_set, config.locales, substituting=substituting)
+        )
+        findings.extend(
+            _rescoped(finding, set_in_scope)
+            for finding in _invisible_character_option_findings(option_set, config.locales)
         )
     findings.extend(_stem_findings(collections, config, scope, substituting=substituting))
     object_count = 0
@@ -584,6 +603,74 @@ def _control_character_form_name_finding(
         code=code,
         message=message,
     )
+
+
+def _invisible_character_name_message(value: str, character: str, field_label: str) -> str:
+    """Say which invisible character a name carries, what that costs, and that the guide publishes it as is."""
+    return (
+        f"{field_label} {display_code(value)} contains {invisible_character_name(character)}, which no screen shows: "
+        f"search, sorting and matching read it as a different string from the one people see. The guide publishes "
+        f"it as DHIS2 holds it; retype the {field_label} in DHIS2 to remove it"
+    )
+
+
+def _invisible_character_findings(
+    resource_type: str, uid: str, name: str, form_name: str | None, code: str | None
+) -> list[ValidationFinding]:
+    """Flag the invisible format characters one swept object's name, form name, or code carries.
+
+    A name or form name is informational - the build survives it and it may be intended. A code is
+    a warning, which the caller degrades out of scope: it reaches identifiers, and under a
+    code-sourced naming resource ids and URLs, where nobody can see or type what it holds.
+    """
+    findings: list[ValidationFinding] = []
+    labelled = [(name, _NAME_FIELD_LABEL)]
+    if form_name is not None and resource_type in _FORM_NAME_COLLECTIONS:
+        labelled.append((form_name, _FORM_NAME_FIELD_LABEL))
+    for value, field_label in labelled:
+        character = first_invisible_character(value)
+        if character is not None:
+            findings.append(
+                ValidationFinding(
+                    severity="info",
+                    category=_INVISIBLE_CHARACTER_CATEGORY,
+                    resource_type=resource_type,
+                    uid=uid,
+                    name=name,
+                    code=code,
+                    message=_invisible_character_name_message(value, character, field_label),
+                )
+            )
+    character = first_invisible_character(code) if code is not None else None
+    if code is not None and character is not None:
+        findings.append(
+            ValidationFinding(
+                severity="warning",
+                category=_INVISIBLE_CHARACTER_CATEGORY,
+                resource_type=resource_type,
+                uid=uid,
+                name=name,
+                code=code,
+                message=(
+                    f"code {display_code(code)} contains {invisible_character_name(character)}, which no screen "
+                    f"shows: the code is published in identifiers and, under a code-sourced naming, in resource "
+                    f"ids and URLs, where nobody can see or type what it holds; change the code in DHIS2"
+                ),
+            )
+        )
+    return findings
+
+
+def _invisible_character_option_findings(option_set: OptionSetIn, locales: list[str]) -> list[ValidationFinding]:
+    """Flag the option names carrying an invisible format character - the sweep excludes options."""
+    findings: list[ValidationFinding] = []
+    for option in sorted(option_set.options, key=lambda item: item.uid):
+        character = first_invisible_character(option.name)
+        if character is None:
+            continue
+        message = _invisible_character_name_message(option.name, character, _NAME_FIELD_LABEL)
+        findings.append(_option_finding(option_set, option, "info", _INVISIBLE_CHARACTER_CATEGORY, message, locales))
+    return findings
 
 
 def _control_character_option_findings(
@@ -885,6 +972,10 @@ def _collection_findings(
         )
         if control_form_name is not None:
             findings.append(_rescoped(control_form_name, in_scope))
+        findings.extend(
+            _rescoped(finding, in_scope)
+            for finding in _invisible_character_findings(collection.resource, item.uid, name, item.form_name, item.code)
+        )
         findings.extend(
             _rescoped(finding, in_scope)
             for finding in _translated_name_findings(collection.resource, item, name, substituting=substituting)

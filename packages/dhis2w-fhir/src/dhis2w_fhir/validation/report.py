@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import unicodedata
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
@@ -39,6 +40,13 @@ def _escaped_control_character(match: re.Match[str]) -> str:
     return _NAMED_CONTROL_ESCAPES.get(character, f"\\x{ord(character):02x}")
 
 
+def _escaped_invisible_characters(text: str) -> str:
+    r"""Every Unicode format character (category Cf) as its `\uXXXX` escape - a zero-width space prints as nothing."""
+    return "".join(
+        f"\\u{ord(character):04x}" if unicodedata.category(character) == "Cf" else character for character in text
+    )
+
+
 class _ReportRow(BaseModel):
     """One finding as a Markdown table row, pipes already escaped."""
 
@@ -67,7 +75,8 @@ def display_code(code: str | None) -> str:
 
     Every C0 control character prints as its escape - the three with a name of their own as `\r`,
     `\n`, and `\t` (`BLUE\nBLUE` on one line, not two) and the rest as `\x01`, because a value
-    holding one would otherwise reach the page as nothing at all. A value with a leading or
+    holding one would otherwise reach the page as nothing at all. A format character - a zero-width
+    space, a byte-order mark, a direction mark - prints as `\u200b` for the same reason. A value with a leading or
     trailing space is wrapped in double quotes so the edge space is on the page. Only the
     human-facing renderers call this: the CSV and the JSON finding carry the raw code.
     """
@@ -75,7 +84,7 @@ def display_code(code: str | None) -> str:
         return "-"
     if not code:
         return "(empty)"
-    escaped = _CONTROL_CHARACTER.sub(_escaped_control_character, code)
+    escaped = _escaped_invisible_characters(_CONTROL_CHARACTER.sub(_escaped_control_character, code))
     if code.startswith(" ") or code.endswith(" "):
         return f'"{escaped}"'
     return escaped
