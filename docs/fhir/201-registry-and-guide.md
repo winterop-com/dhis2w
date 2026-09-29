@@ -225,6 +225,18 @@ peak memory in use 13.5 GB - the heap, the JVM around it and Jekyll, sampled eve
 peak container memory 20.6 GB, counting file cache the kernel reclaims when memory runs short
 ```
 
+Measured on one national instance, both built at the derived `8g`:
+
+| | Registry package | Guide |
+| --- | ---: | ---: |
+| Published | 12,399 organisation units, 24,798 resources | 52 forms - 1 data set, 2 tracker programs, 49 event programs |
+| Peak memory in use | 13.5 GB | 10.4 GB |
+| Heap the publisher used | 7 GB | 7 GB |
+| QA errors | 0 | 0 |
+
+The registry is the larger build of the two, and its figure is the one to size
+Docker by.
+
 **Leave `JAVA_HEAP` alone.** The derived heap - the memory Docker reports less
 6 GB, capped at 8g - is enough for a national registry: on one of about twelve
 thousand organisation units the publisher never used more than 7 GB of it,
