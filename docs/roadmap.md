@@ -19,11 +19,10 @@ The FHIR plugin keeps its own plan: roadmap, settled and open decisions, review 
 | `dhis2w-mcp` | FastMCP server that mounts the same plugins (the full typed surface) |
 | `dhis2w-mcp-bridge` | Single-tool (`dhis2_cli`) MCP bridge for small on-box models; read-only + host write-guard |
 | `dhis2w-mcp-router` | Search+dispatch MCP router fronting upstream servers (portable ToolSearch); domain-neutral core, published from 1.2.0 (whether it becomes the default surface for all clients is still data-gated) |
-| `dhis2w-browser` | Playwright session helpers (auth through the DHIS2 login form) |
 
 ### CLI surface
 
-Twenty top-level domains: `analytics`, `apps`, `browser`, `customize`, `data`, `datastore`, `dev`, `doctor`, `files`, `maintenance`, `messaging`, `metadata`, `profile`, `query`, `route`, `schema`, `system`, `user`, `user-group`, `user-role`. A plugin pack adds its own — [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) adds `d2w security`. Each plugin shares a `service.py` between the CLI and MCP sides; the same typed call from both surfaces.
+Nineteen top-level domains: `analytics`, `apps`, `customize`, `data`, `datastore`, `dev`, `doctor`, `files`, `maintenance`, `messaging`, `metadata`, `profile`, `query`, `route`, `schema`, `system`, `user`, `user-group`, `user-role`. A plugin pack adds its own — [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) adds `d2w security`, [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser) adds `d2w browser`. Each plugin shares a `service.py` between the CLI and MCP sides; the same typed call from both surfaces.
 
 `d2w metadata` has the full workflow surface:
 

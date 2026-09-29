@@ -28,7 +28,6 @@ dhis2w/
     ├── dhis2w-cli/                # Typer console script `d2w` (PyPI)
     ├── dhis2w-mcp/                # FastMCP server (PyPI)
     ├── dhis2w-mcp-bridge/         # single-tool MCP bridge for small local models (PyPI)
-    ├── dhis2w-browser/            # Playwright helpers (PyPI)
     ├── dhis2w-codegen/            # generator — registers `d2w dev codegen` subcommand (workspace-only)
     ├── dhis2w-mcp-router/         # domain-neutral MCP search + dispatch router (ships from 1.2.0)
     ├── dhis2w-fhir/               # FHIR IG generation plugin — mounts `d2w fhir` (ships from 1.5.0)

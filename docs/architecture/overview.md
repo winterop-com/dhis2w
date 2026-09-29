@@ -17,7 +17,6 @@ Each shippable unit of code is a `uv` workspace member under `packages/`:
 | `dhis2w-cli` | Thin Typer console-script shell. | [`dhis2w-cli`](https://pypi.org/project/dhis2w-cli/) |
 | `dhis2w-mcp` | Thin FastMCP server shell. | [`dhis2w-mcp`](https://pypi.org/project/dhis2w-mcp/) |
 | `dhis2w-mcp-bridge` | Single-tool MCP bridge exposing the `d2w` CLI to small local models. | [`dhis2w-mcp-bridge`](https://pypi.org/project/dhis2w-mcp-bridge/) |
-| `dhis2w-browser` | Playwright helpers for UI automation. | [`dhis2w-browser`](https://pypi.org/project/dhis2w-browser/) |
 | `dhis2w-codegen` | Version-aware client generator. | _workspace-only_ |
 | `dhis2w-mcp-router` | Domain-neutral MCP router: search + dispatch meta-tools over upstream MCP servers. | [`dhis2w-mcp-router`](https://pypi.org/project/dhis2w-mcp-router/) |
 | `dhis2w-fhir` | FHIR IG generation from DHIS2 metadata. Builds on `dhis2w-core` and mounts `d2w fhir` through the `dhis2w.plugins.v1` entry point. | [`dhis2w-fhir`](https://pypi.org/project/dhis2w-fhir/) |
@@ -59,7 +58,6 @@ graph LR
     mcp["dhis2w-mcp"]
     router["dhis2w-mcp-router"]
     core["dhis2w-core"]
-    browser["dhis2w-browser"]
     codegen["dhis2w-codegen"]
     client["dhis2w-client"]
     fhir["dhis2w-fhir"]
@@ -73,10 +71,8 @@ graph LR
     fhirserve --> fhir
     bridge --> cli
     core --> client
-    browser --> client
     codegen --> client
-    cli -.->|"optional [browser] extra"| browser
-    mcp -.->|"optional [browser] extra"| browser
+    cli -.->|"optional [browser] extra"| browser["dhis2w-browser (own repository)"]
     cli -.->|"optional [serve] extra"| fhirserve
 ```
 

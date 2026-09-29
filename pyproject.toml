@@ -7,7 +7,6 @@ dhis2w-core = { workspace = true }
 dhis2w-cli = { workspace = true }
 dhis2w-mcp = { workspace = true }
 dhis2w-mcp-bridge = { workspace = true }
-dhis2w-browser = { workspace = true }
 dhis2w-codegen = { workspace = true }
 dhis2w-fhir = { workspace = true }
 
@@ -31,6 +30,7 @@ dev = [
   "types-pyyaml>=6.0.12.20260906",
   "pytest-httpx2>=1.0.0",
   "httpx2>=2.12.0",
+  "mkdocs-redirects>=1.2.3",
 ]
 
 [tool.ruff]
@@ -94,22 +94,17 @@ omit = [
   # parity tests (`tests/runtime/test_<plugin>_parity.py`), every plugin CLI by invoke tests
   # (`test_<plugin>_cli_parity.py`), and every plugin MCP registration by `test_mcp_register_parity.py`
   # — so service/cli/mcp modules are measured + counted, NOT omitted. What stays omitted, with reasons:
-  #   - metadata/browser/dev CLI: huge / interactive / Playwright command surfaces not invoke-tested.
+  #   - metadata/dev CLI: huge / interactive command surfaces not invoke-tested.
   #   - per-plugin view-models (models.py): pure pydantic data classes.
   #   - non-plugin core modules (auth / token store / cli infra): mechanical copies, deferred.
-  #   - browser service: Playwright orchestration, tested live in `packages/dhis2w-browser/tests/`.
   "packages/dhis2w-core/src/dhis2w_core/v41/*.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/*.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/*/models.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/*/models.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/metadata/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/metadata/cli.py",
-  "packages/dhis2w-core/src/dhis2w_core/v41/plugins/browser/cli.py",
-  "packages/dhis2w-core/src/dhis2w_core/v43/plugins/browser/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/dev/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/dev/cli.py",
-  "packages/dhis2w-core/src/dhis2w_core/v41/plugins/browser/service.py",
-  "packages/dhis2w-core/src/dhis2w_core/v43/plugins/browser/service.py",
 ]
 
 [tool.coverage.report]

@@ -13,8 +13,8 @@ These reshape every decision. Re-read them when in doubt.
 1. **Multi-instance support via profiles.** Auto-discover a profile from the current working directory by walking up for `.dhis2/profiles.toml`; fall back to `~/.config/dhis2/profiles.toml`. When nothing is found, the CLI raises `NoProfileError` pointing the user at `d2w profile add <name>` / `d2w profile bootstrap`, and MCP tools return the same actionable error.
 2. **DHIS2 v41 / v42 / v43 supported via per-version subpackages.** Each major has its own hand-written tree under `dhis2w_client.v{41,42,43}` + `dhis2w_core.v{41,42,43}.plugins.*`; the client auto-detects via `/api/system/info` on connect and binds the matching tree (v43 is the canonical baseline). No compatibility shims for DHIS2 versions older than v41.
 3. **Auth is pluggable; ship three kinds of provider: Basic, PAT, OAuth2/OIDC.** `dhis2w-client` defines an `AuthProvider` Protocol. The client never touches auth internals. OAuth2 uses the OAuth 2.1 authorization-code flow with PKCE against `/oauth2/authorize` and `/oauth2/token`. Future providers (service-account JWT, OIDC federation, proxy-injected headers) land as new files in `dhis2w-client/auth/` without touching the client.
-4. **Playwright UI automation is isolated in `dhis2w-browser`.** API-only installs must not pull Chromium. The screenshot plugin is the first consumer; future UI-update plugins layer on the same helpers.
-5. **`uv` for everything Python, organized as a `uv` workspace.** Eleven members under `packages/`: the ten publishable ones — `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-browser`, `dhis2w-mcp-router` (first published in 1.2.0), `dhis2w-fhir`, `dhis2w-fhir-serve` (first published in 1.5.0), `dhis2w-fhir-engine` (first published in 1.7.0) — plus the workspace-only `dhis2w-codegen` (not published). Plugin packs in their own repositories reach the CLI through extras on `dhis2w-cli` (`[security]` is `dhis2w-security`). Single `uv.lock` at the workspace root, `uv_build` backend. Every member uses the `src/` layout. Shared code lives in a workspace member (never a floating `src/` outside a package). **Never edit `pyproject.toml` deps by hand — use `uv add` / `uv add --dev`.**
+4. **Playwright UI automation is isolated in the `dhis2w-browser` pack.** It lives in its own repository ([winterop-com/dhis2w-browser](https://github.com/winterop-com/dhis2w-browser)) with the `d2w browser` plugin, and reaches the CLI through the `[browser]` extra on `dhis2w-cli`. API-only installs must not pull Chromium.
+5. **`uv` for everything Python, organized as a `uv` workspace.** Ten members under `packages/`: the nine publishable ones — `dhis2w-client`, `dhis2w-core`, `dhis2w-cli`, `dhis2w-mcp`, `dhis2w-mcp-bridge`, `dhis2w-mcp-router` (first published in 1.2.0), `dhis2w-fhir`, `dhis2w-fhir-serve` (first published in 1.5.0), `dhis2w-fhir-engine` (first published in 1.7.0) — plus the workspace-only `dhis2w-codegen` (not published). Plugin packs in their own repositories reach the CLI through extras on `dhis2w-cli` (`[security]` is `dhis2w-security`, `[browser]` is `dhis2w-browser`), and release the same version as the host, after it (`docs/decisions.md`, 2026-09-29). Single `uv.lock` at the workspace root, `uv_build` backend. Every member uses the `src/` layout. Shared code lives in a workspace member (never a floating `src/` outside a package). **Never edit `pyproject.toml` deps by hand — use `uv add` / `uv add --dev`.**
 6. **FastAPI for any HTTP service, FastMCP for any MCP service.** No Flask, no bare `http.server`, no hand-rolled stdio loops.
 7. **Pydantic for ALL structured data. No `dict`s. No `@dataclass`es.** Every type that carries domain meaning — DHIS2 resources, service return values, CLI output shapes, MCP tool returns, error bodies, configuration, view-models, command options — is a `pydantic.BaseModel`. DHIS2 resource models (Me, SystemInfo, DataElement, Indicator, …) live in `dhis2w-client/models/` so PyPI users of the client get them. Plugin-internal view-models (reports, job state, summaries) live in the plugin's `models.py`. `Dhis2Client` returns parsed models, not raw dicts.
 
@@ -56,7 +56,6 @@ graph LR
     mcp["dhis2w-mcp"]
     router["dhis2w-mcp-router"]
     core["dhis2w-core"]
-    browser["dhis2w-browser"]
     codegen["dhis2w-codegen"]
     client["dhis2w-client"]
     fhir["dhis2w-fhir"]
@@ -73,12 +72,10 @@ graph LR
     fhirserve --> fhirengine
     bridge --> cli
     core --> client
-    browser --> client
     codegen --> client
-    cli -.->|"optional [browser] extra"| browser
-    mcp -.->|"optional [browser] extra"| browser
     cli -.->|"optional [serve] extra"| fhirserve
     cli -.->|"optional [security] extra"| security["dhis2w-security (own repository)"]
+    cli -.->|"optional [browser] extra"| browser["dhis2w-browser (own repository)"]
 ```
 
 ## Documentation standards

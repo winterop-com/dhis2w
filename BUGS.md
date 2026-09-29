@@ -691,7 +691,7 @@ that stack's open-future window reaches `202706`: #6's from `202604` to `202812`
 - `packages/dhis2w-codegen/src/dhis2w_codegen/spec_patches.py` still names its patch
   `strip-v41-spring-internals` while it fires on all three trees, and the twelve leaked classes it
   strips are a v41 observation. The name should say what it does.
-- `examples/client/oidc_playwright_login.py` registers a `playwright_oidc` profile in
+- dhis2w-browser's `examples/client/oidc_playwright_login.py` registers a `playwright_oidc` profile in
   `~/.config/dhis2/profiles.toml` and never removes it, so every run of the example leaves one
   behind.
 - `d2w doctor bugs` no longer fails on a supported v41 (the probe floor is 2.41 in this branch), but

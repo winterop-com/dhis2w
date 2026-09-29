@@ -242,7 +242,7 @@ build:
 # to offer a PyPI consumer.
 #
 # Names here are the suffix after `dhis2w-`; the targets are `publish-<suffix>`.
-PUBLISHABLE_MEMBERS := client core browser fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
+PUBLISHABLE_MEMBERS := client core fhir fhir-engine fhir-serve cli mcp mcp-bridge mcp-router
 
 # The release version, when the caller names one: `make publish-all VERSION=1.2.0`
 # asserts every member's `project.version` equals it before anything is built,

@@ -53,7 +53,7 @@ nav:
       - Walkthrough: walkthrough.md
       - How-to:
           - Visualizations: guides/visualizations.md
-          - Playwright PAT helper: pat-helper.md
+          - Playwright PAT helper: https://winterop-com.github.io/dhis2w-browser/pat-helper/
       - Examples index: examples.md
   - Architecture:
       - Overview: architecture/overview.md
@@ -64,7 +64,7 @@ nav:
           - Profiles: architecture/profiles.md
           - Plugin runtime: architecture/plugins.md
           - External plugins: architecture/external-plugin.md
-          - Browser automation: architecture/browser.md
+          - Browser automation: https://winterop-com.github.io/dhis2w-browser/
       - Per-version typing:
           - Typed schemas: architecture/typed-schemas.md
           - Version-aware clients: architecture/versioning.md
@@ -289,6 +289,10 @@ markdown_extensions:
 
 plugins:
   - search
+  - redirects:
+      redirect_maps:
+        architecture/browser.md: https://winterop-com.github.io/dhis2w-browser/
+        pat-helper.md: https://winterop-com.github.io/dhis2w-browser/pat-helper/
   - mkdocstrings:
       handlers:
         python:
