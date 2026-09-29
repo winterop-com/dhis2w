@@ -1520,17 +1520,29 @@ described, and the git history is where it was built. What is left:
   link out to the object's own page in the instance's Metadata Management app
   is the smallest first step, and settles none of those.
 
-- **`d2w fhir validate` on a registry package reads only what the package
-  publishes.** A registry package publishes organisation units and nothing
-  else, yet validate still runs the whole instance sweep - on one national
-  instance, 54 collections and 44,973 objects - and the deep option-set pass
-  over every option set, then files all of it outside the organisation units
-  as instance hygiene the report itself calls not applicable. The package's
-  checks need the `organisationUnits` collection, its levels, and the
-  attributes its units carry; everything else is a read the answer never
-  uses. The open question is where instance hygiene belongs instead: a guide
-  built from the same instance runs the full sweep anyway, so the package
-  losing it loses nothing a pair of projects did not already report once.
+- **Packages beyond the organisation unit registry, and a validate that follows
+  what a package publishes.** `[ig] publishes` names what a package holds, and
+  `PackageContent` has one value today, `organisation-units`. Every
+  package-specific binding already hangs off that discriminator - which resources
+  a depending guide reads out of the package, which directory a checkout keeps
+  them in, which generate targets the package runs - so the next kind of package
+  is a new value rather than a new project kind. The likeliest next one is shared
+  terminology: an instance whose option sets hold tens of thousands of options,
+  published once as a package that every guide built from the instance depends
+  on, instead of once inside each guide.
+
+  `d2w fhir validate` does not follow the discriminator yet. On a package it
+  still runs the whole instance sweep - on one national instance, 54 collections
+  and 44,973 objects - and the deep option-set pass over every option set, then
+  files all of it outside the organisation units as instance hygiene the report
+  itself calls not applicable. Both pieces land together: validate reads the
+  collections and deep passes a package's content values call for - for
+  `organisation-units` the `organisationUnits` collection, its levels, and the
+  attributes its units carry; for a terminology package the option sets and
+  their options - and a new content value brings its checks with it rather than
+  a special case in validate. What stays open is where instance hygiene belongs
+  once a package stops reporting it: a guide built from the same instance runs
+  the full sweep anyway, so a pair of projects still reports it once.
 
 - **Recapture from a receipt.** A receipt is immutable - the spool never
   rewrites what arrived - so "edit and send again" is a new capture that opens
