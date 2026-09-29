@@ -396,7 +396,7 @@ def init_command(
     max_level: Annotated[
         int | None,
         typer.Option(
-            "--max-level",
+            "--org-unit-max-level",
             help="Deepest organisation-unit level to generate, seeding `\\[generate.organisation_units]` "
             "max_level. A hierarchy fans out at the bottom and every unit emits two instances, so this "
             "is the dial that bounds how much the IG publisher renders. Offline: written as given.",
@@ -405,7 +405,7 @@ def init_command(
     root: Annotated[
         str | None,
         typer.Option(
-            "--root",
+            "--org-unit-root",
             help="Organisation unit UID to seed `\\[generate.organisation_units]` root with: the top of the "
             "subtree the guide publishes, and every organisation unit its forms may be assigned to. Leave it "
             "out and the whole instance is read - including a subtree kept for deactivated organisation units. "
@@ -587,7 +587,7 @@ def init_command(
         _refresh_project(directory)
         return
     if max_level is not None and max_level < 1:
-        raise typer.BadParameter("--max-level must be 1 or greater")
+        raise typer.BadParameter("--org-unit-max-level must be 1 or greater")
     if with_registry:
         _reject_with_registry_conflicts(
             publishes=publishes,
@@ -597,7 +597,7 @@ def init_command(
             registry_version=registry_version,
             registry_path=registry_path,
         )
-    _require_uid_shape("--root", [root] if root is not None else None)
+    _require_uid_shape("--org-unit-root", [root] if root is not None else None)
     _require_uid_shape("--data-set", data_set_ids)
     _require_uid_shape("--event-program", event_program_ids)
     _require_uid_shape("--tracker-program", tracker_program_ids)
@@ -887,8 +887,8 @@ def _reject_selection_flags(
     an instance that holds it.
     """
     given = {
-        "--max-level": max_level is not None,
-        "--root": root is not None,
+        "--org-unit-max-level": max_level is not None,
+        "--org-unit-root": root is not None,
         "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),
@@ -1045,8 +1045,8 @@ def _reject_scaffold_flags(
         "--publisher-url": publisher_url is not None,
         "--profile": profile is not None,
         "--sushi-timeout": sushi_timeout != DEFAULT_SUSHI_TIMEOUT_SECONDS,
-        "--max-level": max_level is not None,
-        "--root": root is not None,
+        "--org-unit-max-level": max_level is not None,
+        "--org-unit-root": root is not None,
         "--geometry": geometry is not None,
         "--data-set": bool(data_set_ids),
         "--event-program": bool(event_program_ids),

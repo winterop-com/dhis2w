@@ -35,7 +35,7 @@ PERSON_TYPE="nEenWmSyUEp"
 
 d2w fhir init demo-projection-search --id dhis2.fhir.projectionsearchdemo \
     --canonical http://example.org/fhir/projection-search-demo \
-    --publisher "Demo Org" --tracker-program IpHINAT79UW --max-level 2
+    --publisher "Demo Org" --tracker-program IpHINAT79UW --org-unit-max-level 2
 cd demo-projection-search
 
 cat >>fhir.toml <<TOML

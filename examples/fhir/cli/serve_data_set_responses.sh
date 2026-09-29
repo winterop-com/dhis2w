@@ -33,7 +33,7 @@ BASE="http://127.0.0.1:${PORT}"
 # published as a Location the served document's subject can point at.
 d2w fhir init demo-data-set --id dhis2.fhir.datasetdemo \
     --canonical http://example.org/fhir/data-set-demo \
-    --publisher "Demo Org" --data-set "$DATA_SET" --max-level 4
+    --publisher "Demo Org" --data-set "$DATA_SET" --org-unit-max-level 4
 cd demo-data-set
 
 start_facade() {

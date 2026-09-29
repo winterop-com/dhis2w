@@ -10,7 +10,7 @@ BASE="http://127.0.0.1:${PORT}"
 
 d2w fhir init completeness-demo --id dhis2.fhir.completenessdemo \
     --canonical http://example.org/fhir/completeness-demo \
-    --publisher "Demo Org" --data-set TuL8IOPzpHh --max-level 2
+    --publisher "Demo Org" --data-set TuL8IOPzpHh --org-unit-max-level 2
 cd completeness-demo
 # `init` has no flag for the terminology tables, so they are written here. A table left
 # absent selects everything of its kind, and one DHIS2 name carrying a raw '<' anywhere in

@@ -34,7 +34,7 @@ BASE="http://127.0.0.1:${PORT}"
 # Questionnaire worth asking questions about.
 d2w fhir init demo-evaluate --id dhis2.fhir.evaluatedemo \
     --canonical http://example.org/fhir/evaluate-demo \
-    --publisher "Demo Org" --data-set BfMAe6Itzgt --max-level 2
+    --publisher "Demo Org" --data-set BfMAe6Itzgt --org-unit-max-level 2
 cd demo-evaluate
 
 start_facade() {

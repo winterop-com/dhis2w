@@ -163,7 +163,7 @@ d2w data tracker type | tail -8
 # however many entities of it the instance holds (BUGS.md 106). So a type nothing enrols is a type
 # nothing can read back, and a register over it would be honest about the guide and silent about
 # the instance.
-# The root unit, because `--max-level 2` publishes it and `$generate` reports at a unit the guide
+# The root unit, because `--org-unit-max-level 2` publishes it and `$generate` reports at a unit the guide
 # published and the programme is assigned to. Assign a programme somewhere the registry stops
 # short of and DHIS2 answers the forward `E1041 Enrollment OrganisationUnit and Program do not
 # match` - the guide and the instance disagreeing about where the thing was registered.
@@ -193,7 +193,7 @@ JSON
 d2w fhir init demo-many-types --id dhis2.fhir.manytypesdemo \
     --canonical http://example.org/fhir/many-types-demo --publisher "Demo Org" \
     --tracker-program "${FRIDGE_PROGRAMME}" --tracker-program "${VEHICLE_PROGRAMME}" \
-    --tracker-program "${SAMPLE_PROGRAMME}" --max-level 2
+    --tracker-program "${SAMPLE_PROGRAMME}" --org-unit-max-level 2
 cd demo-many-types
 
 cat >>fhir.toml <<TOML

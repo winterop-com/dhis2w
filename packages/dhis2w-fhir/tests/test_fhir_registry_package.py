@@ -603,7 +603,7 @@ def test_init_scaffolds_a_registry_package(workdir: Path) -> None:
             "organisation-units",
             "--id",
             "dhis2.fhir.test.registry",
-            "--max-level",
+            "--org-unit-max-level",
             "3",
         ],
     )

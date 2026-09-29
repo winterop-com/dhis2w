@@ -28,7 +28,7 @@ BASE="http://127.0.0.1:${PORT}"
 
 d2w fhir init demo-record --id dhis2.fhir.recorddemo \
     --canonical http://example.org/fhir/record-demo \
-    --publisher "Demo Org" --tracker-program IpHINAT79UW --max-level 2
+    --publisher "Demo Org" --tracker-program IpHINAT79UW --org-unit-max-level 2
 cd demo-record
 
 start_facade() {

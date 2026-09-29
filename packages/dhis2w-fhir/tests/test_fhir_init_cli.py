@@ -127,15 +127,15 @@ def test_init_profile_is_offline(workdir: Path) -> None:
 
 
 def test_init_max_level_seeds_registry_cap(workdir: Path) -> None:
-    """`--max-level` lands in fhir.toml; a level below 1 is a usage error, not a silently empty registry."""
+    """`--org-unit-max-level` lands in fhir.toml; a level below 1 is a usage error, not a silently empty registry."""
     import tomllib
 
-    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--max-level", "4"])
+    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--org-unit-max-level", "4"])
     assert result.exit_code == 0, result.output
     raw = tomllib.loads((workdir / "project" / "fhir.toml").read_text(encoding="utf-8"))
     assert raw["generate"]["organisation_units"]["max_level"] == 4
 
-    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--max-level", "0"])
+    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--org-unit-max-level", "0"])
     assert rejected.exit_code != 0
 
 
@@ -157,18 +157,20 @@ def test_init_geometry_seeds_the_organisation_unit_table(workdir: Path) -> None:
 
 
 def test_init_root_seeds_the_organisation_unit_table(workdir: Path) -> None:
-    """`--root` lands in fhir.toml beside `--max-level`; a value that is not a UID is a usage error."""
+    """`--org-unit-root` lands in fhir.toml beside `--org-unit-max-level`; a non-UID value is a usage error."""
     import tomllib
 
-    result = _runner.invoke(build_app(), ["fhir", "init", "project", "--root", "ImspTQPwCqd", "--max-level", "4"])
+    result = _runner.invoke(
+        build_app(), ["fhir", "init", "project", "--org-unit-root", "ImspTQPwCqd", "--org-unit-max-level", "4"]
+    )
     assert result.exit_code == 0, result.output
     raw = tomllib.loads((workdir / "project" / "fhir.toml").read_text(encoding="utf-8"))
     assert raw["generate"]["organisation_units"]["root"] == "ImspTQPwCqd"
     assert raw["generate"]["organisation_units"]["max_level"] == 4
 
-    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--root", "Lao PDR"])
+    rejected = _runner.invoke(build_app(), ["fhir", "init", "other", "--org-unit-root", "Lao PDR"])
     assert rejected.exit_code != 0
-    assert "--root" in rejected.output
+    assert "--org-unit-root" in rejected.output
 
 
 def test_init_geometry_is_refused_for_a_guide_naming_a_registry_package(workdir: Path) -> None:
@@ -388,7 +390,7 @@ def test_init_refresh_json_output(workdir: Path) -> None:
         ("--publisher-url", "http://other.example"),
         ("--profile", "sldemo"),
         ("--sushi-timeout", "5400"),
-        ("--max-level", "3"),
+        ("--org-unit-max-level", "3"),
         ("--data-set", "BfMAe6Itzgt"),
         ("--event-program", "VBqh0ynB2wv"),
         ("--tracker-program", "IpHINAT79UW"),
@@ -409,12 +411,12 @@ def test_init_refresh_names_every_flag_it_refuses(workdir: Path) -> None:
     _scaffold(workdir)
 
     result = _runner.invoke(
-        build_app(), ["fhir", "init", "project", "--refresh", "--publisher", "Other", "--max-level", "3"]
+        build_app(), ["fhir", "init", "project", "--refresh", "--publisher", "Other", "--org-unit-max-level", "3"]
     )
 
     assert result.exit_code != 0
     assert "--publisher" in result.output
-    assert "--max-level" in result.output
+    assert "--org-unit-max-level" in result.output
 
 
 def test_init_refresh_labels_the_files_it_kept(workdir: Path) -> None:

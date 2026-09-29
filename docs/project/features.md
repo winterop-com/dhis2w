@@ -636,9 +636,9 @@ chain in one command.
   `publisher.url` in `sushi-config.yaml`; **`--profile`** seeds the top-level
   `profile` key so the scaffolded project reads an instance without a flag
   (offline - the name is written as given, never resolved against
-  `profiles.toml`); **`--root`** seeds the organisation unit subtree the project
+  `profiles.toml`); **`--org-unit-root`** seeds the organisation unit subtree the project
   publishes (checked for UID shape, and under `--with-registry` written into both
-  projects, which have to mean the same organisation units); **`--max-level`**
+  projects, which have to mean the same organisation units); **`--org-unit-max-level`**
   seeds the organisation-unit depth cap;
   **`--geometry`** seeds `[generate.organisation_units] geometry` (`full`,
   `position` or `none`), landing in the registry package under
