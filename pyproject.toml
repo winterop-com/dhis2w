@@ -1,3 +1,10 @@
+[tool.uv]
+# The plugin packs pin the host exactly (`dhis2w-core==X.Y.Z`) and release after it, so while the
+# host is at a version no pack has released yet, a pack reached through a `dhis2w-cli` extra asks
+# for the previous host. The workspace members are the host: override those pins so this lock
+# always resolves the packs against the members here. Published metadata is untouched.
+override-dependencies = ["dhis2w-client", "dhis2w-core"]
+
 [tool.uv.workspace]
 members = ["packages/*"]
 
