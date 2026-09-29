@@ -1861,8 +1861,9 @@ def validate_command(
     which one it read. Under `substitute` a DHIS2 name carrying '<' is rewritten for publication
     and the build survives it, so the finding on that name is informational and says what the guide
     publishes; under `refuse` - and unset, which refuses - the same name aborts the build and stays
-    an error. A DHIS2 code carrying '<' is an error under either posture: the substitution rewrites
-    a space in a code and never a '<'.
+    an error. A DHIS2 code carrying '<' is graded the same way: under `substitute` its comparison is
+    reworded and every space hyphenated, so the finding is informational, and under `refuse` it is
+    an error.
 
     The terminal says what the state is: a summary, a count per severity, scope, and category, and
     every error by name, because an error is what gates the build and the user has to know which

@@ -218,15 +218,35 @@ def test_a_name_published_byte_true_states_no_original() -> None:
 
 
 def test_a_code_the_guide_carries_cleanly_is_published_byte_true() -> None:
-    """Only a space is rewritten in a code: a `<` still refuses, and everything else is left alone."""
+    """A code carrying neither a space nor a `<` is left exactly as DHIS2 states it."""
     gate = HostileNameGate(HostileNamePosture.SUBSTITUTE)
-    option_set = OptionSetIn(uid="Os1aaaaaaaa", name="Age < 5", code="AGE<5")
+    option_set = OptionSetIn(uid="Os1aaaaaaaa", name="Age < 5", code="AGE_UNDER_5")
     screened = gate.screen([option_set], [])
 
     assert screened[0].name == "Age under 5"
-    assert screened[0].code == "AGE<5"
+    assert screened[0].code == "AGE_UNDER_5"
     assert screened[0].original_code is None
-    assert screened[0].dhis2_code == "AGE<5"
+
+
+def test_a_comparison_in_a_code_is_reworded_and_hyphenated() -> None:
+    """A `<` in a code reads as a name's does, then every space is hyphenated; the DHIS2 code rides along."""
+    gate = HostileNameGate(HostileNamePosture.SUBSTITUTE)
+    notes: list[GenerateNote] = []
+    option_set = OptionSetIn(uid="csRsm0D7guY", name="MAL ENTO: IRS < 6 Months", code="ENTO - IRS < 6 Months")
+    screened = gate.screen([option_set], notes)
+
+    assert screened[0].code == "ENTO---IRS-under-6-Months"
+    assert screened[0].original_code == "ENTO - IRS < 6 Months"
+    assert screened[0].dhis2_code == "ENTO - IRS < 6 Months"
+    assert any("carries a '<'" in note.message for note in notes)
+
+
+def test_a_comparison_in_a_code_is_left_alone_under_refuse() -> None:
+    """Under `refuse` the code reaches the emitters as DHIS2 states it, and the run's refusal acts on it."""
+    gate = HostileNameGate(HostileNamePosture.REFUSE)
+    option_set = OptionSetIn(uid="csRsm0D7guY", name="IRS", code="ENTO - IRS < 6 Months")
+
+    assert gate.screen([option_set], [])[0].code == "ENTO - IRS < 6 Months"
 
 
 def test_a_space_in_a_code_becomes_a_hyphen() -> None:
@@ -713,12 +733,32 @@ async def test_the_same_instance_still_refuses_under_the_refuse_posture(
 
 
 @respx.mock
-async def test_a_build_aborting_code_refuses_the_run_however_the_names_are_answered(
+async def test_a_build_aborting_code_is_rewritten_under_substitute(
     probe_profile: None,  # noqa: ARG001
     mock_system_info: Callable[..., None],
     tmp_path: Path,
 ) -> None:
-    """A code is an identifier, so no answer about names lets one carrying '<' reach a guide."""
+    """Under `substitute` a code carrying '<' is reworded before any emitter reads it, so the run succeeds."""
+    mock_system_info("v42")
+    await _scaffold_project(tmp_path)
+    instance = _hostile_instance()
+    instance["optionSets"][0]["code"] = "BEDNETS < 5"
+    _mock_instance(instance)
+
+    await service.generate_full(resolve_profile("probe"), load_project(tmp_path), gate=_substituting_gate())
+
+    published = "\n".join(path.read_text(encoding="utf-8") for path in (tmp_path / "ig" / "input").rglob("*.json"))
+    assert "BEDNETS-under-5" in published
+    assert "BEDNETS < 5" in published
+
+
+@respx.mock
+async def test_a_build_aborting_code_refuses_the_run_under_refuse(
+    probe_profile: None,  # noqa: ARG001
+    mock_system_info: Callable[..., None],
+    tmp_path: Path,
+) -> None:
+    """Under `refuse` the code reaches the emitters as DHIS2 states it, and the run is refused naming it."""
     mock_system_info("v42")
     await _scaffold_project(tmp_path)
     instance = _hostile_instance()
@@ -726,7 +766,9 @@ async def test_a_build_aborting_code_refuses_the_run_however_the_names_are_answe
     _mock_instance(instance)
 
     with pytest.raises(service.BuildAbortingCodeError) as raised:
-        await service.generate_full(resolve_profile("probe"), load_project(tmp_path), gate=_substituting_gate())
+        await service.generate_full(
+            resolve_profile("probe"), load_project(tmp_path), gate=HostileNameGate(HostileNamePosture.REFUSE)
+        )
 
     assert "BEDNETS < 5" in str(raised.value)
 

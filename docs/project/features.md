@@ -865,6 +865,13 @@ chain in one command.
   label and a data dictionary concept display (one national selection generated
   cleanly and handed the publisher 738 of them). Every rewrite is a
   `name-substitution` note, one per distinct DHIS2 name.
+- **The substitute posture rewrites every code carrying a `<`.** A code becomes an
+  identifier value the publisher writes into a table cell unescaped and then
+  strict-parses, so a `<` in it aborts the build's last pass. Under `substitute`
+  its comparison is reworded the way a name's is and then every space is
+  hyphenated (`ENTO - IRS < 6 Months` publishes as `ENTO---IRS-under-6-Months`),
+  with the DHIS2 code stated as the `dhis2-code` property exactly as for a spaced
+  code. Under `refuse` the run is refused, naming the object.
 - **The substitute posture hyphenates every code carrying a space.** An R4 `code`
   admits single internal spaces, so `Pre eclampsia` is legal FHIR and nothing
   refuses it - and the publisher's anchor slug strips the whitespace, so it and a
@@ -2118,8 +2125,9 @@ semantics `generate` uses.
   spellings (`published as 'Vitamin A given to under 5y' ... DHIS2 keeps
   'Vitamin A given to < 5y'`), and a `spaced-code` finding names the hyphenated
   code the guide publishes; under `"refuse"` and unset the grading is the
-  refusing one. `template-hostile-code` is an error under either posture,
-  because the code substituter rewrites a space in a code and never a `<`.
+  refusing one. `template-hostile-code` follows the posture the same way: an
+  in-scope `<` code is an error under `"refuse"`, and `info` under
+  `"substitute"`, which rewrites it before any emitter reads it.
   `--hostile-names substitute|refuse` reads the instance under the other posture
   for a what-if run; the flag beats the config, the config beats unset, and exit
   1 follows the graded severities.

@@ -192,11 +192,13 @@ hyphenated code the guide publishes - `published as 'Pre-eclampsia' - each
 space becomes a hyphen for publication` - instead of describing the quoted FSH
 form, which that posture never emits.
 
-**`template-hostile-code` is an error under either posture.** A code is an
-identifier a consumer joins on, so the substitution rewrites a space in a code
-and never a `<`: the code reaches the guide exactly as DHIS2 states it, and
-`d2w fhir generate` refuses the run whichever posture is set. The finding says
-so, and the remedy stays the same - change the code in DHIS2.
+**`template-hostile-code` follows the posture too.** Under `"refuse"` and
+unset, an in-scope code carrying `<` is an error, and `d2w fhir generate`
+refuses the run. Under `"substitute"` the code is rewritten before any emitter
+reads it - the comparison reworded as a name's is, every space hyphenated, the
+DHIS2 code stated beside it as the `dhis2-code` property - so the build never
+meets the `<` and the finding is informational, naming the code the guide
+publishes. Changing the code in DHIS2 is still how it gets published byte-true.
 
 `--hostile-names substitute` and `--hostile-names refuse` read the instance
 under the other posture without touching `fhir.toml`, which answers "what

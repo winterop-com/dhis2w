@@ -67,8 +67,11 @@ already been rendered. Change the code in DHIS2, then run `d2w fhir
 validate` for the full report.
 ```
 
-Cause: an in-scope code on an identifier surface carries `<`. Fix: change
-the code in DHIS2. Only `<` refuses; `>` and `&` stay warnings.
+Cause: an in-scope code on an identifier surface carries `<`, under
+`hostile_names = "refuse"` or with the key unset. Fix: change the code in DHIS2,
+or set `hostile_names = "substitute"`, which publishes the code with its
+comparison reworded and its spaces hyphenated, and states the DHIS2 code beside
+it as the `dhis2-code` property. Only `<` refuses; `>` and `&` stay warnings.
 
 A name refuses the same way, through its own message: a DHIS2 name stays
 byte-true on the emitted resource's title, which the publisher writes into

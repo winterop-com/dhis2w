@@ -135,7 +135,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import TYPE_CHECKING, Literal
 
-from dhis2w_fhir.coded import carries_substitutable_code, published_codes, substituted_code
+from dhis2w_fhir.coded import carries_spaced_code, published_codes, substituted_code
 from dhis2w_fhir.config import HostileNamePosture
 from dhis2w_fhir.foundation.attribute_values import (
     ATTRIBUTE_CODE_SUB_EXTENSION,
@@ -745,10 +745,10 @@ def _template_hostile_code_finding(
     the same code is instance hygiene, but the message keeps saying what it would do to a build
     the moment the object were selected.
 
-    The posture changes the wording and never the grade. A code is an identifier a consumer joins
-    on, so the substitute posture rewrites a space in it and never a `<`: the code is published as
-    DHIS2 states it, `_refuse_build_aborting_objects` meets it unchanged, and the run is refused
-    under `substitute` exactly as it is under `refuse`.
+    Under `substitute` a `<` code is rewritten before any emitter reads it - the comparison reworded
+    as a name's is, every space hyphenated, the DHIS2 code stated as the `dhis2-code` property - so
+    the build never meets it and the finding is informational, naming the code the guide publishes.
+    Under `refuse` it is published as DHIS2 states it and the run is refused.
     """
     if resource_type not in _CODE_IDENTIFIER_COLLECTIONS:
         return None
@@ -771,14 +771,19 @@ def _template_hostile_code_finding(
             "so this code lands on a page surface the publisher does not escape; only '<' is confirmed to "
             "abort a build, which is why only '<' can be an error"
         )
+    if substituting and aborts:
+        consequence = "which `make build` would abort on in its last pass"
     remedy = (
-        "the substitution rewrites a space in a code and never '<', so this code is published exactly as DHIS2 "
-        "states it and the run is refused all the same; change the code in DHIS2"
+        f'published as {substituted_code(code or "")!r} (hostile_names = "substitute"), with the DHIS2 code '
+        "stated beside it as the `dhis2-code` property; change the code in DHIS2 to publish it byte-true"
         if substituting and aborts
         else "change the code in DHIS2"
     )
+    graded: Literal["error", "warning", "info"] = (
+        "info" if substituting and aborts else ("error" if aborts else "warning")
+    )
     return ValidationFinding(
-        severity=_degraded("error" if aborts else "warning", in_scope),
+        severity=_degraded(graded, in_scope),
         scope=_scope_label(in_scope),
         category="template-hostile-code",
         resource_type=resource_type,
@@ -922,7 +927,7 @@ def _spaced_sweep_code_finding(
     R4 datatype refuses outright is reported as the invalid code it is and not a second time here,
     which is the order the option pass reads its two findings in.
     """
-    if resource_type not in SCOPE_SURFACE_FIELDS or code is None or not carries_substitutable_code(code):
+    if resource_type not in SCOPE_SURFACE_FIELDS or code is None or not carries_spaced_code(code):
         return None
     if describe_code_defect(code) is not None:
         return None
@@ -1274,7 +1279,7 @@ def _raw_option_findings(option_set: OptionSetIn, locales: list[str], *, substit
                     locales,
                 )
             )
-        if carries_substitutable_code(option.code):
+        if carries_spaced_code(option.code):
             findings.append(
                 _option_finding(
                     option_set,

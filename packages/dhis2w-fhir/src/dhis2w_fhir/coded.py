@@ -40,6 +40,7 @@ __all__ = [
     "CodeSubstitutions",
     "CodedProjectionIn",
     "OriginalSpellingExtensionUrls",
+    "carries_spaced_code",
     "carries_substitutable_code",
     "code_substitutions",
     "original_spelling_extensions",
@@ -119,14 +120,35 @@ def original_spelling_extensions(urls: OriginalSpellingExtensionUrls, projection
     return [Extension(url=url, valueString=value) for url, value in stated if value is not None]
 
 
-def carries_substitutable_code(value: str | None) -> bool:
-    """Whether one code carries a space, which is what the substitute posture rewrites."""
+#: The one character a code cannot carry into the IG publisher's build: identifier values are written
+#: into a table cell unescaped and strict-parsed afterwards, and `<` opens a tag. The same character
+#: `dhis2w_fhir.validation.build_aborting_code` grades.
+_BUILD_ABORTING_CODE_CHARACTER = "<"
+
+
+def carries_spaced_code(value: str | None) -> bool:
+    """Whether one code carries a space - what the `spaced-code` finding reports, whatever the posture."""
     return value is not None and " " in value
 
 
+def carries_substitutable_code(value: str | None) -> bool:
+    """Whether one code carries a space or a `<`, which is what the substitute posture rewrites."""
+    return value is not None and (" " in value or _BUILD_ABORTING_CODE_CHARACTER in value)
+
+
 def substituted_code(code: str) -> str:
-    """One code with every space hyphenated, before any de-collision the run has to apply."""
-    return code.replace(" ", CODE_SUBSTITUTION_SEPARATOR)
+    """One code as the substitute posture publishes it, before any de-collision the run has to apply.
+
+    A comparison is reworded the way a name's is (`< 6 Months` reads `under 6 Months`), which
+    consumes every `<`, and then every space is hyphenated, so `ENTO - IRS < 6 Months` publishes as
+    `ENTO---IRS-under-6-Months`. The DHIS2 code rides beside it as the `dhis2-code` property either way.
+    """
+    # Imported here rather than at the top: the validation package imports this module, and a
+    # module-level import of its `substitution` submodule would run that package's `__init__` first.
+    from dhis2w_fhir.validation.substitution import substitute_build_aborting_text
+
+    reworded = substitute_build_aborting_text(code) if _BUILD_ABORTING_CODE_CHARACTER in code else code
+    return reworded.replace(" ", CODE_SUBSTITUTION_SEPARATOR)
 
 
 class CodeSubstitutions(BaseModel):
@@ -154,7 +176,7 @@ def code_substitutions(models: Iterable[BaseModel]) -> CodeSubstitutions:
 
 
 class CodeSubstituter:
-    """The published code every space-carrying DHIS2 code of one run takes, assigned once and held.
+    """The published code every space- or `<`-carrying DHIS2 code of one run takes, assigned once and held.
 
     Assignment is deterministic and independent of the order the projections are walked in: every
     code the run has observed is registered first, then the space-carrying ones are assigned in
@@ -180,7 +202,7 @@ class CodeSubstituter:
         self._register(code)
 
     def published_for(self, code: str) -> str:
-        """The code the guide publishes in one DHIS2 code's place, byte-true unless it carries a space."""
+        """The code the guide publishes in one DHIS2 code's place, byte-true unless it carries a space or a `<`."""
         if not carries_substitutable_code(code):
             return code
         self._register(code)

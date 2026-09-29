@@ -130,6 +130,10 @@ build dies hours in - after every resource has already been rendered. DHIS2 name
 carry the character legitimately: an age band is called `5 to < 15 years,
 Female`.
 
+A **code carrying `<`** kills the build the same way. A code becomes an
+identifier value, which the publisher writes into a table cell unescaped and
+then strict-parses - `ENTO - IRS < 6 Months` on an option set is enough.
+
 A **code carrying a space** builds fine and hurts afterwards. An R4 `code` admits
 single internal spaces, so `Pre eclampsia` is legal FHIR; the publisher's anchor
 slug then strips the whitespace, so `Pre eclampsia` and `Preeclampsia` render one
@@ -137,14 +141,15 @@ anchor id and its QA pass reports a duplicate (BUGS.md #107). Below the guide,
 every URL has to escape the space, every CQL reference has to quote it, and each
 terminology server round-trips it at its own discretion.
 
-**The two values.** `"refuse"` publishes both byte-true: it writes nothing and
-names the object when a name carries `<`, so the name is changed in DHIS2 or left
-out of the selection, and it publishes a space-carrying code exactly as DHIS2
-states it - a space is legal, so nothing about it is refused.
+**The two values.** `"refuse"` publishes names and codes byte-true: it writes
+nothing and names the object when a name or a code carries `<`, so the value is
+changed in DHIS2 or left out of the selection, and it publishes a space-carrying
+code exactly as DHIS2 states it - a space is legal, so nothing about it is refused.
 
 `"substitute"` publishes the name in wording the publisher survives - `5 to under
-15 years, Female` - and the code with every space hyphenated - `Pre-eclampsia` -
-and notes each rewrite. DHIS2 is never written to either way, and no UID is ever
+15 years, Female` - and the code with its comparison reworded the same way and
+every space hyphenated - `Pre-eclampsia`, and `ENTO - IRS < 6 Months` as
+`ENTO---IRS-under-6-Months` - and notes each rewrite. DHIS2 is never written to either way, and no UID is ever
 rewritten.
 
 **What a rewritten code preserves.** Every published code stays joinable back to
