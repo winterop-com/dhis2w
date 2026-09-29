@@ -13,7 +13,6 @@ from dhis2w_core.plugin import load_plugin_host
 EXPECTED_PLUGINS = {
     "analytics",
     "apps",
-    "browser",
     "customize",
     "data",  # mounts aggregate + tracker as sub-commands
     "dev",
