@@ -294,7 +294,7 @@ d2w browser         UI automation (requires [browser] extra)
 d2w dev             Developer tools
   uid                   Generate DHIS2 UIDs (offline, CSPRNG)
   sample                Inject known-good fixtures (route, data, pat, oauth2-client)
-  codegen generate | rebuild | oas-rebuild | diff
+  codegen generate | fetch-openapi | rebuild | oas-rebuild | diff
 ```
 
 ### Output Modes
@@ -476,6 +476,7 @@ Version-aware generator that emits typed Python code into `dhis2w-client`.
 
 ```bash
 d2w dev codegen generate --url <DHIS2> --username <u> --password <p>
+d2w dev codegen fetch-openapi --url <DHIS2> --username <u> --password <p>
 d2w dev codegen rebuild          # regenerate from committed manifest
 d2w dev codegen oas-rebuild      # re-emit OpenAPI-based types
 d2w dev codegen diff <from> <to> # structural diff between versions

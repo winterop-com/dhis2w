@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v41 dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -45,7 +45,7 @@ help:
 	@echo ""
 	@echo "Code generation + examples:"
 	@echo "  dhis2-codegen-all     Spin up DHIS2 v41/v42/v43 in turn and regenerate each v{N}/ (~40 min; pass VERSIONS=\"v41 v42 v43\" to narrow)"
-	@echo "  dhis2-codegen-play    Refresh v42 + v43 generated/ trees against play.im.dhis2.org (no docker)"
+	@echo "  dhis2-codegen-play    Refresh the /api/schemas half of generated/v{N} from the play channel running each pin (no docker)"
 	@echo "  verify-examples       Run every non-interactive example + print PASS/FAIL summary"
 	@echo ""
 	@echo "  For niche targets (versions, wait, status, logs, pat) use 'make -C infra help'."
@@ -212,15 +212,10 @@ dhis2-versions-bump:
 dhis2-codegen-all:
 	@infra/scripts/codegen_all_versions.sh $(VERSIONS)
 
-dhis2-codegen-play-v42:
-	@echo ">>> Refreshing generated/v42 from play.im.dhis2.org/dev-2-42"
-	@$(UV) run d2w dev codegen generate --url https://play.im.dhis2.org/dev-2-42 --username admin --password district
+dhis2-codegen-play-v41 dhis2-codegen-play-v42 dhis2-codegen-play-v43:
+	@infra/scripts/codegen_play.sh $(@:dhis2-codegen-play-%=%)
 
-dhis2-codegen-play-v43:
-	@echo ">>> Refreshing generated/v43 from play.im.dhis2.org/dev-2-43"
-	@$(UV) run d2w dev codegen generate --url https://play.im.dhis2.org/dev-2-43 --username admin --password district
-
-dhis2-codegen-play: dhis2-codegen-play-v42 dhis2-codegen-play-v43
+dhis2-codegen-play: dhis2-codegen-play-v41 dhis2-codegen-play-v42 dhis2-codegen-play-v43
 
 refresh-analytics:
 	@echo ">>> Refreshing analytics tables (blocks until ANALYTICS_TABLE task completes)"

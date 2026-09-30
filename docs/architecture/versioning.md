@@ -197,7 +197,7 @@ We default to "refuse" because a strict codebase that loudly fails when things a
 
 ```bash
 infra/scripts/codegen_all_versions.sh            # default — v41 + v42 + v43
-infra/scripts/codegen_all_versions.sh 43         # subset
+infra/scripts/codegen_all_versions.sh v43        # subset
 ```
 
 For each version N, the script:

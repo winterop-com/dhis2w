@@ -102,7 +102,7 @@ async def discover(url: str, auth: AuthProvider) -> SchemasManifest:
     try:
         info = await _system_info_without_version_gate(client)
         raw_version = str(info.get("version", ""))
-        version_key = _version_key(raw_version)
+        version_key = version_key_from_raw(raw_version)
         schemas_response = await client.get_raw(f"/api/schemas?{_SCHEMAS_FIELDS}")
         schemas = [Schema.model_validate(item) for item in schemas_response.get("schemas", [])]
         for schema in schemas:
@@ -136,7 +136,8 @@ async def _system_info_without_version_gate(client: Dhis2Client) -> dict[str, An
     return await client.get_raw("/api/system/info")
 
 
-def _version_key(raw_version: str) -> str:
+def version_key_from_raw(raw_version: str) -> str:
+    """Map a DHIS2 version string (`2.43.1`, `2.44-SNAPSHOT`) to its tree key (`v43`, `v44`)."""
     match = _VERSION_RE.match(raw_version)
     if not match:
         raise ValueError(f"could not parse DHIS2 version from {raw_version!r}")

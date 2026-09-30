@@ -80,12 +80,14 @@ for v in "${VERSIONS[@]}"; do
   fi
 
   echo ">>> running codegen for $v"
-  # `generate` emits the /api/schemas tree (schemas_manifest.json); `oas-rebuild`
-  # then re-emits the OAS tree + openapi_manifest.json offline, taking raw_version
-  # from the just-written schemas_manifest. Running both keeps the schema and OAS
-  # manifests in lockstep — without the oas-rebuild step a patch bump leaves
-  # openapi_manifest.json's raw_version stale.
+  # `generate` emits the /api/schemas tree (schemas_manifest.json); `fetch-openapi`
+  # captures the live /api/openapi/openapi.json verbatim; `oas-rebuild` then
+  # re-emits the OAS tree + openapi_manifest.json from it, taking raw_version
+  # from the just-written schemas_manifest. All three keep the schema and OAS
+  # halves of the tree on the same pinned release.
   if (cd "$REPO_ROOT" && uv run d2w dev codegen generate \
+        --url http://localhost:8080 --username admin --password district \
+        && uv run d2w dev codegen fetch-openapi \
         --url http://localhost:8080 --username admin --password district \
         && uv run d2w dev codegen oas-rebuild --version "$v"); then
     echo ">>> done with codegen for $v"

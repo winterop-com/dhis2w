@@ -14,6 +14,7 @@ from dhis2w_codegen.diff import diff_manifest_paths, render_text
 from dhis2w_codegen.discover import SchemasManifest, discover
 from dhis2w_codegen.emit import emit
 from dhis2w_codegen.oas_emit import emit_from_openapi
+from dhis2w_codegen.openapi_fetch import fetch_openapi
 
 app = typer.Typer(help="Generate version-aware DHIS2 client code from /api/schemas.", no_args_is_help=True)
 _console = Console()
@@ -34,14 +35,7 @@ def generate(
     ] = None,
 ) -> None:
     """Generate the client for the DHIS2 version reported by `--url`."""
-    auth: AuthProvider
-    if pat:
-        auth = PatAuth(token=pat)
-    elif username and password:
-        auth = BasicAuth(username=username, password=password)
-    else:
-        raise typer.BadParameter("provide either --pat or --username + --password")
-
+    auth = _auth_from_options(username=username, password=password, pat=pat)
     target_root = output_root or _default_output_root()
     asyncio.run(_run(url=url, auth=auth, output_root=target_root))
 
@@ -55,6 +49,37 @@ async def _run(*, url: str, auth: AuthProvider, output_root: Path) -> None:
     _console.print(f"[bold]emitting[/bold] {destination}")
     emit(manifest, destination)
     _console.print(f"[green]done[/green] — generated {len(manifest.schemas)} schemas into {destination}")
+
+
+@app.command("fetch-openapi")
+def fetch_openapi_cmd(
+    url: Annotated[str, typer.Option("--url", help="Base URL of the DHIS2 instance.")],
+    username: Annotated[str | None, typer.Option("--username", help="Basic-auth username.")] = None,
+    password: Annotated[str | None, typer.Option("--password", help="Basic-auth password.")] = None,
+    pat: Annotated[str | None, typer.Option("--pat", help="Personal Access Token.")] = None,
+    output_root: Annotated[
+        Path | None,
+        typer.Option("--output-root", help="Directory of versioned subfolders; defaults to dhis2w-client generated/."),
+    ] = None,
+) -> None:
+    """Capture the live OpenAPI document into `generated/v{N}/openapi.json` (run `oas-rebuild` after)."""
+    auth = _auth_from_options(username=username, password=password, pat=pat)
+    target_root = output_root or _default_output_root()
+    capture = asyncio.run(fetch_openapi(url, auth, target_root))
+    state = "changed" if capture.changed else "unchanged"
+    _console.print(
+        f"[green]captured[/green] {capture.raw_version} (→ {capture.version_key}) "
+        f"{capture.size_bytes} bytes, sha256 {capture.openapi_sha256[:12]}, {state}"
+    )
+
+
+def _auth_from_options(*, username: str | None, password: str | None, pat: str | None) -> AuthProvider:
+    """Build Basic or PAT auth from the shared `--username/--password/--pat` options."""
+    if pat:
+        return PatAuth(token=pat)
+    if username and password:
+        return BasicAuth(username=username, password=password)
+    raise typer.BadParameter("provide either --pat or --username + --password")
 
 
 @app.command("rebuild")
