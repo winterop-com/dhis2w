@@ -1692,6 +1692,8 @@ $ d2w dev codegen [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `generate`: Generate the client for the DHIS2 version...
+* `fetch-openapi`: Capture the live OpenAPI document into...
+* `oas-flips`: List every JSON pointer whose value...
 * `rebuild`: Regenerate the client from saved...
 * `oas-rebuild`: Emit OpenAPI-derived pydantic models into...
 * `diff`: Diff two committed `schemas_manifest.json`...
@@ -1713,6 +1715,44 @@ $ d2w dev codegen generate [OPTIONS]
 * `--password <str>`: Basic-auth password.
 * `--pat <str>`: Personal Access Token.
 * `--output-root <path>`: Directory containing versioned subfolders; defaults to dhis2w-client&#x27;s generated/ folder.
+* `--help`: Show this message and exit.
+
+#### `d2w dev codegen fetch-openapi`
+
+Capture the live OpenAPI document into `generated/v{N}/openapi.json` (run `oas-rebuild` after).
+
+**Usage**:
+
+```console
+$ d2w dev codegen fetch-openapi [OPTIONS]
+```
+
+**Options**:
+
+* `--url <str>`: Base URL of the DHIS2 instance.  [required]
+* `--username <str>`: Basic-auth username.
+* `--password <str>`: Basic-auth password.
+* `--pat <str>`: Personal Access Token.
+* `--output-root <path>`: Directory of versioned subfolders; defaults to dhis2w-client generated/.
+* `--help`: Show this message and exit.
+
+#### `d2w dev codegen oas-flips`
+
+List every JSON pointer whose value differs between captures of one release (BUGS.md #133).
+
+**Usage**:
+
+```console
+$ d2w dev codegen oas-flips [OPTIONS] {documents}...
+```
+
+**Arguments**:
+
+* `documents...`: Two or more captures of the same release&#x27;s openapi.json.  [required]
+
+**Options**:
+
+* `--json`: Emit the report as JSON.
 * `--help`: Show this message and exit.
 
 #### `d2w dev codegen rebuild`
