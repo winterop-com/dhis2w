@@ -164,8 +164,8 @@ def profile_from_env_raw() -> Profile | None:
     Returns `None` when `DHIS2_URL` is unset or no credential pair is present.
     Recognises `DHIS2_PAT` (PAT auth, wins over Basic) and the
     `DHIS2_USERNAME` + `DHIS2_PASSWORD` pair (Basic auth). Reads
-    `DHIS2_VERSION` (`"41"` / `"42"` / `"43"` or `"v41"` / `"v42"` / `"v43"`)
-    into `Profile.version` when set.
+    `DHIS2_VERSION` (a bare major such as `"43"`, or `"v43"`) into
+    `Profile.version` when set.
 
     Library callers that want full TOML + env precedence resolution (the
     chain the `d2w` CLI uses) should install `dhis2w-core` and call
@@ -188,8 +188,8 @@ def profile_from_env_raw() -> Profile | None:
 def _env_version() -> Dhis2 | None:
     """Read `DHIS2_VERSION` env (`"43"` or `"v43"`) into a `Dhis2` enum member.
 
-    Accepts both the bare major (`"41"` / `"42"` / `"43"`) and the
-    v-prefixed form (`"v41"` / `"v42"` / `"v43"`). Returns None when unset
+    Accepts both the bare major (`"44"`) and the v-prefixed form
+    (`"v44"`) for every `Dhis2` member. Returns None when unset
     or malformed — `open_client` then falls back to auto-detect via
     `/api/system/info`.
     """

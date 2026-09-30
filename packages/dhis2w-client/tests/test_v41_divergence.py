@@ -143,14 +143,14 @@ def test_v41_auth_schemes_lacks_oauth2_client_credentials() -> None:
 # ----- Map layers: hand-written MapView ---------------------------------------
 
 
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_map_view_is_hand_written_in_every_tree(tree: str) -> None:
     """`MapView` and its enums come from `dhis2w_client.vN.maps`, not the generated tree.
 
     2.41.9.x omits `mapView` from `/api/schemas`, so a v41 tree generated
     against those releases has no `MapView` to import; 2.41.10 and every
     later release list the schema. Every tree defines the model by hand so
-    a layer built by `MapLayerSpec` validates identically on all three
+    a layer built by `MapLayerSpec` validates identically on every
     majors regardless.
     """
     import importlib

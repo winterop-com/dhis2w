@@ -1,7 +1,7 @@
 """Per-version parity for the `datastore` plugin service — exercise every public function on all trees.
 
-Resolves the service per `core_version` (v41/v42/v43) so the v41/v43 service code is actually executed
-and counted, not just smoke-imported. The three service trees are byte-identical copies (only the import
+Resolves the service per `core_version` (every tree) so the v41/v43 service code is actually executed
+and counted, not just smoke-imported. The service trees are byte-identical copies (only the import
 version differs), so the assertions are the same on every tree. Mocked (respx); no live stack. Endpoints
 derive from the `DatastoreAccessor`: `/api/dataStore`, `/api/dataStore/{namespace}`, and
 `/api/dataStore/{namespace}/{key}` (the per-user store swaps in `/api/userDataStore`).

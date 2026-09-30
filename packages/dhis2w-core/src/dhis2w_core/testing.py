@@ -85,7 +85,7 @@ _BROWSER_LAUNCHERS = ("open", "open_new", "open_new_tab")
 
 #: The wire version each core version tree claims from `/api/system/info`, so a client opened
 #: inside a parametrized test dispatches its accessors to the tree under test.
-_CORE_WIRE_VERSIONS = {"v41": "2.41.8.1", "v42": "2.42.0", "v43": "2.43.0"}
+_CORE_WIRE_VERSIONS = {"v41": "2.41.8.1", "v42": "2.42.0", "v43": "2.43.0", "v44": "2.44-SNAPSHOT"}
 
 
 @pytest.fixture(autouse=True)
@@ -125,7 +125,7 @@ def _no_browser_launch(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture(params=list(_CORE_WIRE_VERSIONS))
 def core_version(request: pytest.FixtureRequest) -> str:
-    """Parametrize a core plugin test across all three version trees (v41/v42/v43)."""
+    """Parametrize a core plugin test across every version tree (v41/v42/v43/v44)."""
     return str(request.param)
 
 

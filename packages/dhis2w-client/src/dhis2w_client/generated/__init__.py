@@ -26,6 +26,7 @@ class Dhis2(StrEnum):
     V41 = "v41"
     V42 = "v42"
     V43 = "v43"
+    V44 = "v44"
 
 
 def available_versions() -> tuple[str, ...]:

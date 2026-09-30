@@ -3,7 +3,7 @@
 `--json` is declared once on the root callback, so the payload comes from
 `d2w --json metadata get ...` and `d2w metadata get <uid> --json` is rejected by the
 parser. A command whose help names the flag therefore has to show that position.
-These tests read the rendered help on all three trees (v41/v42/v43) and pin both the
+These tests read the rendered help on every tree and pin both the
 wording and the parser behaviour it describes.
 """
 

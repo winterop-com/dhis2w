@@ -44,7 +44,7 @@ help:
 	@echo "  refresh-and-verify    Rebuild dump + seed + refresh analytics + run every example"
 	@echo ""
 	@echo "Code generation + examples:"
-	@echo "  dhis2-codegen-all     Spin up DHIS2 v41/v42/v43 in turn and regenerate each v{N}/ (~40 min; pass VERSIONS=\"v41 v42 v43\" to narrow)"
+	@echo "  dhis2-codegen-all     Spin up DHIS2 v41/v42/v43/v44 in turn and regenerate each v{N}/ (pass VERSIONS=\"v43 v44\" to narrow)"
 	@echo "  dhis2-codegen-play    Refresh the /api/schemas half of generated/v{N} from the play channel running each pin (no docker)"
 	@echo "  verify-examples       Run every non-interactive example + print PASS/FAIL summary"
 	@echo ""

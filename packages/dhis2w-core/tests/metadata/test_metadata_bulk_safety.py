@@ -1,4 +1,4 @@
-"""Data-safety behavior of the metadata bulk verbs, parametrised over all three version trees.
+"""Data-safety behavior of the metadata bulk verbs, parametrised over every version tree.
 
 Covers the guardrails that keep bulk operations from destroying data:
 empty strip strings on `rename`, read-merge-write sharing on `share`,

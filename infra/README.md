@@ -15,7 +15,7 @@ Local DHIS2 development stack: **PostgreSQL + DHIS2 + Glowroot APM + pgAdmin**, 
 |---|---|---|
 | `postgresql` | custom (postgis + wal2json + python3-bcrypt) | DHIS2 database, pre-loaded from `$(DHIS2_VERSION)/dump.sql.gz` |
 | `glowroot-installer` | `debian:12-slim` | Runs once at stack-up to download the Glowroot APM agent into `home/glowroot/` |
-| `dhis2` | `dhis2/core:$(DHIS2_IMAGE_TAG)` | DHIS2 web app with `-javaagent:/opt/dhis2/glowroot/glowroot.jar` attached; the tag is resolved from `versions.env` |
+| `dhis2` | `$(DHIS2_IMAGE)` | DHIS2 web app with `-javaagent:/opt/dhis2/glowroot/glowroot.jar` attached; the image is resolved from `versions.env` (`dhis2/core:<tag>`, or a full reference such as the v44 `dhis2/core-dev@sha256:...` digest). `v44/compose.override.yml` adapts the stack to the 2.44 image, which has no shell: no in-container healthcheck, JVM settings through `JAVA_TOOL_OPTIONS` |
 | `pgadmin4` | `dpage/pgadmin4:latest` | Pre-configured browser-based DB client |
 | `analytics-trigger` | `debian:12-slim` | One-shot: hits `/api/resourceTables/analytics` after DHIS2 becomes healthy, polls to completion |
 

@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from dhis2w_core.v42.plugins.profile import service
 
 _VERSION_HELP = (
-    "Expected DHIS2 major for this profile (v41 | v42 | v43). Used by CLI/MCP "
+    "Expected DHIS2 major for this profile (v41 | v42 | v43 | v44). Used by CLI/MCP "
     "to pick which version's plugin tree to load; the wire client always "
     "auto-detects on connect."
 )
@@ -44,14 +44,15 @@ def _validate_version(value: str | None) -> Dhis2 | None:
     """Normalize a `--version` flag value into a `Dhis2` enum member or None."""
     from dhis2w_client.v42 import Dhis2
 
+    from dhis2w_core.plugin import SUPPORTED_VERSION_KEYS
+
     if value is None:
         return None
     candidate = value.strip().lower()
-    match candidate:
-        case "v41" | "v42" | "v43":
-            return Dhis2(candidate)
-        case _:
-            raise typer.BadParameter(f"unsupported --version {value!r}; use one of v41, v42, v43")
+    if candidate not in SUPPORTED_VERSION_KEYS:
+        supported = ", ".join(sorted(SUPPORTED_VERSION_KEYS))
+        raise typer.BadParameter(f"unsupported --version {value!r}; use one of {supported}")
+    return Dhis2(candidate)
 
 
 app = typer.Typer(
@@ -220,7 +221,7 @@ def env_command(
     """
     import shlex
 
-    from dhis2w_core.plugin import DEFAULT_VERSION_KEY
+    from dhis2w_core.plugin import DEFAULT_VERSION_KEY, SUPPORTED_VERSION_KEYS
 
     resolved = resolve(name)
     profile = resolved.profile
@@ -239,7 +240,7 @@ def env_command(
         version_key = profile.version.value
     else:
         env_version = os.environ.get("DHIS2_VERSION", "").strip()
-        version_key = env_version if env_version in {"v41", "v42", "v43"} else DEFAULT_VERSION_KEY
+        version_key = env_version if env_version in SUPPORTED_VERSION_KEYS else DEFAULT_VERSION_KEY
         typer.echo(
             f"note: profile {resolved.name!r} has no version pin; emitting {version_key}. "
             "Pin it with `d2w profile add ... --version vNN`.",

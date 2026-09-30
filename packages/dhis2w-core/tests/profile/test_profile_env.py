@@ -9,12 +9,13 @@ import pytest
 from dhis2w_core.v41.plugins.profile.cli import app as app_v41
 from dhis2w_core.v42.plugins.profile.cli import app as app_v42
 from dhis2w_core.v43.plugins.profile.cli import app as app_v43
+from dhis2w_core.v44.plugins.profile.cli import app as app_v44
 from typer import Typer
 from typer.testing import CliRunner
 
-# One test tree, parametrised over the three version trees — the command is
+# One test tree, parametrised over every version tree — the command is
 # identical across them and must honour the profile's pin regardless of tree.
-TREES = pytest.mark.parametrize("app", [app_v41, app_v42, app_v43], ids=["v41", "v42", "v43"])
+TREES = pytest.mark.parametrize("app", [app_v41, app_v42, app_v43, app_v44], ids=["v41", "v42", "v43", "v44"])
 
 
 @pytest.fixture(autouse=True)

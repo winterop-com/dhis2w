@@ -1,7 +1,7 @@
 """Guard the PEP 562 lazy import surfaces against map drift.
 
 The top-level `dhis2w_client` package and each per-version surface
-(`dhis2w_client.v41` / `v42` / `v43`) are lazy modules: `__all__` lists the
+(`dhis2w_client.v41` / `v42` / `v43` / `v44`) are lazy modules: `__all__` lists the
 public surface, `_LAZY_EXPORTS` maps each name to the module that defines it,
 and `__getattr__` resolves a name on first access. A `TYPE_CHECKING` block
 re-exports the same names so type checkers and IDEs see real symbols.
@@ -23,6 +23,7 @@ _LAZY_MODULES = [
     "dhis2w_client.v41",
     "dhis2w_client.v42",
     "dhis2w_client.v43",
+    "dhis2w_client.v44",
 ]
 
 

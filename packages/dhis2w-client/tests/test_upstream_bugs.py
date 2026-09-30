@@ -120,7 +120,7 @@ async def test_bug_34_v43_categorys_alias_silently_dropped() -> None:
 async def test_bug_34_workaround_uses_categories_payload() -> None:
     """BUGS.md #34 — workaround-works: every CategoryCombo write goes out as `categories`.
 
-    The fix is uniform across all three majors — we never emit `categorys`.
+    The fix is uniform across every major — we never emit `categorys`.
     Asserts the v43-bound wire payload contains `categories` and never
     `categorys`. If the workaround regresses, this fails loudly.
     """
@@ -157,7 +157,7 @@ async def test_bug_34_workaround_uses_categories_payload() -> None:
 
 
 @pytest.mark.upstream_bug
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
     """BUGS.md #38 — bug-still-present: no tree's OAS declares `externalAccess` on `SharingObject`.
 
@@ -177,7 +177,7 @@ def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
 
 
 @pytest.mark.upstream_bug
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_bug_38_workaround_sharing_builder_drops_external_access(tree: str) -> None:
     """BUGS.md #38 — workaround-works: no tree's `SharingBuilder` exposes or emits `externalAccess`.
 
@@ -284,13 +284,13 @@ async def test_bug_39_workaround_v41_register_emits_cid_not_clientid() -> None:
 #
 # These tests hit the local docker DHIS2 stack (`make dhis2-run
 # DHIS2_VERSION=vN`). Each one skips unless the connected server matches
-# the bug's target major, so you don't need all three stacks running at
+# the bug's target major, so you don't need every stack running at
 # once. When DHIS2 ships an upstream fix, the bug-still-present assertion
 # starts failing — that's the loud signal to drop the workaround.
 # ---------------------------------------------------------------------------
 
 
-_AnyVersion = frozenset({"v41", "v42", "v43"})
+_AnyVersion = frozenset({"v41", "v42", "v43", "v44"})
 
 
 def _skip_unless_version(client: Dhis2Client, targets: str | frozenset[str]) -> None:

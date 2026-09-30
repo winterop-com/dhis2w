@@ -10,11 +10,13 @@ DHIS2_PASS     ?= district
 # Resolve the pinned Docker tag from versions.env (`DHIS2_V43=2.43.1.0` etc.).
 # DHIS2_VERSION is the vXX key (v41 | v42 | v43); a dotted tag (e.g. "2.43.0.0")
 # bypasses the lookup. An invalid value yields an empty tag and a hard error.
-DHIS2_IMAGE_TAG := $(shell scripts/_resolve_image_tag.sh $(DHIS2_VERSION))
-ifeq ($(strip $(DHIS2_IMAGE_TAG)),)
-$(error DHIS2_VERSION '$(DHIS2_VERSION)' is invalid — use the vXX form (e.g. v43) or a full dotted tag; see scripts/_resolve_image_tag.sh)
+DHIS2_IMAGE := $(shell scripts/_resolve_image.sh $(DHIS2_VERSION))
+ifeq ($(strip $(DHIS2_IMAGE)),)
+$(error DHIS2_VERSION '$(DHIS2_VERSION)' is invalid — use the vXX form (e.g. v43) or a full dotted tag; see scripts/_resolve_image.sh)
 endif
-COMPOSE        := DHIS2_VERSION=$(DHIS2_VERSION) DHIS2_IMAGE_TAG=$(DHIS2_IMAGE_TAG) DHIS2_CONF=$(DHIS2_CONF) docker compose -f compose.yml -f compose.pgadmin.yml
+# A major whose image needs different container settings carries `<major>/compose.override.yml`.
+COMPOSE_OVERRIDE := $(wildcard $(DHIS2_VERSION)/compose.override.yml)
+COMPOSE        := DHIS2_VERSION=$(DHIS2_VERSION) DHIS2_IMAGE=$(DHIS2_IMAGE) DHIS2_CONF=$(DHIS2_CONF) docker compose -f compose.yml -f compose.pgadmin.yml $(if $(COMPOSE_OVERRIDE),-f $(COMPOSE_OVERRIDE))
 
 help: ## show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -23,7 +25,7 @@ versions: ## list DHIS2 images available on Docker Hub (pick one for `make up DH
 	@cd .. && uv run python infra/scripts/list_versions.py
 
 pull: ## pull the selected DHIS2 version (default: 43)
-	@echo ">>> Pulling dhis2/core:$(DHIS2_IMAGE_TAG)"
+	@echo ">>> Pulling $(DHIS2_IMAGE)"
 	@$(COMPOSE) pull
 
 build: ## build supporting images (postgres + glowroot-installer)

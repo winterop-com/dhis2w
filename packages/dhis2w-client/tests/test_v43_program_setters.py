@@ -1,4 +1,4 @@
-"""v43-only ProgramsAccessor split surface — labels, change-log, alt enrollment CC.
+"""v43+ ProgramsAccessor split surface — labels, change-log, alt enrollment CC.
 
 DHIS2 2.43 added five fields to `Program` that don't exist on v41 / v42:
 `enableChangeLog`, `enrollmentsLabel`, `eventsLabel`, `programStagesLabel`,
@@ -9,7 +9,7 @@ focused setters since they address unrelated concerns:
 - `set_change_log_enabled` — server-side audit toggle only.
 - `set_enrollment_category_combo` — alt-CC reference only.
 
-This module asserts the PUT body shape for each, the omitted-fields
+This module asserts the PUT body shape for each on the v43 and v44 trees, the omitted-fields
 invariant, and the structural "v41 / v42 accessors do not expose these
 methods" guard.
 """
@@ -24,6 +24,8 @@ import pytest
 import respx
 from dhis2w_client import BasicAuth
 from dhis2w_client.v43.client import Dhis2Client as V43Client
+from dhis2w_client.v44.client import Dhis2Client as V44Client
+from pydantic import BaseModel, ConfigDict
 
 
 def _auth() -> BasicAuth:
@@ -36,11 +38,32 @@ def _mock_redirect_probe() -> None:
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
 
 
-def _mock_v43_preamble() -> None:
-    """Connect-side mocks: redirect probe + 2.43.0 systemInfo."""
+class SetterTree(BaseModel):
+    """A client tree that carries the v43+ Program setters, and the version its mocked server reports."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    client_class: type[V43Client] | type[V44Client]
+    wire_version: str
+
+
+_SETTER_TREES = {
+    "v43": SetterTree(client_class=V43Client, wire_version="2.43.0"),
+    "v44": SetterTree(client_class=V44Client, wire_version="2.44-SNAPSHOT"),
+}
+
+
+@pytest.fixture(params=list(_SETTER_TREES))
+def setter_tree(request: pytest.FixtureRequest) -> SetterTree:
+    """Parametrize a test over every tree that carries the v43+ setters."""
+    return _SETTER_TREES[request.param]
+
+
+def _mock_preamble(wire_version: str) -> None:
+    """Connect-side mocks: redirect probe + systemInfo for the tree under test."""
     _mock_redirect_probe()
     respx.get("https://dhis2.example/api/system/info").mock(
-        return_value=httpx.Response(200, json={"version": "2.43.0"})
+        return_value=httpx.Response(200, json={"version": wire_version})
     )
 
 
@@ -62,18 +85,18 @@ def _program_payload(**overrides: Any) -> dict[str, Any]:
 
 
 @respx.mock
-async def test_set_labels_requires_at_least_one_kwarg() -> None:
+async def test_set_labels_requires_at_least_one_kwarg(setter_tree: SetterTree) -> None:
     """Calling set_labels with no kwargs raises ValueError."""
-    _mock_v43_preamble()
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    _mock_preamble(setter_tree.wire_version)
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         with pytest.raises(ValueError, match="at least one of enrollments_label"):
             await client.programs.set_labels("PRG00000001")
 
 
 @respx.mock
-async def test_set_labels_puts_only_label_fields() -> None:
+async def test_set_labels_puts_only_label_fields(setter_tree: SetterTree) -> None:
     """All three label fields land on the PUT body; non-label v43 fields untouched."""
-    _mock_v43_preamble()
+    _mock_preamble(setter_tree.wire_version)
     respx.get("https://dhis2.example/api/programs/PRG00000001").mock(
         return_value=httpx.Response(200, json=_program_payload()),
     )
@@ -81,7 +104,7 @@ async def test_set_labels_puts_only_label_fields() -> None:
         return_value=httpx.Response(200, json={}),
     )
 
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         await client.programs.set_labels(
             "PRG00000001",
             enrollments_label="Visits",
@@ -100,9 +123,9 @@ async def test_set_labels_puts_only_label_fields() -> None:
 
 
 @respx.mock
-async def test_set_labels_leaves_omitted_fields_alone() -> None:
+async def test_set_labels_leaves_omitted_fields_alone(setter_tree: SetterTree) -> None:
     """Passing only one label kwarg doesn't touch the other two."""
-    _mock_v43_preamble()
+    _mock_preamble(setter_tree.wire_version)
     respx.get("https://dhis2.example/api/programs/PRG00000001").mock(
         return_value=httpx.Response(
             200,
@@ -113,7 +136,7 @@ async def test_set_labels_leaves_omitted_fields_alone() -> None:
         return_value=httpx.Response(200, json={}),
     )
 
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         await client.programs.set_labels("PRG00000001", program_stages_label="Care Stages")
 
     body = _json.loads(put_route.calls.last.request.content.decode("utf-8"))
@@ -127,9 +150,9 @@ async def test_set_labels_leaves_omitted_fields_alone() -> None:
 
 
 @respx.mock
-async def test_set_change_log_enabled_puts_only_the_flag() -> None:
+async def test_set_change_log_enabled_puts_only_the_flag(setter_tree: SetterTree) -> None:
     """The change-log toggle PUT body sets exactly one v43-only field."""
-    _mock_v43_preamble()
+    _mock_preamble(setter_tree.wire_version)
     respx.get("https://dhis2.example/api/programs/PRG00000001").mock(
         return_value=httpx.Response(200, json=_program_payload()),
     )
@@ -137,7 +160,7 @@ async def test_set_change_log_enabled_puts_only_the_flag() -> None:
         return_value=httpx.Response(200, json={}),
     )
 
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         await client.programs.set_change_log_enabled("PRG00000001", True)
 
     body = _json.loads(put_route.calls.last.request.content.decode("utf-8"))
@@ -149,9 +172,9 @@ async def test_set_change_log_enabled_puts_only_the_flag() -> None:
 
 
 @respx.mock
-async def test_set_change_log_enabled_false_is_a_real_write() -> None:
+async def test_set_change_log_enabled_false_is_a_real_write(setter_tree: SetterTree) -> None:
     """`enabled=False` writes the flag explicitly (not skipped as None)."""
-    _mock_v43_preamble()
+    _mock_preamble(setter_tree.wire_version)
     respx.get("https://dhis2.example/api/programs/PRG00000001").mock(
         return_value=httpx.Response(200, json=_program_payload(enableChangeLog=True)),
     )
@@ -159,7 +182,7 @@ async def test_set_change_log_enabled_false_is_a_real_write() -> None:
         return_value=httpx.Response(200, json={}),
     )
 
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         await client.programs.set_change_log_enabled("PRG00000001", False)
 
     body = _json.loads(put_route.calls.last.request.content.decode("utf-8"))
@@ -170,9 +193,9 @@ async def test_set_change_log_enabled_false_is_a_real_write() -> None:
 
 
 @respx.mock
-async def test_set_enrollment_category_combo_puts_only_the_ref() -> None:
+async def test_set_enrollment_category_combo_puts_only_the_ref(setter_tree: SetterTree) -> None:
     """The alt-CC setter PUTs only `enrollmentCategoryCombo`."""
-    _mock_v43_preamble()
+    _mock_preamble(setter_tree.wire_version)
     respx.get("https://dhis2.example/api/programs/PRG00000001").mock(
         return_value=httpx.Response(200, json=_program_payload()),
     )
@@ -180,7 +203,7 @@ async def test_set_enrollment_category_combo_puts_only_the_ref() -> None:
         return_value=httpx.Response(200, json={}),
     )
 
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         await client.programs.set_enrollment_category_combo("PRG00000001", "cocAlt000001")
 
     body = _json.loads(put_route.calls.last.request.content.decode("utf-8"))
@@ -190,10 +213,10 @@ async def test_set_enrollment_category_combo_puts_only_the_ref() -> None:
 
 
 @respx.mock
-async def test_set_enrollment_category_combo_rejects_empty_uid() -> None:
+async def test_set_enrollment_category_combo_rejects_empty_uid(setter_tree: SetterTree) -> None:
     """An empty `category_combo_uid` raises ValueError instead of issuing a write."""
-    _mock_v43_preamble()
-    async with V43Client("https://dhis2.example", auth=_auth()) as client:
+    _mock_preamble(setter_tree.wire_version)
+    async with setter_tree.client_class("https://dhis2.example", auth=_auth()) as client:
         with pytest.raises(ValueError, match="non-empty category_combo_uid"):
             await client.programs.set_enrollment_category_combo("PRG00000001", "")
 

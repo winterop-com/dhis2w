@@ -5,7 +5,7 @@ resource model does not declare, so the page is read through `TransformedMetadat
 plain selection still validates through the generated model, and any page DHIS2 answers in a shape
 neither model can hold raises `MetadataSelectionError` — the CLI's `error:` line, never a traceback.
 
-Parametrised over v41 / v42 / v43 through the `core_version` fixture. Mocked (respx); no live stack.
+Parametrised over every version tree through the `core_version` fixture. Mocked (respx); no live stack.
 """
 
 from __future__ import annotations

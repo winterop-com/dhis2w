@@ -11,12 +11,13 @@ from dhis2w_core.profile import load_profiles_file
 from dhis2w_core.v41.plugins.profile.cli import app as app_v41
 from dhis2w_core.v42.plugins.profile.cli import app as app_v42
 from dhis2w_core.v43.plugins.profile.cli import app as app_v43
+from dhis2w_core.v44.plugins.profile.cli import app as app_v44
 from typer import Typer
 from typer.testing import CliRunner
 
-# One test tree, parametrised over the three version trees — the command is
+# One test tree, parametrised over every version tree — the command is
 # identical across them and must behave the same regardless of active tree.
-TREES = pytest.mark.parametrize("app", [app_v41, app_v42, app_v43], ids=["v41", "v42", "v43"])
+TREES = pytest.mark.parametrize("app", [app_v41, app_v42, app_v43, app_v44], ids=["v41", "v42", "v43", "v44"])
 
 
 @pytest.fixture(autouse=True)
@@ -200,7 +201,7 @@ def test_env_omits_session_xsrf_when_absent(app: Typer, tmp_path: Path) -> None:
     assert "DHIS2_SESSION_XSRF" not in result.output
 
 
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_probe_auth_threads_xsrf_token(tree: str, tmp_path: Path) -> None:
     """`_build_probe_auth` threads the profile's xsrf_token into the SessionCookieAuth it builds."""
     service = importlib.import_module(f"dhis2w_core.{tree}.plugins.profile.service")
@@ -224,7 +225,7 @@ def test_probe_auth_threads_xsrf_token(tree: str, tmp_path: Path) -> None:
     assert auth.xsrf_token == "xsrf-tok-9"
 
 
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_show_profile_masks_cookie(tree: str, tmp_path: Path) -> None:
     """`show_profile` masks the session cookie like every other secret unless include_secrets=True."""
     service = importlib.import_module(f"dhis2w_core.{tree}.plugins.profile.service")
@@ -244,7 +245,7 @@ def test_show_profile_masks_cookie(tree: str, tmp_path: Path) -> None:
     assert revealed.cookie == "JSESSIONID=abc123"
 
 
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_revealed_view_cookie_is_plain_string(tree: str, tmp_path: Path) -> None:
     """`show_profile(include_secrets=True)` yields the real cookie value when include_secrets is set."""
     service = importlib.import_module(f"dhis2w_core.{tree}.plugins.profile.service")
@@ -266,7 +267,7 @@ def test_revealed_view_cookie_is_plain_string(tree: str, tmp_path: Path) -> None
     assert "abc123" not in str(redacted.model_dump())
 
 
-@pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_show_profile_masks_xsrf_token(tree: str, tmp_path: Path) -> None:
     """`show_profile` masks the CSRF token like every other secret unless include_secrets=True."""
     service = importlib.import_module(f"dhis2w_core.{tree}.plugins.profile.service")

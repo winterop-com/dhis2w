@@ -1,8 +1,8 @@
 """Per-version parity for the `messaging` plugin service — exercise every public function on all trees.
 
 Mirrors the v42-only `tests/messaging/test_messaging_plugin.py` routes + assertions, but resolves the
-service per `core_version` (v41/v42/v43) so the v41/v43 service code is actually executed and counted,
-not just smoke-imported. The three service trees are byte-identical copies (only the import version
+service per `core_version` (every tree) so the v41/v43 service code is actually executed and counted,
+not just smoke-imported. The service trees are byte-identical copies (only the import version
 differs), so the assertions are the same on every tree. Mocked (respx); no live stack.
 """
 

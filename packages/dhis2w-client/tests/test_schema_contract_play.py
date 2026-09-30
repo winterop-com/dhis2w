@@ -97,17 +97,20 @@ def _listable_resource_accessors(version_key: str) -> list[str]:
     )
 
 
-# Built per version at collection time so v41/v42/v43 each cover their own resource
+# Built per version at collection time so v41/v42/v43/v44 each cover their own resource
 # set (v43 drops `push_analysis`, for instance). Every listable `/api/{resource}`
 # is exercised — a full overview, not a curated subset.
 _V41_RESOURCES = _listable_resource_accessors("v41")
 _V42_RESOURCES = _listable_resource_accessors("v42")
 _V43_RESOURCES = _listable_resource_accessors("v43")
+_V44_RESOURCES = _listable_resource_accessors("v44")
 
 PLAY_URLS = {
     "v41": "https://play.im.dhis2.org/dev-2-41",
     "v42": "https://play.im.dhis2.org/dev-2-42",
     "v43": "https://play.im.dhis2.org/dev-2-43",
+    # No `dev-2-44` channel exists while 2.44 is unreleased; `dev` runs the 2.44 development line.
+    "v44": "https://play.im.dhis2.org/dev",
 }
 
 
@@ -155,6 +158,13 @@ async def play_v42_client() -> AsyncIterator[Dhis2Client]:
 async def play_v43_client() -> AsyncIterator[Dhis2Client]:
     """Yield a connected client for `dev-2-43`, skipping if the host is down."""
     async for client in _make_client(PLAY_URLS["v43"]):
+        yield client
+
+
+@pytest.fixture
+async def play_v44_client() -> AsyncIterator[Dhis2Client]:
+    """Yield a connected client for `dev` (the 2.44 development line), skipping if the host is down."""
+    async for client in _make_client(PLAY_URLS["v44"]):
         yield client
 
 
@@ -320,6 +330,13 @@ async def test_v43_schema_contract(play_v43_client: Dhis2Client, accessor_name: 
     await _assert_resource_validates(play_v43_client, accessor_name)
 
 
+@pytest.mark.contract
+@pytest.mark.parametrize("accessor_name", _V44_RESOURCES, ids=_V44_RESOURCES)
+async def test_v44_schema_contract(play_v44_client: Dhis2Client, accessor_name: str) -> None:
+    """Generated v44 model still validates one live row from play."""
+    await _assert_resource_validates(play_v44_client, accessor_name)
+
+
 # ---------------------------------------------------------------------------
 # Tracker endpoints don't fit the `client.resources.X` accessor pattern —
 # they live under `/api/tracker/*` with envelope `{pager, <resource>: [...]}`.
@@ -345,6 +362,7 @@ _TRACKER_ROOT_OU = "ImspTQPwCqd"  # Sierra Leone root.
 # class. Keep this map keyed by the v42 name so new renames are one-liners.
 _TRACKER_MODEL_RENAMES: dict[str, dict[str, str]] = {
     "v43": {"TrackerEvent": "TrackerTrackerEvent"},
+    "v44": {"TrackerEvent": "TrackerTrackerEvent"},
 }
 
 
@@ -491,3 +509,18 @@ async def test_v43_tracker_contract(
 ) -> None:
     """Generated v43 tracker model still validates one live row from play."""
     await _assert_tracker_endpoint_validates(play_v43_client, endpoint, model_name)
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    ("endpoint", "model_name"),
+    TRACKER_ENDPOINTS,
+    ids=[m for _, m in TRACKER_ENDPOINTS],
+)
+async def test_v44_tracker_contract(
+    play_v44_client: Dhis2Client,
+    endpoint: str,
+    model_name: str,
+) -> None:
+    """Generated v44 tracker model still validates one live row from play."""
+    await _assert_tracker_endpoint_validates(play_v44_client, endpoint, model_name)

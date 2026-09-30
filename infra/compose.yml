@@ -70,7 +70,7 @@ services:
 
   dhis2:
     init: true
-    image: dhis2/core:${DHIS2_IMAGE_TAG:-2.43.1.0}
+    image: ${DHIS2_IMAGE:-dhis2/core:2.43.1.0}
     pull_policy: always
     container_name: dhis2
     restart: always

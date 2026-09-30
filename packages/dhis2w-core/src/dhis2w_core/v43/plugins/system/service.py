@@ -8,7 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from dhis2w_client.v43 import DhisCalendar, Me, SystemInfo
 from pydantic import BaseModel, ConfigDict
 
-from dhis2w_core.plugin import DEFAULT_VERSION_KEY, resolve_startup_version
+from dhis2w_core.plugin import DEFAULT_VERSION_KEY, SUPPORTED_VERSION_KEYS, resolve_startup_version
 from dhis2w_core.profile import Profile
 from dhis2w_core.v43.client_context import open_client
 from dhis2w_core.v43.plugins.system.models import SystemSettingsSnapshot
@@ -26,7 +26,7 @@ class ServerInfo(BaseModel):
     """Metadata about the running `dhis2w-mcp` / `dhis2w-cli` process itself.
 
     Distinct from `SystemInfo`, which is about the *DHIS2* the process talks
-    to. This model surfaces the active plugin tree (v41 / v42 / v43) + the
+    to. This model surfaces the active plugin tree (v41 / v42 / v43 / v44) + the
     chain element that selected it (`profile.version` / `DHIS2_VERSION` env
     / default fallback), plus the bound package versions.
     """
@@ -34,7 +34,7 @@ class ServerInfo(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     active_plugin_tree: str
-    """Plugin tree the server booted with — `v41` / `v42` / `v43`."""
+    """Plugin tree the server booted with — `v41` / `v42` / `v43` / `v44`."""
 
     active_plugin_tree_source: str
     """Where the selection came from: `profile.version`, `DHIS2_VERSION env`, or `default`."""
@@ -60,7 +60,7 @@ def _package_version(name: str) -> str | None:
 def _active_plugin_tree_source(active: str) -> str:
     """Describe which step of the resolution chain picked the active plugin tree."""
     env_version = os.environ.get("DHIS2_VERSION", "").strip()
-    if env_version in {"v41", "v42", "v43"} and env_version == active:
+    if env_version in SUPPORTED_VERSION_KEYS and env_version == active:
         return f"DHIS2_VERSION={env_version!r} env"
     if active == DEFAULT_VERSION_KEY:
         return "default (no profile.version, no DHIS2_VERSION env)"

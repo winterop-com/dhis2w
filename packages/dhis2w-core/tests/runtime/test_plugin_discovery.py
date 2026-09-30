@@ -9,7 +9,14 @@ from typing import Any
 import pytest
 import typer
 from dhis2w_client import Dhis2
-from dhis2w_core.plugin import DEFAULT_VERSION_KEY, Contribution, extension, load_plugin_host, resolve_startup_version
+from dhis2w_core.plugin import (
+    DEFAULT_VERSION_KEY,
+    SUPPORTED_VERSION_KEYS,
+    Contribution,
+    extension,
+    load_plugin_host,
+    resolve_startup_version,
+)
 from dhis2w_core.profile import Profile, ProfilesFile, write_profiles_file
 
 
@@ -55,7 +62,7 @@ def test_host_default_matches_explicit_v43() -> None:
     assert len(default_names) > 0
 
 
-@pytest.mark.parametrize("version_key", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("version_key", sorted(SUPPORTED_VERSION_KEYS))
 def test_host_finds_each_version_tree(version_key: str) -> None:
     """Each `v{N}/plugins/` tree carries the same plugin set today (mechanical copies)."""
     names = set(load_plugin_host(version_key).names)

@@ -1,7 +1,7 @@
 """Per-version core plugin service parity — exercise each version's plugin service module.
 
 Where `test_v{41,43}_plugin_smoke` only checks that imports resolve + the plugin set is intact,
-these run the actual service code against all three trees (via the `core_version` /
+these run the actual service code against every tree (via the `core_version` /
 `plugin_service` fixtures in conftest), so v41/v43 plugin coverage is measured, not just smoke.
 Mocked (respx) — no live stack.
 """

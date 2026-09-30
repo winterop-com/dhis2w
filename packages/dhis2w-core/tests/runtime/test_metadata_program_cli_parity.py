@@ -39,11 +39,14 @@ def _program_command_names(app: Typer) -> set[str]:
     return names
 
 
-def test_v43_programs_cli_exposes_v43_only_setters(core_profile: None, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The v43 tree registers the v43-only Program set-* commands."""
-    names = _program_command_names(_build_versioned_app("v43", monkeypatch))
+@pytest.mark.parametrize("tree", ["v43", "v44"])
+def test_v43_programs_cli_exposes_v43_only_setters(
+    tree: str, core_profile: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The v43 tree and later register the v43-only Program set-* commands."""
+    names = _program_command_names(_build_versioned_app(tree, monkeypatch))
     missing = V43_ONLY_PROGRAM_COMMANDS - names
-    assert not missing, f"v43-only program commands missing from the v43 metadata CLI: {sorted(missing)}"
+    assert not missing, f"v43-only program commands missing from the {tree} metadata CLI: {sorted(missing)}"
 
 
 def test_v42_programs_cli_does_not_grow_the_v43_only_setters(
@@ -55,9 +58,10 @@ def test_v42_programs_cli_does_not_grow_the_v43_only_setters(
     assert not leaked, f"v43-only program commands leaked into the v42 metadata CLI: {sorted(leaked)}"
 
 
-def test_v43_programs_cli_is_a_superset_of_v42(core_profile: None, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Every v42 `metadata programs` command also exists on v43 — a v42-copy clobber fails here."""
+@pytest.mark.parametrize("tree", ["v43", "v44"])
+def test_v43_programs_cli_is_a_superset_of_v42(tree: str, core_profile: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every v42 `metadata programs` command also exists on v43 and later — a v42-copy clobber fails here."""
     v42_names = _program_command_names(_build_versioned_app("v42", monkeypatch))
-    v43_names = _program_command_names(_build_versioned_app("v43", monkeypatch))
-    missing = v42_names - v43_names
-    assert not missing, f"v42 program commands missing from the v43 metadata CLI: {sorted(missing)}"
+    tree_names = _program_command_names(_build_versioned_app(tree, monkeypatch))
+    missing = v42_names - tree_names
+    assert not missing, f"v42 program commands missing from the {tree} metadata CLI: {sorted(missing)}"

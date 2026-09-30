@@ -18,12 +18,12 @@ import httpx
 import pytest
 import respx
 
-# One test tree, parametrised over the three version trees — the diagnosis is
+# One test tree, parametrised over every version tree — the diagnosis is
 # identical across them and must read the same regardless of active tree.
-TREES = pytest.mark.parametrize("tree", ["v41", "v42", "v43"], ids=["v41", "v42", "v43"])
+TREES = pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"], ids=["v41", "v42", "v43", "v44"])
 
 _HOST = "https://dhis2.example"
-_WIRE_VERSIONS = {"v41": "2.41.8.1", "v42": "2.42.0", "v43": "2.43.0"}
+_WIRE_VERSIONS = {"v41": "2.41.8.1", "v42": "2.42.0", "v43": "2.43.0", "v44": "2.44-SNAPSHOT"}
 
 
 def _service(tree: str) -> ModuleType:

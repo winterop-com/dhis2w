@@ -102,12 +102,16 @@ omit = [
   #   - non-plugin core modules (auth / token store / cli infra): mechanical copies, deferred.
   "packages/dhis2w-core/src/dhis2w_core/v41/*.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/*.py",
+  "packages/dhis2w-core/src/dhis2w_core/v44/*.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/*/models.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/*/models.py",
+  "packages/dhis2w-core/src/dhis2w_core/v44/plugins/*/models.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/metadata/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/metadata/cli.py",
+  "packages/dhis2w-core/src/dhis2w_core/v44/plugins/metadata/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v41/plugins/dev/cli.py",
   "packages/dhis2w-core/src/dhis2w_core/v43/plugins/dev/cli.py",
+  "packages/dhis2w-core/src/dhis2w_core/v44/plugins/dev/cli.py",
 ]
 
 [tool.coverage.report]

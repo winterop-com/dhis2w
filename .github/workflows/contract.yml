@@ -1,6 +1,6 @@
 name: Schema contract
 
-# Hits play.im.dhis2.org/dev-2-{41,42,43} and validates one live row of every
+# Hits play.im.dhis2.org/dev-2-{41,42,43} and /dev (the 2.44 line) and validates one live row of every
 # major resource against the generated pydantic models. Catches DHIS2
 # ship-day API drift the day it lands.
 #
@@ -34,8 +34,8 @@ jobs:
   contract:
     name: Contract tests
     runs-on: ubuntu-latest
-    # Three live majors (v41/v42/v43) run in this lane; play latency varies run to run.
-    timeout-minutes: 15
+    # Four live majors (v41/v42/v43/v44) run in this lane; play latency varies run to run.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 

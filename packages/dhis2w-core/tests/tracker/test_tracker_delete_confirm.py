@@ -2,7 +2,7 @@
 
 `data tracker delete`, `data tracker event delete`, and `data tracker enrollment delete`
 each guard the destructive call behind a `typer.confirm(..., abort=True)` prompt, skippable
-with `--yes`/`-y`. These invoke the CLI on every version tree (v41/v42/v43) with the version's
+with `--yes`/`-y`. These invoke the CLI on every version tree with the version's
 `delete_tracker_objects` mocked, asserting the prompt gates the service call.
 """
 

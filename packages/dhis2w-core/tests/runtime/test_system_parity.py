@@ -1,8 +1,8 @@
 """Per-version parity for the `system` plugin service — exercise every public function on all trees.
 
 One happy-path test per public (non-underscore) function in `plugins/system/service.py`, resolved per
-`core_version` (v41/v42/v43) so the v41/v43 service code is actually executed and counted, not just
-smoke-imported. The three service trees are byte-identical copies (only the import version differs), so
+`core_version` (every tree) so the v41/v43 service code is actually executed and counted, not just
+smoke-imported. The service trees are byte-identical copies (only the import version differs), so
 the assertions are the same on every tree. Mocked (respx); no live stack.
 """
 
@@ -14,6 +14,7 @@ from types import ModuleType
 import httpx
 import respx
 from dhis2w_client.v42 import DhisCalendar
+from dhis2w_core.plugin import SUPPORTED_VERSION_KEYS
 from dhis2w_core.profile import resolve_profile
 
 _HOST = "https://dhis2.example"
@@ -32,7 +33,7 @@ async def test_server_info_parity(
 
     info = await service.server_info()
 
-    assert info.active_plugin_tree in {"v41", "v42", "v43"}
+    assert info.active_plugin_tree in SUPPORTED_VERSION_KEYS
     assert info.active_plugin_tree_source
     assert info.dhis2w_core_version
 

@@ -16,20 +16,24 @@ DHIS2_PASS="${DHIS2_PASS:-district}"
 # dhis.conf to mount: the major's own copy (infra/<version>/dhis.conf) unless a variant is named.
 DHIS2_CONF="${DHIS2_CONF:-./$DHIS2_VERSION/dhis.conf}"
 
-# Resolve `DHIS2_IMAGE_TAG` (the actual Docker tag) from `DHIS2_VERSION` (the
-# vXX key) via `infra/versions.env`. Compose reads `DHIS2_IMAGE_TAG` for the
+# Resolve `DHIS2_IMAGE` (the full Docker image reference) from `DHIS2_VERSION` (the
+# vXX key) via `infra/versions.env`. Compose reads `DHIS2_IMAGE` for the
 # image and `DHIS2_VERSION` for the dump-path lookup.
-# shellcheck source=_resolve_image_tag.sh
-. "$(dirname "$0")/_resolve_image_tag.sh"
+# shellcheck source=_resolve_image.sh
+. "$(dirname "$0")/_resolve_image.sh"
 
 cd "$(dirname "$0")/.."
 INFRA_DIR="$(pwd)"
 COMPOSE=(docker compose -f compose.yml -f compose.pgadmin.yml)
+# A major whose image needs different container settings carries `<major>/compose.override.yml`.
+if [ -f "$INFRA_DIR/$DHIS2_VERSION/compose.override.yml" ]; then
+  COMPOSE+=(-f "$DHIS2_VERSION/compose.override.yml")
+fi
 
 cleanup() {
   echo
   echo ">>> Stopping DHIS2 stack ..."
-  (cd "$INFRA_DIR" && DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE_TAG="$DHIS2_IMAGE_TAG" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" down)
+  (cd "$INFRA_DIR" && DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE="$DHIS2_IMAGE" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" down)
   # Ctrl+C (SIGINT) is the normal "I'm done, tear it down" gesture — exit clean
   # so `make dhis2-run` doesn't report `Error 130` after a tidy teardown.
   exit 0
@@ -40,9 +44,9 @@ trap cleanup INT TERM
 # rejects the unknown migrations). The seeded dump reloads on the fresh volume — this is the
 # documented "data resets on every make dhis2-run" behaviour.
 echo ">>> Resetting volumes for a clean $DHIS2_VERSION boot ..."
-DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE_TAG="$DHIS2_IMAGE_TAG" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" down -v --remove-orphans
-echo ">>> Starting DHIS2 $DHIS2_VERSION (image dhis2/core:$DHIS2_IMAGE_TAG) — detached ..."
-DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE_TAG="$DHIS2_IMAGE_TAG" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" up -d --remove-orphans
+DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE="$DHIS2_IMAGE" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" down -v --remove-orphans
+echo ">>> Starting DHIS2 $DHIS2_VERSION (image $DHIS2_IMAGE) — detached ..."
+DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE="$DHIS2_IMAGE" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" up -d --remove-orphans
 
 echo ">>> Waiting for DHIS2 readiness ..."
 make -C "$INFRA_DIR" wait DHIS2_URL="$DHIS2_URL" DHIS2_USER="$DHIS2_USER" DHIS2_PASS="$DHIS2_PASS"
@@ -77,4 +81,4 @@ else
 fi
 
 echo ">>> Ready. Streaming logs (Ctrl+C to stop the stack)."
-DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE_TAG="$DHIS2_IMAGE_TAG" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" logs -f dhis2 postgresql analytics-trigger
+DHIS2_VERSION="$DHIS2_VERSION" DHIS2_IMAGE="$DHIS2_IMAGE" DHIS2_CONF="$DHIS2_CONF" "${COMPOSE[@]}" logs -f dhis2 postgresql analytics-trigger

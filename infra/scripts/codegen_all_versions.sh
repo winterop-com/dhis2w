@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Regenerate `packages/dhis2w-client/src/dhis2w_client/generated/v{N}` for each
-# DHIS2 version passed (default: v41 v42 v43).
+# DHIS2 version passed (default: v41 v42 v43 v44).
 #
 # For every version, spins up a fresh empty DHIS2 N via docker, waits for
 # readiness, runs `d2w dev codegen generate` against it, and tears the stack
@@ -24,7 +24,7 @@
 
 set -euo pipefail
 
-DEFAULT_VERSIONS=(v41 v42 v43)
+DEFAULT_VERSIONS=(v41 v42 v43 v44)
 if [ "$#" -gt 0 ]; then
   VERSIONS=("$@")
 else

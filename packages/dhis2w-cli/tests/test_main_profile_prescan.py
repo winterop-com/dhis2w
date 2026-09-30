@@ -93,7 +93,7 @@ def _click_root_profile(argv: list[str]) -> str | None:
 def test_prescan_agrees_with_the_root_callback(argv: list[str]) -> None:
     """The pre-scan names the same profile Click hands the root callback, in every form.
 
-    The pre-scan picks the plugin tree (`v41`/`v42`/`v43`) and Click picks the profile the
+    The pre-scan picks the plugin tree (`v41` through `v44`) and Click picks the profile the
     commands run against, so any disagreement mounts one instance's tree and talks to another.
     """
     assert _extract_profile_from_argv(argv) == _click_root_profile(argv)
