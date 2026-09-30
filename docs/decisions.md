@@ -2,6 +2,14 @@
 
 Running list of architectural choices and the reasoning behind them. Each entry is a terse "we decided X because Y, alternatives were Z". This file is a first stop when you're wondering "why is it done that way?".
 
+## 2026-09-30 — v44 preview pinned to a 2.44 development build by digest
+
+**Decision:** DHIS2 v44 is a fourth version tree (`dhis2w_client.v44`, `dhis2w_core.v44.plugins.*`, `dhis2w_client.generated.v44`, `Dhis2.V44`), shipped as a preview before 2.44.0 is released. The local stack pins one development build by digest in `infra/versions.env` - `dhis2/core-dev@sha256:19303b4f...`, the 2.44-SNAPSHOT build of 2026-09-24 (revision `b732899`) - marked `# held` so the weekly version-bump check leaves it alone. The v44 generated code comes from that build, the v44 end-to-end CI leg runs with `continue-on-error`, and contract tests reach v44 at `https://play.im.dhis2.org/dev`. v43 stays the canonical baseline and the startup default. When 2.44.0 ships, the pin moves to `2.44.0.0` and the tree is regenerated (see [Versioning](architecture/versioning.md#v44-is-a-preview)).
+
+**Why:** a digest names exactly one build, so the committed v44 generated tree, the seeded dump and every CI run describe the same server; a moving tag such as `core-dev:master` changes under the committed code between two runs. Building the tree ahead of the release surfaces 2.44 wire changes while they can still be reported upstream, and the re-pin at release is a regeneration and a reviewed diff, not a new tree. Keeping the CI leg non-gating stops a development-line regression from blocking work on the released majors.
+
+**Alternatives rejected:** waiting for 2.44.0 (no early signal, and the whole tree lands at once under release pressure); tracking `dhis2/core-dev:master` (the generated tree drifts from the server it claims to describe); making v44 the baseline or the default (a development build is not something a deployment runs).
+
 ## 2026-09-29 — A clean core: MCP, FHIR and the browser leave as repositories of their own
 
 **Decision:** the `dhis2w` repository keeps the client, the core, the CLI and codegen, and nothing else. Four repositories sit beside it, each a pack reaching the CLI through an extra on `dhis2w-cli`:
@@ -154,7 +162,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 ## 2026-04-18 — `Dhis2` StrEnum + `Dhis2Client(version=...)` kwarg
 
-**Decision:** `dhis2w_client.Dhis2` is a `StrEnum` listing the supported DHIS2 majors (`V42`, `V43`). `Dhis2Client(..., version=Dhis2.V42)` skips auto-detection via `/api/system/info` and binds the specified generated module. Omit to let the client auto-detect.
+**Decision:** `dhis2w_client.Dhis2` is a `StrEnum` listing the supported DHIS2 majors (`V41`, `V42`, `V43`, `V44`) and is the single source of the supported version set: `dhis2w_client._dispatch._KNOWN_VERSION_KEYS` and `dhis2w_core.plugin.SUPPORTED_VERSION_KEYS` derive from it. `Dhis2Client(..., version=Dhis2.V42)` skips auto-detection via `/api/system/info` and binds the specified generated module. Omit to let the client auto-detect.
 
 **Why:** users targeting a known DHIS2 line shouldn't have to eat a roundtrip to `/api/system/info` and shouldn't have to guess whether auto-fallback will land them on a close-but-wrong version. The enum makes valid values discoverable in IDE autocomplete; the kwarg makes intent explicit.
 
@@ -162,7 +170,7 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 ## 2026-04-18 — OAuth2 redirect receiver stays a loopback socket, and `redirect_capturer` is the seam
 
-**Decision:** the redirect receiver invoked during `d2w profile login` is the bare `asyncio.start_server` loopback in `dhis2w-client/v{41,42,43}/auth/oauth2.py`. `OAuth2Auth` takes a pluggable `redirect_capturer`, which is the seam a caller substitutes — `dhis2w-core`'s profile service passes one that refuses rather than opening a browser, so `d2w profile verify` never starts a login flow by accident. There is no `oauth2_redirect.py` and no FastAPI app in the auth path.
+**Decision:** the redirect receiver invoked during `d2w profile login` is the bare `asyncio.start_server` loopback in `dhis2w-client/v{N}/auth/oauth2.py`. `OAuth2Auth` takes a pluggable `redirect_capturer`, which is the seam a caller substitutes — `dhis2w-core`'s profile service passes one that refuses rather than opening a browser, so `d2w profile verify` never starts a login flow by accident. There is no `oauth2_redirect.py` and no FastAPI app in the auth path.
 
 **Why:** the FastAPI rule in CLAUDE.md governs *services* — something that stays up, routes requests, and has a contract. This is a one-shot socket that reads a single redirect and closes, and it lives in `dhis2w-client`, which has to stay FastAPI-free for PyPI. The 2026-04-17 entry below ("OAuth2 loopback via `asyncio.start_server`") is the decision that holds; the capturer protocol is what keeps the mechanism swappable without dragging a web framework into the published client.
 
@@ -323,11 +331,11 @@ Hand-written hold-outs: `Me` (not in OpenAPI), `PeriodType` (Java class hierarch
 
 **Why:** SQLite is the correct scale for personal/project-scoped tooling. SQLAlchemy gives us typed `Mapped[...]` columns for free. Alembic means schema changes are reviewable.
 
-## 2026-04-17 — Filesystem-scan version discovery, not a hardcoded list
+## 2026-04-17 — Filesystem-scan discovery of generated trees; the `Dhis2` enum is the supported set
 
-**Decision:** `dhis2w_client.generated.available_versions()` walks the `generated/` folder and imports each `v\d+` subpackage, returning only those whose `__init__.py` sets `GENERATED = True`. No hardcoded `_KNOWN` tuple.
+**Decision:** `dhis2w_client.generated.available_versions()` walks the `generated/` folder and imports each `v\d+` subpackage, returning only those whose `__init__.py` sets `GENERATED = True`. Which majors are supported is a separate question, answered by the `Dhis2` enum in `dhis2w_client.generated` (v41, v42, v43, v44); every other supported-version list derives from it.
 
-**Why:** originally the list was hardcoded. Filesystem scan means adding a new version is literally just running codegen — no Python edit required. The supported set today is v41 + v42 + v43; the discovery path doesn't care.
+**Why:** the scan keeps the populated generated trees and the loader in agreement without a second list to maintain, while the enum gives the CLI, profile validation and the plugin host one explicit set to check against. A new major needs its enum member, its generated tree, and its hand-written trees, which `infra/scripts/clone_version_tree.py` copies from v43 (see [Adding a major](architecture/versioning.md#adding-a-major)).
 
 ## 2026-04-17 — Codegen templates use relative imports
 

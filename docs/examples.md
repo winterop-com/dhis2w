@@ -2,7 +2,7 @@
 
 > **Learning path · step 5 of 8** — Curated task index. Prev: [Python tutorial](client/tutorial.md). Next: [API reference](api/index.md). `examples/{cli,client}/` is the source of truth for what's on disk; this page is the curated headline view.
 
-One copy of each example, running against DHIS2 v41, v42, and v43 alike. An example that exists for a single major lives under that major's subdirectory — `examples/client/v43/` for the v43 schema divergences, `examples/client/v41/` for the v41 wire quirks; see [Schema diff: v41 -> v42 -> v43](architecture/schema-diff-v41-v42-v43.md) for what they demonstrate.
+One copy of each example, running against DHIS2 v41, v42, v43, and v44 alike. An example that exists for a single major lives under that major's subdirectory — `examples/client/v43/` for the v43 schema divergences (v44 runs these too, since 2.44 ships the same features), `examples/client/v41/` for the v41 wire quirks; see [Schema diff: v41 -> v42 -> v43](architecture/schema-diff-v41-v42-v43.md) for what they demonstrate.
 
 Each entry below: **file path → what it demonstrates → which concept doc explains it**. This page is curated — it covers the headline examples per topic; not every single file shows up here. `ls examples/{cli,client}/` is the source of truth, and each surface directory has a README of its own.
 

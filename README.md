@@ -6,7 +6,7 @@
 [![DHIS2](https://img.shields.io/badge/DHIS2-41%20%7C%2042%20%7C%2043-2C6693)](https://winterop-com.github.io/dhis2w/architecture/versioning/)
 [![License](https://img.shields.io/badge/license-Proprietary-lightgrey)](LICENSE)
 
-A Python toolkit for DHIS2 — pure client library, CLI, and a shared plugin runtime, in one `uv` workspace, with the MCP server, the FHIR Implementation Guide tooling, and Playwright browser automation as plugin packs in their own repositories. Targets DHIS2 v41, v42, and v43.
+A Python toolkit for DHIS2 — pure client library, CLI, and a shared plugin runtime, in one `uv` workspace, with the MCP server, the FHIR Implementation Guide tooling, and Playwright browser automation as plugin packs in their own repositories. Targets DHIS2 v41, v42, and v43, with v44 as a preview against a pinned 2.44 development build.
 
 The repo lives at `winterop-com/dhis2w`; PyPI ships the three publishable members, and the plugin packs, under the `dhis2w-*` prefix. Not affiliated with DHIS2.
 
@@ -19,7 +19,7 @@ DHIS2 already has a lightweight, official Python client that returns plain JSON 
 - **Typed, not stringly-typed.** Every response is a Pydantic model generated from DHIS2's own OpenAPI spec, so your editor autocompletes fields and the type checker catches a misspelled key before you run. No guessing dictionary keys against the docs.
 - **One core, four surfaces.** The same typed client powers a Python library, a `d2w` CLI, an MCP server (the [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack), and Playwright browser automation (the [`dhis2w-browser`](https://github.com/winterop-com/dhis2w-browser) pack) — all sharing one `service.py` per domain, so behaviour never drifts between them.
 - **Built for AI agents.** The [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) server exposes ~304 typed tools, one per CLI command, so any MCP host (Claude, Cursor) can drive a DHIS2 instance directly.
-- **Version-aware by design.** Detects v41 / v42 / v43 on connect and binds the matching hand-written tree, so one codebase works across instances instead of branching on the wire shape yourself.
+- **Version-aware by design.** Detects v41 / v42 / v43 / v44 on connect and binds the matching hand-written tree, so one codebase works across instances instead of branching on the wire shape yourself.
 - **Real auth.** Basic, PAT, and OAuth2/OIDC with PKCE, behind a pluggable `AuthProvider` protocol, with a profile system for juggling multiple instances.
 - **Production posture.** Strict ruff + mypy + pyright, ~1,150 tests, an mkdocs-material site, and runnable examples for every supported version.
 
@@ -101,7 +101,7 @@ d2w --version  # also: -V — shows package version + active plugin tree
 d2w system info --url https://play.im.dhis2.org/dev-2-43 --username admin --password district
 ```
 
-`d2w --version` surfaces which plugin tree (`v41` / `v42` / `v43`) the CLI booted with and where that came from in the resolution chain (`profile.version` → `DHIS2_VERSION` env → default `v42`). Helps debug "which DHIS2 major is this CLI talking to" without reading the profile by hand.
+`d2w --version` surfaces which plugin tree (`v41` / `v42` / `v43` / `v44`) the CLI booted with and where that came from in the resolution chain (`profile.version` → `DHIS2_VERSION` env → default `v43`). Helps debug "which DHIS2 major is this CLI talking to" without reading the profile by hand.
 
 #### One-shot runs without installing — `uvx`
 
@@ -309,6 +309,6 @@ See [`docs/guides/connecting-to-dhis2.md`](docs/guides/connecting-to-dhis2.md) f
 - Releasing: [`docs/releasing.md`](docs/releasing.md)
 - Roadmap: [`docs/roadmap.md`](docs/roadmap.md)
 - Upstream DHIS2 quirks we've tripped over: [`BUGS.md`](BUGS.md)
-- Runnable examples: [`examples/`](examples/README.md) — [`examples/cli/`](examples/cli/) and [`examples/client/`](examples/client/); the MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) and the FHIR examples in the [`dhis2w-fhir` repository](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples). One copy of each example, running against v41, v42, and v43 alike; an example that exists for a single major lives under that major's subdirectory — [`examples/client/v43/`](examples/client/v43/) for the v43 schema divergences (`removed_resources.py`, `section_user_removed.py`, `category_combo_coc_regen.py`, …; see [`docs/architecture/schema-diff-v41-v42-v43.md`](docs/architecture/schema-diff-v41-v42-v43.md)) and [`examples/client/v41/`](examples/client/v41/) for the v41 wire quirks (`oauth2_cid_field.py`, `grid_rows_wire_shape.py`, `apps_display_name.py`).
+- Runnable examples: [`examples/`](examples/README.md) — [`examples/cli/`](examples/cli/) and [`examples/client/`](examples/client/); the MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) and the FHIR examples in the [`dhis2w-fhir` repository](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples). One copy of each example, running against v41, v42, v43, and v44 alike; an example that exists for a single major lives under that major's subdirectory — [`examples/client/v43/`](examples/client/v43/) for the v43 schema divergences (`removed_resources.py`, `section_user_removed.py`, `category_combo_coc_regen.py`, …; see [`docs/architecture/schema-diff-v41-v42-v43.md`](docs/architecture/schema-diff-v41-v42-v43.md)) and [`examples/client/v41/`](examples/client/v41/) for the v41 wire quirks (`oauth2_cid_field.py`, `grid_rows_wire_shape.py`, `apps_display_name.py`).
 
 Hard requirements, conventions, and the plugin / auth / workspace model are documented in `CLAUDE.md` and the `docs/` site.
