@@ -2,7 +2,7 @@
 
 ![DHIS2](https://img.shields.io/badge/DHIS2%20Core-41%20%7C%2042%20%7C%2043-2C6693?style=flat-square)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql&logoColor=white)
-![Glowroot](https://img.shields.io/badge/Glowroot-0.14.6-5C4D7D?style=flat-square)
+![Glowroot](https://img.shields.io/badge/Glowroot-0.14.7-5C4D7D?style=flat-square)
 ![pgAdmin](https://img.shields.io/badge/pgAdmin-4-326690?style=flat-square&logo=postgresql&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-enabled-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![Last Commit](https://img.shields.io/github/last-commit/mortenoh/dhis2-docker?style=flat-square)

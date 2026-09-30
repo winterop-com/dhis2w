@@ -58,11 +58,11 @@ services:
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -qq
         apt-get install -y --no-install-recommends curl unzip ca-certificates >/dev/null
-        echo '>>> downloading glowroot 0.14.6...'
+        echo '>>> downloading glowroot 0.14.7...'
         mkdir -p /tmp/gl /opt/dhis2/glowroot
         cd /tmp/gl
         curl -fsSL -o glowroot.zip \
-          https://github.com/glowroot/glowroot/releases/download/v0.14.6/glowroot-0.14.6-dist.zip
+          https://github.com/glowroot/glowroot/releases/download/v0.14.7/glowroot-0.14.7-dist.zip
         unzip -q glowroot.zip
         cp -r glowroot/. /opt/dhis2/glowroot/
         cp /seed/admin.json /opt/dhis2/glowroot/admin.json
