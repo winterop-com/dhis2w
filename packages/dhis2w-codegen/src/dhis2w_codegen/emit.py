@@ -13,6 +13,7 @@ from dhis2w_codegen._shared import build_template_environment, format_output, py
 from dhis2w_codegen.discover import Schema, SchemaProperty, SchemasManifest
 from dhis2w_codegen.mapping import python_type_for
 from dhis2w_codegen.names import to_class_name, to_module_name
+from dhis2w_codegen.schema_patches import apply_schema_patches
 
 
 class _Field(BaseModel):
@@ -89,6 +90,9 @@ def emit(manifest: SchemasManifest, output_dir: Path) -> None:
         json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True),
         encoding="utf-8",
     )
+    # The manifest on disk is what the server reported; the models are emitted from a copy
+    # with boot-dependent properties pinned (see `schema_patches`).
+    manifest = apply_schema_patches(manifest)
 
     (output_dir / "common.py").write_text(
         environment.get_template("common.py.jinja").render(version_key=manifest.version_key),

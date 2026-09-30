@@ -15,6 +15,8 @@ from dhis2w_codegen.discover import SchemasManifest, discover
 from dhis2w_codegen.emit import emit
 from dhis2w_codegen.oas_emit import emit_from_openapi
 from dhis2w_codegen.openapi_fetch import fetch_openapi
+from dhis2w_codegen.openapi_flips import compare_documents
+from dhis2w_codegen.openapi_flips import render_text as render_flips
 
 app = typer.Typer(help="Generate version-aware DHIS2 client code from /api/schemas.", no_args_is_help=True)
 _console = Console()
@@ -71,6 +73,21 @@ def fetch_openapi_cmd(
         f"[green]captured[/green] {capture.raw_version} (→ {capture.version_key}) "
         f"{capture.size_bytes} bytes, sha256 {capture.openapi_sha256[:12]}, {state}"
     )
+
+
+@app.command("oas-flips")
+def oas_flips_cmd(
+    documents: Annotated[list[Path], typer.Argument(help="Two or more captures of the same release's openapi.json.")],
+    json_output: Annotated[bool, typer.Option("--json", help="Emit the report as JSON.")] = False,
+) -> None:
+    """List every JSON pointer whose value differs between captures of one release (BUGS.md #133)."""
+    if len(documents) < 2:
+        raise typer.BadParameter("pass at least two captures")
+    report = compare_documents(documents)
+    if json_output:
+        typer.echo(report.model_dump_json(indent=2))
+    else:
+        typer.echo(render_flips(report))
 
 
 def _auth_from_options(*, username: str | None, password: str | None, pat: str | None) -> AuthProvider:

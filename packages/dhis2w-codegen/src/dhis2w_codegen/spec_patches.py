@@ -190,7 +190,83 @@ def _rewrite_dropped_refs(node: Any, bad_refs: set[str]) -> None:
             _rewrite_dropped_refs(item, bad_refs)
 
 
+# DHIS2 builds its OpenAPI document at startup, and where two Java members map to one
+# property the one that wins changes from boot to boot of the same image (BUGS.md #133).
+# `infra/scripts/openapi_stability.sh` lists the pointers that move; every one that
+# reaches an emitted model is pinned here to the shape the live API actually serves.
+# `required` lists move too, but the emitter ignores `required`, so they are left alone.
+_BOOT_DEPENDENT_PROPERTIES: dict[tuple[str, str], dict[str, Any]] = {
+    # The enum wins on some boots, a boolean on others; the wire value is always an
+    # `AggregationType` such as "SUM".
+    ("CategoryOption", "aggregationType"): {"$ref": "#/components/schemas/AggregationType"},
+    ("CategoryOptionParams", "aggregationType"): {"$ref": "#/components/schemas/AggregationType"},
+    # `Page` is DHIS2's generic tracker page; its item type is whichever `Page<T>`
+    # was scanned last (TrackerRelationship, EntityType, TrackerTrackedEntity,
+    # ProgramNotificationInstance, ...). Untyped items are the honest shape.
+    ("Page", "items"): {"type": "array", "items": {}},
+    # A JSON-schema `$ref` keyword is a string; some boots type it `any`.
+    ("SchemaObject", "$ref"): {"type": "string"},
+}
+
+# Placeholders that only exist while a boot-dependent property points at them: DHIS2's own
+# `OpenApi$EntityType` annotation type appears when it wins `Page.items`. Once the properties
+# above are pinned nothing references it, and it is dropped so the tree does not change with it.
+_BOOT_DEPENDENT_COMPONENTS: frozenset[str] = frozenset({"EntityType"})
+
+
+def _pin_boot_dependent_shapes(components: dict[str, dict[str, Any]]) -> bool:
+    """Pin every property whose shape changes between boots, and order primitive `oneOf` unions.
+
+    A `oneOf` whose branches are all primitive (`{"type": ..., "format": ...}`) is sorted, so
+    `Instant` emits as the same union however the boot ordered it.
+    """
+    changed = False
+    for (schema_name, property_name), shape in _BOOT_DEPENDENT_PROPERTIES.items():
+        properties = components.get(schema_name, {}).get("properties")
+        if not isinstance(properties, dict) or property_name not in properties:
+            continue
+        # v41 inlines the enum and has no `AggregationType` component; never point at a missing one.
+        target = shape.get("$ref", "").removeprefix("#/components/schemas/")
+        if target and target not in components:
+            continue
+        if properties[property_name] != shape:
+            properties[property_name] = dict(shape)
+            changed = True
+    for schema in components.values():
+        branches = schema.get("oneOf")
+        if not isinstance(branches, list) or not all(_is_primitive_branch(branch) for branch in branches):
+            continue
+        ordered = sorted(branches, key=lambda branch: (branch.get("type", ""), branch.get("format", "")))
+        if ordered != branches:
+            schema["oneOf"] = ordered
+            changed = True
+    for name in sorted(_BOOT_DEPENDENT_COMPONENTS & components.keys()):
+        if not _is_referenced(components, f"#/components/schemas/{name}"):
+            del components[name]
+            changed = True
+    return changed
+
+
+def _is_referenced(node: Any, ref: str) -> bool:
+    """Return True when any `$ref` under `node` points at `ref`."""
+    if isinstance(node, dict):
+        return node.get("$ref") == ref or any(_is_referenced(value, ref) for value in node.values())
+    if isinstance(node, list):
+        return any(_is_referenced(item, ref) for item in node)
+    return False
+
+
+def _is_primitive_branch(branch: Any) -> bool:
+    """Return True for a `oneOf` branch that is a bare `type` (plus optional `format`)."""
+    return isinstance(branch, dict) and "type" in branch and set(branch) <= {"type", "format"}
+
+
 ALL_PATCHES: tuple[SpecPatch, ...] = (
+    SpecPatch(
+        name="pin-boot-dependent-shapes",
+        bugs_ref="BUGS.md#133",
+        apply=_pin_boot_dependent_shapes,
+    ),
     SpecPatch(
         name="auth-scheme-discriminators",
         bugs_ref="BUGS.md#14",

@@ -34,30 +34,12 @@ fi
 INFRA_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO_ROOT="$(cd "$INFRA_DIR/.." && pwd)"
 
-cleanup() {
-  echo
-  echo ">>> Cleaning up: stopping stack + restoring committed dumps"
-  make -C "$INFRA_DIR" down >/dev/null 2>&1 || true
-  for backup in "$INFRA_DIR"/v*/dump.sql.gz.codegen-backup; do
-    [ -f "$backup" ] || continue
-    mv -f "$backup" "${backup%.codegen-backup}"
-    echo "    restored ${backup%.codegen-backup}"
-  done
-}
-trap cleanup EXIT INT TERM
-
-# Swap each per-version dump out for an empty placeholder. Loading a seeded
-# v42 dump into a fresh v41 stack would fail schema migrations; empty lets
-# DHIS2 bootstrap its own schema via Flyway on first start.
-for dump in "$INFRA_DIR"/v*/dump.sql.gz; do
-  [ -f "$dump" ] || continue
-  backup="$dump.codegen-backup"
-  if [ ! -f "$backup" ]; then
-    mv "$dump" "$backup"
-    echo ">>> Backed up $dump -> $backup"
-  fi
-  printf '' | gzip -9 > "$dump"
-done
+# Loading a seeded v42 dump into a fresh v41 stack would fail schema
+# migrations; an empty placeholder lets DHIS2 bootstrap its own schema via
+# Flyway on first start. The trap restores the committed dumps on exit.
+# shellcheck source=_placeholder_dumps.sh
+. "$INFRA_DIR/scripts/_placeholder_dumps.sh"
+placeholder_dumps_install
 
 FAILED=()
 for v in "${VERSIONS[@]}"; do

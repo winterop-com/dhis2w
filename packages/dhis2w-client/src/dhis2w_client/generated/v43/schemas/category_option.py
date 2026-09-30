@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..common import Reference
-from ..enums import DimensionItemType, TotalAggregationType
+from ..enums import AggregationType, DimensionItemType, TotalAggregationType
 
 
 class CategoryOption(BaseModel):
@@ -27,7 +27,7 @@ class CategoryOption(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    aggregationType: bool | None = Field(default=None, description="Read-only.")
+    aggregationType: AggregationType | None = None
     attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
     categories: list[Any] | None = Field(default=None, description="Collection of Category. Read-only (inverse side).")
     categoryOptionCombos: list[Any] | None = Field(
