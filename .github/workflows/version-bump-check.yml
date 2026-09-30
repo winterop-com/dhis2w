@@ -26,7 +26,7 @@ jobs:
       bumps: ${{ steps.detect.outputs.bumps }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -47,7 +47,7 @@ jobs:
         bump: ${{ fromJSON(needs.detect.outputs.bumps) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
