@@ -3,13 +3,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict as _ConfigDict
 
 if TYPE_CHECKING:
-    from .program_notification_instance import ProgramNotificationInstance
     from .tracker_pager import TrackerPager
 
 
@@ -18,5 +17,5 @@ class Page(_BaseModel):
 
     model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
 
-    items: list[ProgramNotificationInstance] | None = None
+    items: list[Any] | None = None
     pager: TrackerPager | None = None

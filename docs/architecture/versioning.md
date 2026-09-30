@@ -197,7 +197,7 @@ We default to "refuse" because a strict codebase that loudly fails when things a
 
 ```bash
 infra/scripts/codegen_all_versions.sh            # default — v41 + v42 + v43
-infra/scripts/codegen_all_versions.sh 43         # subset
+infra/scripts/codegen_all_versions.sh v43        # subset
 ```
 
 For each version N, the script:
@@ -205,8 +205,25 @@ For each version N, the script:
 1. Brings up a fresh `dhis2/core:N` stack with an empty-gzip placeholder where `infra/v{N}/dump.sql.gz` sits (so Flyway bootstraps a clean schema instead of loading the seeded e2e dump into a fresh stack).
 2. Waits for `/api/system/info` to respond.
 3. Runs `d2w dev codegen generate` against `http://localhost:8080` with admin/district, which writes `generated/v{N}/schemas/`, `resources.py`, `__init__.py`, and `schemas_manifest.json`.
-4. Runs `d2w dev codegen oas-rebuild --version v{N}` so `openapi_manifest.json` carries the same `raw_version` as the schema manifest.
-5. Tears down and puts the committed seeded dump back where the placeholder sat.
+4. Runs `d2w dev codegen fetch-openapi` to capture the live `/api/openapi/openapi.json` into `generated/v{N}/openapi.json`, byte for byte.
+5. Runs `d2w dev codegen oas-rebuild --version v{N}` so `oas/` and `openapi_manifest.json` follow the new document and carry the same `raw_version` as the schema manifest.
+6. Tears down and puts the committed seeded dump back where the placeholder sat.
+
+### Captures differ between boots
+
+DHIS2 builds both introspection surfaces at startup, and where two Java members map to one
+property, the one that wins changes from boot to boot of the same image (BUGS.md #95, #133). Two
+captures of `2.43.1` can disagree on `CategoryOption.aggregationType` (enum or boolean), and two of
+`2.42.6` on the item type of `Page`. The codegen pins every such property before emission
+(`spec_patches.pin-boot-dependent-shapes` for OpenAPI, `schema_patches` for `/api/schemas`), so any
+capture of a pinned release emits the same models. The raw capture is committed as it arrived.
+
+When a pin moves, or a new major lands, sample several boots and pin whatever the report lists:
+
+```bash
+infra/scripts/openapi_stability.sh v43 reports/openapi-v43 3   # three fresh boots, then the flip report
+uv run d2w dev codegen oas-flips a/openapi.json b/openapi.json  # compare any captures directly
+```
 
 Rebuilding from a committed manifest (no network) is cheap:
 

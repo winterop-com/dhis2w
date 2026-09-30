@@ -17,16 +17,27 @@ Generated code is **committed**, reviewable in diffs, and forms the typed surfac
 
 ## Invocation
 
-Four subcommands — `generate` and `rebuild` for the `/api/schemas` path, `oas-rebuild` for OpenAPI, and `diff` for cross-version analysis:
+Six subcommands: `generate` and `rebuild` for the `/api/schemas` path, `fetch-openapi`, `oas-flips` and `oas-rebuild` for OpenAPI, and `diff` for cross-version analysis:
 
 ```bash
-# /api/schemas — against a live instance (the canonical sources for codegen
-# are the play.im.dhis2.org/dev-2-{42,43} instances; `make dhis2-codegen-play`
-# wraps both)
-uv run d2w dev codegen generate --url https://play.im.dhis2.org/dev-2-43 \
+# /api/schemas: against a live instance. The canonical source is the local stack
+# running the pinned image (`make dhis2-codegen-all`); `make dhis2-codegen-play`
+# reads the play.im.dhis2.org/stable-2-4N-P channel that runs the same pin.
+uv run d2w dev codegen generate --url http://localhost:8080 \
                                   --username admin --password district
 
-# /api/schemas — regenerate from the committed schemas_manifest.json (no network)
+# /api/openapi/openapi.json: capture the live document verbatim into
+# generated/v{N}/openapi.json. It depends on dhis.conf (the OAuth2 dynamic
+# client registration route only appears when it is enabled), so capture it
+# from the local stack, not from play.
+uv run d2w dev codegen fetch-openapi --url http://localhost:8080 \
+                                  --username admin --password district
+
+# Compare captures of one release and list the JSON pointers that differ between them
+# (DHIS2 resolves some properties differently on each boot; see BUGS.md #133)
+uv run d2w dev codegen oas-flips boot-1/openapi.json boot-2/openapi.json
+
+# /api/schemas: regenerate from the committed schemas_manifest.json (no network)
 uv run d2w dev codegen rebuild                       # every committed version
 uv run d2w dev codegen rebuild --manifest path/to/schemas_manifest.json
 
@@ -40,7 +51,7 @@ uv run d2w dev codegen diff v42 v43
 uv run d2w dev codegen diff v42 v43 --json    # machine-readable
 ```
 
-`d2w dev codegen generate` talks to a live instance because it pulls the `/api/schemas` response fresh; the rebuild variants are offline, reading the committed manifest / openapi.json from each `generated/v{N}/` directory. `diff` is also offline — it reads the two committed manifests and surfaces structural drift. The CLI subcommand is part of the built-in `dev` plugin, mounted as `d2w dev codegen`.
+`d2w dev codegen generate` and `fetch-openapi` talk to a live instance; the rebuild variants are offline, reading the committed manifest / openapi.json from each `generated/v{N}/` directory. `diff` is also offline — it reads the two committed manifests and surfaces structural drift. The CLI subcommand is part of the built-in `dev` plugin, mounted as `d2w dev codegen`.
 
 ## Pipeline
 
@@ -78,11 +89,14 @@ All properties are `Optional` (default `None`) — DHIS2 doesn't reliably mark w
 packages/dhis2w-codegen/src/dhis2w_codegen/
 ├── __init__.py
 ├── __main__.py           # python -m dhis2w_codegen entry
-├── cli.py                # Typer sub-app (generate / rebuild / oas-rebuild / diff)
+├── cli.py                # Typer sub-app (generate / fetch-openapi / oas-flips / rebuild / oas-rebuild / diff)
 ├── diff.py               # Cross-version manifest diff helper
 ├── discover.py           # /api/system/info + /api/schemas fetch, returns SchemasManifest
 ├── emit.py               # SchemasManifest → files on disk (the /api/schemas path)
 ├── oas_emit.py           # openapi.json → files on disk (the /api/openapi.json path)
+├── openapi_fetch.py      # live /api/openapi/openapi.json → generated/v{N}/openapi.json
+├── openapi_flips.py      # JSON pointers that differ between captures of one release
+├── schema_patches.py     # pins boot-dependent /api/schemas properties before emission
 ├── mapping.py            # DHIS2 schema property → Python type string
 ├── names.py              # camelCase resource → snake_case module + safe Python identifier
 ├── _shared.py            # helpers used by both emitters (identifier sanitisation, ruff format)

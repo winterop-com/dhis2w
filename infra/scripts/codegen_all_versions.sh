@@ -34,30 +34,12 @@ fi
 INFRA_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REPO_ROOT="$(cd "$INFRA_DIR/.." && pwd)"
 
-cleanup() {
-  echo
-  echo ">>> Cleaning up: stopping stack + restoring committed dumps"
-  make -C "$INFRA_DIR" down >/dev/null 2>&1 || true
-  for backup in "$INFRA_DIR"/v*/dump.sql.gz.codegen-backup; do
-    [ -f "$backup" ] || continue
-    mv -f "$backup" "${backup%.codegen-backup}"
-    echo "    restored ${backup%.codegen-backup}"
-  done
-}
-trap cleanup EXIT INT TERM
-
-# Swap each per-version dump out for an empty placeholder. Loading a seeded
-# v42 dump into a fresh v41 stack would fail schema migrations; empty lets
-# DHIS2 bootstrap its own schema via Flyway on first start.
-for dump in "$INFRA_DIR"/v*/dump.sql.gz; do
-  [ -f "$dump" ] || continue
-  backup="$dump.codegen-backup"
-  if [ ! -f "$backup" ]; then
-    mv "$dump" "$backup"
-    echo ">>> Backed up $dump -> $backup"
-  fi
-  printf '' | gzip -9 > "$dump"
-done
+# Loading a seeded v42 dump into a fresh v41 stack would fail schema
+# migrations; an empty placeholder lets DHIS2 bootstrap its own schema via
+# Flyway on first start. The trap restores the committed dumps on exit.
+# shellcheck source=_placeholder_dumps.sh
+. "$INFRA_DIR/scripts/_placeholder_dumps.sh"
+placeholder_dumps_install
 
 FAILED=()
 for v in "${VERSIONS[@]}"; do
@@ -80,12 +62,14 @@ for v in "${VERSIONS[@]}"; do
   fi
 
   echo ">>> running codegen for $v"
-  # `generate` emits the /api/schemas tree (schemas_manifest.json); `oas-rebuild`
-  # then re-emits the OAS tree + openapi_manifest.json offline, taking raw_version
-  # from the just-written schemas_manifest. Running both keeps the schema and OAS
-  # manifests in lockstep — without the oas-rebuild step a patch bump leaves
-  # openapi_manifest.json's raw_version stale.
+  # `generate` emits the /api/schemas tree (schemas_manifest.json); `fetch-openapi`
+  # captures the live /api/openapi/openapi.json verbatim; `oas-rebuild` then
+  # re-emits the OAS tree + openapi_manifest.json from it, taking raw_version
+  # from the just-written schemas_manifest. All three keep the schema and OAS
+  # halves of the tree on the same pinned release.
   if (cd "$REPO_ROOT" && uv run d2w dev codegen generate \
+        --url http://localhost:8080 --username admin --password district \
+        && uv run d2w dev codegen fetch-openapi \
         --url http://localhost:8080 --username admin --password district \
         && uv run d2w dev codegen oas-rebuild --version "$v"); then
     echo ">>> done with codegen for $v"

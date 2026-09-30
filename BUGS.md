@@ -26,7 +26,7 @@ below.
 
 ## Index
 
-130 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
+132 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
 stacks `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0`, plus the play channels `stable-2-41-10`,
 `stable-2-42-6`, `stable-2-43-1`, `dev-2-41`, `dev-2-42` and `dev-2-43` (see the retest log below):
 
@@ -66,9 +66,10 @@ Every entry in the file is listed here, including the four that carried no Index
 - [#48](#48-filtering-on-a-nested-geometry-path-geometrytype-returns-400-unknown-path-property) — nested `geometry.type` filter returns `400 Unknown path property` **[STILL]**
 - [#93](#93-programrules-is-not-a-field-on-the-program-schema-and-fields-drops-it-without-a-word) — `programRules` is not a field on the Program schema; `fields=` drops it silently **[STILL]**
 - [#94](#94-apiopenapiopenapijson-types-the-same-id-reference-under-two-different-component-names-on-243x) — 2.43.x OpenAPI names one `{id}` reference under two component names **[STILL]**
-- [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant) — `categoryOption.aggregationType` reads BOOLEAN only on an empty 2.43.1 database **[PARTIAL]**
+- [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant) — `categoryOption.aggregationType` reads BOOLEAN on some boots of 2.43.1 (#133) **[PARTIAL]**
 - [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing) — OpenAPI routes `PUT /api/<type>/{uid}/sharing` for types whose schema says `shareable: false` **[STILL]**
 - [#128](#128-filterperiodtypeopvalue-on-apidatasets-answers-400-e1003-for-every-operator-and-spelling-so-the-period-type-cannot-be-filtered-server-side) — `filter=periodType:<op>:<value>` on `/api/dataSets` answers `400 E1003` for every operator and spelling **[STILL]**
+- [#133](#133-one-image-builds-a-different-openapi-document-and-apischemas-on-each-boot-colliding-members-resolve-in-no-fixed-order) — one image builds a different OpenAPI document and `/api/schemas` on each boot **[NEW]**
 
 ### Auth / OAuth2 / OIDC
 
@@ -243,12 +244,13 @@ is not mounted, or the correct side of a per-major split).
 | 80 | STILL | STILL | STILL | `post` carries no `requestBody`, and no schema name contains `CompleteDataSetRegistration` | the endpoint takes a registration payload with `dataSet`, `period`, `organisationUnit`, `attributeOptionCombo`, `date`, `storedBy`, `completed` | v42/v43 `#/paths/~1api~1completeDataSetRegistrations~1/post/requestBody`; v41 `#/paths/~1completeDataSetRegistrations~1/post/requestBody` (v41 carries only `CompleteStatusDto`, v42 also `CompletenessMethod`, v43 also `DataSetCompletionDto`, which belongs to another route) |
 | 91 | PARTIAL | PARTIAL | STILL | 40 parameters declared on v41 and 42 on v42/v43, **none** marked `required`; `enrollments` is declared and the singular `enrollment` is not | v43 refuses every request without `program` with a Tomcat `400 text/html`; v41 and v42 answer `200 application/json`. On all three, `enrollment=` is accepted and ignored — 200 events across 102 enrollments against 2 for `enrollments=` | v42/v43 `#/paths/~1api~1tracker~1events~1/get/parameters`; v41 `#/paths/~1tracker~1events~1/get/parameters` |
 | 94 | n/a | n/a | STILL | v43 types `ProgramRule.program` as `IdentifiableObject` and `programRuleActions.items` as `BaseIdentifiableObject`, and the two components genuinely differ; v42 uses `BaseIdentifiableObject` on both sides; v41 inlines an anonymous `{id}` object on both | the wire carries `{"program":{"id":"IpHINAT79UW"},"programRuleActions":[{"id":"v434s5YPDcP"}]}` on every major | `#/components/schemas/ProgramRule/properties/program` against `…/properties/programRuleActions/items` |
-| 95 | n/a | n/a | INCONCLUSIVE | every reachable instance types `aggregationType` as the shared aggregation enum (`$ref: AggregationType` on v42/v43, inlined on v41) | `/api/schemas/categoryOption` reports `propertyType: CONSTANT` with 21 constants on all three, identical to `dataElement`; the `BOOLEAN` reading needs `dhis2/core:2.43.1.0` on an empty Flyway-bootstrapped database and could not be staged on a seeded stack | `#/components/schemas/CategoryOption/properties/aggregationType` |
+| 95 | n/a | n/a | STILL | on some boots `aggregationType` is `$ref: AggregationType`, on others `{"type":"boolean"}`; three boots of one 2.43.1 image on one empty database gave `$ref`, `$ref`, `boolean` | the wire value is always an `AggregationType` such as `"SUM"`; `/api/schemas/categoryOption` flips between `CONSTANT` and `BOOLEAN` on the same boots | `#/components/schemas/CategoryOption/properties/aggregationType`, `#/components/schemas/CategoryOptionParams/properties/aggregationType` (see #133) |
 | 98 | INVERTED | PARTIAL | PARTIAL | all three declare 37 parameters, 30 of them as `TrackedEntityRequestParams.*` `$ref`s; v41 additionally declares the **singular** `TrackedEntityRequestParams.trackedEntity`, which v42 and v43 do not | v41 honours the singular (1 entity where v42/v43 return the whole 50-row page); on every major an invented `totallyBogusParam=` is swallowed and returns the whole page | v42/v43 `#/paths/~1api~1tracker~1trackedEntities~1/get/parameters`; v41 `#/paths/~1tracker~1trackedEntities~1/get/parameters` |
 | 99 | INVERTED | FIXED | STILL | v41 declares `[["ou",true],["program",true],["trackedEntity",false],["trackedEntityInstance",false]]`, v42 `[["orgUnit",null],["ou",null],["program",true],["trackedEntity",true]]`, v43 `[["orgUnit",true],["program",true],["trackedEntity",true]]`; every one declares `application/json` for its `400` | each binder matches its own document, so the spelling that binds differs per major; on v41 and v43 the other spelling draws a Tomcat `400 text/html`, a body shape no document mentions | v42/v43 `#/paths/~1api~1tracker~1ownership~1transfer/put/parameters`; v41 `#/paths/~1tracker~1ownership~1transfer/put/parameters` |
 | 100 | STILL | STILL | STILL | `put <Type>.setSharing` routes with responses `["204","403","404"]` for types whose `/api/schemas` entry says `shareable: false` — 24 of 80 routed writes on v41 and v42, 23 of 79 on v43 | `GET /api/sharing?type=organisationUnit` answers `409 "Type organisationUnit is not supported."` and the routed `PUT` answers `409 E3016 "Data sharing is not enabled for this object"` for every access string | v42/v43 `#/paths/~1api~1organisationUnits~1{uid}~1sharing/put`; v41 `#/paths/~1organisationUnits~1{uid}~1sharing/put` |
 | 122 | n/a | n/a | STILL | `info.version` is `2.42` | the server is `2.43.1`; `/api/system/info` is the only surface that says so | `#/info/version` |
 | 123 | STILL | n/a | n/a | v41 puts `/api` in `servers[0].url` and spells every path key unprefixed; v42 and v43 put it in the path keys | `?path=/api/routes` on v41 answers a well-formed **empty** document (891 bytes) with 200 and no diagnostic, while `?path=/routes` is ignored and returns all 1902 paths; `?path=` is ignored on v42 as well | `#/servers/0/url` against the `#/paths` keys |
+| 133 | STILL (paths only) | STILL | STILL | a different document on each boot of one image: where two members collide, the winner changes | one API, served identically every time | 2.43.1: `CategoryOption.aggregationType`, `CategoryOptionParams.aggregationType`, `Instant/oneOf` order, `required` on `ObjectReport`, `TypeReport`, `Grid`, `MetadataExportParams`; 2.42.6: `Page/properties/items`, `EntityType` present or absent, `SchemaObject/properties/$ref/type`; every major: parameters of `outlierDetection` and `trackedEntities/query` (e.g. `headers` as a string array or as `{"type":"boolean","default":[]}`) |
 
 ### Repros
 
@@ -518,6 +520,11 @@ curl -su admin:district "$U/api/openapi/openapi.json?path=/api/messageConversati
 - **The `/api` prefix moved between 2.41 and 2.42** — out of `servers[0].url` and into the path keys
   — with nothing in the document announcing it, which is what makes a pointer written for one major
   miss on another (#123).
+- **Member collisions resolve in no fixed order.** Where two Java members project onto one property
+  or parameter name, the one that wins changes from boot to boot of the same image, and
+  `/api/schemas` moves with the document (#95, #133). That makes any single capture a sample, not
+  the release's document, and it is the likeliest reading of a parameter that is a boolean with an
+  array default.
 - **`info.version` is a constant, not a build fact.** A 2.43.1 server emits the same string a 2.42.6
   server does (#122), so nothing in the document identifies the build that produced it; there is no
   patch level in `info` on any major either.
@@ -4983,6 +4990,75 @@ bundle.
 
 ---
 
+### 133. One image builds a different OpenAPI document and `/api/schemas` on each boot: colliding members resolve in no fixed order
+
+DHIS2 builds `/api/openapi/openapi.json` and `/api/schemas` at startup. Where two Java members
+map to the same property name, the one that wins is not fixed: three fresh boots of the same
+`dhis2/core:2.43.1.0` image on the same empty database answered with two different types for
+`categoryOption.aggregationType`, and both surfaces moved together. `2.42.6.0` does the same for
+`Page.items`, and on every major some path parameters change type between boots.
+
+**Observed on:** `dhis2/core:2.43.1.0` (rev `9cbfbf3`) and `dhis2/core:2.42.6.0` (rev `dd8bdbb`),
+local stack on an empty Flyway-bootstrapped database (`infra/scripts/openapi_stability.sh`), plus
+`play.im.dhis2.org/stable-2-43-1` and `stable-2-42-6`. `dhis2/core:2.41.10.0` (rev `1a3484f`): five
+captures agree on every component; only path parameters move.
+
+**Repro:**
+
+```bash
+# Boot the same image several times (fresh container, same empty database each time) and run:
+curl -gsu admin:district "localhost:8080/api/schemas/categoryOption.json?fields=properties[name,propertyType,klass]" \
+  | jq -c '.properties[] | select(.name=="aggregationType")'
+curl -su admin:district localhost:8080/api/openapi/openapi.json \
+  | jq -c '.components.schemas.CategoryOption.properties.aggregationType'
+# 2.43.1, boot 1 -> {"klass":"org.hisp.dhis.analytics.AggregationType","propertyType":"CONSTANT",...}
+#                   {"$ref":"#/components/schemas/AggregationType"}
+# 2.43.1, boot 2 -> the same
+# 2.43.1, boot 3 -> {"klass":"java.lang.Boolean","propertyType":"BOOLEAN",...}
+#                   {"type":"boolean"}
+
+curl -su admin:district localhost:8080/api/openapi/openapi.json | jq -c '.components.schemas.Page.properties.items'
+# 2.42.6 across five captures -> items of TrackerRelationship, TrackerTrackedEntity, TrackerEnrollment, EntityType
+
+curl -su admin:district localhost:8080/api/openapi/openapi.json \
+  | jq -c '.paths["/api/analytics/outlierDetection"].get.parameters[] | select(.name=="headers") | .schema'
+# 2.43.1, one boot  -> {"type":"array","items":{"type":"string"}}
+# 2.43.1, another   -> {"type":"boolean","default":[]}
+```
+
+**Expected:** one release serves one document and one set of schemas, byte for byte, on every
+boot. Where two members collide, the resolution is deterministic, and ideally the collision is
+reported rather than resolved silently.
+
+**Actual:** each boot draws. Seen so far on 2.43.1: `CategoryOption.aggregationType` and
+`CategoryOptionParams.aggregationType` (enum or boolean, with `required` following), the branch order
+of `Instant`, `required` on `ObjectReport`, `TypeReport`, `Grid` and `MetadataExportParams`, and the
+parameters of the `outlierDetection`, `trackedEntities/query` and `files/style` paths. On 2.42.6:
+`Page.items`, whether an `EntityType` component exists at all, `SchemaObject.$ref` (`string` or
+`any`), the `Instant` order, and several `required` lists. The `headers` parameter above is not even a
+valid schema on the losing boot: a boolean whose default is an array.
+
+**Impact:** anything generated from either surface depends on which boot it read. The committed
+v43 tree carried `aggregationType: bool` for months because the capture happened to hit the boolean
+boot, which is what entry #95 recorded as a database-state effect. A diff between two captures of
+the same release is noise, so drift between releases cannot be read off a diff either.
+
+**Workaround in this repo:** the codegen pins every property seen to move before emitting models:
+`pin-boot-dependent-shapes` in `packages/dhis2w-codegen/src/dhis2w_codegen/spec_patches.py` for the
+OpenAPI document, and `packages/dhis2w-codegen/src/dhis2w_codegen/schema_patches.py` for
+`/api/schemas`. The raw captures are committed as they arrived. `infra/scripts/openapi_stability.sh`
+boots a major several times, and `d2w dev codegen oas-flips` lists the JSON pointers that differ
+between captures, so a new pin or major is sampled before it is trusted.
+
+**How to know it's fixed:** `openapi_stability.sh vN <dir> 5` reports no differences on a release,
+and the `/api/schemas` probe above answers the same on every boot.
+
+**Status (2026-09-30):** new. Sampled on 2026-09-30: four local boots and one play capture of
+`2.43.1`, four local boots and one play capture of `2.42.6`, four local boots and one play capture
+of `2.41.10`.
+
+---
+
 ## Security-audit-scanner findings (feat/security-audit-scanner)
 
 Entries filed while building the security audit plugin. Numbers continue the global sequence;
@@ -7123,20 +7199,19 @@ v41, v42, and 2.43.2-SNAPSHOT (`CONSTANT` with the twenty-one aggregation consta
 as `BOOLEAN`, so anything generated from `/api/schemas` types the field as a boolean on this
 one resource of this one release.
 
-**Impact:** the committed v43 generated model
-(`packages/dhis2w-client/src/dhis2w_client/generated/v43/schemas/category_option.py`) carries
-`aggregationType: bool | None` where the v41 and v42 trees carry the enum - faithful to the
-release, wrong about the concept. A caller reading the field cross-version has to branch on
-it.
+**Impact:** a model generated from a boolean boot carries `aggregationType: bool | None` where
+the v41 and v42 trees carry the enum, and rejects the `"SUM"` every server actually sends.
 
-**Workaround in this repo:** none - the generated tree mirrors what the pinned release
-reports, deliberately. The moment the v43 pin moves to a 2.43.2+ release,
-`d2w dev codegen generate` against it heals the field into the enum and this entry is the
-tripwire to delete.
+**Workaround in this repo:** `packages/dhis2w-codegen/src/dhis2w_codegen/schema_patches.py` pins
+`categoryOption.aggregationType` to the type `dataElement.aggregationType` reports on the same
+server before emission, so the generated v43 model carries the enum whichever boot the capture
+read. The committed `schemas_manifest.json` keeps the raw reading.
 
 **Status (2026-09-07):** depends on the instance's state, not only on the release. A `dhis2/core:2.43.1.0` booted on an empty, Flyway-bootstrapped database (what `make dhis2-codegen-all VERSIONS=v43` sees) reports `aggregationType` as `BOOLEAN`, and today's regen against that image reproduced the committed `generated/v43` tree byte for byte. The same release with the Sierra Leone seed loaded (local stack) and `play.im.dhis2.org/stable-2-43-1` (same revision `9cbfbf3`) report `CONSTANT` with the full 21-value list, matching `dataElement`. `dev-2-43` (`2.43.2-SNAPSHOT`) reports `CONSTANT` on an empty and a seeded database alike.
 
 **Status (2026-09-11):** state-dependent rather than release-dependent, which the entry should say. Every reachable `2.43.1` — the local stack, `stable-2-43-1` and `dev-2-43` — reports `categoryOption.aggregationType` as `CONSTANT` with 21 constants, identical to `dataElement` and to what `2.42.6` and `2.41.10` report, and the document `$ref`s `AggregationType`. The `BOOLEAN` reading belongs to `dhis2/core:2.43.1.0` on an empty Flyway-bootstrapped database, which is what codegen sees and what the committed `generated/v43/schemas/category_option.py` (`aggregationType: bool | None`) records. `dev-2-43` reporting `CONSTANT` is the tripwire for when the v43 pin moves; a verifier for this entry has to key off the committed tree, not off a live instance.
+
+**Status (2026-09-30):** boot-dependent, not state-dependent. Three fresh boots of `dhis2/core:2.43.1.0` on the same empty database answered `CONSTANT`, `CONSTANT`, `BOOLEAN`, and the OpenAPI document moved with it (`$ref AggregationType` twice, `boolean` once), so the earlier empty-versus-seeded split was two draws of the same coin. Entry #133 carries the mechanism. The generated v43 model now types the field as `AggregationType` on every capture: `packages/dhis2w-codegen/src/dhis2w_codegen/schema_patches.py` pins it to `dataElement.aggregationType` on the same server, and the committed `schemas_manifest.json` keeps what the server reported.
 
 ### 96. On 2.43.1 the OAuth2 authorization server 500s for any registered client whose settings or grant types are empty, and `POST /api/oAuth2Clients` creates exactly that client
 

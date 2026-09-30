@@ -1,6 +1,6 @@
 name: Schema contract
 
-# Hits play.im.dhis2.org/dev-2-{42,43} and validates one live row of every
+# Hits play.im.dhis2.org/dev-2-{41,42,43} and validates one live row of every
 # major resource against the generated pydantic models. Catches DHIS2
 # ship-day API drift the day it lands.
 #
