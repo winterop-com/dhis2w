@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Docker Desktop (or `docker compose` on Linux)
-- `infra/v{version}/dump.sql.gz` — a PostgreSQL dump of DHIS2 metadata + data for the targeted version. The repo ships one for each supported major (`infra/v41/`, `infra/v42/`, `infra/v43/`: Sierra Leone tree + seeded data + tracker + analytics). Point `DHIS2_VERSION` at another value and drop a matching dump at `infra/{DHIS2_VERSION}/dump.sql.gz`. Without one, Postgres starts empty and DHIS2 bootstraps its own schema via Flyway.
+- `infra/v{version}/dump.sql.gz` — a PostgreSQL dump of DHIS2 metadata + data for the targeted version. The repo ships one for each supported major (`infra/v41/`, `infra/v42/`, `infra/v43/`, `infra/v44/`: Sierra Leone tree + seeded data + tracker + analytics). Point `DHIS2_VERSION` at another value and drop a matching dump at `infra/{DHIS2_VERSION}/dump.sql.gz`. Without one, Postgres starts empty and DHIS2 bootstraps its own schema via Flyway.
 - Workspace installed: `make install`
 
 ## Quick start
@@ -52,6 +52,10 @@ You talk to **one** DHIS2 instance at a time. `DHIS2_VERSION` just picks which D
 
 Defaults: DHIS2 43, admin / district, http://localhost:8080. Pass `DHIS2_VERSION=v42` to run the seeded v42 stack instead.
 
+The image for each major is pinned in `infra/versions.env`, and `infra/scripts/_resolve_image.sh` turns the pin into the `DHIS2_IMAGE` reference `compose.yml` runs: a release pin such as `2.43.1.0` becomes `dhis2/core:2.43.1.0`, and a pin containing `/` is used as-is. `DHIS2_VERSION=v44` runs the v44 preview, a 2.44 development build pinned by digest (`dhis2/core-dev@sha256:...`) until 2.44.0 is released; see [Version-aware clients](architecture/versioning.md#v44-is-a-preview).
+
+A major whose image needs different container settings carries `infra/v{N}/compose.override.yml`, which the Makefile and `dhis2_run.sh` layer over `compose.yml` when it exists. The 2.44 image is a Jib build with embedded Tomcat and no shell, so `infra/v44/compose.override.yml` turns off the in-container healthcheck (readiness comes from `make -C infra wait`) and passes the heap and Glowroot settings through `JAVA_TOOL_OPTIONS`, since nothing expands `JAVA_OPTS` in that image.
+
 ## Targets
 
 | Target | What it does |
@@ -84,10 +88,11 @@ infra/
 ├── initdb.sh                # first-boot Postgres init: load dump, reset all user passwords
 ├── scripts/
 │   ├── list_versions.py     # queries Docker Hub for dhis2/core tags
+│   ├── _resolve_image.sh    # turns the versions.env pin into DHIS2_IMAGE
 │   └── startup.sh           # DHIS2 runtime entry (from source repo)
 ├── glowroot/admin.json      # glowroot JVM profiler seed config
 ├── pgadmin4/                # pgAdmin bootstrap (pre-registered server, masked pgpass)
-├── v41/ v42/ v43/           # per-major dump.sql.gz + dhis.conf; compose mounts the running major's pair
+├── v41/ v42/ v43/ v44/      # per-major dump.sql.gz + dhis.conf (+ compose.override.yml where the image needs it)
 ├── home/                    # bind-mounted into DHIS2 container (logs, files, glowroot jar)
 ├── .env.example             # template for overrides (never commit filled-in .env)
 └── .gitignore               # ignores logs, .env, local SQL dumps, generated PNGs
@@ -150,11 +155,11 @@ oidc.provider.dhis2.scopes            = ALL
 oidc.provider.dhis2.mapping_claim     = sub
 ```
 
-See `docs/architecture/auth.md` for what each key does and which failure mode it unblocks. The stack's own copies live at `infra/v{41,42,43}/dhis.conf`, one per major. After editing the running major's file, restart the stack (`make dhis2-down && make dhis2-run`); to try a setting without editing a tracked file, write a variant outside the repository and start the stack with `DHIS2_CONF=<path> make dhis2-run`.
+See `docs/architecture/auth.md` for what each key does and which failure mode it unblocks. The stack's own copies live at `infra/v{N}/dhis.conf`, one per major. After editing the running major's file, restart the stack (`make dhis2-down && make dhis2-run`); to try a setting without editing a tracked file, write a variant outside the repository and start the stack with `DHIS2_CONF=<path> make dhis2-run`.
 
 ## The committed `v{version}/dump.sql.gz`
 
-**`infra/v{version}/dump.sql.gz` is the one exception** to the usual "no DB dumps in repo" rule. It's the committed end-to-end dump that makes a fresh clone usable without any external data. One dump is committed per supported major: `infra/v41/dump.sql.gz`, `infra/v42/dump.sql.gz` and `infra/v43/dump.sql.gz`; a new DHIS2 major gets a sibling when you start supporting it.
+**`infra/v{version}/dump.sql.gz` is the one exception** to the usual "no DB dumps in repo" rule. It's the committed end-to-end dump that makes a fresh clone usable without any external data. One dump is committed per supported major: `infra/v41/dump.sql.gz`, `infra/v42/dump.sql.gz`, `infra/v43/dump.sql.gz` and `infra/v44/dump.sql.gz`; a new DHIS2 major gets a sibling when you start supporting it.
 
 The dump mirrors DHIS2 Play's Sierra Leone immunization demo with workspace-local additions. After `make dhis2-run` it gives you:
 

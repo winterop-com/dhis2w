@@ -46,13 +46,13 @@ There are **three MCP surfaces** over this tool set — the full server, the sin
 
 ### Typed models shipped
 
-Via `/api/schemas` codegen (`generated/v{41,42,43}/schemas/`):
+Via `/api/schemas` codegen (`generated/v{41,42,43,44}/schemas/`):
 
 - 100+ metadata resources (DataElement, DataSet, OrganisationUnit, Indicator, Program, …) with full CRUD accessors including the RFC 6902 `patch(uid, ops)` method
 - 77+ `StrEnum`s for CONSTANT properties (ValueType, AggregationType, DataElementDomain, …)
 - A shared `Reference` with both `id` and `code` fields
 
-Via `/api/openapi.json` codegen (`generated/v{N}/oas/`, currently populated on v41, v42, v43):
+Via `/api/openapi.json` codegen (`generated/v{N}/oas/`, currently populated on v41, v42, v43, v44):
 
 - Every `components/schemas` entry — 562 classes + 260 StrEnums + 104 aliases on v42; 984 classes on v43.
 - Consumers in `dhis2w-client`: `envelopes.py`, `auth_schemes.py`, `aggregate.py`, `system.py`, `maintenance.py`, and `generated/v42/tracker.py` are all thin shims over the OAS output.
@@ -109,7 +109,7 @@ Public distribution is active — every workspace member (except `dhis2w-codegen
 
 - Auto-generated **CLI reference** (`docs/cli-reference.md`, ~10,300 lines from the Typer app), regenerated on every `make docs-build`. The **MCP tool reference** (roughly 315 tools across 14 groups) is generated in the `dhis2w-mcp` pack and published at <https://winterop-com.github.io/dhis2w-mcp/tool-reference/>. The counts age with each release.
 - **Narrative tutorials**: `docs/cli/tutorial.md`, `docs/client/tutorial.md`, `docs/guides/visualizations.md` (step-by-step viz + dashboard composition).
-- **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client}/` hold a single copy of each example that runs against v41, v42, and v43 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run. The FHIR examples live in the `dhis2w-fhir` pack. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
+- **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client}/` hold a single copy of each example that runs against v41, v42, v43, and v44 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run. The FHIR examples live in the `dhis2w-fhir` pack. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
 - **Architecture docs** cover every plugin, the client, auth, profiles, codegen, typed schemas, plugins runtime, external plugins, versioning. MCP and browser automation are documented on their packs' own sites.
 - **One directory per feature surface**: `docs/{client,cli,query}/` each hold their own guides, reference, and design, and each has a navigation tab of its own; the MCP, browser, and FHIR tabs point at their packs' sites. `docs/guides/` keeps only what is genuinely cross-cutting, and `docs/project/` is the catalog, the roadmap, the upstream quirks, and the maintainer-facing pages.
 - **`BUGS.md`** — nearly a hundred upstream DHIS2 quirks with live `curl` repros + v43 re-audit status (entry count drifts as new ones land; the file itself is the source of truth).
@@ -338,7 +338,7 @@ Niche but valuable for compliance + forensics use cases.
   - **`verify-examples` runs strictly sequentially** (`infra/scripts/verify_examples.py` `run_suite` loop) — ~1000 s for ~180 examples against one shared stack. Read-only examples (~60%) could run under a bounded asyncio semaphore (3-4×) with writes kept serial; biggest CI/dev-loop win but medium effort + write-race risk.
   - **`verify-examples` `.py` examples spawn `uv run python`** — pin the venv interpreter once and invoke it directly to shave per-spawn `uv` resolution (~30-50 s across the suite).
   - **`make lint` mypy/pyright are non-incremental** — add mypy `incremental = true` (and optionally `dmypy`) for 3-10× faster local re-lints (CI cold-cache unaffected).
-  - **CI e2e installs Playwright Chromium on every matrix leg** — cache `~/.cache/ms-playwright` across the v41/v42/v43 legs (~2-6 min/run).
+  - **CI e2e installs Playwright Chromium on every matrix leg** — cache `~/.cache/ms-playwright` across the v41/v42/v43/v44 legs (~2-6 min/run).
 - **Property-based testing on filter / order DSL parsing.**
 - **Plugin machinery on `pluginkit` - shipped.** `dhis2w_core.plugin` is a
   [`pluginkit`](https://github.com/winterop-com/pluginkit/) host (in-house, on PyPI,
@@ -427,7 +427,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 | Unit                   | Pure logic, parsers, builders                                   | ~4,500 tests, respx-mocked HTTP (good)                                      | + property-based + mutation                   |
 | Codegen                | Generator emits wrong code                                      | Snapshot tests on the emitted tree pin the diff per PR                      | + mutation tests on the templates             |
 | Schema contract        | Generated code stops matching live API                          | `@pytest.mark.contract` suite hits `play.im.dhis2.org/dev-2-{42,43}`        | Widen to more resources + nightly cron        |
-| Live integration       | End-to-end against real DHIS2                                   | E2E workflow matrix runs `make test-slow` against docker stack v41/v42/v43  | Add a read-only per-PR contract pass          |
+| Live integration       | End-to-end against real DHIS2                                   | E2E workflow matrix runs `make test-slow` against docker stack v41/v42/v43/v44 (v44 non-gating) | Add a read-only per-PR contract pass          |
 | Examples               | Documented usage drifts from reality                            | `make verify-examples` (nightly E2E) + `check_example_refs.py` resolves every example's CLI/MCP reference in fast CI | Snapshot stdout for diff-against-baseline     |
 | Upstream bugs          | Workaround breaks; fix lands and we don't notice                | `@pytest.mark.upstream_bug` pairs bug-still-present + workaround halves     | Lifecycle automation: open issue when bug clears |
 
@@ -449,7 +449,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 - URL construction — no double-slashes, correct encoding, `.json` suffix on `/api/analytics/*` (BUGS.md #1).
 
 **A5. Generated-code golden snapshots.** — **shipped.**
-`packages/dhis2w-codegen/tests/test_snapshots.py` loads each committed `schemas_manifest.json`, runs `emit()` + `emit_from_openapi()` into a tmp dir, and asserts byte-for-byte equality against the committed `generated/v{N}/` tree. Parameterised over v41 / v42 / v43. CI fails the moment codegen drifts from the committed tree.
+`packages/dhis2w-codegen/tests/test_snapshots.py` loads each committed `schemas_manifest.json`, runs `emit()` + `emit_from_openapi()` into a tmp dir, and asserts byte-for-byte equality against the committed `generated/v{N}/` tree. Parameterised over v41 / v42 / v43 / v44. CI fails the moment codegen drifts from the committed tree.
 
 **A6. Fill plugin coverage gaps (3–5 PRs of test writing).**
 Two whole plugins + half a dozen CLIs are far below the 70 % workspace floor. The workspace gate stays green only because the well-covered codegen + client surface averages it out. Per-package gates (B2) would fail these immediately:
@@ -544,7 +544,7 @@ Apache-2.0 Java client maintained by the DHIS2 org ([dhis2/dhis2-java-client](ht
 - User administration — `d2w user list / get / me / invite / reinvite / reset-password`. User-group + user-role plugins covering membership + authority-bundle flows.
 - Branding / theming — `d2w customize logo-front/banner/style/set/apply/show` + `Dhis2Client.customize` accessor. No equivalent in the Java client.
 - Auth providers (Basic, PAT, OAuth2); ours is async-first with a typed `AuthProvider` Protocol.
-- Generated resource CRUD across v41, v42, v43 (Java is hand-maintained).
+- Generated resource CRUD across v41, v42, v43, v44 (Java is hand-maintained).
 - WebMessageResponse envelope parsing; `.import_count()`, `.conflicts()`, `.rejected_indexes()`, `.task_ref()`, `.created_uid()`.
 - Full metadata query surface; repeatable `--filter`, `--order`, `rootJunction=AND|OR`, `--page`/`--page-size`, `--all`, `--translate`/`--locale`, every `fields` selector form.
 - Metadata bundle export / import / diff + RFC 6902 patch with per-resource filters + dangling-reference warning on export.
@@ -612,7 +612,7 @@ Items that don't exist in the Java client and now exist here:
 ## Explicit non-goals
 
 - Python < 3.13. New typing features (StrEnum, TypeAliasType, PEP 604 unions, PEP 695 generics) justify the bump.
-- DHIS2 outside v41 / v42 / v43. Older DHIS2 majors and unreleased ones aren't on the support matrix; every backport fork splits the code with no deployed users to justify the split.
+- DHIS2 outside v41 / v42 / v43 / v44. Older DHIS2 majors aren't on the support matrix, and an unreleased major joins it only as a preview pinned to one development build (v44 until 2.44.0 ships); every backport fork splits the code with no deployed users to justify the split.
 - Flask / argparse / raw stdio MCP loops / hand-rolled TOML parsers; every slot has a chosen standard per the CLAUDE.md hard-requirements list in the repo root.
 - A second filter DSL layered on top of DHIS2's `property:operator:value` string syntax. See the dhis2-java-client comparison above for the rationale.
 - Synchronous client variant. `async` throughout is a hard requirement.

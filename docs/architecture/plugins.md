@@ -17,7 +17,7 @@ class Contribution(BaseModel):
 
 @extension_point
 def contribute(version_key: str) -> Contribution:
-    """Collect what each plugin adds for the plugin tree `version_key` (`v41`, `v42` or `v43`)."""
+    """Collect what each plugin adds for the plugin tree `version_key` (`v41`, `v42`, `v43` or `v44`)."""
 ```
 
 A plugin is a plain Python object with one `@extension` method that answers the
@@ -45,7 +45,7 @@ The object is a plain class, never a pydantic model: pluginkit scans the object'
 attributes to find the extension, and a `BaseModel` subclass raises during that
 scan. A plugin with one surface leaves the other module unset. The built-in
 plugins in `dhis2w-core` contribute a `cli_module` only: their MCP tools are the
-[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack's `dhis2w_mcp/tools/v{41,42,43}/<name>.py`,
+[`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack's `dhis2w_mcp/tools/v{N}/<name>.py`,
 registered through one `mcp` contribution of that pack. The `user-group` and
 `user-role` packages carry no plugin object (the `user` plugin mounts their
 commands as `d2w user group` / `d2w user role`). An external pack may still name

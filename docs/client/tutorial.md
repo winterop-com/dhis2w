@@ -28,7 +28,7 @@ If you already use the `d2w` CLI or the MCP server, this library is what those l
 ## Prerequisites
 
 - Python 3.13+
-- A reachable DHIS2 instance (v41, v42, or v43). Local: `make dhis2-run`; remote: your own install or one of the `https://play.im.dhis2.org/dev-2-{41,42,43}` instances.
+- A reachable DHIS2 instance (v41, v42, or v43; v44 as a preview). Local: `make dhis2-run`; remote: your own install or one of the `https://play.im.dhis2.org/dev-2-{41,42,43}` instances (`https://play.im.dhis2.org/dev` for the 2.44 development line).
 - Credentials; PAT, username+password, or OAuth2 client config.
 
 ## Install
@@ -893,4 +893,4 @@ These are tracked as future-iteration items on `docs/roadmap.md`; the workaround
 - [Architecture: Profiles](../architecture/profiles.md) — file format, scope rules, precedence order
 - [Architecture: Typed schemas](../architecture/typed-schemas.md) — full model + enum inventory
 - [Architecture: Metadata CRUD](../architecture/metadata-crud.md) — deeper dive on the generated resource accessors
-- [Examples index](../examples.md) — one version-neutral copy of each client script (~89), covering every pattern in this guide and running against v41, v42, and v43 alike
+- [Examples index](../examples.md) — one version-neutral copy of each client script (~89), covering every pattern in this guide and running against v41, v42, v43, and v44 alike

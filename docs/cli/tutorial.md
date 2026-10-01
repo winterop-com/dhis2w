@@ -27,7 +27,7 @@ For the exhaustive list of every command and flag, see the [CLI reference](../cl
 ## Prerequisites
 
 - Python 3.13+ with `uv` installed.
-- A reachable DHIS2 instance (v41, v42, or v43). Local: `make dhis2-run` (starts DHIS2 + Postgres + seeds auth). Remote: your own install or one of the `https://play.im.dhis2.org/dev-2-{41,42,43}` instances.
+- A reachable DHIS2 instance (v41, v42, or v43; v44 as a preview). Local: `make dhis2-run` (starts DHIS2 + Postgres + seeds auth). Remote: your own install or one of the `https://play.im.dhis2.org/dev-2-{41,42,43}` instances (`https://play.im.dhis2.org/dev` for the 2.44 development line).
 - Credentials — a Personal Access Token (PAT), Basic auth, or OAuth2 client config. `make dhis2-run` writes PATs to `infra/home/credentials/.env.auth`.
 
 ## Install + profile setup
@@ -379,7 +379,7 @@ Debug output lands on stderr so stdout stays pipe-friendly — you can still `d2
 ## Where to go next
 
 - **Full command reference**: [CLI reference](../cli-reference.md) — every subcommand, every flag, auto-generated from the Typer app so it never drifts.
-- **Runnable examples**: [examples index](../examples.md) — one version-neutral copy of each script (~68 CLI + ~89 client), running against v41, v42, and v43 alike; the ~45 MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples).
+- **Runnable examples**: [examples index](../examples.md) — one version-neutral copy of each script (~68 CLI + ~89 client), running against v41, v42, v43, and v44 alike; the ~45 MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples).
 - **Library usage**: [`dhis2w-client` tutorial](../client/tutorial.md) — when you want to drive DHIS2 from Python instead of the shell.
 - **Plugin architecture**: [overview](../architecture/overview.md) — how plugins, profiles, auth providers, and codegen fit together.
 

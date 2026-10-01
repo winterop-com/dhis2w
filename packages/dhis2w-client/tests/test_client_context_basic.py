@@ -53,9 +53,9 @@ def test_build_auth_provider_session_defaults_xsrf_to_none() -> None:
     assert provider.xsrf_token is None
 
 
-@pytest.mark.parametrize("version", ["v41", "v42", "v43"])
+@pytest.mark.parametrize("version", ["v41", "v42", "v43", "v44"])
 def test_build_auth_provider_session_threads_xsrf_parity(version: str) -> None:
-    """v41/v42/v43 build_auth_provider all thread profile.xsrf_token into their SessionCookieAuth."""
+    """Every tree's build_auth_provider threads profile.xsrf_token into their SessionCookieAuth."""
     import importlib
 
     ctx = importlib.import_module(f"dhis2w_client.{version}.client_context")

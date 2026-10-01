@@ -10,7 +10,7 @@ import pytest
 from dhis2w_core.profile import Profile, resolve
 from dhis2w_core.v42.client_context import scope_from_resolved
 
-TREES = pytest.mark.parametrize("tree", ["v41", "v42", "v43"])
+TREES = pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 
 
 def _client_context(tree: str) -> ModuleType:

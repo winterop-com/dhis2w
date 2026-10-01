@@ -1,10 +1,10 @@
 """Per-version parity for the `doctor` plugin service — exercise its public surface on all trees.
 
 Mirrors the v42-only `tests/doctor/test_doctor_plugin.py` routes + assertions, but resolves the
-service per `core_version` (v41/v42/v43) so the v41/v43 service code is actually executed and
+service per `core_version` (every tree) so the v41/v43 service code is actually executed and
 counted, not just smoke-imported. The single public function `run_doctor` dispatches to three probe
 categories (metadata, integrity, bugs); each test below drives one category path (plus the default
-metadata+integrity combination). The three service trees are byte-identical copies (only the import
+metadata+integrity combination). The service trees are byte-identical copies (only the import
 version differs), so the assertions are the same on every tree. Mocked (respx); no live stack.
 """
 
@@ -242,7 +242,7 @@ async def test_run_doctor_bugs_parity(
     categories = {probe.category for probe in report.probes}
     assert categories == {"bugs"}
     # Every bug-drift probe, the version floor included, lands on `pass` with the canned responses
-    # on all three supported majors.
+    # on every supported major.
     assert all(probe.status == "pass" for probe in report.probes)
 
 

@@ -11,7 +11,7 @@ from typing import Annotated
 import typer
 from dhis2w_core.cli_errors import run_app
 from dhis2w_core.cli_output import JSON_OUTPUT
-from dhis2w_core.plugin import DEFAULT_VERSION_KEY, load_plugin_host, resolve_startup_version
+from dhis2w_core.plugin import DEFAULT_VERSION_KEY, SUPPORTED_VERSION_KEYS, load_plugin_host, resolve_startup_version
 from dhis2w_core.rich_console import STDERR_CONSOLE
 from rich.logging import RichHandler
 
@@ -85,7 +85,7 @@ def _version_banner() -> str:
         pkg_version = "unknown"
     active = resolve_startup_version()
     env_version = os.environ.get("DHIS2_VERSION", "").strip()
-    if env_version in {"v41", "v42", "v43"} and env_version == active:
+    if env_version in SUPPORTED_VERSION_KEYS and env_version == active:
         source = f"DHIS2_VERSION={env_version!r} env"
     elif active == DEFAULT_VERSION_KEY:
         source = "default (no profile.version, no DHIS2_VERSION env)"

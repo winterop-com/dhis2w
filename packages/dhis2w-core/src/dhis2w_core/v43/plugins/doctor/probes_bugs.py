@@ -7,15 +7,18 @@ They're not the operator-facing default (run via `d2w doctor bugs`).
 
 from __future__ import annotations
 
+import re
+
 from dhis2w_client.v43 import Dhis2ApiError, Dhis2Client
 
 from dhis2w_core.v43.plugins.doctor._models import ProbeResult
 
 _MIN_DHIS2_VERSION: tuple[int, int] = (2, 41)
+_VERSION_RE = re.compile(r"^(\d+)\.(\d+)")
 
 
 async def probe_version(client: Dhis2Client) -> ProbeResult:
-    """Check `/api/system/info` → version >= 2.42."""
+    """Check `/api/system/info` → version >= 2.41."""
     try:
         info = await client.get_raw("/api/system/info")
     except Exception as exc:  # noqa: BLE001 — probe must report, not raise
@@ -23,28 +26,28 @@ async def probe_version(client: Dhis2Client) -> ProbeResult:
             name="dhis2-version", category="bugs", status="fail", message=f"/api/system/info failed: {exc}"
         )
     raw = str(info.get("version", ""))
-    parts = raw.split(".")
-    try:
-        major, minor = int(parts[0]), int(parts[1])
-    except (IndexError, ValueError):
+    # A development build reports `2.44-SNAPSHOT`, with no patch level.
+    match = _VERSION_RE.match(raw)
+    if match is None:
         return ProbeResult(
             name="dhis2-version",
             category="bugs",
             status="fail",
             message=f"could not parse DHIS2 version {raw!r} from /api/system/info",
         )
+    major, minor = int(match.group(1)), int(match.group(2))
     if (major, minor) < _MIN_DHIS2_VERSION:
         return ProbeResult(
             name="dhis2-version",
             category="bugs",
             status="fail",
-            message=f"DHIS2 {raw} < 2.41 — the workspace supports DHIS2 v41, v42 and v43",
+            message=f"DHIS2 {raw} < 2.41 — the workspace supports DHIS2 v41, v42, v43 and v44",
         )
     return ProbeResult(
         name="dhis2-version",
         category="bugs",
         status="pass",
-        message=f"{raw} (the workspace supports DHIS2 v41, v42 and v43)",
+        message=f"{raw} (the workspace supports DHIS2 v41, v42, v43 and v44)",
     )
 
 

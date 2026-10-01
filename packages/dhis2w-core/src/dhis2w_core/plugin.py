@@ -19,6 +19,7 @@ import pkgutil
 from collections.abc import Mapping
 from typing import Any
 
+from dhis2w_client.generated import Dhis2
 from pluginkit import Extension, ExtensionPoint, PluginManager
 from pydantic import BaseModel, ConfigDict
 
@@ -26,7 +27,7 @@ PROJECT_NAME = "dhis2w"
 #: The contract version is part of the group name, so an incompatible contract ships as a new group.
 ENTRY_POINT_GROUP = "dhis2w.plugins.v1"
 DEFAULT_VERSION_KEY = "v43"
-SUPPORTED_VERSION_KEYS: frozenset[str] = frozenset({"v41", "v42", "v43"})
+SUPPORTED_VERSION_KEYS: frozenset[str] = frozenset(member.value for member in Dhis2)
 
 extension_point = ExtensionPoint(PROJECT_NAME)
 extension = Extension(PROJECT_NAME)
@@ -61,7 +62,7 @@ class Contribution(BaseModel):
 
 @extension_point
 def contribute(version_key: str) -> Contribution:
-    """Collect what each plugin adds for the plugin tree `version_key` (`v41`, `v42` or `v43`)."""
+    """Collect what each plugin adds for the plugin tree `version_key` (`v41`, `v42`, `v43` or `v44`)."""
     raise NotImplementedError("an extension point is a declaration; call it via PluginManager.caller(...)")
 
 

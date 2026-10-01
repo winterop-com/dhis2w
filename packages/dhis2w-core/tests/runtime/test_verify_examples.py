@@ -27,7 +27,7 @@ def test_discover_examples_returns_cli_and_client() -> None:
     assert paths, "expected at least one example in the repo"
     surfaces = {p.parent.name for p in paths}
     # The workspace ships both common surfaces; the version-variant directories are named v4N.
-    assert surfaces.issubset({"cli", "client", "v41", "v42", "v43"})
+    assert surfaces.issubset({"cli", "client", "v41", "v42", "v43", "v44"})
     # _runner.py and other helper underscore-files must be excluded.
     assert all(not p.name.startswith("_") for p in paths)
     assert all(p.suffix in {".sh", ".py"} for p in paths)

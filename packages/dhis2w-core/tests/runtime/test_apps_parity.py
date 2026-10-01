@@ -1,8 +1,8 @@
 """Per-version parity for the `apps` plugin service — exercise every public function on all trees.
 
 Mirrors the v42-only `tests/apps/test_apps_plugin.py` routes + payloads, but resolves the service per
-`core_version` (v41/v42/v43) so the v41/v43 service code is actually executed and counted, not just
-smoke-imported. The three service trees are byte-identical copies (only the import version differs), so
+`core_version` (every tree) so the v41/v43 service code is actually executed and counted, not just
+smoke-imported. The service trees are byte-identical copies (only the import version differs), so
 the assertions are the same on every tree. Mocked (respx); no live stack.
 
 `install_from_file` is skipped: it reads a local `.zip` off disk and POSTs multipart, which needs a real

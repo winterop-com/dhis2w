@@ -51,7 +51,7 @@ try:
     async with Dhis2Client("https://newer-dhis2.example", auth=BasicAuth(...)) as client:
         ...
 except UnsupportedVersionError as exc:
-    # `exc.version` is the unsupported version key (e.g. 'v44');
+    # `exc.version` is the unsupported version key (e.g. 'v45');
     # `exc.available` is the list of trees the client does have.
     print(f"no generated module for {exc.version}; available: {exc.available}")
     print("run `d2w codegen generate --url ...` to add one")

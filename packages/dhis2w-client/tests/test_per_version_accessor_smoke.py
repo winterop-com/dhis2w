@@ -5,7 +5,7 @@ mechanism — i.e. that `Dhis2Client.connect()` swaps accessor instances
 to the right per-version class. These tests pick up where that ends:
 they instantiate each per-version `Dhis2Client` explicitly and exercise
 representative accessor methods via respx-mocked HTTP, so behavioural
-bugs in the v41 / v42 / v43 hand-written trees (parse failures, model
+bugs in the per-version hand-written trees (parse failures, model
 shape drift, wrong path) surface here even when no integration suite
 runs against a live stack for the matching version.
 
@@ -29,10 +29,12 @@ from dhis2w_client.v42.auth.basic import BasicAuth as V42BasicAuth
 from dhis2w_client.v42.client import Dhis2Client as V42Client
 from dhis2w_client.v43.auth.basic import BasicAuth as V43BasicAuth
 from dhis2w_client.v43.client import Dhis2Client as V43Client
+from dhis2w_client.v44.auth.basic import BasicAuth as V44BasicAuth
+from dhis2w_client.v44.client import Dhis2Client as V44Client
 
 
 def _mock_connect(version: str) -> None:
-    """Mock the connect-time probes for a given DHIS2 major (`41` / `42` / `43`)."""
+    """Mock the connect-time probes for a given DHIS2 major (`41` / `42` / `43` / `44`)."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
     respx.get("https://dhis2.example/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": f"2.{version}.0"})
@@ -108,12 +110,13 @@ async def test_v43_client_metadata_list_data_elements_smoke() -> None:
         (V41Client, V41BasicAuth, "v41"),
         (V42Client, V42BasicAuth, "v42"),
         (V43Client, V43BasicAuth, "v43"),
+        (V44Client, V44BasicAuth, "v44"),
     ],
 )
 @respx.mock
 async def test_per_version_system_info_smoke(
-    client_cls: type[V41Client | V42Client | V43Client],
-    auth_cls: type[V41BasicAuth | V42BasicAuth | V43BasicAuth],
+    client_cls: type[V41Client | V42Client | V43Client | V44Client],
+    auth_cls: type[V41BasicAuth | V42BasicAuth | V43BasicAuth | V44BasicAuth],
     expected_version: str,
 ) -> None:
     """Every per-version client's `system.info()` returns the version-correct typed model."""
@@ -130,15 +133,16 @@ async def test_per_version_system_info_smoke(
         (V41Client, V41BasicAuth),
         (V42Client, V42BasicAuth),
         (V43Client, V43BasicAuth),
+        (V44Client, V44BasicAuth),
     ],
 )
 @respx.mock
 async def test_per_version_accessor_classes_match_version_tree(
-    client_cls: type[V41Client | V42Client | V43Client],
-    auth_cls: type[V41BasicAuth | V42BasicAuth | V43BasicAuth],
+    client_cls: type[V41Client | V42Client | V43Client | V44Client],
+    auth_cls: type[V41BasicAuth | V42BasicAuth | V43BasicAuth | V44BasicAuth],
 ) -> None:
     """Every accessor attribute on a per-version client class lives in the matching module tree."""
-    version_key = client_cls.__module__.split(".")[1]  # "v41" / "v42" / "v43"
+    version_key = client_cls.__module__.split(".")[1]  # "v41" / "v42" / "v43" / "v44"
     _mock_connect(version_key[1:])
     async with client_cls("https://dhis2.example", auth=auth_cls(username="a", password="b")) as client:
         # Sample a representative set — full coverage would parametrize over every accessor.

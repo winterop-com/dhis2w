@@ -68,17 +68,17 @@ No cycles. `dhis2w-client` is the foundation everything builds on, which is what
 
 ## Per-version subpackages
 
-`dhis2w-client` and `dhis2w-core` are organised into per-major subpackages so each DHIS2 version (v41, v42, v43) can evolve its own hand-written code without entangling the others:
+`dhis2w-client` and `dhis2w-core` are organised into per-major subpackages so each DHIS2 version (v41, v42, v43, v44) can evolve its own hand-written code without entangling the others:
 
 ```
-dhis2w_client/{v41,v42,v43}/        # hand-written client surface per major
-dhis2w_client/generated/{v41,v42,v43}/   # auto-generated wire types per major
-dhis2w_core/{v41,v42,v43}/plugins/  # plugin tree per major
+dhis2w_client/{v41,v42,v43,v44}/        # hand-written client surface per major
+dhis2w_client/generated/{v41,v42,v43,v44}/   # auto-generated wire types per major
+dhis2w_core/{v41,v42,v43,v44}/plugins/  # plugin tree per major
 ```
 
-v43 is the canonical baseline: new behaviour is written against the v43 tree first and copied to v41 and v42, and the trees diverge per-file as version-specific quirks land (CategoryCombo COC regeneration on v43, the `categorys` -> `categories` rename, v41's missing `OAuth2ClientCredentialsAuthScheme`, etc.). The version-neutral `dhis2w-fhir` pack imports its generated models from `dhis2w_client.generated.v43.*`.
+v43 is the canonical baseline: new behaviour is written against the v43 tree first and copied to v41, v42, and v44 (the v44 preview), and the trees diverge per-file as version-specific quirks land (CategoryCombo COC regeneration on v43, the `categorys` -> `categories` rename, v41's missing `OAuth2ClientCredentialsAuthScheme`, etc.). The version-neutral `dhis2w-fhir` pack imports its generated models from `dhis2w_client.generated.v43.*`.
 
-**When you add, rename, or remove anything,** apply the change to all three trees. New plugin commands ship as three plugin files; bug fixes that aren't version-specific land in all three. Examples are the exception — they ship as **one** file under `examples/{cli,client}/` (the MCP examples live in the `dhis2w-mcp` repository), because the wire is the same for almost everything they touch; only an example that exists for a single major lives under that major's subdirectory (`examples/client/v43/`). The CLAUDE.md hard requirements section spells this out at "Per-version subpackages" — the codebase enforces three-tree symmetry by convention, not by tooling, so the diff is the only check.
+**When you add, rename, or remove anything,** apply the change to all four trees. New plugin commands ship as four plugin files; bug fixes that aren't version-specific land in all four. Examples are the exception — they ship as **one** file under `examples/{cli,client}/` (the MCP examples live in the `dhis2w-mcp` repository), because the wire is the same for almost everything they touch; only an example that exists for a single major lives under that major's subdirectory (`examples/client/v43/`). The CLAUDE.md hard requirements section spells this out at "Per-version subpackages" — the codebase enforces tree symmetry by convention, not by tooling, so the diff is the only check.
 
 ## Why this matters
 

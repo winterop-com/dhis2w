@@ -20,12 +20,12 @@ import respx
 # duplicating the test. Use both fixtures: take `server_version`, then call
 # `mock_system_info(server_version)` in place of a hardcoded `2.42.0` preamble.
 
-_SERVER_VERSIONS = {"v41": "2.41.4", "v42": "2.42.0", "v43": "2.43.0"}
+_SERVER_VERSIONS = {"v41": "2.41.4", "v42": "2.42.0", "v43": "2.43.0", "v44": "2.44-SNAPSHOT"}
 
 
 @pytest.fixture(params=list(_SERVER_VERSIONS))
 def server_version(request: pytest.FixtureRequest) -> str:
-    """Parametrize a respx accessor test across all three DHIS2 majors (wire version string)."""
+    """Parametrize a respx accessor test across every supported DHIS2 major (wire version string)."""
     return _SERVER_VERSIONS[request.param]
 
 
@@ -33,6 +33,7 @@ _PLAY_SERVERS = {
     "v41": "https://play.im.dhis2.org/dev-2-41",
     "v42": "https://play.im.dhis2.org/dev-2-42",
     "v43": "https://play.im.dhis2.org/dev-2-43",
+    "v44": "https://play.im.dhis2.org/dev",
 }
 
 

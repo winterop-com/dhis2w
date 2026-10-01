@@ -25,8 +25,8 @@ from _seed_auth_oauth2 import (  # noqa: E402 — path-prepend above is intentio
     OAUTH2_CLIENT_SECRET,
     OAUTH2_GRANT_TYPES,
     OAUTH2_REDIRECT_URI,
-    OAUTH2_SCOPES,
     oauth2_payload,
+    oauth2_requested_scopes,
 )
 from _seed_auth_variations import PAT_VARIATIONS  # noqa: E402
 from _seed_login_customization import apply_login_customization  # noqa: E402
@@ -125,6 +125,7 @@ async def seed(url: str, username: str, password: str, output_path: Path) -> Non
     async with Dhis2Client(url, BasicAuth(username=username, password=password)) as client:
         info = await client.system.info()
         me = await client.system.me()
+        version_key = client.version_key
         print(f">>> Seeding {url} (version={info.version}, user={me.username})")
 
         for variation in PAT_VARIATIONS:
@@ -145,7 +146,7 @@ async def seed(url: str, username: str, password: str, output_path: Path) -> Non
         print("  BRANDING login customization")
         await apply_login_customization(client)
 
-    _write_env_file(output_path, url, username, password, pat_values)
+    _write_env_file(output_path, url, username, password, pat_values, oauth2_requested_scopes(version_key))
     print(f">>> Wrote {output_path}")
 
 
@@ -155,6 +156,7 @@ def _write_env_file(
     username: str,
     password: str,
     pat_values: dict[str, str],
+    oauth_scopes: str,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = [
@@ -180,7 +182,7 @@ def _write_env_file(
             f"DHIS2_OAUTH_CLIENT_ID={OAUTH2_CLIENT_ID}",
             f"DHIS2_OAUTH_CLIENT_SECRET={OAUTH2_CLIENT_SECRET}",
             f"DHIS2_OAUTH_REDIRECT_URI={OAUTH2_REDIRECT_URI}",
-            f"DHIS2_OAUTH_SCOPES={OAUTH2_SCOPES}",
+            f"DHIS2_OAUTH_SCOPES={oauth_scopes}",
             f"DHIS2_OAUTH_GRANT_TYPES={OAUTH2_GRANT_TYPES}",
         ]
     )

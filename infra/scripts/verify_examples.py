@@ -52,7 +52,11 @@ from rich.table import Table
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 SURFACES = ("cli", "client")
-VERSION_KEYS = ("v41", "v42", "v43")
+VERSION_KEYS = ("v41", "v42", "v43", "v44")
+
+# A later major that keeps an earlier major's features also runs that major's variant
+# directory: `examples/client/v43/` covers v43 features 2.44 still ships.
+INHERITED_VARIANTS: dict[str, tuple[str, ...]] = {"v44": ("v43",)}
 
 # Examples that need Chromium (Playwright), a human-clicked OIDC login,
 # external network dependencies, or run slow server-side jobs unsuitable
@@ -106,6 +110,16 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
             # Same BUGS.md #36 — v43's event-analytics SQL emitter rejects
             # the 2024 event data the fixture carries. Both run green on
             # v41 and v42, which is why they live in the common set.
+            "client/analytics_events_enrollments.py",
+            "client/analytics_event_query.py",
+        }
+    ),
+    "v44": frozenset(
+        {
+            # BUGS.md #36 on the 2.44 development build: the analytics job aborts in the event
+            # stage on `column "yearly" does not exist`, as on 2.43, so the aggregate table is
+            # never rebuilt and these queries then fail with `column ax.monthly does not exist`.
+            "client/viz_multiline_by_province.py",
             "client/analytics_events_enrollments.py",
             "client/analytics_event_query.py",
         }
@@ -177,7 +191,8 @@ def _surface_directories(version_key: str) -> list[Path]:
     """Every directory holding examples for this run: the common set and this major's variants."""
     root = _examples_root()
     directories = [root / surface for surface in SURFACES]
-    directories += [root / surface / version_key for surface in SURFACES]
+    for variant_key in (*INHERITED_VARIANTS.get(version_key, ()), version_key):
+        directories += [root / surface / variant_key for surface in SURFACES]
     return directories
 
 

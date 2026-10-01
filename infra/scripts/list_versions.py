@@ -59,6 +59,7 @@ def main() -> int:
     print("Run a specific version:")
     print("  make up DHIS2_VERSION=v42")
     print("  make up DHIS2_VERSION=v43")
+    print("  make up DHIS2_VERSION=v44   # preview: the pinned 2.44 development build")
     print()
     print("Full tag list: https://hub.docker.com/r/dhis2/core/tags")
     return 0

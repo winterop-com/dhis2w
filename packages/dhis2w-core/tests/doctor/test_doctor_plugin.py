@@ -440,7 +440,7 @@ async def test_integrity_converts_each_check_to_a_probe(profile: Profile) -> Non
 async def test_doctor_refuses_pre_v41_dhis2(profile: Profile) -> None:
     """Pre-2.41 DHIS2 → connect fails up-front; doctor never runs.
 
-    The workspace ships generated trees for v41, v42, v43. A reported
+    The workspace ships generated trees for v41 and later. A reported
     DHIS2 below 2.41 has no compatible generated module and no lower
     fallback to choose from, so `Dhis2Client.connect()` raises
     `UnsupportedVersionError` before the doctor's probes get a chance.

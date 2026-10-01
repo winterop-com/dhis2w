@@ -25,11 +25,11 @@ version_key="$1"
 infra_dir="$(cd "$(dirname "$0")/.." && pwd)"
 repo_root="$(cd "$infra_dir/.." && pwd)"
 
-pin="$("$infra_dir/scripts/_resolve_image_tag.sh" "$version_key")"
-case "$pin" in
-  2.*) ;;
+image="$("$infra_dir/scripts/_resolve_image.sh" "$version_key")"
+case "$image" in
+  dhis2/core:2.*) pin="${image#dhis2/core:}" ;;
   *)
-    echo "!!! $version_key is pinned to '$pin', which has no stable play channel" >&2
+    echo "!!! $version_key is pinned to '$image', which has no stable play channel" >&2
     exit 1
     ;;
 esac

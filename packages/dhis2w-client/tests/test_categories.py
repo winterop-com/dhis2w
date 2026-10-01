@@ -1,7 +1,7 @@
-"""Unit tests for `Dhis2Client.categories` — respx-mocked, across the v41/v42/v43 trees.
+"""Unit tests for `Dhis2Client.categories` — respx-mocked, across every version tree.
 
 `categories` is identical across versions, so the same wire mocks + assertions run against
-all three accessor trees via the `server_version` parametrization (see conftest).
+every accessor tree via the `server_version` parametrization (see conftest).
 """
 
 from __future__ import annotations

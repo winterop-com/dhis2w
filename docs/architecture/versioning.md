@@ -21,10 +21,12 @@ packages/dhis2w-client/src/dhis2w_client/
 │   ├── __init__.py      # version registry + loader + Dhis2 enum
 │   ├── v41/             # DHIS2 2.41.x (124 schemas)
 │   ├── v42/             # DHIS2 2.42.x (118 schemas)
-│   └── v43/             # DHIS2 2.43.x (116 schemas)
+│   ├── v43/             # DHIS2 2.43.x (116 schemas)
+│   └── v44/             # DHIS2 2.44 development build (preview)
 ├── v41/                 # hand-written client surface for v41
 ├── v42/                 # hand-written client surface for v42
 ├── v43/                 # hand-written client surface for v43 (canonical)
+├── v44/                 # hand-written client surface for v44 (preview)
 └── __init__.py          # top-level re-exports from v43
 
 packages/dhis2w-core/src/dhis2w_core/
@@ -36,7 +38,8 @@ packages/dhis2w-core/src/dhis2w_core/
 ├── v43/client_context.py  # binds the tree: opens a connected dhis2w_client.v43.Dhis2Client
 ├── v43/plugins/<name>/  # canonical plugin tree (cli.py, service.py, ...)
 ├── v41/plugins/<name>/  # mirror of v43, diverges per-file as v41 quirks land
-└── v42/plugins/<name>/  # mirror of v43, diverges per-file as v42 quirks land
+├── v42/plugins/<name>/  # mirror of v43, diverges per-file as v42 quirks land
+└── v44/plugins/<name>/  # mirror of v43, diverges per-file as v44 behaviour lands
 ```
 
 A plugin tree imports its helpers from `dhis2w_core.*` and only `client_context` (plus the small
@@ -44,7 +47,7 @@ A plugin tree imports its helpers from `dhis2w_core.*` and only `client_context`
 or token through `Protocol` types (`WebMessageLike`, `ConflictRowLike`, `OAuth2TokenLike`), so a
 plugin pack in another repository has one import path per helper regardless of the tree it serves.
 
-Three supported majors — v41, v42, v43. Other DHIS2 majors are out of scope; the codegen tooling can still target them via `d2w dev codegen generate --url ...` against an arbitrary stack, but no manifests or generated trees are committed.
+Four supported majors — v41, v42, v43, v44. The set is defined in one place, the `Dhis2` `StrEnum` in `dhis2w_client.generated`; `dhis2w_client._dispatch._KNOWN_VERSION_KEYS` and `dhis2w_core.plugin.SUPPORTED_VERSION_KEYS` derive from it, and CLI and profile validation check against `SUPPORTED_VERSION_KEYS`. Other DHIS2 majors are out of scope; the codegen tooling can still target them via `d2w dev codegen generate --url ...` against an arbitrary stack, but no manifests or generated trees are committed.
 
 The hand-written `v{N}/` subpackages start as copies of v43, rewritten to import their own major's generated tree, and diverge per-file as version-specific behaviour lands (the `categorys` -> `categories` field rename on v43's CategoryCombo, the missing `OAuth2ClientCredentialsAuthScheme` on v41's generated tree, etc.). Each tree imports from its own `dhis2w_client.generated.v{N}.*`, so the symbol set stays parallel while the shapes track the major. Divergence is per-method and called out in BUGS.md.
 
@@ -57,9 +60,31 @@ Each populated `v{NN}/` carries:
 
 The generated code is **committed**, not gitignored. Diffs are reviewable in PRs — you can see when a new field appears on a resource, when an enum gains a constant, when an endpoint is removed. The per-version `infra/v{N}/dump.sql.gz` dumps are the seeded e2e databases built by `make dhis2-build-e2e-dump`; codegen never changes them.
 
+### v44 is a preview
+
+2.44.0 is not released. The v44 trees (`dhis2w_client.v44`, `dhis2w_core.v44.plugins.*`, `dhis2w_client.generated.v44`) target one build of the DHIS2 development line, pinned by digest in `infra/versions.env`: `dhis2/core-dev@sha256:19303b4f...`, the 2.44-SNAPSHOT build of 2026-09-24 (revision `b732899`). The pin is marked `# held`, so the automated version-bump check leaves it alone. Preview means:
+
+- The v44 generated code describes that one build. A later development build may add, rename, or remove schemas before 2.44.0 ships.
+- The v44 end-to-end CI leg runs with `continue-on-error`: it reports, but does not gate a merge.
+- Contract tests reach v44 at `https://play.im.dhis2.org/dev`, the play channel that tracks the development line (there is no `dev-2-44` channel).
+- v43 stays the canonical baseline and the startup default.
+
+When 2.44.0 ships, re-pin v44 in `infra/versions.env` to `2.44.0.0` and drop the `# held` marker, rebuild `infra/v44/dump.sql.gz` against the release image (`make dhis2-build-e2e-dump DHIS2_VERSION=v44`), regenerate the tree (`make dhis2-codegen-all VERSIONS=v44`), sample boots with `infra/scripts/openapi_stability.sh v44 <output-dir>`, and review the codegen diff before making the v44 CI leg required.
+
+### Adding a major
+
+1. Add the member to the `Dhis2` enum in `dhis2w_client.generated` (for example `V45 = "v45"`). Every supported-version list derives from it.
+2. Pin the image in `infra/versions.env`. A release pin such as `2.45.0.0` resolves to `dhis2/core:2.45.0.0`; a pin containing `/` (a full image reference, such as a development build by digest) is used as-is. `infra/scripts/_resolve_image.sh` turns the pin into `DHIS2_IMAGE`, which `infra/compose.yml` runs.
+3. Create `infra/v{N}/` with `dhis.conf` and a `dump.sql.gz`, plus `infra/fixtures/v{N}/`.
+4. Copy the hand-written trees: `uv run python infra/scripts/clone_version_tree.py v43 v{N}`. The script copies `dhis2w_client.v43` and `dhis2w_core.v43` to the new major, rewrites version tokens (`v43-only` becomes `v43+`), keeps release strings such as `2.43.1` (they record what was observed on that release), and lists every line that still names v43 for review.
+5. Generate the wire types: `make dhis2-codegen-all VERSIONS=v{N}` (see [Codegen](../codegen.md)).
+6. Sample several boots with `infra/scripts/openapi_stability.sh v{N} <output-dir>` and pin any OpenAPI component whose shape changes between boots.
+7. Add the key to the test lists that enumerate majors.
+8. Add the major to the plugin packs that carry per-version trees, such as `dhis2w-mcp` (`dhis2w_mcp/tools/v{N}/`), after the host release that introduces it.
+
 ## The `Dhis2` enum
 
-`dhis2w_client.Dhis2` is a `StrEnum` listing the three supported majors — `Dhis2.V41`, `Dhis2.V42`, `Dhis2.V43`. Two uses:
+`dhis2w_client.Dhis2` is a `StrEnum` listing the four supported majors — `Dhis2.V41`, `Dhis2.V42`, `Dhis2.V43`, `Dhis2.V44` — and is the single source of the supported version set. Two uses:
 
 ```python
 from dhis2w_client import Dhis2, Dhis2Client
@@ -74,10 +99,10 @@ from dhis2w_client.generated.v43 import DataElement, OrganisationUnit
 
 ## Plugin-tree selection at CLI / MCP startup
 
-The CLI (`d2w ...`) and MCP server (`dhis2w-mcp`) pick a single plugin tree at bootstrap from `dhis2w_core.v{41,42,43}.plugins.*`. The selection chain (`dhis2w_core.plugin.resolve_startup_version`):
+The CLI (`d2w ...`) and MCP server (`dhis2w-mcp`) pick a single plugin tree at bootstrap from `dhis2w_core.v{41,42,43,44}.plugins.*`. The selection chain (`dhis2w_core.plugin.resolve_startup_version`):
 
-1. **`profile.version`** — if the active profile carries `version = "v41" | "v42" | "v43"` in `profiles.toml`, that tree is loaded.
-2. **`DHIS2_VERSION` env var** — the vXX key (`v41` / `v42` / `v43`). Lets `make verify-examples DHIS2_VERSION=v43` exercise the v43 plugin tree against a v43 stack without hand-editing every profile. A bare digit (`43`) is not accepted.
+1. **`profile.version`** — if the active profile carries `version = "v41" | "v42" | "v43" | "v44"` in `profiles.toml`, that tree is loaded.
+2. **`DHIS2_VERSION` env var** — the vXX key (`v41` / `v42` / `v43` / `v44`). Lets `make verify-examples DHIS2_VERSION=v43` exercise the v43 plugin tree against a v43 stack without hand-editing every profile. A bare digit (`43`) is not accepted.
 3. **Default `v43`** — the canonical baseline. Every tree's client re-binds its accessors to the server's major on connect, so the default constrains only which plugin tree the CLI and MCP server load, not which server an unpinned profile may reach.
 
 This selection is independent of the wire client's actual version detection (`Dhis2Client.connect()` — see below). A profile pinned to v43 plugin tree against a v42 stack would load v43-specific plugin overrides + the v42 wire client; runtime dispatch swaps accessors after `connect()` so the wire chain remains correct regardless.
@@ -98,7 +123,7 @@ On `Dhis2Client.connect()`:
 3. `dhis2w_client.generated.available_versions()` is consulted — only populated versions (`GENERATED = True`) are candidates.
 4. If `"v43"` is populated, that module is loaded and bound to `client.resources`, `client.models`, etc.
 5. If `"v43"` is not populated and `allow_version_fallback=False` (default), `UnsupportedVersionError` is raised, pointing the user at `d2w codegen`.
-6. If fallback is enabled and the live version isn't populated, the nearest-lower populated version is chosen — never higher. With v41 + v42 + v43 populated, the practical case is "any DHIS2 above v43 falls back to v43".
+6. If fallback is enabled and the live version isn't populated, the nearest-lower populated version is chosen — never higher. With v41 through v44 populated, the practical case is "any DHIS2 above v44 falls back to v44".
 
 ```python
 from dhis2w_core.client_context import open_client
@@ -131,7 +156,7 @@ If you need typed access to a field outside your home tree's shape, or you want 
 
 ### Pattern 1 — branch on `client.version_key`
 
-`Dhis2Client.version_key` returns the loaded module key (`"v41"`, `"v42"`, `"v43"`) after `connect()`. Use it to decide which path to take when the wire shape differs:
+`Dhis2Client.version_key` returns the loaded module key (`"v41"`, `"v42"`, `"v43"`, `"v44"`) after `connect()`. Use it to decide which path to take when the wire shape differs:
 
 ```python
 from dhis2w_core.client_context import open_client
@@ -183,7 +208,7 @@ Hand-written helper return types are annotated with the home tree's shapes at st
 
 ## Why strict by default
 
-When `Dhis2Client.connect()` finds the live version doesn't have a populated module — e.g. someone runs against a DHIS2 above v43 — there are three reasonable choices:
+When `Dhis2Client.connect()` finds the live version doesn't have a populated module — e.g. someone runs against a DHIS2 above v44 — there are three reasonable choices:
 
 - **Refuse** — force the user to run codegen against the live instance. Guarantees typing matches reality.
 - **Fall back to the nearest-lower populated version** — newer fields silently disappear; typed access to known fields still works.
@@ -193,16 +218,16 @@ We default to "refuse" because a strict codebase that loudly fails when things a
 
 ## Regenerating
 
-`make dhis2-codegen-all` (or the underlying `infra/scripts/codegen_all_versions.sh`) orchestrates the whole pipeline. Default set is v41 + v42 + v43:
+`make dhis2-codegen-all` (or the underlying `infra/scripts/codegen_all_versions.sh`) orchestrates the whole pipeline. Default set is v41 + v42 + v43 + v44:
 
 ```bash
-infra/scripts/codegen_all_versions.sh            # default — v41 + v42 + v43
+infra/scripts/codegen_all_versions.sh            # default — v41 + v42 + v43 + v44
 infra/scripts/codegen_all_versions.sh v43        # subset
 ```
 
 For each version N, the script:
 
-1. Brings up a fresh `dhis2/core:N` stack with an empty-gzip placeholder where `infra/v{N}/dump.sql.gz` sits (so Flyway bootstraps a clean schema instead of loading the seeded e2e dump into a fresh stack).
+1. Brings up a fresh stack on that major's pinned `DHIS2_IMAGE` with an empty-gzip placeholder where `infra/v{N}/dump.sql.gz` sits (so Flyway bootstraps a clean schema instead of loading the seeded e2e dump into a fresh stack).
 2. Waits for `/api/system/info` to respond.
 3. Runs `d2w dev codegen generate` against `http://localhost:8080` with admin/district, which writes `generated/v{N}/schemas/`, `resources.py`, `__init__.py`, and `schemas_manifest.json`.
 4. Runs `d2w dev codegen fetch-openapi` to capture the live `/api/openapi/openapi.json` into `generated/v{N}/openapi.json`, byte for byte.
@@ -232,7 +257,7 @@ uv run d2w dev codegen rebuild                              # every v{N}/schemas
 uv run d2w dev codegen rebuild --manifest path/to/foo.json  # just one
 ```
 
-Useful after touching `emit.py` or the Jinja templates when you want all three trees refreshed without booting each server.
+Useful after touching `emit.py` or the Jinja templates when you want every tree refreshed without booting each server.
 
 ## Trade-offs
 

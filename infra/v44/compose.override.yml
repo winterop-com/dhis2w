@@ -1,0 +1,22 @@
+# Compose overrides for the DHIS2 v44 stack, layered over compose.yml whenever
+# DHIS2_VERSION=v44 (infra/Makefile and scripts/dhis2_run.sh pick up
+# `<major>/compose.override.yml` when it exists).
+#
+# The 2.44 image is a Jib build with embedded Tomcat: `java` is its only
+# binary and its entrypoint execs `java` directly, with no shell. So:
+# - the curl healthcheck in compose.yml cannot run inside it. The stack's
+#   readiness comes from `make wait`, which probes /api/me from the host.
+# - JAVA_OPTS is never expanded. The JVM reads JAVA_TOOL_OPTIONS on its own,
+#   so the heap settings and the glowroot agent move there.
+services:
+  dhis2:
+    environment:
+      JAVA_OPTS: ""
+      JAVA_TOOL_OPTIONS: "-Xms2g -Xmx4g -XX:+UseG1GC -javaagent:/opt/dhis2/glowroot/glowroot.jar"
+    healthcheck:
+      disable: true
+
+  analytics-trigger:
+    depends_on:
+      dhis2:
+        condition: service_started

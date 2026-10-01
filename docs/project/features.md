@@ -4,7 +4,7 @@ title: Feature catalog
 
 # Feature catalog
 
-A complete Python toolkit for DHIS2 v41, v42, and v43; async client library,
+A complete Python toolkit for DHIS2 v41, v42, v43, and v44 (preview); async client library,
 CLI, and codegen, organized as a `uv` workspace with three publishable packages
 and a workspace-only generator. The MCP servers
 ([`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp)), browser automation
@@ -65,10 +65,10 @@ Two codegen pipelines feed typed models into the client:
 - **`/api/openapi.json`**: instance-side shapes (tracker write payloads,
   response envelopes, auth scheme discriminators)
 
-Each DHIS2 version (v41, v42, v43) has its own generated tree under
+Each DHIS2 version (v41, v42, v43, v44) has its own generated tree under
 `dhis2w_client.generated.v{N}/`. One wire shape is hand-written beside the
 generated tree: `MapView` and its three enums live in `dhis2w_client.v{N}.maps`,
-so all three trees expose one shape no matter what a release lists for
+so every tree exposes one shape no matter what a release lists for
 `mapView` on `/api/schemas` (BUGS.md #43).
 
 ### Resource Accessors
@@ -132,7 +132,7 @@ Connection profiles are discovered automatically:
 4. `DHIS2_PROFILE` env to pin a named profile
 
 Each profile stores: name, base URL, auth type (basic/pat/oauth2), and DHIS2
-version (v41/v42/v43).
+version (v41/v42/v43/v44).
 
 ### Token Store
 
@@ -145,8 +145,8 @@ refresh on expiry.
 22 built-in plugins, each with a service layer (`service.py`) and CLI
 commands (`cli.py`); most also have MCP tools, which live in the
 [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack as
-`dhis2w_mcp/tools/v{41,42,43}/<plugin>.py` and call the same `service.py`. Every built-in
-plugin exists in three version trees (v41, v42, v43). The rows naming a pack -
+`dhis2w_mcp/tools/v{N}/<plugin>.py` and call the same `service.py`. Every built-in
+plugin exists in four version trees (v41, v42, v43, v44). The rows naming a pack -
 **fhir**, **security**, **browser** - are plugins from repositories of their own,
 mounted through the external entry-point mechanism when the pack is installed.
 
@@ -331,7 +331,7 @@ d2w metadata list dataSets --fields 'id,name,organisationUnits~size'
 
 FastMCP server (`dhis2`) exposing every plugin as typed MCP tools: 315 tools
 across 14 plugin groups, plus whatever a plugin pack registers. The tools of the
-built-in plugins live in the pack as `dhis2w_mcp/tools/v{41,42,43}/<plugin>.py`,
+built-in plugins live in the pack as `dhis2w_mcp/tools/v{N}/<plugin>.py`,
 registered through one `mcp` plugin contribution, and call the same core
 `service.py` as the CLI. The full catalog is auto-generated into the pack's
 [tool reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/).
@@ -497,12 +497,16 @@ d2w dev codegen diff <from> <to> # structural diff between versions
 
 ### Multi-Version Support
 
-All three DHIS2 major versions (v41, v42, v43) are supported with separate
-plugin trees and generated code. Version resolution:
+Four DHIS2 major versions (v41, v42, v43, v44) are supported with separate
+plugin trees and generated code. v44 is a preview: 2.44.0 is not released, so
+the v44 tree and its generated code target a 2.44 development build pinned by
+digest, and the v44 end-to-end CI leg does not gate a merge (see
+[Versioning](../architecture/versioning.md)). The supported set is the `Dhis2`
+enum in `dhis2w_client.generated`. Version resolution:
 
 1. `profile.version` field in `profiles.toml`
 2. `DHIS2_VERSION` environment variable
-3. Default: `v42`
+3. Default: `v43`
 
 `d2w --version` shows which plugin tree booted and where the version came from.
 
@@ -531,7 +535,7 @@ plugin/
 
 The FastMCP tool definitions for a plugin live in the
 [`dhis2w-mcp`](https://github.com/winterop-com/dhis2w-mcp) pack as
-`dhis2w_mcp/tools/v{41,42,43}/<plugin>.py`, calling the same `service.py`.
+`dhis2w_mcp/tools/v{N}/<plugin>.py`, calling the same `service.py`.
 Adding a new plugin wires it into the CLI; its MCP tools land in the pack.
 
 ### Pydantic Everywhere
@@ -558,7 +562,7 @@ checks, and BUGS.md workaround drift detection. Available via CLI and MCP.
 ### Examples
 
 One example tree, version-neutral: each example is a single copy that runs
-against DHIS2 v41, v42, and v43.
+against DHIS2 v41, v42, v43, and v44.
 
 - **`examples/client/`**: 80+ Python examples (whoami, CRUD, analytics, OIDC,
   bulk import, tracker lifecycle, sharing, error handling, ...)
@@ -570,7 +574,8 @@ against DHIS2 v41, v42, and v43.
 
 Examples that exist for one major only live under that major's subdirectory -
 `examples/client/v41/` (3 v41 wire quirks) and `examples/client/v43/`
-(10 v43 schema divergences). Every example is small, shows one feature, and is
+(10 v43 schema divergences). v44 also runs the `examples/client/v43/` variants,
+since 2.44 ships the same v43 features. Every example is small, shows one feature, and is
 executed by `make verify-examples`.
 
 ---

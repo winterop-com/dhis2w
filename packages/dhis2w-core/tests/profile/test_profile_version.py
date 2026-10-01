@@ -17,6 +17,7 @@ from dhis2w_core.profile import (
 from dhis2w_core.v41.plugins.profile.cli import _validate_version as _validate_v41
 from dhis2w_core.v42.plugins.profile.cli import _validate_version as _validate_v42
 from dhis2w_core.v43.plugins.profile.cli import _validate_version as _validate_v43
+from dhis2w_core.v44.plugins.profile.cli import _validate_version as _validate_v44
 
 
 def _clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -31,7 +32,7 @@ def test_profile_defaults_to_no_version() -> None:
     assert profile.version is None
 
 
-@pytest.mark.parametrize("value", [Dhis2.V41, Dhis2.V42, Dhis2.V43])
+@pytest.mark.parametrize("value", [Dhis2.V41, Dhis2.V42, Dhis2.V43, Dhis2.V44])
 def test_profile_accepts_supported_versions(value: Dhis2) -> None:
     """Each supported major round-trips through the model."""
     profile = Profile(base_url="http://x", auth="pat", token="d2p_x", version=value)
@@ -125,12 +126,16 @@ def test_env_raw_no_version_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert resolved.profile.version is None
 
 
-@pytest.mark.parametrize("validate", [_validate_v41, _validate_v42, _validate_v43], ids=["v41", "v42", "v43"])
-@pytest.mark.parametrize("value,expected", [("v41", Dhis2.V41), ("v42", Dhis2.V42), ("v43", Dhis2.V43)])
-def test_validate_version_accepts_all_three_in_every_tree(
+@pytest.mark.parametrize(
+    "validate", [_validate_v41, _validate_v42, _validate_v43, _validate_v44], ids=["v41", "v42", "v43", "v44"]
+)
+@pytest.mark.parametrize(
+    "value,expected", [("v41", Dhis2.V41), ("v42", Dhis2.V42), ("v43", Dhis2.V43), ("v44", Dhis2.V44)]
+)
+def test_validate_version_accepts_every_major_in_every_tree(
     validate: Callable[[str | None], Dhis2 | None], value: str, expected: Dhis2
 ) -> None:
-    """`d2w profile add --version` accepts all three majors regardless of active tree.
+    """`d2w profile add --version` accepts every supported major regardless of active tree.
 
     Guards against tree-copy sed drift corrupting the allow-list (the v41/v43 trees
     once held `v41 | v41 | v43` / `v41 | v43 | v43`, rejecting `--version v42`).

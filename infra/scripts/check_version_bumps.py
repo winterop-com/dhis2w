@@ -135,7 +135,7 @@ def main() -> int:
     for pin in pins:
         newest = latest.get(pin.minor, "?")
         if pin.held:
-            print(f"  v{pin.minor}: {pin.tag} (held — latest {newest}, see BUGS.md)")
+            print(f"  v{pin.minor}: {pin.tag} (held — latest release {newest}; see the comment in versions.env)")
         elif any(b.minor == pin.minor for b in bumps):
             print(f"  v{pin.minor}: {pin.tag} -> {newest}  BUMP AVAILABLE")
         else:

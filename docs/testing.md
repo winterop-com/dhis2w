@@ -138,7 +138,7 @@ pytest_plugins = ["dhis2w_core.testing"]
 - An autouse fixture that fails any test reaching `webbrowser.open` / `open_new` /
   `open_new_tab` instead of launching the interactive OAuth2 login.
 - `core_version`, `plugin_service`, `mock_system_info` and `core_profile`, which
-  parametrize one test body across the v41/v42/v43 plugin trees.
+  parametrize one test body across the v41/v42/v43/v44 plugin trees.
 
 There is no `pytest11` entry point on purpose: the autouse fixtures reshape the process
 environment, which is right for a dhis2w suite and wrong for any other suite that happens

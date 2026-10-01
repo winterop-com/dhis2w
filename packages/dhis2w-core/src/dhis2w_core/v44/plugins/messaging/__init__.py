@@ -1,0 +1,25 @@
+"""Messaging plugin — DHIS2 `/api/messageConversations`."""
+
+from __future__ import annotations
+
+from dhis2w_core.plugin import Contribution, extension
+
+
+class _MessagingPlugin:
+    """Plugin descriptor for DHIS2 internal messaging (conversations + attachments)."""
+
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w messaging`; its MCP tools are the dhis2w-mcp pack's."""
+        return Contribution(
+            name="messaging",
+            description=(
+                "DHIS2 internal messaging. CLI for /api/messageConversations — list, read, send, reply, "
+                "mark-read, delete. Pairs with the files plugin for MESSAGE_ATTACHMENT fileResources."
+            ),
+            cli_module="dhis2w_core.v44.plugins.messaging.cli",
+            mcp_module=None,
+        )
+
+
+plugin = _MessagingPlugin()

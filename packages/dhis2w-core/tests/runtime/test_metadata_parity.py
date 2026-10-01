@@ -3,8 +3,8 @@
 The `metadata` plugin is the one plugin whose service genuinely diverges across version trees: v43
 adds `set_program_labels`, `set_program_change_log_enabled`, and
 `set_program_enrollment_category_combo`, which do not exist on v41/v42. These tests cover ONLY the
-intersection — functions present on all three trees — so a single body resolves the service per
-`core_version` (v41/v42/v43) and the v41/v43 code is executed and counted, not just smoke-imported.
+intersection — functions present on every tree — so a single body resolves the service per
+`core_version` (every tree) and the v41/v43 code is executed and counted, not just smoke-imported.
 
 `bulk_rename_metadata` is already parity-covered in `test_plugin_service_parity.py`, so it is not
 repeated here. Routes + payloads mirror the v42-only `tests/metadata/*` suite. Mocked (respx); no

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
+import pytest
 import respx
 from dhis2w_client import BasicAuth
 from dhis2w_client.v41.oauth2_payload import build_register_payload as build_v41
 from dhis2w_client.v42.oauth2_payload import build_register_payload as build_v42
 from dhis2w_client.v43.oauth2_payload import build_register_payload as build_v43
+from dhis2w_client.v44.oauth2_payload import build_register_payload as build_v44
 from dhis2w_core.oauth2_registration import register_oauth2_client
 
 
@@ -45,6 +49,26 @@ def test_v43_payload_uses_client_id_not_cid() -> None:
     assert "cid" not in payload
 
 
+def test_v44_payload_uses_client_id_not_cid() -> None:
+    """v44 carries v43's shape; payload must not carry `cid`."""
+    payload = build_v44(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[arg-type]
+    assert payload["clientId"] == "my-app"
+    assert "cid" not in payload
+
+
+def test_v44_registers_the_openid_scopes_and_requires_pkce() -> None:
+    """2.44 refuses `ALL` and a client without PKCE (BUGS.md #134); the v44 builder registers what 2.44 allows."""
+    payload = build_v44(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[arg-type]
+    assert payload["scopes"] == "openid,email,profile,username"
+    assert json.loads(payload["clientSettings"])["settings.client.require-proof-key"] is True
+
+
+def test_v44_refuses_a_scope_outside_the_openid_set() -> None:
+    """Requesting `ALL` against a 2.44 client fails before the request instead of with a 409."""
+    with pytest.raises(ValueError, match="allows only the scopes"):
+        build_v44(**{**_common_kwargs(), "scope": "ALL"})  # type: ignore[arg-type]
+
+
 def test_v41_emits_arrays_for_multivalued_fields() -> None:
     """v41 rejects strings on multi-valued fields with a Jackson error; it needs arrays (BUGS.md #39)."""
     payload = build_v41(**_common_kwargs())  # type: ignore[arg-type]
@@ -52,14 +76,15 @@ def test_v41_emits_arrays_for_multivalued_fields() -> None:
         assert isinstance(payload[field], list)
 
 
-def test_v42_and_v43_emit_comma_separated_strings_for_multivalued_fields() -> None:
+def test_v42_onward_emit_comma_separated_strings_for_multivalued_fields() -> None:
     """2.42.6 and 2.43.1 answer 201 to arrays and store nothing for them (BUGS.md #117); strings persist."""
-    for builder in (build_v42, build_v43):
-        payload = builder(**_common_kwargs())  # type: ignore[arg-type]
+    for builder in (build_v42, build_v43, build_v44):
+        scope = "openid" if builder is build_v44 else "ALL"
+        payload = builder(**{**_common_kwargs(), "scope": scope})  # type: ignore[arg-type]
         assert payload["authorizationGrantTypes"] == "authorization_code,refresh_token"
         assert payload["clientAuthenticationMethods"] == "client_secret_basic,client_secret_post"
         assert payload["redirectUris"] == "http://localhost:8765"
-        assert payload["scopes"] == "ALL"
+        assert isinstance(payload["scopes"], str)
 
 
 @respx.mock

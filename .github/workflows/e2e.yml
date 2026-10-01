@@ -22,16 +22,19 @@ jobs:
     # under post-refresh analytics load.
     timeout-minutes: 60
     # One in-progress run per (branch, dhis2_version) pair. Per-job
-    # concurrency (not workflow-level) so the v42 and v43 matrix jobs
-    # don't cancel each other.
+    # concurrency (not workflow-level) so the matrix jobs don't cancel
+    # each other.
     concurrency:
       group: e2e-${{ github.ref }}-${{ matrix.dhis2_version }}
       cancel-in-progress: true
+    # v44 is a preview pinned to a 2.44 development build (infra/versions.env); its leg
+    # reports without failing the workflow until 2.44.0 is released and re-pinned.
+    continue-on-error: ${{ matrix.dhis2_version == 'v44' }}
     strategy:
       # Each version is independent; one failure shouldn't cancel the other.
       fail-fast: false
       matrix:
-        dhis2_version: ["v41", "v42", "v43"]
+        dhis2_version: ["v41", "v42", "v43", "v44"]
     steps:
       - uses: actions/checkout@v7
 

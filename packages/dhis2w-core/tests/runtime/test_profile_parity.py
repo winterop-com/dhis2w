@@ -3,10 +3,10 @@
 The `profile` service is mostly local profile management (read/write profiles.toml, redact secrets,
 OIDC discovery) and most of its public functions never open a DHIS2 client. The two that do are
 `verify_profile` and `verify_all_profiles`, which build a client from the profile and probe
-`/api/system/info` + `/api/me`. Those are resolved per `core_version` (v41/v42/v43) so the v41/v43
+`/api/system/info` + `/api/me`. Those are resolved per `core_version` (every tree) so the v41/v43
 service code is actually executed and counted, not just smoke-imported. A purely-local call
 (`discover_oidc_profile`, mocked OIDC discovery) is included so the local branch is also walked on
-every tree. The three service trees are byte-identical copies (only the import version differs), so the
+every tree. The service trees are byte-identical copies (only the import version differs), so the
 assertions are the same on every tree. Mocked (respx); no live stack.
 
 Covered (HTTP):     verify_profile, verify_all_profiles

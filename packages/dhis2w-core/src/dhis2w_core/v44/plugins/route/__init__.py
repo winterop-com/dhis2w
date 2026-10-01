@@ -1,0 +1,22 @@
+"""Route plugin — CLI wrappers over /api/routes (DHIS2 integration routes)."""
+
+from __future__ import annotations
+
+from dhis2w_core.plugin import Contribution, extension
+
+
+class _RoutePlugin:
+    """Plugin descriptor for the DHIS2 Route API."""
+
+    @extension
+    def contribute(self, version_key: str) -> Contribution:
+        """Contribute `d2w route`; its MCP tools are the dhis2w-mcp pack's."""
+        return Contribution(
+            name="route",
+            description="DHIS2 Route API — register + run integration routes (proxies to external services).",
+            cli_module="dhis2w_core.v44.plugins.route.cli",
+            mcp_module=None,
+        )
+
+
+plugin = _RoutePlugin()

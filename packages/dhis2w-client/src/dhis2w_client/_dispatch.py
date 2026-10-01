@@ -15,6 +15,8 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
+from dhis2w_client.generated import Dhis2
+
 _ACCESSOR_BINDINGS: list[tuple[str, str, str]] = [
     # (attribute_name, module_name, class_name) — kept in sync with the
     # bindings in v{41,42,43}/client.py:__init__. When a new accessor is
@@ -72,7 +74,7 @@ _ACCESSOR_BINDINGS: list[tuple[str, str, str]] = [
 ]
 
 
-_KNOWN_VERSION_KEYS = frozenset({"v41", "v42", "v43"})
+_KNOWN_VERSION_KEYS = frozenset(member.value for member in Dhis2)
 
 
 def rebind_accessors_for_version(client: Any, version_key: str, *, home: str) -> None:
