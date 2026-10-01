@@ -26,7 +26,7 @@ below.
 
 ## Index
 
-142 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
+143 entries grouped by area. **Status tags** carry the result of the 2026-09-10/11 sweep — the local
 stacks `dhis2/core:2.41.10.0`, `2.42.6.0` and `2.43.1.0`, plus the play channels `stable-2-41-10`,
 `stable-2-42-6`, `stable-2-43-1`, `dev-2-41`, `dev-2-42` and `dev-2-43` — and, after the semicolon,
 the result of the 2026-10-01 retest on the v44 preview: `2.44-SNAPSHOT` revision `b732899`, a local
@@ -199,6 +199,7 @@ Every entry in the file is listed here.
 - [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api) — a data value whose data set was deleted cannot be deleted (2.43 unverified) **[NEW]**
 - [#141](#141-post-apipredictorsuidrun-with-a-uid-that-does-not-exist-answers-500-with-a-nullpointerexception-message) — a predictor run with a UID that does not exist answers 500 (2.43 unverified) **[NEW]**
 - [#142](#142-predictors-whose-generator-reads-data-produce-no-predictions-provisional) — predictors whose generator reads data produce nothing (provisional, 2.43 unverified) **[NEW]**
+- [#143](#143-244-clears-a-failed-jobs-notification-feed-about-a-second-after-its-terminal-row) — 2.44 clears a failed job's notification feed about a second after its terminal row **[NEW]**
 
 ### v41-specific
 
@@ -5705,6 +5706,55 @@ back.
 
 **Status (2026-10-01):** new, provisional. Needs one run on play `dev` or a second 2.44 stack before
 it is treated as confirmed, and one on 2.43.1 to scope it.
+
+---
+
+### 143. 2.44 clears a failed job's notification feed about a second after its terminal row
+
+On 2.44 a job that fails (here the analytics job, aborting on #36) posts its
+terminal `completed: true` row and then empties its whole notification feed
+within about a second. A client that polls `/api/system/tasks/{type}/{uid}`
+every two seconds misses the terminal row about half the time and then sees an
+empty list until it gives up. A job that succeeds keeps its feed.
+
+**Observed on:** `2.44-SNAPSHOT` rev `b732899` (`dhis2/core-dev@sha256:19303b4f...`), local
+stack with the Sierra Leone seed, and the v44 leg of the nightly e2e workflow (run
+36818777342, `test_analytics_refresh_watch_completes` timed out after 600 s). 2.43 unverified:
+the same test passes on the v43 leg, whose analytics job fails the same way (#36).
+
+**Repro:**
+
+```bash
+B=http://localhost:8080
+id=$(curl -su admin:district -X POST "$B/api/resourceTables/analytics?lastYears=1" | jq -r .response.id)
+for i in $(seq 1 15); do
+  curl -su admin:district "$B/api/system/tasks/ANALYTICS_TABLE/$id" | jq -c '[length, any(.[]; .completed)]'
+  sleep 1
+done
+# t+6s [5,false]   t+9s [77,false]   t+10s [1,true]   t+11s [0,false] ... stays empty
+curl -su admin:district "$B/api/jobConfigurations/$id?fields=jobStatus,lastExecutedStatus"
+# {"jobStatus":"DISABLED","lastExecutedStatus":"FAILED"}
+# A succeeding job (POST /api/dataIntegrity?checks=orgunits_invalid_geometry) keeps its
+# completed row for as long as it was polled (30 s).
+```
+
+**Expected:** the terminal notification stays readable after the job ends, failed or not, as it
+does for a job that succeeds.
+
+**Actual:** the feed of a failed job is wiped within about a second of its terminal row.
+
+**Impact:** any watcher that polls the task feed can miss the failure and wait until its own
+timeout, reporting a hang instead of the error.
+
+**Workaround in this repo:** `TaskModule.poll_once` in
+`packages/dhis2w-client/src/dhis2w_client/v{41,42,43,44}/tasks.py` reads
+`/api/jobConfigurations/{uid}` when a feed that had rows comes back empty, and ends the watch
+from `lastExecutedStatus` (`FAILED` becomes an `ERROR` terminal notification).
+
+**How to know it's fixed:** the repro's poll keeps returning the `completed: true` row after a
+failed job ends.
+
+**Status (2026-10-01):** new, from the first e2e run with a v44 leg.
 
 ---
 

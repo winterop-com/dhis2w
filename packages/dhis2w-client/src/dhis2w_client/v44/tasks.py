@@ -102,6 +102,10 @@ class TaskPoll(BaseModel):
         return f"/api/system/tasks/{self.job_type}/{self.task_uid}"
 
 
+# `lastExecutedStatus` values that mean the run is over.
+_ENDED_STATUSES = frozenset({"COMPLETED", "FAILED", "STOPPED"})
+
+
 class TaskModule:
     """Accessor bound to a `Dhis2Client` exposing background-task polling."""
 
@@ -165,6 +169,15 @@ class TaskModule:
         raw = await self._client.get_raw(f"/api/system/tasks/{job_type}/{task_uid}")
         data = raw.get("data")
         items: list[object] = data if isinstance(data, list) else []
+        if not items and seen:
+            # The feed had rows and is now empty: 2.44 wipes a failed job's notifications about a
+            # second after its terminal row (BUGS.md #143), so a poll can miss that row entirely.
+            # The job configuration keeps the outcome.
+            ended = await self._ended_from_job_configuration(task_uid)
+            if ended is not None:
+                return TaskPoll(
+                    job_type=job_type, task_uid=task_uid, new=[ended], completed=True, cursor=frozenset(seen)
+                )
         new: list[Notification] = []
         completed = False
         # DHIS2 returns newest-first; walk oldest-first so `new` reads chronologically.
@@ -189,6 +202,23 @@ class TaskModule:
             new=new,
             completed=completed,
             cursor=frozenset(seen),
+        )
+
+    async def _ended_from_job_configuration(self, task_uid: str) -> Notification | None:
+        """Return a terminal notification built from `/api/jobConfigurations/{uid}` once the run has ended."""
+        raw = await self._client.get_raw(
+            f"/api/jobConfigurations/{task_uid}", params={"fields": "jobStatus,lastExecutedStatus,lastExecuted"}
+        )
+        status = str(raw.get("lastExecutedStatus") or "").upper()
+        if status not in _ENDED_STATUSES or str(raw.get("jobStatus") or "").upper() == "RUNNING":
+            return None
+        return Notification.model_validate(
+            {
+                "completed": True,
+                "level": "ERROR" if status == "FAILED" else "INFO",
+                "message": f"job {status.lower()} (read from the job configuration; its notification feed was cleared)",
+                "time": raw.get("lastExecuted"),
+            }
         )
 
     async def iter_notifications(

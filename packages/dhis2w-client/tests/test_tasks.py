@@ -342,3 +342,64 @@ async def test_poll_once_empty_feed_returns_nothing(server_version: str, mock_sy
     assert poll.new == []
     assert poll.completed is False
     assert poll.cursor == frozenset()
+
+
+@respx.mock
+async def test_await_completion_reads_the_job_configuration_when_the_feed_is_cleared(
+    monkeypatch: pytest.MonkeyPatch,
+    server_version: str,
+) -> None:
+    """A feed that empties after rows ends the watch from `lastExecutedStatus` (BUGS.md #143), on every tree."""
+
+    async def _instant_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr("asyncio.sleep", _instant_sleep)
+    respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="ok"))
+    respx.get("https://dhis2.example/api/system/info").mock(
+        return_value=httpx.Response(200, json={"version": server_version}),
+    )
+    respx.get("https://dhis2.example/api/system/tasks/ANALYTICS_TABLE/uid123").mock(
+        side_effect=[
+            _notifications([{"uid": "n1", "message": "Generating resource tables", "completed": False}]),
+            _notifications([]),
+        ],
+    )
+    configuration = respx.get("https://dhis2.example/api/jobConfigurations/uid123").mock(
+        return_value=httpx.Response(
+            200,
+            json={"jobStatus": "DISABLED", "lastExecutedStatus": "FAILED", "lastExecuted": "2026-10-01T05:30:51.000"},
+        ),
+    )
+
+    async with Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district")) as client:
+        completion = await client.tasks.await_completion(("ANALYTICS_TABLE", "uid123"), timeout=30)
+
+    assert configuration.called
+    assert completion.final.completed is True
+    assert completion.level == "ERROR"
+    assert "failed" in completion.message
+
+
+@respx.mock
+async def test_an_empty_feed_before_any_row_keeps_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An empty feed on the first polls means the job has not started; the job configuration is not consulted."""
+
+    async def _instant_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr("asyncio.sleep", _instant_sleep)
+    _mock_connect_preamble()
+    respx.get("https://dhis2.example/api/system/tasks/ANALYTICS_TABLE/uid123").mock(
+        side_effect=[
+            _notifications([]),
+            _notifications([{"uid": "n1", "message": "done", "completed": True}]),
+        ],
+    )
+    configuration = respx.get("https://dhis2.example/api/jobConfigurations/uid123")
+
+    async with Dhis2Client("https://dhis2.example", auth=BasicAuth(username="admin", password="district")) as client:
+        completion = await client.tasks.await_completion(("ANALYTICS_TABLE", "uid123"), timeout=30)
+
+    assert not configuration.called
+    assert completion.message == "done"
