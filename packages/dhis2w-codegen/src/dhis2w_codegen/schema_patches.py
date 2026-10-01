@@ -26,9 +26,9 @@ class BootDependentProperty(BaseModel):
 
 # On 2.43.1 `categoryOption.aggregationType` reads `BOOLEAN` on some boots of one image and
 # `CONSTANT` on others, the same member collision that moves the OpenAPI document (BUGS.md #95,
-# #133). The wire value is an `AggregationType` such as "SUM", which is what v41, v42 and every
-# other boot report, so the property takes its type from `dataElement.aggregationType` on the
-# same server.
+# #133). Reads omit the property on every category option; what moves is its declared type,
+# which is the `AggregationType` enum on v41, v42 and most 2.43.1 boots, so the property takes
+# its type from `dataElement.aggregationType` on the same server.
 BOOT_DEPENDENT_PROPERTIES: tuple[BootDependentProperty, ...] = (
     BootDependentProperty(
         schema_name="categoryOption",
