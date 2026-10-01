@@ -116,6 +116,10 @@ Every entry in the file is listed here.
 - [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway) — `POST /api/dataValues` accepts `dryRun=true` and writes the value anyway **[STILL; 2.44 STILL]**
 - [#131](#131-a-program-rule-assigns--infinity-to-a-number-data-element-and-dhis2-then-refuses-its-own-assignment-with-e1302) — a program rule assigns `-Infinity` and DHIS2 refuses its own assignment **[STILL; 2.44 STILL]**
 - [#110](#110-e8032-untimely-data-entry-names-neither-the-category-option-that-closed-nor-the-window-it-closed-on-and-a-window-ending-inside-a-period-closes-the-whole-period) — `E8032` names neither the category option nor its window, and a window ending inside a period closes the period **[STILL; 2.44 STILL]**
+- [#139](#139-a-superuser-is-exempt-from-the-open-future-periods-check-on-apidatavaluesets) — a superuser is exempt from the open-future-periods check on `/api/dataValueSets` **[NEW; 2.43.1 + 2.44]**
+- [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api) — a data value whose data set was deleted cannot be deleted **[NEW; 2.43.1 + 2.44]**
+- [#141](#141-post-apipredictorsuidrun-with-a-uid-that-does-not-exist-answers-500-with-a-nullpointerexception-message) — a predictor run with a UID that does not exist answers 500 **[NEW; 2.43.1 + 2.44]**
+- [#142](#142-predictors-whose-generator-reads-data-produce-no-predictions) — predictors whose generator reads data produce nothing **[NEW; 2.43.1 + 2.44]**
 
 ### Metadata / Sharing / UX
 
@@ -178,6 +182,7 @@ Every entry in the file is listed here.
 - [#126](#126-post-apimaintenance-answers-success-to-any-query-flag-name-real-or-invented-while-the-path-form-refuses-an-unknown-name) — `/api/maintenance` answers success to any query flag name, real or invented **[STILL; 2.44 STILL]**
 - [#127](#127-file-resources-cannot-be-deleted-through-the-api-so-an-orphaned-document-resource-is-permanent) — file resources cannot be deleted through the API **[STILL; 2.44 STILL]**
 - [#137](#137-get-apiauditstrackedentity-answers-500-with-a-raw-nullpointerexception-message-when-trackedentities-is-absent-and-ignores-page--pagesize--paging-when-it-is-present) — `GET /api/audits/trackedEntity` answers 500 without `trackedEntities` and ignores paging, on 2.42 to 2.44 **[NEW]**
+- [#138](#138-a-map-layers-fixed-periods-cannot-be-written-through-apimetadata-periods-fails-on-a-transient-period-and-rawperiods-is-dropped) — a map layer's fixed periods cannot be written through `/api/metadata` **[NEW; 2.43.1 + 2.44]**
 
 ### v43-specific
 
@@ -194,11 +199,6 @@ Every entry in the file is listed here.
 - [#134](#134-244-refuses-all-as-an-oauth2-client-scope-requires-pkce-on-every-registered-client-and-reports-the-scope-refusal-as-a-missing-required-property) — `ALL` refused as an OAuth2 client scope, PKCE required, and the refusal worded as a missing property **[NEW]**
 - [#135](#135-the-244-image-has-no-shell-and-never-reads-java_opts-and-trackedentityattributeconfidential-is-gone-from-the-schema) — the 2.44 image has no shell and ignores `JAVA_OPTS`; `TrackedEntityAttribute.confidential` is gone **[NEW]**
 - [#136](#136-list-reads-with-a-plain-fields-selection-are-answered-by-the-gist-engine-an-extra-gist-true-key-a-reordered-pager-and-a-nextpage-downgraded-to-http-behind-tls) — plain `fields=` list reads answer through Gist, with an extra `gist` key and an `http://` `nextPage` **[NEW]**
-- [#138](#138-a-map-layers-fixed-periods-cannot-be-written-through-apimetadata-periods-fails-on-a-transient-period-and-rawperiods-is-dropped) — a map layer's fixed periods cannot be written through `/api/metadata` (2.43 unverified) **[NEW]**
-- [#139](#139-a-superuser-is-exempt-from-the-open-future-periods-check-on-apidatavaluesets) — a superuser is exempt from the open-future-periods check on `/api/dataValueSets` **[NEW]**
-- [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api) — a data value whose data set was deleted cannot be deleted (2.43 unverified) **[NEW]**
-- [#141](#141-post-apipredictorsuidrun-with-a-uid-that-does-not-exist-answers-500-with-a-nullpointerexception-message) — a predictor run with a UID that does not exist answers 500 (2.43 unverified) **[NEW]**
-- [#142](#142-predictors-whose-generator-reads-data-produce-no-predictions-provisional) — predictors whose generator reads data produce nothing (provisional, 2.43 unverified) **[NEW]**
 - [#143](#143-244-clears-a-failed-jobs-notification-feed-about-a-second-after-its-terminal-row) — 2.44 clears a failed job's notification feed about a second after its terminal row **[NEW]**
 
 ### v41-specific
@@ -571,6 +571,17 @@ Each entry's "Retested on" line records the exact version + revision the
 re-run hit, what was checked, and the outcome. Entries that need write
 access, custom `dhis.conf`, or a server restart are marked **not retested
 against play** — verify locally when a v43 e2e dump exists.
+
+### 2026-10-01 — 2.43.1 scope of the new v44 entries (local `2.43.1.0` rev `9cbfbf3`)
+
+The five entries the v44 sweep could not scope without a write, #138 to #142, were re-run on a local
+`2.43.1` stack restored from the seeded v43 dump. All five reproduce there, so they moved from the
+v44 section to the end of the v43 section and out of the `v44-specific` index group. #142 loses its
+provisional mark: a predictor over values written through the API moments earlier also reads them as
+missing, so the predictor engine is the cause, not the seed. The same run corrects #6: the
+2026-09-11 admin refusal of period `209912` on `2.43.1` was `E8023` (#41), and a fresh write shows the
+superuser exempt from the open-future-periods check on 2.43.1 as on 2.44 (#139). 2.42.6 stays
+unverified for all five.
 
 ### 2026-10-01 — v44 preview sweep (local `2.44-SNAPSHOT` rev `b732899` + play `dev`, with play stable 2.43 / 2.42 as comparators)
 
@@ -2239,6 +2250,8 @@ jq '{httpStatusCode, status, message, importCount: .response.importCount, reject
 **Status (2026-09-11):** STILL on all three, and the far-future lever does fire on `2.43.1` after all: a data set with `openFuturePeriods: 0` refuses period `209912` with a `409`. It refuses as `E8023` with every `importCount` zero, not as the `E7641` with `ignored:1` that `2.42.6` and `2.41.10` still answer, which is why the 2026-09-07 run read the lever as dead — the 409 it saw came from the type violation `E8122`.
 
 **Status on 2.44 (v44 preview, rev b732899, 2026-10-01):** STILL. A push whose only row is ignored answers `409` with `status: ERROR`, `importCount.ignored: 1`, `rejectedIndexes: [0]` and conflict `E8122` (non-numeric value on a NUMBER element). The far-future lever no longer fires for a superuser: period `209912` on a data set with `openFuturePeriods: 0` is accepted with 200 and stored, while a non-superuser is refused `409 E8030` for an out-of-window period (#139). On 2.44 that half of the repro has to run as a non-superuser.
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** the 2026-09-11 reading above does not hold. `E8023` is the attribute-option-combo check (#41), not the period window: a fresh write on `2.43.1` stores period `209912` for admin with 200 on a data set with `openFuturePeriods: 0`, and refuses it for a non-superuser with `409 E8030`, the same split as 2.44 (#139). The far-future half of this repro runs as a non-superuser on 2.43 and 2.44.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_6_live_verifier`
 
@@ -5371,6 +5384,190 @@ of `2.41.10`.
 
 ---
 
+### 138. A map layer's fixed periods cannot be written through `/api/metadata`: `periods` fails on a transient `Period` and `rawPeriods` is dropped
+
+**Observed on:** `2.43.1` rev `9cbfbf3` (local stack from the seeded v43 dump) and `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. 2.42.6 unverified (the repro is a write, and play is not written to). The read side is the same on
+all three: on play `stable-2-42-6`, `stable-2-43-1` and `dev`, 56 of 155 map views read back
+`periods:[{"id":"2026"}]`, 47 carry `rawPeriods`, and `/api/schemas/mapView` lists `rawPeriods` as a
+persisted, owned, writable collection.
+
+**Repro:**
+
+```bash
+U=http://localhost:8080; H='Content-Type: application/json'
+curl -s -u admin:district -H "$H" "$U/api/metadata?importStrategy=CREATE_AND_UPDATE&atomicMode=ALL" \
+  -d '{"maps":[{"id":"W44AMapPrb3","name":"probe","longitude":-11.8,"latitude":8.5,"zoom":7,"basemap":"openStreetMap","mapViews":[{"layer":"thematic1","thematicMapType":"CHOROPLETH","organisationUnits":[{"id":"ImspTQPwCqd"}],"organisationUnitLevels":[2],"dataDimensionItems":[{"dataDimensionItemType":"DATA_ELEMENT","dataElement":{"id":"DUSpd8Jq3M7"}}],"periods":[{"id":"2024"}]}]}]}'
+# 409 "org.hibernate.TransientObjectException: object references an unsaved transient instance -
+#      save the transient instance before flushing: org.hisp.dhis.period.Period"
+
+# The same layer with "rawPeriods":["2024"] in place of "periods":
+# 200; the layer reads back {"rawPeriods":[],"periods":[]}
+```
+
+**Expected:** the layer keeps its fixed period whichever way it is spelled, as a visualization with
+the same `periods:[{"id":"2024"}]` does (it imports with 200 and keeps it).
+
+**Actual:** one spelling is a Hibernate `409` and the other is dropped without a word. The seeded
+maps on the local 2.44 stack (named for 2025) read back with `rawPeriods: []` and `periods: []`.
+
+**Impact:** maps with fixed periods cannot be created or round-tripped through the API on 2.44, and
+a seed or a backup restored through `/api/metadata` loses every layer's year. It is a sibling of
+#114: the same `TransientObjectException` family on a map layer, with a period rather than
+identifiable metadata as the reference.
+
+**Workaround in this repo:** none; `dhis2w_client.v43.maps` writes `rawPeriods`, which 2.44 drops.
+
+**How to know it's fixed:** both spellings import with 200 and the layer reads back its period.
+
+**Status (2026-10-01):** new. Seen on 2.44 only so far; whether 2.43.1 and 2.42.6 keep `rawPeriods`
+on the same import is unverified (restoring the same seed on a 2.43 stack settles it without a play
+write).
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** YES. A map layer with `periods:[{"id":"2024"}]` answers `409` `org.hibernate.TransientObjectException ... org.hisp.dhis.period.Period`, and the same layer with `rawPeriods:["2024"]` imports `200` and reads back `rawPeriods: []`, `periods: []`, while a visualization with the same `periods` keeps it. The seeded maps on the 2.43.1 stack also read back with no periods.
+
+---
+
+### 139. A superuser is exempt from the open-future-periods check on `/api/dataValueSets`
+
+**Observed on:** `2.43.1` rev `9cbfbf3` (local stack from the seeded v43 dump) and `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. On 2.43.1 a non-superuser with data-entry rights is refused
+the same periods with `409 E8030`, so the period check works and the superuser skips it. The
+2026-09-11 note on #6 that recorded `2.43.1` refusing admin with `E8023` was the attribute-option-combo
+check (#41), not the period window. `2.41.10` and `2.42.6` refused admin with `E7644` (#125).
+
+**Repro:**
+
+```bash
+# A Monthly data set with openFuturePeriods 0 containing <DE>, assigned to <OU>:
+curl -s -u admin:district -X POST http://localhost:8080/api/dataValueSets -H 'Content-Type: application/json' \
+  -d '{"dataValues":[{"dataElement":"<DE>","period":"209912","orgUnit":"<OU>","value":"77"}]}'
+# 200, and the value is stored
+
+# The same kind of row as a user without ALL, for a period outside the window:
+# 409 E8030 "Untimely data entry for data set <DS> and period(s): [<period>]"
+```
+
+**Expected:** the data set's future-period window applies to every user, or the release documents
+the exemption as a superuser privilege.
+
+**Actual:** admin writes arbitrarily far-future values; only users without `ALL` are refused.
+
+**Impact:** a test or script that checks period windows as admin passes on 2.44 and fails for real
+users. The far-future half of #6's repro no longer fires for admin on 2.44.
+
+**Workaround in this repo:** none; period-window checks have to run as a user without `ALL`.
+
+**How to know it's fixed:** the admin post above answers `409` with the same code a user without
+`ALL` receives.
+
+**Status (2026-10-01):** new. 2.44-only as far as the recorded 2.41 to 2.43 evidence reaches.
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** YES. On a Monthly data set with `openFuturePeriods: 0`, admin writes `209912`, `202612` and `202611` with `200` and they are stored, while a non-superuser with data-entry rights on the same data set and organisation unit is refused ``409 E8030 "Untimely data entry for data set W43SDsFut01 and period(s): `[209912]`"`` (same for 202612 and 202611) and accepted for past `202609`. The `E8023` that #6 recorded for admin on 2.43.1 is the attribute-option-combo check (#41), not the period window.
+
+---
+
+### 140. A data value whose data set has been deleted cannot be deleted through the API
+
+**Observed on:** `2.43.1` rev `9cbfbf3` (local stack from the seeded v43 dump) and `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. 2.42.6 unverified (the repro is a write).
+
+**Repro:**
+
+```bash
+# A live value exists for <DE> at 202607 / <OU>; the only data set containing <DE> is deleted:
+curl -s -u admin:district -X DELETE http://localhost:8080/api/dataSets/<DS>
+# 200
+curl -s -u admin:district -X DELETE 'http://localhost:8080/api/dataValues?de=<DE>&pe=202607&ou=<OU>'
+# 409 E8003 "Data set detection failed, found no set for data element(s): `[<DE>]`"
+# POST /api/dataValueSets?importStrategy=DELETE with the same row: conflict E8003 as well
+```
+
+**Expected:** either the data set delete is refused while values exist for its elements, or a value
+whose element belongs to no data set can still be deleted.
+
+**Actual:** the data set delete succeeds, and afterwards the value can only be removed by creating
+a data set that contains the element again.
+
+**Impact:** a teardown that deletes metadata before data leaves rows no API call can remove, and
+those rows then block deleting the data element and the organisation unit (#2). It is related to #2
+and #127 but the mechanism differs: here the metadata delete succeeds and orphans the data.
+
+**Workaround in this repo:** none; delete data values before the data set that holds their element.
+
+**How to know it's fixed:** the `DELETE /api/dataValues` above answers 204, or the data set delete
+answers 409.
+
+**Status (2026-10-01):** new. Seen on 2.44 only so far; 2.43.1 and 2.42.6 unverified.
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** YES. After `DELETE /api/dataSets/W43SDsFut01` (200) removed the only data set holding the element, `DELETE /api/dataValues?de=W43SDeFut01&pe=202609&ou=BNFrspDBKel` answers ``409 E8003 "Data set detection failed, found no set for data element(s): `[W43SDeFut01]`"`` and `POST /api/dataValueSets?importStrategy=DELETE` returns the same conflict, while the value still reads back `["77"]`. Re-creating a data set with the element (assigned to the value's organisation units, else E8022) made the delete succeed.
+
+---
+
+### 141. `POST /api/predictors/{uid}/run` with a UID that does not exist answers 500 with a NullPointerException message
+
+**Observed on:** `2.43.1` rev `9cbfbf3` (local stack from the seeded v43 dump) and `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. Both stacks run the Glowroot agent, whose name appears in the
+message. 2.42.6 unverified (the endpoint is a POST, and play is not written to).
+
+**Repro:**
+
+```bash
+curl -s -u admin:district -X POST \
+  'http://localhost:8080/api/predictors/W44FPd00001/run?startDate=2026-09-01&endDate=2026-09-30'
+# 500 "Cannot invoke \"org.hisp.dhis.predictor.Predictor.getName()\" because \"glowroot$enabled$0\" is null"
+```
+
+**Expected:** `404 E1005` naming the predictor UID.
+
+**Actual:** a 500 whose message is a NullPointerException. The variable it names comes from the
+Glowroot instrumentation in the local image, so an instance without the agent may word it
+differently; the null predictor behind it is DHIS2's.
+
+**Impact:** a predictor run with a mistyped UID reads as a server crash rather than a missing
+object.
+
+**Workaround in this repo:** none.
+
+**How to know it's fixed:** the post above answers 404.
+
+**Status (2026-10-01):** new. Seen on 2.44 only so far; 2.43.1 and 2.42.6 unverified.
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** YES. `POST /api/predictors/W43SPd00001/run?startDate=2026-09-01&endDate=2026-09-30` with an absent UID answers `500` `Cannot invoke "org.hisp.dhis.predictor.Predictor.getName()" because "glowroot$enabled$0" is null`, word for word as on 2.44 (the local 2.43.1 image also runs the Glowroot agent).
+
+---
+
+### 142. Predictors whose generator reads data produce no predictions
+
+**Observed on:** `2.43.1` rev `9cbfbf3` (local stack from the seeded v43 dump) and `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. On 2.43.1 it also holds for values written through the API
+moments earlier, so the seed is not the cause. 2.42.6 unverified (running a predictor writes predictions).
+
+**Repro:**
+
+```bash
+curl -s -u admin:district -X POST \
+  'http://localhost:8080/api/predictors/PrdAvgBCG01/run?startDate=2025-06-01&endDate=2025-06-30'
+# "Generated 0 predictions"
+# although s46m5MS0hxu holds 3430 values across 202501..202512 on the local seed
+```
+
+**Expected:** the seeded predictor writes its rolling averages for 2025-06.
+
+**Actual:** 0 predictions. A purpose-built predictor with generator `#{<DE>}+100` (sample count 0)
+or `avg(#{<DE>})` (sample count 3) also generates 0, while the same predictor with the constant
+generator `5` generates 15.
+
+**Impact:** if confirmed, predictors that read data are silently inert on 2.44: the run answers
+success and writes nothing.
+
+**Workaround in this repo:** none.
+
+**How to know it's fixed:** the run above reports a non-zero count and the predicted values read
+back.
+
+**Status (2026-10-01):** new, provisional. Needs one run on play `dev` or a second 2.44 stack before
+it is treated as confirmed, and one on 2.43.1 to scope it.
+
+**Status on 2.43.1 (rev 9cbfbf3, local, 2026-10-01):** YES. The seeded `PrdAvgBCG01` over 2025-06 answers `Generated 0 predictions` although `s46m5MS0hxu.Prlt0C1RF0s` holds 199, 208 and 211 facility values for 202503-202505, and purpose-built predictors with `#{s46m5MS0hxu.Prlt0C1RF0s}+100` and `avg(...)` also generate 0 while a constant `5` generates 1166. With `NEVER_SKIP` the generator `#{s46m5MS0hxu}+100` writes `100.0` at Zimmi CHC, whose 202506 source value is 39, so the data reference evaluates as missing. A predictor over values written through the API for this check (source `39` at Ngelehun CHC, `#{de}+100` with `NEVER_SKIP`) wrote `100.0`, so the data reference reads as missing on fresh data too: the predictor engine, not the seed.
+
+---
+
 ## Bugs observed on v44
 
 Entries below were first observed against the v44 preview, `2.44-SNAPSHOT` revision `b732899`
@@ -5529,183 +5726,6 @@ start with `https://`.
 **Status (2026-10-01):** new. 2.44-only for the Gist routing and the `http://` pager link. The
 document's `servers[0].url` is `http://play.im.dhis2.org/<channel>/` on `2.42.6`, `2.43.1` and
 2.44 alike, so that part is not new (see the OpenAPI document section).
-
----
-
-### 138. A map layer's fixed periods cannot be written through `/api/metadata`: `periods` fails on a transient `Period` and `rawPeriods` is dropped
-
-**Observed on:** `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. 2.43.1 and 2.42.6 are
-unverified: the repro is a write, and play is read-only for this sweep. The read side is the same on
-all three: on play `stable-2-42-6`, `stable-2-43-1` and `dev`, 56 of 155 map views read back
-`periods:[{"id":"2026"}]`, 47 carry `rawPeriods`, and `/api/schemas/mapView` lists `rawPeriods` as a
-persisted, owned, writable collection.
-
-**Repro:**
-
-```bash
-U=http://localhost:8080; H='Content-Type: application/json'
-curl -s -u admin:district -H "$H" "$U/api/metadata?importStrategy=CREATE_AND_UPDATE&atomicMode=ALL" \
-  -d '{"maps":[{"id":"W44AMapPrb3","name":"probe","longitude":-11.8,"latitude":8.5,"zoom":7,"basemap":"openStreetMap","mapViews":[{"layer":"thematic1","thematicMapType":"CHOROPLETH","organisationUnits":[{"id":"ImspTQPwCqd"}],"organisationUnitLevels":[2],"dataDimensionItems":[{"dataDimensionItemType":"DATA_ELEMENT","dataElement":{"id":"DUSpd8Jq3M7"}}],"periods":[{"id":"2024"}]}]}]}'
-# 409 "org.hibernate.TransientObjectException: object references an unsaved transient instance -
-#      save the transient instance before flushing: org.hisp.dhis.period.Period"
-
-# The same layer with "rawPeriods":["2024"] in place of "periods":
-# 200; the layer reads back {"rawPeriods":[],"periods":[]}
-```
-
-**Expected:** the layer keeps its fixed period whichever way it is spelled, as a visualization with
-the same `periods:[{"id":"2024"}]` does (it imports with 200 and keeps it).
-
-**Actual:** one spelling is a Hibernate `409` and the other is dropped without a word. The seeded
-maps on the local 2.44 stack (named for 2025) read back with `rawPeriods: []` and `periods: []`.
-
-**Impact:** maps with fixed periods cannot be created or round-tripped through the API on 2.44, and
-a seed or a backup restored through `/api/metadata` loses every layer's year. It is a sibling of
-#114: the same `TransientObjectException` family on a map layer, with a period rather than
-identifiable metadata as the reference.
-
-**Workaround in this repo:** none; `dhis2w_client.v43.maps` writes `rawPeriods`, which 2.44 drops.
-
-**How to know it's fixed:** both spellings import with 200 and the layer reads back its period.
-
-**Status (2026-10-01):** new. Seen on 2.44 only so far; whether 2.43.1 and 2.42.6 keep `rawPeriods`
-on the same import is unverified (restoring the same seed on a 2.43 stack settles it without a play
-write).
-
----
-
-### 139. A superuser is exempt from the open-future-periods check on `/api/dataValueSets`
-
-**Observed on:** `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. Earlier sweeps record the
-opposite on the other majors: on 2026-09-11 `2.43.1` refused `209912` for admin with `409 E8023`
-(#6), and `2.41.10` and `2.42.6` refused admin with `E7644` (#125). The 2.43 comparison was not
-re-run, because it is a write.
-
-**Repro:**
-
-```bash
-# A Monthly data set with openFuturePeriods 0 containing <DE>, assigned to <OU>:
-curl -s -u admin:district -X POST http://localhost:8080/api/dataValueSets -H 'Content-Type: application/json' \
-  -d '{"dataValues":[{"dataElement":"<DE>","period":"209912","orgUnit":"<OU>","value":"77"}]}'
-# 200, and the value is stored
-
-# The same kind of row as a user without ALL, for a period outside the window:
-# 409 E8030 "Untimely data entry for data set <DS> and period(s): [<period>]"
-```
-
-**Expected:** the data set's future-period window applies to every user, or the release documents
-the exemption as a superuser privilege.
-
-**Actual:** admin writes arbitrarily far-future values; only users without `ALL` are refused.
-
-**Impact:** a test or script that checks period windows as admin passes on 2.44 and fails for real
-users. The far-future half of #6's repro no longer fires for admin on 2.44.
-
-**Workaround in this repo:** none; period-window checks have to run as a user without `ALL`.
-
-**How to know it's fixed:** the admin post above answers `409` with the same code a user without
-`ALL` receives.
-
-**Status (2026-10-01):** new. 2.44-only as far as the recorded 2.41 to 2.43 evidence reaches.
-
----
-
-### 140. A data value whose data set has been deleted cannot be deleted through the API
-
-**Observed on:** `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. 2.43.1 and 2.42.6 are
-unverified (the repro is a write).
-
-**Repro:**
-
-```bash
-# A live value exists for <DE> at 202607 / <OU>; the only data set containing <DE> is deleted:
-curl -s -u admin:district -X DELETE http://localhost:8080/api/dataSets/<DS>
-# 200
-curl -s -u admin:district -X DELETE 'http://localhost:8080/api/dataValues?de=<DE>&pe=202607&ou=<OU>'
-# 409 E8003 "Data set detection failed, found no set for data element(s): `[<DE>]`"
-# POST /api/dataValueSets?importStrategy=DELETE with the same row: conflict E8003 as well
-```
-
-**Expected:** either the data set delete is refused while values exist for its elements, or a value
-whose element belongs to no data set can still be deleted.
-
-**Actual:** the data set delete succeeds, and afterwards the value can only be removed by creating
-a data set that contains the element again.
-
-**Impact:** a teardown that deletes metadata before data leaves rows no API call can remove, and
-those rows then block deleting the data element and the organisation unit (#2). It is related to #2
-and #127 but the mechanism differs: here the metadata delete succeeds and orphans the data.
-
-**Workaround in this repo:** none; delete data values before the data set that holds their element.
-
-**How to know it's fixed:** the `DELETE /api/dataValues` above answers 204, or the data set delete
-answers 409.
-
-**Status (2026-10-01):** new. Seen on 2.44 only so far; 2.43.1 and 2.42.6 unverified.
-
----
-
-### 141. `POST /api/predictors/{uid}/run` with a UID that does not exist answers 500 with a NullPointerException message
-
-**Observed on:** `2.44-SNAPSHOT` rev `b732899` (local stack, which runs the Glowroot agent),
-2026-10-01. 2.43.1 and 2.42.6 are unverified (the endpoint is a POST, and play is read-only for this
-sweep).
-
-**Repro:**
-
-```bash
-curl -s -u admin:district -X POST \
-  'http://localhost:8080/api/predictors/W44FPd00001/run?startDate=2026-09-01&endDate=2026-09-30'
-# 500 "Cannot invoke \"org.hisp.dhis.predictor.Predictor.getName()\" because \"glowroot$enabled$0\" is null"
-```
-
-**Expected:** `404 E1005` naming the predictor UID.
-
-**Actual:** a 500 whose message is a NullPointerException. The variable it names comes from the
-Glowroot instrumentation in the local image, so an instance without the agent may word it
-differently; the null predictor behind it is DHIS2's.
-
-**Impact:** a predictor run with a mistyped UID reads as a server crash rather than a missing
-object.
-
-**Workaround in this repo:** none.
-
-**How to know it's fixed:** the post above answers 404.
-
-**Status (2026-10-01):** new. Seen on 2.44 only so far; 2.43.1 and 2.42.6 unverified.
-
----
-
-### 142. Predictors whose generator reads data produce no predictions (provisional)
-
-**Observed on:** `2.44-SNAPSHOT` rev `b732899` (local stack), 2026-10-01. Not confirmed on play
-`dev`, and 2.43.1 is unverified in this sweep (running a predictor writes predictions).
-
-**Repro:**
-
-```bash
-curl -s -u admin:district -X POST \
-  'http://localhost:8080/api/predictors/PrdAvgBCG01/run?startDate=2025-06-01&endDate=2025-06-30'
-# "Generated 0 predictions"
-# although s46m5MS0hxu holds 3430 values across 202501..202512 on the local seed
-```
-
-**Expected:** the seeded predictor writes its rolling averages for 2025-06.
-
-**Actual:** 0 predictions. A purpose-built predictor with generator `#{<DE>}+100` (sample count 0)
-or `avg(#{<DE>})` (sample count 3) also generates 0, while the same predictor with the constant
-generator `5` generates 15.
-
-**Impact:** if confirmed, predictors that read data are silently inert on 2.44: the run answers
-success and writes nothing.
-
-**Workaround in this repo:** none.
-
-**How to know it's fixed:** the run above reports a non-zero count and the predicted values read
-back.
-
-**Status (2026-10-01):** new, provisional. Needs one run on play `dev` or a second 2.44 stack before
-it is treated as confirmed, and one on 2.43.1 to scope it.
 
 ---
 
