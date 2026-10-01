@@ -196,8 +196,8 @@ def _rewrite_dropped_refs(node: Any, bad_refs: set[str]) -> None:
 # reaches an emitted model is pinned here to the shape the live API actually serves.
 # `required` lists move too, but the emitter ignores `required`, so they are left alone.
 _BOOT_DEPENDENT_PROPERTIES: dict[tuple[str, str], dict[str, Any]] = {
-    # The enum wins on some boots, a boolean on others; the wire value is always an
-    # `AggregationType` such as "SUM".
+    # The enum wins on some boots, a boolean on others. Reads omit the property on every
+    # category option; the enum is its declared type on v41, v42 and most 2.43.1 boots.
     ("CategoryOption", "aggregationType"): {"$ref": "#/components/schemas/AggregationType"},
     ("CategoryOptionParams", "aggregationType"): {"$ref": "#/components/schemas/AggregationType"},
     # `Page` is DHIS2's generic tracker page; its item type is whichever `Page<T>`
