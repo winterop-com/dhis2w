@@ -114,6 +114,16 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
             "client/analytics_event_query.py",
         }
     ),
+    "v44": frozenset(
+        {
+            # BUGS.md #36 on the 2.44 development build: the analytics job aborts in the event
+            # stage on `column "yearly" does not exist`, as on 2.43, so the aggregate table is
+            # never rebuilt and these queries then fail with `column ax.monthly does not exist`.
+            "client/viz_multiline_by_province.py",
+            "client/analytics_events_enrollments.py",
+            "client/analytics_event_query.py",
+        }
+    ),
 }
 
 # Examples that read real secrets or endpoints from the environment. Each entry runs when

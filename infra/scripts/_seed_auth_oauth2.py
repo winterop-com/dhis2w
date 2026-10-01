@@ -15,7 +15,10 @@ import bcrypt  # injected via `uv run --with bcrypt` by infra/Makefile
 OAUTH2_CLIENT_ID = "dhis2w-local"
 OAUTH2_CLIENT_SECRET = "dhis2w-local-secret-do-not-use-in-prod"  # noqa: S105 — local only
 OAUTH2_REDIRECT_URI = "http://localhost:8765"
-OAUTH2_SCOPES = "ALL"  # DHIS2 only recognises the single scope `ALL`
+OAUTH2_SCOPES = "ALL"  # 2.41 to 2.43 recognise the single scope `ALL`
+# 2.44 refuses `ALL` (BUGS.md #134): a login requests `openid`, and the v44 payload builder
+# registers the four OpenID scopes and requires PKCE on its own.
+OAUTH2_REQUESTED_SCOPES_BY_VERSION: dict[str, str] = {"v44": "openid"}
 OAUTH2_GRANT_TYPES = "authorization_code,refresh_token"
 # Spring Authorization Server requires this field to know how the client presents
 # its credentials at /oauth2/token. client_secret_basic = HTTP Basic; client_secret_post
@@ -53,6 +56,11 @@ def _bcrypt_hash(plaintext: str) -> str:
     return bcrypt.hashpw(plaintext.encode("utf-8"), bcrypt.gensalt(rounds=10)).decode("ascii")
 
 
+def oauth2_requested_scopes(version_key: str) -> str:
+    """Return the scope a login against the seeded client requests on one DHIS2 major."""
+    return OAUTH2_REQUESTED_SCOPES_BY_VERSION.get(version_key, OAUTH2_SCOPES)
+
+
 def oauth2_payload(version_key: str = "v42") -> dict[str, Any]:
     """Return the `POST /api/oAuth2Clients` body for one DHIS2 major.
 
@@ -68,7 +76,7 @@ def oauth2_payload(version_key: str = "v42") -> dict[str, Any]:
         client_id=OAUTH2_CLIENT_ID,
         client_secret_hash=_bcrypt_hash(OAUTH2_CLIENT_SECRET),
         redirect_uri=OAUTH2_REDIRECT_URI,
-        scope=OAUTH2_SCOPES,
+        scope=oauth2_requested_scopes(version_key),
         display_name=OAUTH2_CLIENT_ID,
         client_settings_json=OAUTH2_CLIENT_SETTINGS_JSON,
         token_settings_json=OAUTH2_TOKEN_SETTINGS_JSON,

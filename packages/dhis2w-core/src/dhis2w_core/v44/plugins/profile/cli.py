@@ -392,8 +392,10 @@ def add_command(
     client_id: Annotated[str | None, typer.Option("--client-id", help="OAuth2 client_id.")] = None,
     oauth_scope: Annotated[
         str,
-        typer.Option("--scope", help="OAuth2 scope (DHIS2 only recognises `ALL`)."),
-    ] = "ALL",
+        typer.Option(
+            "--scope", help="OAuth2 scope a login requests (2.44 allows only openid, email, profile, username)."
+        ),
+    ] = "openid",
     redirect_uri: Annotated[
         str,
         typer.Option("--redirect-uri", help="OAuth2 redirect URI (must match the registered client)."),
@@ -810,8 +812,10 @@ def oidc_config_command(
     ] = None,
     scope_value: Annotated[
         str,
-        typer.Option("--scope", help="OAuth2 scope (DHIS2 only recognises `ALL`)."),
-    ] = "ALL",
+        typer.Option(
+            "--scope", help="OAuth2 scope a login requests (2.44 allows only openid, email, profile, username)."
+        ),
+    ] = "openid",
     redirect_uri: Annotated[
         str,
         typer.Option(

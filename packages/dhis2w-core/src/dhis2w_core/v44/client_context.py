@@ -66,7 +66,7 @@ def _build_oauth2(
     if not profile.client_secret:
         raise ValueError("profile.auth == 'oauth2' requires client_secret")
     if not profile.scope:
-        raise ValueError("profile.auth == 'oauth2' requires a scope (DHIS2 only recognises 'ALL')")
+        raise ValueError("profile.auth == 'oauth2' requires a scope (2.44 allows openid, email, profile, username)")
     if not profile.redirect_uri:
         raise ValueError("profile.auth == 'oauth2' requires redirect_uri")
     name = profile_name or os.environ.get("DHIS2_PROFILE") or "default"
