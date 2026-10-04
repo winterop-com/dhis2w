@@ -21,7 +21,7 @@ overrides = [
 
 [manifest.dependency-groups]
 dev = [
-    { name = "coverage", extras = ["toml"], specifier = ">=7.16.0" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.16.2" },
     { name = "httpx2", specifier = ">=2.12.0" },
     { name = "hypothesis", specifier = ">=6.168.0" },
     { name = "mkdocs", specifier = ">=1.6" },
