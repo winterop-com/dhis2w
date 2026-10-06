@@ -15,10 +15,10 @@ import bcrypt  # injected via `uv run --with bcrypt` by infra/Makefile
 OAUTH2_CLIENT_ID = "dhis2w-local"
 OAUTH2_CLIENT_SECRET = "dhis2w-local-secret-do-not-use-in-prod"  # noqa: S105 — local only
 OAUTH2_REDIRECT_URI = "http://localhost:8765"
-OAUTH2_SCOPES = "ALL"  # 2.41 to 2.43 recognise the single scope `ALL`
-# 2.44 refuses `ALL` (BUGS.md #134): a login requests `openid`, and the v44 payload builder
-# registers the four OpenID scopes and requires PKCE on its own.
-OAUTH2_REQUESTED_SCOPES_BY_VERSION: dict[str, str] = {"v44": "openid"}
+OAUTH2_SCOPES = "ALL"  # 2.41 and 2.42 recognise the single scope `ALL`
+# 2.43.2 and 2.44 refuse `ALL` (BUGS.md #134): a login requests `openid`, and the v43 and v44
+# payload builders register the four OpenID scopes and require PKCE on their own.
+OAUTH2_REQUESTED_SCOPES_BY_VERSION: dict[str, str] = {"v43": "openid", "v44": "openid"}
 OAUTH2_GRANT_TYPES = "authorization_code,refresh_token"
 # Spring Authorization Server requires this field to know how the client presents
 # its credentials at /oauth2/token. client_secret_basic = HTTP Basic; client_secret_post

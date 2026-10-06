@@ -38,7 +38,7 @@ class InterpretationComment(BaseModel):
     id: str | None = Field(default=None, description="Length/value min=11, max=11.")
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
-    mentions: list[Any] | None = Field(default=None, description="Collection of Mention. Length/value max=255.")
+    mentions: list[Any] | None = Field(default=None, description="Collection of Mention.")
     name: str | None = Field(default=None, description="Length/value min=1, max=2147483647.")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     text: str | None = Field(default=None, description="Length/value max=2147483647.")

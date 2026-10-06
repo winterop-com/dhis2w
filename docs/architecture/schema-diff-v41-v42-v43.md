@@ -1,6 +1,6 @@
 # Schema diff: v41 -> v42 -> v43
 
-Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.10.0`, v42 = `2.42.6.0`, v43 = `2.43.1.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
+Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.10.0`, v42 = `2.42.6.0`, v43 = `2.43.2.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
 
 - **`/api/schemas`** drives `dhis2w_client.generated.v{N}.schemas` (and the `client.resources.X` accessors). Run `d2w dev codegen diff v41 v42` or `d2w dev codegen diff v42 v43` to regenerate the schema-side diff.
 - **`/api/openapi.json`** drives `dhis2w_client.generated.v{N}.oas` (the request/response shapes used by tracker, auth schemes, data-value imports, etc.). Diff is a plain `ls` comparison of the per-version `oas/` trees — there is no dedicated CLI command for it yet.
@@ -81,7 +81,7 @@ These resources are gone in v43 (`externalFileResource` is gone from the current
 | Schema | Class on the server | Notes |
 | --- | --- | --- |
 | `dataInputPeriods` | `org.hisp.dhis.dataset.DataInputPeriod` | Folded into `dataSet.dataInputPeriods` inline; no top-level resource. |
-| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.10.0`, `2.42.6.0`, `2.43.1.0`); use the `externalAccess` field on `fileResource` directly. |
+| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.10.0`, `2.42.6.0`, `2.43.2.0`); use the `externalAccess` field on `fileResource` directly. |
 | `pushanalysis` | `org.hisp.dhis.pushanalysis.PushAnalysis` | Push-analysis is removed in v43. |
 
 ### Schemas-side: breaking shape changes
@@ -117,7 +117,7 @@ New fields only present in v43. v42-pinned models lose them at typed-access time
 | `legendSet` | `translations` (replaces `translation`) |
 | `map` | `basemaps` (collection of `Basemap`, see OAS below) |
 | `mapView` | `eventCoordinateFieldFallback` |
-| `program` | `displayEnrollmentsLabel`, `displayEventsLabel`, `displayProgramStagesLabel`, `enableChangeLog`, `enrollmentCategoryCombo`, `enrollmentsLabel`, `eventsLabel`, `programStagesLabel` |
+| `program` | `displayEnrollmentsLabel`, `displayEventsLabel`, `displayProgramStagesLabel`, `enableChangeLog`, `enrollmentCategoryCombo`, `enrollmentsLabel`, `eventsLabel`, `programStagesLabel`; from `2.43.2` also `notesLabel`, `relationshipsLabel`, `trackedEntityAttributesLabel` and their `display*` variants |
 | `programRuleAction` | `legendSet`, `priority` |
 | `programStage` | `displayEventsLabel`, `eventsLabel` |
 | `trackedEntityAttribute` | `blockedSearchOperators`, `minCharactersToSearch`, `preferredSearchOperator`, `skipAnalytics`, `trigramIndexable`, `trigramIndexed` |

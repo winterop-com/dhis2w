@@ -52,7 +52,7 @@ You talk to **one** DHIS2 instance at a time. `DHIS2_VERSION` just picks which D
 
 Defaults: DHIS2 43, admin / district, http://localhost:8080. Pass `DHIS2_VERSION=v42` to run the seeded v42 stack instead.
 
-The image for each major is pinned in `infra/versions.env`, and `infra/scripts/_resolve_image.sh` turns the pin into the `DHIS2_IMAGE` reference `compose.yml` runs: a release pin such as `2.43.1.0` becomes `dhis2/core:2.43.1.0`, and a pin containing `/` is used as-is. `DHIS2_VERSION=v44` runs the v44 preview, a 2.44 development build pinned by digest (`dhis2/core-dev@sha256:...`) until 2.44.0 is released; see [Version-aware clients](architecture/versioning.md#v44-is-a-preview).
+The image for each major is pinned in `infra/versions.env`, and `infra/scripts/_resolve_image.sh` turns the pin into the `DHIS2_IMAGE` reference `compose.yml` runs: a release pin such as `2.43.2.0` becomes `dhis2/core:2.43.2.0`, and a pin containing `/` is used as-is. `DHIS2_VERSION=v44` runs the v44 preview, a 2.44 development build pinned by digest (`dhis2/core-dev@sha256:...`) until 2.44.0 is released; see [Version-aware clients](architecture/versioning.md#v44-is-a-preview).
 
 A major whose image needs different container settings carries `infra/v{N}/compose.override.yml`, which the Makefile and `dhis2_run.sh` layer over `compose.yml` when it exists. The 2.44 image is a Jib build with embedded Tomcat and no shell, so `infra/v44/compose.override.yml` turns off the in-container healthcheck (readiness comes from `make -C infra wait`) and passes the heap and Glowroot settings through `JAVA_TOOL_OPTIONS`, since nothing expands `JAVA_OPTS` in that image.
 
@@ -120,7 +120,7 @@ infra/
 | `DHIS2_OAUTH_CLIENT_ID` | `dhis2-utils-local` — deterministic client id |
 | `DHIS2_OAUTH_CLIENT_SECRET` | Deterministic local-only secret |
 | `DHIS2_OAUTH_REDIRECT_URI` | `http://localhost:8765` — matches dhis2w-client's OAuth2 default |
-| `DHIS2_OAUTH_SCOPES` | `ALL` — DHIS2 only recognises the single `ALL` scope |
+| `DHIS2_OAUTH_SCOPES` | The scope a login requests: `ALL` on v41 and v42, `openid` on v43 and v44, which refuse `ALL` (BUGS.md #134) |
 
 The variation list is in `infra/scripts/_seed_auth_variations.py`; the OAuth2 client config is in `infra/scripts/_seed_auth_oauth2.py`. Edit either to change what gets seeded.
 
@@ -188,7 +188,7 @@ These are deterministic and documented here on purpose — the dump is a synthet
 | OAuth2 client id | `dhis2-utils-local` |
 | OAuth2 client secret (plaintext) | `dhis2-utils-local-secret-do-not-use-in-prod` |
 | OAuth2 redirect URI | `http://localhost:8765` |
-| OAuth2 scope | `ALL` |
+| OAuth2 scope | `ALL` on v41 and v42; `openid` on v43 and v44 (registered scopes `openid,email,profile,username`, PKCE required) |
 
 PATs are **not** committed (DHIS2 generates them per-request, so there's nothing deterministic to bake in). Run `make dhis2-run` (brings up the stack detached and seeds in one shot) — PATs land in `infra/home/credentials/.env.auth`.
 

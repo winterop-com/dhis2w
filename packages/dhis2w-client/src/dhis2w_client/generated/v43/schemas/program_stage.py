@@ -28,7 +28,7 @@ class ProgramStage(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     allowGenerateNextVisit: bool | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     autoGenerateEvent: bool | None = None
     blockEntryForm: bool | None = None
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
@@ -81,11 +81,11 @@ class ProgramStage(BaseModel):
     remindCompleted: bool | None = None
     repeatable: bool | None = None
     reportDateToUse: str | None = Field(default=None, description="Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
     standardInterval: int | None = Field(default=None, description="Length/value max=2147483647.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     validationStrategy: ValidationStrategy | None = None

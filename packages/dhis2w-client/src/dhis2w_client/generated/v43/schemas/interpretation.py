@@ -48,11 +48,11 @@ class Interpretation(BaseModel):
     likeByUsers: list[Any] | None = Field(default=None, description="Collection of User.")
     likes: int | None = Field(default=None, description="Length/value max=2147483647.")
     map: Reference | None = Field(default=None, description="Reference to Map.")
-    mentions: list[Any] | None = Field(default=None, description="Collection of Mention. Length/value max=255.")
+    mentions: list[Any] | None = Field(default=None, description="Collection of Mention.")
     name: str | None = Field(default=None, description="Length/value max=2147483647.")
     organisationUnit: Reference | None = Field(default=None, description="Reference to OrganisationUnit.")
     period: Any | None = Field(default=None, description="Reference to Period. Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     text: str | None = Field(default=None, description="Length/value max=2147483647.")
     translations: list[Any] | None = Field(
         default=None, description="Collection of Translation. Read-only (inverse side)."

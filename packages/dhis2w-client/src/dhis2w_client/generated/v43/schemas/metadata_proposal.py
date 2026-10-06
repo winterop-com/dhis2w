@@ -26,7 +26,7 @@ class MetadataProposal(BaseModel):
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    change: Any | None = Field(default=None, description="Reference to JsonNode. Length/value max=255.")
+    change: Any | None = Field(default=None, description="Reference to JsonNode.")
     comment: str | None = Field(default=None, description="Length/value max=255.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")

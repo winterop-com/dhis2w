@@ -42,7 +42,7 @@ class DatastoreEntry(BaseModel):
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Length/value min=1, max=2147483647.")
     namespace: str | None = Field(default=None, description="Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     translations: list[Any] | None = Field(
         default=None, description="Collection of Translation. Read-only (inverse side)."
     )

@@ -27,7 +27,7 @@ class SqlView(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     cacheStrategy: CacheStrategy | None = None
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
@@ -41,7 +41,7 @@ class SqlView(BaseModel):
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     sqlQuery: str | None = Field(default=None, description="Length/value max=2147483647.")
     translations: list[Any] | None = Field(
         default=None, description="Collection of Translation. Read-only (inverse side)."

@@ -192,7 +192,7 @@ curl -sL -o /dev/null -w '%{http_code} -> %{url_effective}\n' \
   --data-urlencode 'response_type=code' \
   --data-urlencode 'client_id=dhis2w-local' \
   --data-urlencode 'redirect_uri=http://localhost:8765' \
-  --data-urlencode 'scope=ALL' \
+  --data-urlencode 'scope=openid' \
   --data-urlencode 'state=probe' \
   --data-urlencode 'code_challenge=abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqr' \
   --data-urlencode 'code_challenge_method=S256'
@@ -206,7 +206,7 @@ DHIS2 stores OAuth2 clients under `/api/oAuth2Clients`. Three non-obvious requir
 
 - **`clientSecret` must be BCrypt-hashed.** DHIS2 wires a `BCryptPasswordEncoder` into Spring AS's client-authentication filter, so plaintext secrets in the `oauth2_client.client_secret` column always fail `/oauth2/token` with `401 invalid_client`.
 - **`clientSettings` and `tokenSettings` must be non-empty Jackson-serialized Spring AS JSON.** Leaving them blank triggers `IllegalArgumentException: settings cannot be empty` inside `Dhis2OAuth2ClientServiceImpl.toObject` when the authorization endpoint tries to rebuild a `RegisteredClient`. The values below match exactly what DHIS2's built-in settings app (`/apps/settings#/oauth2`) writes when you create a client via its UI.
-- **Only `ALL` works as a `scopes` value.** DHIS2 has no fine-grained OAuth scopes; Spring AS's `validateScopes` rejects anything that contains whitespace (so `"openid email ALL"` fails), and the server only recognises the single pseudo-scope `ALL`.
+- **`scopes` depends on the release.** DHIS2 has no fine-grained OAuth scopes, and Spring AS's `validateScopes` rejects a value that contains whitespace (so list scopes comma-separated). 2.41 and 2.42 recognise the single pseudo-scope `ALL`. 2.43.2 and 2.44 refuse `ALL` with `409 "Invalid scope: 'ALL'. Allowed scopes are: email, openid, profile, username."` and refuse a client whose `settings.client.require-proof-key` is `false` (BUGS.md #134); register `openid,email,profile,username` with PKCE required and log in with `scope=openid`.
 
 The DHIS2 settings app at `/apps/settings#/oauth2` will create a client with working `clientSettings`/`tokenSettings` defaults but **does not expose `scopes` or `clientAuthenticationMethods`**, so a UI-created client cannot complete the end-to-end flow without post-editing. Use the API.
 
@@ -223,7 +223,7 @@ Two paths:
 
 === "Option B — manual (any DHIS2 instance)"
 
-    Works against any DHIS2 v2.42+ you can log into as a user with "Manage oAuth2 clients" authority (admin has this). No `make` required. The recipe below produces a client equivalent to the seeded one.
+    Works against any DHIS2 v2.42+ you can log into as a user with "Manage oAuth2 clients" authority (admin has this). No `make` required. The recipe below produces a client equivalent to the seeded one on 2.43.2 and 2.44; against 2.42, set `"scopes": "ALL"` instead and log in with `--scope ALL`.
 
     **1. BCrypt-hash the client secret.** One-liner using `uv run` so the `bcrypt` dep is resolved on demand without a permanent install:
 
@@ -258,8 +258,8 @@ Two paths:
       "clientAuthenticationMethods": "client_secret_basic,client_secret_post",
       "authorizationGrantTypes": "authorization_code,refresh_token",
       "redirectUris": "$REDIRECT_URI",
-      "scopes": "ALL",
-      "clientSettings": "{\"@class\":\"java.util.Collections\$UnmodifiableMap\",\"settings.client.require-proof-key\":false,\"settings.client.require-authorization-consent\":true}",
+      "scopes": "openid,email,profile,username",
+      "clientSettings": "{\"@class\":\"java.util.Collections\$UnmodifiableMap\",\"settings.client.require-proof-key\":true,\"settings.client.require-authorization-consent\":true}",
       "tokenSettings": "{\"@class\":\"java.util.Collections\$UnmodifiableMap\",\"settings.token.reuse-refresh-tokens\":true,\"settings.token.x509-certificate-bound-access-tokens\":false,\"settings.token.id-token-signature-algorithm\":[\"org.springframework.security.oauth2.jose.jws.SignatureAlgorithm\",\"RS256\"],\"settings.token.access-token-time-to-live\":[\"java.time.Duration\",300.000000000],\"settings.token.access-token-format\":{\"@class\":\"org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat\",\"value\":\"self-contained\"},\"settings.token.refresh-token-time-to-live\":[\"java.time.Duration\",3600.000000000],\"settings.token.authorization-code-time-to-live\":[\"java.time.Duration\",300.000000000],\"settings.token.device-code-time-to-live\":[\"java.time.Duration\",300.000000000]}"
     }
     EOF
@@ -327,7 +327,7 @@ d2w profile add local_oidc \
   --url http://localhost:8080 \
   --auth oauth2 \
   --client-id dhis2w-local \
-  --scope ALL \
+  --scope openid \
   --redirect-uri http://localhost:8765 \
   --default
 # OAuth2 client secret: ********
@@ -446,7 +446,7 @@ Every DHIS2-side failure we hit during OAuth2 bring-up, the error message you'll
 | --- | --- | --- |
 | `GET /oauth2/authorize` returns **404** | Spring AS not mounted | Add `oauth2.server.enabled = on`, restart |
 | `GET /.well-known/openid-configuration` returns **404** | Same as above | Same as above |
-| `GET /oauth2/authorize` returns **500** with `scope "..." contains invalid characters` | Client has whitespace in `scopes` | `scopes = "ALL"` in the seed / client, not `"openid email ALL"` |
+| `GET /oauth2/authorize` returns **500** with `scope "..." contains invalid characters` | Client has whitespace in `scopes` | Comma-separate the scopes (`"openid,email,profile,username"` on 2.43.2 and 2.44, `"ALL"` on 2.41 and 2.42), never `"openid email ALL"` |
 | `GET /oauth2/authorize` returns **500** with `settings cannot be empty` | Client's `clientSettings` / `tokenSettings` are blank | Populate both with valid Jackson-serialized Spring AS JSON (see seed) |
 | `GET /oauth2/authorize` returns **500** with `No AuthenticationProvider found for OAuth2AuthorizationCodeRequestAuthenticationToken` | OIDC login chain not wired to AS | Add `oidc.oauth2.login.enabled = on`, restart |
 | `POST /oauth2/token` returns **401** `invalid_client` | Client secret in DB is not BCrypt-hashed | Re-seed with a BCrypt-hashed secret |

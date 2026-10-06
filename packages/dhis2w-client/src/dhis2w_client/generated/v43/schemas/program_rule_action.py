@@ -39,7 +39,7 @@ class ProgramRuleAction(BaseModel):
     displayContent: str | None = Field(default=None, description="Read-only.")
     displayName: str | None = Field(default=None, description="Read-only.")
     evaluationEnvironments: list[Any] | None = Field(
-        default=None, description="Collection of ProgramRuleActionEvaluationEnvironment. Length/value max=255."
+        default=None, description="Collection of ProgramRuleActionEvaluationEnvironment."
     )
     evaluationTime: ProgramRuleActionEvaluationTime | None = None
     favorite: bool | None = Field(default=None, description="Read-only.")
@@ -62,5 +62,5 @@ class ProgramRuleAction(BaseModel):
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     templateUid: str | None = Field(default=None, description="Length/value max=2147483647.")
     trackedEntityAttribute: Reference | None = Field(default=None, description="Reference to TrackedEntityAttribute.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

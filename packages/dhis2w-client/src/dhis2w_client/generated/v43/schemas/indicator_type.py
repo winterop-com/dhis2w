@@ -43,5 +43,5 @@ class IndicatorType(BaseModel):
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
     number: bool | None = None
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
