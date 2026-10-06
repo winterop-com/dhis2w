@@ -28,11 +28,9 @@ class Program(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     accessLevel: AccessLevel | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
-    categoryMappings: list[Any] | None = Field(
-        default=None, description="Collection of ProgramCategoryMapping. Length/value max=255."
-    )
+    categoryMappings: list[Any] | None = Field(default=None, description="Collection of ProgramCategoryMapping.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     completeEventsExpiryDays: int | None = Field(default=None, description="Length/value max=2147483647.")
     created: datetime | None = None
@@ -52,12 +50,15 @@ class Program(BaseModel):
     displayIncidentDateLabel: str | None = Field(default=None, description="Read-only.")
     displayName: str | None = Field(default=None, description="Read-only.")
     displayNoteLabel: str | None = Field(default=None, description="Read-only.")
+    displayNotesLabel: str | None = Field(default=None, description="Read-only.")
     displayOrgUnitLabel: str | None = Field(default=None, description="Read-only.")
     displayProgramStageLabel: str | None = Field(default=None, description="Read-only.")
     displayProgramStagesLabel: str | None = Field(default=None, description="Read-only.")
     displayRelationshipLabel: str | None = Field(default=None, description="Read-only.")
+    displayRelationshipsLabel: str | None = Field(default=None, description="Read-only.")
     displayShortName: str | None = Field(default=None, description="Read-only.")
     displayTrackedEntityAttributeLabel: str | None = Field(default=None, description="Read-only.")
+    displayTrackedEntityAttributesLabel: str | None = Field(default=None, description="Read-only.")
     enableChangeLog: bool | None = None
     enrollmentCategoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
     enrollmentDateLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
@@ -82,6 +83,7 @@ class Program(BaseModel):
     minAttributesRequiredToSearch: int | None = Field(default=None, description="Length/value max=2147483647.")
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     noteLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
+    notesLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
     notificationTemplates: list[Any] | None = Field(
         default=None, description="Collection of ProgramNotificationTemplate."
     )
@@ -106,13 +108,15 @@ class Program(BaseModel):
     registration: bool | None = Field(default=None, description="Read-only.")
     relatedProgram: Reference | None = Field(default=None, description="Reference to Program.")
     relationshipLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
+    relationshipsLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
     selectEnrollmentDatesInFuture: bool | None = None
     selectIncidentDatesInFuture: bool | None = None
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     skipOffline: bool | None = None
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
     trackedEntityAttributeLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
+    trackedEntityAttributesLabel: str | None = Field(default=None, description="Length/value min=2, max=255.")
     trackedEntityType: Reference | None = Field(default=None, description="Reference to TrackedEntityType.")
     translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     useFirstStageDuringRegistration: bool | None = None

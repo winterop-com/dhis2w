@@ -29,7 +29,7 @@ class DataSet(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     compulsoryDataElementOperands: list[Any] | None = Field(
@@ -48,7 +48,7 @@ class DataSet(BaseModel):
     displayDescription: str | None = Field(default=None, description="Read-only.")
     displayFormName: str | None = Field(default=None, description="Read-only.")
     displayName: str | None = Field(default=None, description="Read-only.")
-    displayOptions: str | None = Field(default=None, description="Length/value max=50000.")
+    displayOptions: str | None = Field(default=None, description="Length/value max=2147483647.")
     displayShortName: str | None = Field(default=None, description="Read-only.")
     expiryDays: float | None = None
     favorite: bool | None = Field(default=None, description="Read-only.")
@@ -79,12 +79,12 @@ class DataSet(BaseModel):
     renderAsTabs: bool | None = None
     renderHorizontally: bool | None = None
     sections: list[Any] | None = Field(default=None, description="Collection of Section. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
     skipOffline: bool | None = None
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
     timelyDays: float | None = None
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     validCompleteOnly: bool | None = None
     version: int | None = Field(default=None, description="Length/value max=2147483647.")

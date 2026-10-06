@@ -28,4 +28,4 @@ class RelationshipConstraint(BaseModel):
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
     relationshipEntity: RelationshipEntity | None = None
     trackedEntityType: Reference | None = Field(default=None, description="Reference to TrackedEntityType.")
-    trackerDataView: Any | None = Field(default=None, description="Reference to TrackerDataView. Length/value max=255.")
+    trackerDataView: Any | None = Field(default=None, description="Reference to TrackerDataView.")

@@ -48,8 +48,8 @@ class Visualization(BaseModel):
     attributeDimensions: list[Any] | None = Field(
         default=None, description="Collection of TrackedEntityAttributeDimension. Read-only (inverse side)."
     )
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
-    axes: list[Any] | None = Field(default=None, description="Collection of AxisV2. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
+    axes: list[Any] | None = Field(default=None, description="Collection of AxisV2.")
     axis: list[Axis] | None = Field(default=None, description="Collection of Axis.")
     baseLineLabel: str | None = Field(default=None, description="Length/value max=2147483647.")
     baseLineValue: float | None = None
@@ -94,7 +94,7 @@ class Visualization(BaseModel):
     domainAxisLabel: str | None = Field(default=None, description="Length/value max=2147483647.")
     endDate: datetime | None = None
     favorite: bool | None = Field(default=None, description="Read-only.")
-    favorites: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    favorites: list[Any] | None = Field(default=None, description="Collection of String.")
     filterDimensions: list[Any] | None = Field(default=None, description="Collection of String.")
     filters: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
@@ -102,9 +102,7 @@ class Visualization(BaseModel):
     fixColumnHeaders: bool | None = None
     fixRowHeaders: bool | None = None
     fontSize: FontSize | None = None
-    fontStyle: Any | None = Field(
-        default=None, description="Reference to VisualizationFontStyle. Length/value max=255."
-    )
+    fontStyle: Any | None = Field(default=None, description="Reference to VisualizationFontStyle.")
     formName: str | None = Field(default=None, description="Length/value max=2147483647.")
     hideEmptyColumns: bool | None = None
     hideEmptyRowItems: HideEmptyItemStrategy | None = None
@@ -113,7 +111,7 @@ class Visualization(BaseModel):
     hideSubtitle: bool | None = None
     hideTitle: bool | None = None
     href: str | None = None
-    icons: list[Any] | None = Field(default=None, description="Collection of Icon. Length/value max=255.")
+    icons: list[Any] | None = Field(default=None, description="Collection of Icon.")
     id: str | None = Field(default=None, description="Unique. Length/value min=11, max=11.")
     interpretations: list[Any] | None = Field(
         default=None, description="Collection of Interpretation. Read-only (inverse side)."
@@ -135,7 +133,7 @@ class Visualization(BaseModel):
     )
     organisationUnitLevels: list[Any] | None = Field(default=None, description="Collection of Integer.")
     organisationUnits: list[Any] | None = Field(default=None, description="Collection of OrganisationUnit.")
-    outlierAnalysis: Any | None = Field(default=None, description="Reference to OutlierAnalysis. Length/value max=255.")
+    outlierAnalysis: Any | None = Field(default=None, description="Reference to OutlierAnalysis.")
     parentGraphMap: Any | None = Field(default=None, description="Reference to Map. Read-only (inverse side).")
     percentStackedValues: bool | None = None
     periods: list[Any] | None = Field(default=None, description="Collection of Period.")
@@ -147,7 +145,7 @@ class Visualization(BaseModel):
     rangeAxisMaxValue: float | None = None
     rangeAxisMinValue: float | None = None
     rangeAxisSteps: int | None = Field(default=None, description="Length/value max=2147483647.")
-    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=3650.")
+    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String.")
     regression: bool | None = None
     regressionType: RegressionType | None = None
     relativePeriods: Any | None = Field(
@@ -160,26 +158,26 @@ class Visualization(BaseModel):
     rows: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
     )
-    seriesItems: list[Any] | None = Field(default=None, description="Collection of Series. Length/value max=255.")
-    seriesKey: Any | None = Field(default=None, description="Reference to SeriesKey. Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    seriesItems: list[Any] | None = Field(default=None, description="Collection of Series.")
+    seriesKey: Any | None = Field(default=None, description="Reference to SeriesKey.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     showData: bool | None = None
     showDimensionLabels: bool | None = None
     showHierarchy: bool | None = None
     skipRounding: bool | None = None
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
-    sortingItems: list[Any] | None = Field(default=None, description="Collection of Sorting. Length/value max=255.")
+    sortingItems: list[Any] | None = Field(default=None, description="Collection of Sorting.")
     startDate: datetime | None = None
     subscribed: bool | None = Field(default=None, description="Read-only.")
-    subscribers: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    subscribers: list[Any] | None = Field(default=None, description="Collection of String.")
     subtitle: str | None = Field(default=None, description="Length/value max=255.")
     targetLineLabel: str | None = Field(default=None, description="Length/value max=2147483647.")
     targetLineValue: float | None = None
     timeField: str | None = Field(default=None, description="Length/value max=2147483647.")
     title: str | None = Field(default=None, description="Length/value max=255.")
     topLimit: int | None = Field(default=None, description="Length/value max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: VisualizationType | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userOrgUnitType: UserOrgUnitType | None = None

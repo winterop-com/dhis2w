@@ -47,5 +47,5 @@ class ProgramRule(BaseModel):
     programRuleActions: list[Any] | None = Field(default=None, description="Collection of ProgramRuleAction.")
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

@@ -46,7 +46,7 @@ class ProgramTrackedEntityAttribute(BaseModel):
     name: str | None = Field(default=None, description="Length/value max=2147483647.")
     program: Reference | None = Field(default=None, description="Reference to Program.")
     renderOptionsAsRadio: bool | None = None
-    renderType: Any | None = Field(default=None, description="Reference to DeviceRenderTypeMap. Length/value max=255.")
+    renderType: Any | None = Field(default=None, description="Reference to DeviceRenderTypeMap.")
     searchable: bool | None = None
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")

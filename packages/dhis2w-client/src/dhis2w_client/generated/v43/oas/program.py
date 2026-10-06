@@ -54,12 +54,15 @@ class Program(_BaseModel):
     displayIncidentDateLabel: str | None = None
     displayName: str | None = None
     displayNoteLabel: str | None = None
+    displayNotesLabel: str | None = None
     displayOrgUnitLabel: str | None = None
     displayProgramStageLabel: str | None = None
     displayProgramStagesLabel: str | None = None
     displayRelationshipLabel: str | None = None
+    displayRelationshipsLabel: str | None = None
     displayShortName: str | None = None
     displayTrackedEntityAttributeLabel: str | None = None
+    displayTrackedEntityAttributesLabel: str | None = None
     enableChangeLog: bool | None = None
     enrollmentCategoryCombo: IdentifiableObject | None = None
     enrollmentDateLabel: str | None = None
@@ -110,6 +113,7 @@ class Program(_BaseModel):
     minAttributesRequiredToSearch: int | None = None
     name: str | None = None
     noteLabel: str | None = None
+    notesLabel: str | None = None
     notificationTemplates: list[BaseIdentifiableObject] | None = None
     onlyEnrollOnce: bool | None = None
     openDaysAfterCoEndDate: int | None = None
@@ -126,6 +130,7 @@ class Program(_BaseModel):
     registration: bool | None = None
     relatedProgram: IdentifiableObject | None = None
     relationshipLabel: str | None = None
+    relationshipsLabel: str | None = None
     selectEnrollmentDatesInFuture: bool | None = None
     selectIncidentDatesInFuture: bool | None = None
     sharing: Sharing | None = None
@@ -133,6 +138,7 @@ class Program(_BaseModel):
     skipOffline: bool | None = None
     style: ObjectStyle | None = None
     trackedEntityAttributeLabel: str | None = None
+    trackedEntityAttributesLabel: str | None = None
     trackedEntityType: TrackedEntityType | None = None
     translations: list[Translation] | None = None
     useFirstStageDuringRegistration: bool | None = None

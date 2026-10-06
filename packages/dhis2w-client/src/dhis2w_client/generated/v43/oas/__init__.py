@@ -1281,6 +1281,7 @@ from .two_factor_methods import TwoFactorMethods
 from .type_report import TypeReport
 from .update_follow_up_for_data_values_request import UpdateFollowUpForDataValuesRequest
 from .update_icon_request import UpdateIconRequest
+from .update_password_request import UpdatePasswordRequest
 from .user import User
 from .user_access import UserAccess
 from .user_details import UserDetails
@@ -2284,6 +2285,7 @@ _classes = {
     "TypeReport": TypeReport,
     "UpdateFollowUpForDataValuesRequest": UpdateFollowUpForDataValuesRequest,
     "UpdateIconRequest": UpdateIconRequest,
+    "UpdatePasswordRequest": UpdatePasswordRequest,
     "User": User,
     "UserAccess": UserAccess,
     "UserDetails": UserDetails,
@@ -2885,6 +2887,7 @@ _submodule_names = {
     "type_report",
     "update_follow_up_for_data_values_request",
     "update_icon_request",
+    "update_password_request",
     "user",
     "user_access",
     "user_details",
@@ -4102,6 +4105,7 @@ __all__ = [
     "TypeReport",
     "UpdateFollowUpForDataValuesRequest",
     "UpdateIconRequest",
+    "UpdatePasswordRequest",
     "User",
     "UserAccess",
     "UserDetails",

@@ -28,10 +28,8 @@ class TrackedEntityAttribute(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
-    blockedSearchOperators: list[Any] | None = Field(
-        default=None, description="Collection of QueryOperator. Length/value max=255."
-    )
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
+    blockedSearchOperators: list[Any] | None = Field(default=None, description="Collection of QueryOperator.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     confidential: bool | None = None
     created: datetime | None = None
@@ -66,14 +64,14 @@ class TrackedEntityAttribute(BaseModel):
     pattern: str | None = Field(default=None, description="Length/value max=255.")
     preferredSearchOperator: QueryOperator | None = None
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
     skipAnalytics: bool | None = None
     skipSynchronization: bool | None = None
     sortOrderInListNoProgram: int | None = Field(default=None, description="Length/value max=2147483647.")
     sortOrderInVisitSchedule: int | None = Field(default=None, description="Length/value max=2147483647.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     trigramIndexable: bool | None = None
     trigramIndexed: bool | None = None
     unique: bool | None = None

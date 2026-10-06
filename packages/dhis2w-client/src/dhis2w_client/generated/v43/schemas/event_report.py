@@ -51,7 +51,7 @@ class EventReport(BaseModel):
         default=None, description="Collection of TrackedEntityAttributeDimension."
     )
     attributeValueDimension: Reference | None = Field(default=None, description="Reference to TrackedEntityAttribute.")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryDimensions: list[CategoryDimension] | None = Field(
         default=None, description="Collection of CategoryDimension."
     )
@@ -95,7 +95,7 @@ class EventReport(BaseModel):
     endDate: datetime | None = None
     eventStatus: EventStatus | None = None
     favorite: bool | None = Field(default=None, description="Read-only.")
-    favorites: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    favorites: list[Any] | None = Field(default=None, description="Collection of String.")
     filterDimensions: list[Any] | None = Field(default=None, description="Collection of String.")
     filters: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
@@ -142,7 +142,7 @@ class EventReport(BaseModel):
     )
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
     programStatus: EnrollmentStatus | None = None
-    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=3650.")
+    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String.")
     regressionType: RegressionType | None = None
     relativePeriods: Any | None = Field(
         default=None, description="Reference to RelativePeriods. Read-only (inverse side)."
@@ -153,24 +153,22 @@ class EventReport(BaseModel):
     rows: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
     )
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     showData: bool | None = None
     showDimensionLabels: bool | None = None
     showHierarchy: bool | None = None
-    simpleDimensions: list[Any] | None = Field(
-        default=None, description="Collection of SimpleDimension. Length/value max=255."
-    )
+    simpleDimensions: list[Any] | None = Field(default=None, description="Collection of SimpleDimension.")
     skipRounding: bool | None = None
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
     startDate: datetime | None = None
     subscribed: bool | None = Field(default=None, description="Read-only.")
-    subscribers: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    subscribers: list[Any] | None = Field(default=None, description="Collection of String.")
     subtitle: str | None = Field(default=None, description="Length/value max=255.")
     timeField: str | None = Field(default=None, description="Length/value max=255.")
     title: str | None = Field(default=None, description="Length/value max=255.")
     topLimit: int | None = Field(default=None, description="Length/value max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: EventVisualizationType | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userOrgUnitType: UserOrgUnitType | None = None

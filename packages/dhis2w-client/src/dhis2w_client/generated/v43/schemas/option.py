@@ -26,7 +26,7 @@ class Option(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Length/value max=230.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
@@ -47,6 +47,6 @@ class Option(BaseModel):
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

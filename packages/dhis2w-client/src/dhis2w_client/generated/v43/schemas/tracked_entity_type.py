@@ -28,7 +28,7 @@ class TrackedEntityType(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     allowAuditLog: bool | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
@@ -50,12 +50,12 @@ class TrackedEntityType(BaseModel):
     maxTeiCountToReturn: int | None = Field(default=None, description="Length/value max=2147483647.")
     minAttributesRequiredToSearch: int | None = Field(default=None, description="Length/value max=2147483647.")
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
     trackedEntityTypeAttributes: list[Any] | None = Field(
         default=None, description="Collection of TrackedEntityTypeAttribute."
     )
     trackedEntityTypesLabel: str | None = Field(default=None, description="Length/value min=2, max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

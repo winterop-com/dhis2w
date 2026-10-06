@@ -162,7 +162,7 @@ class MapView(BaseModel):
     programStatus: EnrollmentStatus | None = None
     radiusHigh: int | None = Field(default=None, description="Length/value max=2147483647.")
     radiusLow: int | None = Field(default=None, description="Length/value max=2147483647.")
-    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=3650.")
+    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String.")
     regressionType: RegressionType | None = None
     relativePeriods: Any | None = Field(
         default=None, description="Reference to RelativePeriods. Read-only (inverse side)."
@@ -181,7 +181,7 @@ class MapView(BaseModel):
     skipRounding: bool | None = None
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
     startDate: datetime | None = None
-    styleDataItem: Any | None = Field(default=None, description="Reference to Object. Length/value max=255.")
+    styleDataItem: Any | None = Field(default=None, description="Reference to Object.")
     subscribed: bool | None = Field(default=None, description="Read-only.")
     subscribers: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
     subtitle: str | None = Field(default=None, description="Length/value max=2147483647.")
@@ -190,7 +190,7 @@ class MapView(BaseModel):
     title: str | None = Field(default=None, description="Length/value max=2147483647.")
     topLimit: int | None = Field(default=None, description="Length/value max=2147483647.")
     trackedEntityType: Reference | None = Field(default=None, description="Reference to TrackedEntityType.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userOrgUnitType: UserOrgUnitType | None = None
     userOrganisationUnit: bool | None = None
