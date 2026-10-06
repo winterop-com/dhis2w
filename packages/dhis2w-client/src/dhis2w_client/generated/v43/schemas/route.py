@@ -26,9 +26,9 @@ class Route(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
-    auth: Any | None = Field(default=None, description="Reference to AuthScheme. Length/value max=255.")
-    authorities: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
+    auth: Any | None = Field(default=None, description="Reference to AuthScheme.")
+    authorities: list[Any] | None = Field(default=None, description="Collection of String.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
@@ -37,14 +37,14 @@ class Route(BaseModel):
     displayName: str | None = Field(default=None, description="Read-only.")
     favorite: bool | None = Field(default=None, description="Read-only.")
     favorites: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
-    headers: Any | None = Field(default=None, description="Reference to Map. Length/value max=255.")
+    headers: Any | None = Field(default=None, description="Reference to Map.")
     href: str | None = None
     id: str | None = Field(default=None, description="Unique. Length/value min=11, max=11.")
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
     responseTimeoutSeconds: int | None = Field(default=None, description="Length/value max=2147483647.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     url: str | None = Field(default=None, description="Length/value max=2147483647.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

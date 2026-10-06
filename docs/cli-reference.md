@@ -9301,14 +9301,14 @@ $ d2w profile add [OPTIONS] {name}
 * `--auth <str>`: pat | basic | oauth2 | session  [default: pat]
 * `--username <str>`: Basic-auth username.
 * `--client-id <str>`: OAuth2 client_id.
-* `--scope <str>`: OAuth2 scope (DHIS2 only recognises `ALL`).  [default: ALL]
+* `--scope <str>`: OAuth2 scope a login requests (2.43.2 allows only openid, email, profile, username).  [default: openid]
 * `--redirect-uri <str>`: OAuth2 redirect URI (must match the registered client).  [default: http://localhost:8765]
 * `--from-env`: Pull OAuth2 fields from DHIS2_OAUTH_CLIENT_ID / DHIS2_OAUTH_CLIENT_SECRET / DHIS2_OAUTH_REDIRECT_URI / DHIS2_OAUTH_SCOPES env vars (seeded .env.auth).
 * `--global`: Save to ~/.config/dhis2/profiles.toml (default — user-wide, applies everywhere).
 * `--local`: Save to ./.dhis2/profiles.toml instead (project-scoped, overrides global).
 * `--default`: Set as default after adding.
 * `--verify`: Probe /api/system/info + /api/me after saving.
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43 | v44). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile remove`
@@ -9435,7 +9435,7 @@ $ d2w profile bootstrap [OPTIONS] {name}
 * `--global`: Save to ~/.config/dhis2/profiles.toml (default).
 * `--local`: Save to ./.dhis2/profiles.toml instead.
 * `--login / --no-login`: For auth=oauth2, run `profile login` after saving. Ignored for auth=pat.  [default: login]
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43 | v44). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile oidc-config`
@@ -9469,13 +9469,13 @@ $ d2w profile oidc-config [OPTIONS] {url}
 * `-n, --name <str>`: Profile name to save as.  [required]
 * `--client-id <str>`: OAuth2 client_id (from your registration).  [required]
 * `--client-secret <str>`: OAuth2 client_secret. Omit to read DHIS2_OAUTH_CLIENT_SECRET env or a hidden prompt.
-* `--scope <str>`: OAuth2 scope (DHIS2 only recognises `ALL`).  [default: ALL]
+* `--scope <str>`: OAuth2 scope a login requests (2.43.2 allows only openid, email, profile, username).  [default: openid]
 * `--redirect-uri <str>`: OAuth2 redirect URI (match your registered client — default is the CLI&#x27;s loopback listener).  [default: http://localhost:8765]
 * `--global`: Save to ~/.config/dhis2/profiles.toml (default, user-wide).
 * `--local`: Save to ./.dhis2/profiles.toml instead (project-scoped).
 * `--default`: Set as default after saving.
 * `--login`: Trigger `d2w profile login &lt;name&gt;` immediately after saving.
-* `--version <str>`: Expected DHIS2 major for this profile (v41 | v43 | v43). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
+* `--version <str>`: Expected DHIS2 major for this profile (v41 | v42 | v43 | v44). Used by CLI/MCP to pick which version&#x27;s plugin tree to load; the wire client always auto-detects on connect.
 * `--help`: Show this message and exit.
 
 ### `d2w profile pat`
@@ -9585,7 +9585,7 @@ $ d2w profile oauth2 client register [OPTIONS]
 * `--admin-user <str>`
 * `--client-id <str>`: [default: dhis2-utils-local]
 * `--redirect-uri <str>`: [default: http://localhost:8765]
-* `--scope <str>`: [default: ALL]
+* `--scope <str>`: Scope a login requests; 2.43.2 allows only the OpenID scopes.  [default: openid]
 * `--name <str>`
 * `--help`: Show this message and exit.
 

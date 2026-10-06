@@ -3,7 +3,7 @@
 # Refresh the /api/schemas half of `generated/v{N}` from the public play
 # channel that runs the pinned release, without docker.
 #
-# The pin `DHIS2_V43=2.43.1.0` maps to `https://play.im.dhis2.org/stable-2-43-1`.
+# The pin `DHIS2_V43=2.43.2.0` maps to `https://play.im.dhis2.org/stable-2-43-2`.
 # The script refuses to run when that channel reports another version.
 #
 # Only `generate` runs here. The OpenAPI document depends on `dhis.conf`
@@ -34,7 +34,7 @@ case "$image" in
     ;;
 esac
 
-# 2.43.1.0 -> major.minor.patch 2.43.1 -> channel stable-2-43-1
+# 2.43.2.0 -> major.minor.patch 2.43.2 -> channel stable-2-43-2
 release="$(echo "$pin" | cut -d. -f1-3)"
 channel="stable-$(echo "$release" | tr . -)"
 url="https://play.im.dhis2.org/$channel"

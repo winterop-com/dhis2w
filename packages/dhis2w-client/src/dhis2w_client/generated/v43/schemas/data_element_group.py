@@ -28,7 +28,7 @@ class DataElementGroup(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
@@ -54,7 +54,7 @@ class DataElementGroup(BaseModel):
     legendSets: list[Any] | None = Field(default=None, description="Collection of LegendSet. Read-only (inverse side).")
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

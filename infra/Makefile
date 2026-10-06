@@ -7,7 +7,7 @@ DHIS2_CONF     ?= ./$(DHIS2_VERSION)/dhis.conf
 DHIS2_URL      ?= http://localhost:8080
 DHIS2_USER     ?= admin
 DHIS2_PASS     ?= district
-# Resolve the pinned Docker tag from versions.env (`DHIS2_V43=2.43.1.0` etc.).
+# Resolve the pinned Docker tag from versions.env (`DHIS2_V43=2.43.2.0` etc.).
 # DHIS2_VERSION is the vXX key (v41 | v42 | v43); a dotted tag (e.g. "2.43.0.0")
 # bypasses the lookup. An invalid value yields an empty tag and a hard error.
 DHIS2_IMAGE := $(shell scripts/_resolve_image.sh $(DHIS2_VERSION))

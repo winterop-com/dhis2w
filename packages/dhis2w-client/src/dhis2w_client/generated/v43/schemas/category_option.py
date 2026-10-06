@@ -28,7 +28,7 @@ class CategoryOption(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categories: list[Any] | None = Field(default=None, description="Collection of Category. Read-only (inverse side).")
     categoryOptionCombos: list[Any] | None = Field(
         default=None, description="Collection of CategoryOptionCombo. Read-only (inverse side)."
@@ -56,10 +56,10 @@ class CategoryOption(BaseModel):
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
     organisationUnits: list[Any] | None = Field(default=None, description="Collection of OrganisationUnit.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value max=50.")
     startDate: datetime | None = None
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
     totalAggregationType: TotalAggregationType | None = Field(default=None, description="Read-only.")
     translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

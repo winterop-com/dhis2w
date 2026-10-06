@@ -64,9 +64,7 @@ class Attribute(BaseModel):
     mandatory: bool | None = None
     mapAttribute: bool | None = None
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
-    objectTypes: list[Any] | None = Field(
-        default=None, description="Collection of String. Read-only. Length/value max=255."
-    )
+    objectTypes: list[Any] | None = Field(default=None, description="Collection of String. Read-only.")
     optionAttribute: bool | None = None
     optionSet: Reference | None = Field(default=None, description="Reference to OptionSet.")
     optionSetAttribute: bool | None = None
@@ -78,13 +76,13 @@ class Attribute(BaseModel):
     programStageAttribute: bool | None = None
     relationshipTypeAttribute: bool | None = None
     sectionAttribute: bool | None = None
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
     sqlViewAttribute: bool | None = None
     trackedEntityAttributeAttribute: bool | None = None
     trackedEntityTypeAttribute: bool | None = None
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     unique: bool | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userAttribute: bool | None = None

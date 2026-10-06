@@ -42,6 +42,6 @@ class DataApprovalLevel(BaseModel):
     name: str | None = Field(default=None, description="Unique. Length/value max=230.")
     orgUnitLevel: int | None = Field(default=None, description="Length/value max=2147483647.")
     orgUnitLevelName: str | None = Field(default=None, description="Length/value max=2147483647.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

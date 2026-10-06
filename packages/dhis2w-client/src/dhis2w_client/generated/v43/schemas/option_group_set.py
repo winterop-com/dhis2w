@@ -67,8 +67,8 @@ class OptionGroupSet(BaseModel):
         default=None, description="Reference to ProgramStage. Read-only (inverse side)."
     )
     repetition: Any | None = Field(default=None, description="Reference to EventRepetition. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     valueType: ValueType | None = Field(default=None, description="Read-only.")

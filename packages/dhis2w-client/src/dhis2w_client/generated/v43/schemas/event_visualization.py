@@ -52,7 +52,7 @@ class EventVisualization(BaseModel):
         default=None, description="Collection of TrackedEntityAttributeDimension."
     )
     attributeValueDimension: Reference | None = Field(default=None, description="Reference to TrackedEntityAttribute.")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     baseLineLabel: str | None = Field(default=None, description="Length/value max=255.")
     baseLineValue: float | None = None
     categoryDimensions: list[CategoryDimension] | None = Field(
@@ -101,7 +101,7 @@ class EventVisualization(BaseModel):
     endDate: datetime | None = None
     eventStatus: EventStatus | None = None
     favorite: bool | None = Field(default=None, description="Read-only.")
-    favorites: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    favorites: list[Any] | None = Field(default=None, description="Collection of String.")
     filterDimensions: list[Any] | None = Field(default=None, description="Collection of String.")
     filters: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
@@ -156,34 +156,30 @@ class EventVisualization(BaseModel):
     rangeAxisMaxValue: float | None = None
     rangeAxisMinValue: float | None = None
     rangeAxisSteps: int | None = Field(default=None, description="Length/value max=2147483647.")
-    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=3650.")
+    rawPeriods: list[Any] | None = Field(default=None, description="Collection of String.")
     regressionType: RegressionType | None = None
     relativePeriods: Any | None = Field(
         default=None, description="Reference to RelativePeriods. Read-only (inverse side)."
     )
-    repetitions: list[EventRepetition] | None = Field(
-        default=None, description="Collection of EventRepetition. Length/value max=255."
-    )
+    repetitions: list[EventRepetition] | None = Field(default=None, description="Collection of EventRepetition.")
     rowDimensions: list[Any] | None = Field(default=None, description="Collection of String.")
     rowSubTotals: bool | None = None
     rowTotals: bool | None = None
     rows: list[Any] | None = Field(
         default=None, description="Collection of DimensionalObject. Read-only (inverse side)."
     )
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     showData: bool | None = None
     showDimensionLabels: bool | None = None
     showHierarchy: bool | None = None
-    simpleDimensions: list[Any] | None = Field(
-        default=None, description="Collection of SimpleDimension. Length/value max=255."
-    )
+    simpleDimensions: list[Any] | None = Field(default=None, description="Collection of SimpleDimension.")
     skipRounding: bool | None = None
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
-    sortingItems: list[Any] | None = Field(default=None, description="Collection of Sorting. Length/value max=255.")
+    sortingItems: list[Any] | None = Field(default=None, description="Collection of Sorting.")
     startDate: datetime | None = None
     subscribed: bool | None = Field(default=None, description="Read-only.")
-    subscribers: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    subscribers: list[Any] | None = Field(default=None, description="Collection of String.")
     subtitle: str | None = Field(default=None, description="Length/value max=255.")
     targetLineLabel: str | None = Field(default=None, description="Length/value max=255.")
     targetLineValue: float | None = None
@@ -191,7 +187,7 @@ class EventVisualization(BaseModel):
     title: str | None = Field(default=None, description="Length/value max=255.")
     topLimit: int | None = Field(default=None, description="Length/value max=2147483647.")
     trackedEntityType: Reference | None = Field(default=None, description="Reference to TrackedEntityType.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: EventVisualizationType | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userOrgUnitType: UserOrgUnitType | None = None

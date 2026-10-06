@@ -1,8 +1,8 @@
 {
   "version_key": "v43",
-  "raw_version": "2.43.1",
-  "openapi_sha256": "4d4f51deb75b535cfaea60cadae8e49bd783ef0d05038434b6e75d7c5e246093",
-  "components_total": 924,
+  "raw_version": "2.43.2",
+  "openapi_sha256": "81e1741c37beb0f9297e4c1d63f61a546ff8d622414ecaed014eb8f0e3ffb3f5",
+  "components_total": 925,
   "emitted": {
     "enums": [
       "AccessLevel",
@@ -1281,6 +1281,7 @@
       "TypeReport",
       "UpdateFollowUpForDataValuesRequest",
       "UpdateIconRequest",
+      "UpdatePasswordRequest",
       "User",
       "UserAccess",
       "UserDetails",
@@ -2230,6 +2231,7 @@
     "UID_Visualization",
     "UpdateFollowUpForDataValuesRequest",
     "UpdateIconRequest",
+    "UpdatePasswordRequest",
     "User",
     "UserAccess",
     "UserDetails",
