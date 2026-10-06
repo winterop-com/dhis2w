@@ -90,7 +90,7 @@ Every entry in the file is listed here.
 - [#4e](#4e-dhis2-route-api-api-token-auth-sends-authorization-apitoken-value--not-the-standard-bearer-scheme) — Route `api-token` auth uses the non-standard `ApiToken` scheme **[STILL; 2.44 STILL]**
 - [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id) — WebMessageResponse names the created uid as `uid`, not `id` **[STILL; 2.44 STILL]**
 - [#4g](#4g-dhis2-accepts-whitespace-abusive-values-for-name-shortname-and-code-on-metadata-create) — DHIS2 accepts whitespace-abusive `name` / `shortName` / `code` **[STILL; 2.44 STILL]**
-- [#4h](#4h-dhis2-refuses-its-own-oauth2-jwts-with-invalid-mapping-claim-whatever-the-resolved-users-openid-says) — DHIS2 refuses its own JWTs with `Invalid mapping claim` whatever `openId` says **[INVERTED; 2.44 STILL]**
+- [#4h](#4h-dhis2-refuses-its-own-oauth2-jwts-with-invalid-mapping-claim-whatever-the-resolved-users-openid-says) — DHIS2 refuses its own JWTs with `Invalid mapping claim` whatever `openId` says **[INVERTED; 2.43.2 STILL; 2.44 STILL]**
 - [#9](#9-dhis2s-strict-oidc-property-parser-rejects-entire-provider-config-on-typos) — The OIDC property parser rejects a provider on a typo on v41 and keeps it silently on v42/v43 **[PARTIAL; 2.44 NOT RETESTED]**
 - [#61](#61-keycorswhitelist-was-removed-from-systemsettings-the-cors-origin-list-is-only-readable-from-apiconfigurationcorswhitelist) — `keyCorsWhitelist` removed; CORS origins only at `/api/configuration/corsWhitelist` **[STILL; 2.44 STILL]**
 - [#52](#52-no-version-invariant-generated-oauth2-client-schema-v41-emits-only-the-array-typed-oauth2client-v42v43-only-the-comma-string-dhis2oauth2client) — No version-invariant generated OAuth2-client schema (cross-ref #39) **[STILL; 2.43.2 STILL; 2.44 STILL]**
@@ -603,7 +603,8 @@ which serves the same revision. The live verifiers ran too (`make test-slow` wit
 probes. v41, v42 and v44 were not re-run. Each re-run entry carries a
 `**Status on 2.43.2 (v43 pin, rev 13927ae, 2026-10-06)**` line and a `2.43.2` tag in the index.
 
-- **Still present on 2.43.2:** #14, #15, #28, #35, #36, #40, #41, #42, #49, #50, #51, #52, #76, #80,
+- **Still present on 2.43.2:** #4h (a token minted with `scope=openid` is refused with
+  `Invalid mapping claim`, as with `ALL` on 2.43.1), #14, #15, #28, #35, #36, #40, #41, #42, #49, #50, #51, #52, #76, #80,
   #81, #84, #85, #87, #88, #91, #94, #95, #96, #97, #98, #99, #100, #117, #122, #124, #129, #133,
   #138, #139, #140, #141, #142.
 - **Fixed on 2.43.2:** #13. `/api/outlierDetection` accepts the `MOD_Z_SCORE` its document
@@ -617,7 +618,7 @@ probes. v41, v42 and v44 were not re-run. Each re-run entry carries a
   `trackedEntities/query` parameters no longer move. `CategoryOption.aggregationType` still does
   (#95), and the pinned codegen emits one tree from every capture.
 - **Not re-run on 2.43.2:** every entry that needs a `dhis.conf` change or a restart (#3, #4, #4b,
-  #4c, #4h, #9, #54), a fresh empty database (#23, #27), a scoped user (#5, #26), or the rest of the
+  #4c, #9, #54), a fresh empty database (#23, #27), a scoped user (#5, #26), or the rest of the
   v42 and security-audit-scanner sections. Their 2.43.1 verdicts stand as 2.43.1 verdicts.
 
 ### 2026-10-01 — 2.43.1 scope of the new v44 entries (local `2.43.1.0` rev `9cbfbf3`)
@@ -2172,6 +2173,8 @@ matching DHIS2 user for the mapping claim` are both grep-able there.
 **Status (2026-09-11):** INVERTED on `2.42.6` and `2.43.1`, which is why the entry above now describes what holds rather than the empty-`openId` premise it was filed on. Three replays of one token, with `openId` set to `admin`, cleared, and restored, gave byte-identical `Invalid mapping claim` refusals on both majors, so the `openId` lookup is not the refusing step. Not applicable on `2.41.10`: `/api/me` answers `200` with `openId` set and after `PATCH replace /openId ""` alike, because that major has no authorization server and no JWT to validate.
 
 **Status on 2.44 (v44 preview, rev b732899, 2026-10-01):** STILL. A PKCE token (`sub=<username>`, `aud=dhis2w-local`, `iss=http://localhost:8080/`, `scope:["openid"]`) is refused on `/api/me` with `401 error="invalid_token", error_description="Invalid mapping claim"`, byte-identical with the user's `openId` equal to `sub`, cleared, and set to another value (tested on a throwaway user). The admin's token (`openId` `admin`) and the `id_token` are refused the same way, while `/userinfo` accepts the same access token (200 `{"sub":...}`).
+
+**Status on 2.43.2 (v43 pin, rev 13927ae, 2026-10-06):** STILL. With the seeded client (registered with the OpenID scopes and PKCE, #134), the stock `infra/v43/dhis.conf` and `admin.openId = admin`, `examples/client/oidc_login.py` completes the headless PKCE code flow with `scope=openid` and the first `GET /api/system/info` with the token answers `401` `Invalid mapping claim`. Not re-run with `openId` cleared or changed.
 
 **Verifier:** `packages/dhis2w-client/tests/test_upstream_bugs.py::test_bug_4_live_verifier`
 
