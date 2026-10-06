@@ -120,7 +120,7 @@ infra/
 | `DHIS2_OAUTH_CLIENT_ID` | `dhis2-utils-local` — deterministic client id |
 | `DHIS2_OAUTH_CLIENT_SECRET` | Deterministic local-only secret |
 | `DHIS2_OAUTH_REDIRECT_URI` | `http://localhost:8765` — matches dhis2w-client's OAuth2 default |
-| `DHIS2_OAUTH_SCOPES` | `ALL` — DHIS2 only recognises the single `ALL` scope |
+| `DHIS2_OAUTH_SCOPES` | The scope a login requests: `ALL` on v41 and v42, `openid` on v43 and v44, which refuse `ALL` (BUGS.md #134) |
 
 The variation list is in `infra/scripts/_seed_auth_variations.py`; the OAuth2 client config is in `infra/scripts/_seed_auth_oauth2.py`. Edit either to change what gets seeded.
 
@@ -188,7 +188,7 @@ These are deterministic and documented here on purpose — the dump is a synthet
 | OAuth2 client id | `dhis2-utils-local` |
 | OAuth2 client secret (plaintext) | `dhis2-utils-local-secret-do-not-use-in-prod` |
 | OAuth2 redirect URI | `http://localhost:8765` |
-| OAuth2 scope | `ALL` |
+| OAuth2 scope | `ALL` on v41 and v42; `openid` on v43 and v44 (registered scopes `openid,email,profile,username`, PKCE required) |
 
 PATs are **not** committed (DHIS2 generates them per-request, so there's nothing deterministic to bake in). Run `make dhis2-run` (brings up the stack detached and seeds in one shot) — PATs land in `infra/home/credentials/.env.auth`.
 
