@@ -1,7 +1,7 @@
 {
   "version_key": "v44",
   "raw_version": "2.44-SNAPSHOT",
-  "openapi_sha256": "5717fd16058dc8a7ca978b4f1bb9cd440b79a5bbeda3b3ab9aa376af90c8c4cd",
+  "openapi_sha256": "3bd21035715105d0a58104e0c76db0e2b8e6eabac0df97487f438980b47248b5",
   "components_total": 932,
   "emitted": {
     "enums": [

@@ -62,7 +62,7 @@ The generated code is **committed**, not gitignored. Diffs are reviewable in PRs
 
 ### v44 is a preview
 
-2.44.0 is not released. The v44 trees (`dhis2w_client.v44`, `dhis2w_core.v44.plugins.*`, `dhis2w_client.generated.v44`) target one build of the DHIS2 development line, pinned by digest in `infra/versions.env`: `dhis2/core-dev@sha256:19303b4f...`, the 2.44-SNAPSHOT build of 2026-09-24 (revision `b732899`). The pin is marked `# held`, so the automated version-bump check leaves it alone. Preview means:
+2.44.0 is not released. The v44 trees (`dhis2w_client.v44`, `dhis2w_core.v44.plugins.*`, `dhis2w_client.generated.v44`) target one build of the DHIS2 development line, pinned by digest in `infra/versions.env`: `dhis2/core-dev@sha256:4807b025...`, the 2.44-SNAPSHOT build of 2026-10-06 (revision `c48aedc`). The pin is marked `# held`, so the automated version-bump check leaves it alone. Preview means:
 
 - The v44 generated code describes that one build. A later development build may add, rename, or remove schemas before 2.44.0 ships.
 - The v44 end-to-end CI leg runs with `continue-on-error`: it reports, but does not gate a merge.

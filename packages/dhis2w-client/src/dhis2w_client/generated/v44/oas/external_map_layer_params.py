@@ -51,8 +51,11 @@ class ExternalMapLayerParams(_BaseModel):
     code: str | None = None
     created: datetime | None = None
     createdBy: ExternalMapLayerParamsCreatedBy | None = None
+    description: str | None = None
+    descriptionUrl: str | None = None
     displayName: str | None = None
     id: str | None = None
+    image: str | None = None
     imageFormat: ImageFormat | None = None
     lastUpdated: datetime | None = None
     lastUpdatedBy: ExternalMapLayerParamsLastUpdatedBy | None = None
