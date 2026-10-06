@@ -69,7 +69,7 @@ The generated code is **committed**, not gitignored. Diffs are reviewable in PRs
 - Contract tests reach v44 at `https://play.im.dhis2.org/dev`, the play channel that tracks the development line (there is no `dev-2-44` channel).
 - v43 stays the canonical baseline and the startup default.
 
-When 2.44.0 ships, re-pin v44 in `infra/versions.env` to `2.44.0.0` and drop the `# held` marker, rebuild `infra/v44/dump.sql.gz` against the release image (`make dhis2-build-e2e-dump DHIS2_VERSION=v44`), regenerate the tree (`make dhis2-codegen-all VERSIONS=v44`), sample boots with `infra/scripts/openapi_stability.sh v44 <output-dir>`, and review the codegen diff before making the v44 CI leg required.
+When 2.44.0 ships, re-pin v44 in `infra/versions.env` to `2.44.0.0` and drop the `# held` marker, move `infra/v44/dump.sql.gz` to the release image (`make dhis2-migrate-e2e-dump DHIS2_VERSION=v44`), regenerate the tree (`make dhis2-codegen-all VERSIONS=v44`), sample boots with `infra/scripts/openapi_stability.sh v44 <output-dir>`, and review the codegen diff before making the v44 CI leg required.
 
 ### Adding a major
 

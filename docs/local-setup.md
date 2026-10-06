@@ -202,6 +202,16 @@ Wipes the postgres volume, brings up an empty DHIS2, runs `infra/scripts/build_e
 
 **Only re-run when you intentionally want the committed dump to change** — for example, to add more data elements, extend the date range, or refresh the OAuth2 client config. Everyday workflows use the existing dump.
 
+### Moving the dump to a new pin
+
+```bash
+make dhis2-migrate-e2e-dump DHIS2_VERSION=v43
+```
+
+A pin bump with the seed unchanged does not need a fresh seed. This restores the committed dump into the newly pinned image, lets DHIS2 run its own migrations on startup, and dumps the migrated database back - the upgrade path a production DHIS2 takes from a backup. It takes minutes where the full seed takes about half an hour on v43.
+
+Both paths dump the way the backup script of [dhis2-server-tools](https://github.com/dhis2/dhis2-server-tools) does: a plain SQL `pg_dump` without owners, gzipped, leaving out the `aggregated_*`, `completeness_*` and analytics fact tables and the rows of `audit`. The one difference is deliberate: the small `analytics_rs_*` resource tables stay in, so a restore skips their rebuild, which takes about 15 minutes under emulation on an arm64 Mac.
+
 ## What's intentionally not committed
 
 - `*.sql.gz` dumps outside the `dhis-*.sql.gz` whitelist — production or customer dumps (e.g. `prod.sql.gz`) stay ignored.

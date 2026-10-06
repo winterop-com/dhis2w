@@ -103,6 +103,7 @@ make logs            follow the DHIS2 + postgres logs
 make down            stop the stack, keeping volumes
 make clean           stop, remove volumes, wipe runtime data
 make build-e2e-dump  populate a fresh DHIS2 and dump it to $(DHIS2_VERSION)/dump.sql.gz
+make migrate-e2e-dump  restore the dump into the pinned image, let DHIS2 migrate it, dump it back
 make help            show this help
 ```
 
