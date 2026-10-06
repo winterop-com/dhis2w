@@ -167,12 +167,14 @@ services:
         while true; do
           sleep 10
           STATUS=$$(curl -s -u "$${DHIS2_USER}:$${DHIS2_PASSWORD}" "http://dhis2:8080/api/system/tasks/ANALYTICS_TABLE/$$TASK_ID")
-          if echo "$$STATUS" | grep -q '"completed":true'; then
-            break
-          fi
+          # The error is read first: a job that aborts also ends `completed`, so
+          # testing completion first reports a failed run as a success.
           if echo "$$STATUS" | grep -q '"level":"ERROR"'; then
             echo 'Analytics failed!'
             exit 1
+          fi
+          if echo "$$STATUS" | grep -q '"completed":true'; then
+            break
           fi
           echo 'Still running...'
         done
