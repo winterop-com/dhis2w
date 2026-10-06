@@ -30,5 +30,6 @@ class MetadataExportParams(_BaseModel):
     exportWithDependencies: bool | None = None
     inclusionStrategy: Literal["ALWAYS", "NON_NULL", "NON_EMPTY"] | None = None
     objectExportWithDependencies: IdentifiableObject | None = None
+    objectsExportWithDependencies: list[IdentifiableObject] | None = None
     skipCreatedAndLastUpdated: bool | None = None
     skipSharing: bool | None = None

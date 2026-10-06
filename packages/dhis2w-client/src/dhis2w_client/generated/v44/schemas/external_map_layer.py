@@ -34,9 +34,12 @@ class ExternalMapLayer(BaseModel):
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
+    description: str | None = Field(default=None, description="Length/value max=1024.")
+    descriptionUrl: str | None = Field(default=None, description="Length/value max=255.")
     displayName: str | None = Field(default=None, description="Read-only.")
     href: str | None = None
     id: str | None = Field(default=None, description="Unique. Length/value min=11, max=11.")
+    image: str | None = Field(default=None, description="Length/value max=2097152.")
     imageFormat: ImageFormat | None = None
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
