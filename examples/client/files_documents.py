@@ -5,7 +5,7 @@ Exercises `client.files` — the accessor for the two DHIS2 file surfaces:
 - **Documents** (`/api/documents`) — user-uploaded attachments or external-URL
   links, managed as typed metadata with their own CRUD lifecycle. Binary
   upload is a two-step under the hood (`fileResource` with `domain=DOCUMENT`
-  first, then a JSON link; see `BUGS.md #16`).
+  first, then a JSON link; see `DHIS2_ISSUES.md #16`).
 - **File resources** (`/api/fileResources`) — typed binary blobs referenced
   from other metadata: `DATA_VALUE` (file-type DataElement captures),
   `ICON`, `MESSAGE_ATTACHMENT`, etc.

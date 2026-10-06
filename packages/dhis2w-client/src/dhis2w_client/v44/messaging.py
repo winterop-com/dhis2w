@@ -128,7 +128,7 @@ class MessagingAccessor:
 
         The returned `MessageConversation` is freshly fetched — the
         create endpoint returns just the status envelope, not the new
-        UID (see BUGS.md #17). The UID is extracted from the 201
+        UID (see DHIS2_ISSUES.md #17). The UID is extracted from the 201
         `Location` header; this method GETs the conversation back so the
         caller receives a typed object instead of parsing a URL.
         """

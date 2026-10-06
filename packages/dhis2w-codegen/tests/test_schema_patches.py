@@ -36,7 +36,7 @@ def _aggregation_type(manifest: SchemasManifest) -> SchemaProperty:
 
 
 def test_boolean_boot_is_pinned_to_the_enum() -> None:
-    """A boot reporting BOOLEAN emits the same enum-typed property as a boot reporting CONSTANT (BUGS.md #95)."""
+    """A boot reporting BOOLEAN emits the enum-typed property a boot reporting CONSTANT emits (DHIS2_ISSUES.md #95)."""
     boolean_boot = _manifest(
         SchemaProperty(name="aggregationType", propertyType="BOOLEAN", klass="java.lang.Boolean", writable=False)
     )

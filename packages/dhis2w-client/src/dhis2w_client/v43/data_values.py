@@ -197,7 +197,7 @@ class DataValuesAccessor:
         force: bool = False,
         skip_audit: bool = False,
     ) -> list[WebMessageResponse]:
-        """Import typed `DataValue`s grouped by dataset — BUGS.md #35 workaround for v43.
+        """Import typed `DataValue`s grouped by dataset — DHIS2_ISSUES.md #35 workaround for v43.
 
         v43 added auto-target dataset detection on `POST /api/dataValueSets`
         (`DefaultDataEntryService.autoTargetDataSet`). When a posted DataValue's
@@ -251,7 +251,7 @@ class DataValuesAccessor:
         """Map every DE id to one of its DataSets (lexicographically-first when multiple).
 
         Used by `import_grouped_by_dataset` to scope each POST chunk to a
-        single DataSet, avoiding v43's auto-target rejection (BUGS.md #35).
+        single DataSet, avoiding v43's auto-target rejection (DHIS2_ISSUES.md #35).
         """
         raw = await self._client.get_raw(
             "/api/dataSets",

@@ -61,7 +61,7 @@ async def main() -> None:
             print(f"  row cells: {row!r}  (types: {cell_types})")
         print()
         print("Note: v41 OAS declares cells as `dict[str, Any]` but the wire returns scalars/null.")
-        print("The v41 Grid subclass widens rows to `list[list[Any]]` — see BUGS.md (v41 OAS section).")
+        print("The v41 Grid subclass widens rows to `list[list[Any]]` — see DHIS2_ISSUES.md (v41 OAS section).")
 
 
 if __name__ == "__main__":

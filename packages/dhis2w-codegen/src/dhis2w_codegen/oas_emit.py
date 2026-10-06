@@ -169,7 +169,7 @@ def emit_from_openapi(openapi_path: Path, output_dir: Path, *, version_key: str,
 
     # Patch the spec for known upstream DHIS2 gaps (missing discriminators,
     # variant schemas without Jackson `type` tags, etc.). See
-    # `dhis2w_codegen.spec_patches` for the full list + per-patch BUGS.md refs.
+    # `dhis2w_codegen.spec_patches` for the full list + per-patch DHIS2_ISSUES.md refs.
     applied_patches = apply_patches(components)
     for patch in applied_patches:
         print(f"  spec-patch applied: {patch.name} ({patch.bugs_ref})")

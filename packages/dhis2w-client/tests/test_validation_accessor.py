@@ -142,7 +142,7 @@ async def test_list_results_forwards_filters(server_version: str, mock_system_in
     assert params["page"] == "2"
     assert params["pageSize"] == "10"
     # Default `fields` selector pulls nested displayName + importance + operator
-    # so the persisted shape renders without a second lookup (BUGS.md #19).
+    # so the persisted shape renders without a second lookup (DHIS2_ISSUES.md #19).
     assert "validationRule[id,displayName,importance,operator]" in params["fields"]
     assert "organisationUnit[id,displayName]" in params["fields"]
     assert "period[id,displayName]" in params["fields"]

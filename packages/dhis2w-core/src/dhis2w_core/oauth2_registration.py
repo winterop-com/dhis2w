@@ -78,7 +78,7 @@ async def register_oauth2_client(
 
     Wire shape varies per version: v41 names the property `cid` and strictly
     requires array-typed multi-valued fields; v42 + v43 renamed it to
-    `clientId` and accept arrays too (BUGS.md #39). The per-version
+    `clientId` and accept arrays too (DHIS2_ISSUES.md #39). The per-version
     `dhis2w_client.v{N}.oauth2_payload.build_register_payload` builder
     owns each shape; this helper connects, looks at `client.version_key`,
     and dispatches to the matching builder.

@@ -49,7 +49,7 @@ plugin pack in another repository has one import path per helper regardless of t
 
 Four supported majors — v41, v42, v43, v44. The set is defined in one place, the `Dhis2` `StrEnum` in `dhis2w_client.generated`; `dhis2w_client._dispatch._KNOWN_VERSION_KEYS` and `dhis2w_core.plugin.SUPPORTED_VERSION_KEYS` derive from it, and CLI and profile validation check against `SUPPORTED_VERSION_KEYS`. Other DHIS2 majors are out of scope; the codegen tooling can still target them via `d2w dev codegen generate --url ...` against an arbitrary stack, but no manifests or generated trees are committed.
 
-The hand-written `v{N}/` subpackages start as copies of v43, rewritten to import their own major's generated tree, and diverge per-file as version-specific behaviour lands (the `categorys` -> `categories` field rename on v43's CategoryCombo, the missing `OAuth2ClientCredentialsAuthScheme` on v41's generated tree, etc.). Each tree imports from its own `dhis2w_client.generated.v{N}.*`, so the symbol set stays parallel while the shapes track the major. Divergence is per-method and called out in BUGS.md.
+The hand-written `v{N}/` subpackages start as copies of v43, rewritten to import their own major's generated tree, and diverge per-file as version-specific behaviour lands (the `categorys` -> `categories` field rename on v43's CategoryCombo, the missing `OAuth2ClientCredentialsAuthScheme` on v41's generated tree, etc.). Each tree imports from its own `dhis2w_client.generated.v{N}.*`, so the symbol set stays parallel while the shapes track the major. Divergence is per-method and called out in DHIS2_ISSUES.md.
 
 Each populated `v{NN}/` carries:
 
@@ -237,7 +237,7 @@ For each version N, the script:
 ### Captures differ between boots
 
 DHIS2 builds both introspection surfaces at startup, and where two Java members map to one
-property, the one that wins changes from boot to boot of the same image (BUGS.md #95, #133). Two
+property, the one that wins changes from boot to boot of the same image (DHIS2_ISSUES.md #95, #133). Two
 captures of `2.43.1` or `2.43.2` can disagree on `CategoryOption.aggregationType` (enum or boolean), and two of
 `2.42.6` on the item type of `Page`. The codegen pins every such property before emission
 (`spec_patches.pin-boot-dependent-shapes` for OpenAPI, `schema_patches` for `/api/schemas`), so any

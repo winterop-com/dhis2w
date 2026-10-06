@@ -1,4 +1,4 @@
-"""Paired upstream-bug regression tests — one bug + one workaround per BUGS.md entry.
+"""Paired upstream-bug regression tests — one bug + one workaround per DHIS2_ISSUES.md entry.
 
 Every test here is marked `@pytest.mark.upstream_bug` and comes in two flavours:
 
@@ -63,14 +63,14 @@ def _mock_v43_connect() -> None:
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #34 — v43 dropped the `categorys` alias for `CategoryCombo.categories`.
+# DHIS2_ISSUES.md #34 — v43 dropped the `categorys` alias for `CategoryCombo.categories`.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_34_v43_categorys_alias_silently_dropped() -> None:
-    """BUGS.md #34 — bug-still-present: v43 accepts `categorys` payloads but persists no categories.
+    """DHIS2_ISSUES.md #34 — bug-still-present: v43 accepts `categorys` payloads but persists no categories.
 
     On v42 the `categorys` (misspelled) field was a backwards-compat alias for
     `categories`. v43 dropped the alias; writes that use `categorys` get a 201
@@ -109,7 +109,7 @@ async def test_bug_34_v43_categorys_alias_silently_dropped() -> None:
         await client.post_raw("/api/categoryCombos", body=body)
         combo = await client.category_combos.get("CC_NEW")
     assert combo.categories == [], (
-        "BUGS.md #34: v43 should still silently drop the `categorys` (misspelled) field. "
+        "DHIS2_ISSUES.md #34: v43 should still silently drop the `categorys` (misspelled) field. "
         "If this changes, DHIS2 may have either re-added the alias or made it a 4xx — "
         "either way, verify upstream + revisit `dhis2w_client.v{N}.category_combos`."
     )
@@ -118,7 +118,7 @@ async def test_bug_34_v43_categorys_alias_silently_dropped() -> None:
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_34_workaround_uses_categories_payload() -> None:
-    """BUGS.md #34 — workaround-works: every CategoryCombo write goes out as `categories`.
+    """DHIS2_ISSUES.md #34 — workaround-works: every CategoryCombo write goes out as `categories`.
 
     The fix is uniform across every major — we never emit `categorys`.
     Asserts the v43-bound wire payload contains `categories` and never
@@ -146,20 +146,20 @@ async def test_bug_34_workaround_uses_categories_payload() -> None:
     body = create_route.calls.last.request.read()
     assert b'"categories"' in body
     assert b'"categorys"' not in body, (
-        "BUGS.md #34 workaround: client writes must use `categories`, not the dropped "
+        "DHIS2_ISSUES.md #34 workaround: client writes must use `categories`, not the dropped "
         "alias. Regression points at `dhis2w_client.v{N}.category_combos`."
     )
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #38 — `SharingObject.externalAccess` is absent from the wire schema.
+# DHIS2_ISSUES.md #38 — `SharingObject.externalAccess` is absent from the wire schema.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
-    """BUGS.md #38 — bug-still-present: no tree's OAS declares `externalAccess` on `SharingObject`.
+    """DHIS2_ISSUES.md #38 — bug-still-present: no tree's OAS declares `externalAccess` on `SharingObject`.
 
     DHIS2 carries no `externalAccess` on the sharing schema on any
     supported major, so the generated `SharingObject` class has no such
@@ -171,7 +171,7 @@ def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
     sharing_object_module = importlib.import_module(f"dhis2w_client.generated.{tree}.oas.sharing_object")
 
     assert "externalAccess" not in sharing_object_module.SharingObject.model_fields, (
-        f"BUGS.md #38: {tree} SharingObject still lacks externalAccess in OAS. "
+        f"DHIS2_ISSUES.md #38: {tree} SharingObject still lacks externalAccess in OAS. "
         f"If this fails, regenerate codegen and revisit `dhis2w_client.{tree}.sharing`."
     )
 
@@ -179,7 +179,7 @@ def test_bug_38_sharing_object_lacks_external_access_field(tree: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
 def test_bug_38_workaround_sharing_builder_drops_external_access(tree: str) -> None:
-    """BUGS.md #38 — workaround-works: no tree's `SharingBuilder` exposes or emits `externalAccess`.
+    """DHIS2_ISSUES.md #38 — workaround-works: no tree's `SharingBuilder` exposes or emits `externalAccess`.
 
     Every supported major answers a write carrying `externalAccess` with
     200 `"Access control set"` and discards the value, so the builder in
@@ -190,7 +190,7 @@ def test_bug_38_workaround_sharing_builder_drops_external_access(tree: str) -> N
     sharing = importlib.import_module(f"dhis2w_client.{tree}.sharing")
 
     assert "external_access" not in sharing.SharingBuilder.model_fields, (
-        f"BUGS.md #38 workaround: `dhis2w_client.{tree}.sharing.SharingBuilder` must not "
+        f"DHIS2_ISSUES.md #38 workaround: `dhis2w_client.{tree}.sharing.SharingBuilder` must not "
         f"declare `external_access` — DHIS2 discards the value."
     )
     dumped = (
@@ -199,20 +199,20 @@ def test_bug_38_workaround_sharing_builder_drops_external_access(tree: str) -> N
         .model_dump(by_alias=True, exclude_none=True)
     )
     assert "externalAccess" not in dumped, (
-        f"BUGS.md #38 workaround: the {tree} SharingBuilder must not emit externalAccess in the "
+        f"DHIS2_ISSUES.md #38 workaround: the {tree} SharingBuilder must not emit externalAccess in the "
         f"wire shape. Regression points at `dhis2w_client.{tree}.sharing`."
     )
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #39 — v41 OAuth2 client schema uses `cid` (not `clientId`) + strict array typing.
+# DHIS2_ISSUES.md #39 — v41 OAuth2 client schema uses `cid` (not `clientId`) + strict array typing.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_39_v41_oauth2_payload_with_clientid_persists_empty() -> None:
-    """BUGS.md #39 — bug-still-present: v41 silently ignores `clientId` in OAuth2 payloads.
+    """DHIS2_ISSUES.md #39 — bug-still-present: v41 silently ignores `clientId` in OAuth2 payloads.
 
     v41's schema property is `cid`; v42 + v43 renamed it to `clientId`. A
     v42-shape payload sent to v41 returns 201 Created but the resulting
@@ -242,7 +242,7 @@ async def test_bug_39_v41_oauth2_payload_with_clientid_persists_empty() -> None:
     body = register_route.calls.last.request.read()
     assert b'"clientId"' in body
     assert b'"cid"' not in body, (
-        "BUGS.md #39: v41 should still treat `clientId` as an unknown property. "
+        "DHIS2_ISSUES.md #39: v41 should still treat `clientId` as an unknown property. "
         "If this fails, DHIS2 may have backported the rename — verify upstream."
     )
 
@@ -250,7 +250,7 @@ async def test_bug_39_v41_oauth2_payload_with_clientid_persists_empty() -> None:
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_39_workaround_v41_register_emits_cid_not_clientid() -> None:
-    """BUGS.md #39 — workaround-works: `register_oauth2_client` posts `cid` (not `clientId`) on v41.
+    """DHIS2_ISSUES.md #39 — workaround-works: `register_oauth2_client` posts `cid` (not `clientId`) on v41.
 
     The per-version `dhis2w_client.v41.oauth2_payload.build_register_payload`
     emits `cid` + array-typed multi-valued fields. The registration helper
@@ -274,7 +274,7 @@ async def test_bug_39_workaround_v41_register_emits_cid_not_clientid() -> None:
     body = register_route.calls.last.request.read()
     assert b'"cid"' in body
     assert b'"clientId"' not in body, (
-        "BUGS.md #39 workaround: v41 must receive `cid`, not `clientId`. "
+        "DHIS2_ISSUES.md #39 workaround: v41 must receive `cid`, not `clientId`. "
         "Regression points at `dhis2w_client.v41.oauth2_payload`."
     )
 
@@ -313,7 +313,7 @@ def _skip_unless_version(client: Dhis2Client, targets: str | frozenset[str]) -> 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_34_v43_live_categorys_alias_silently_dropped(local_url: str) -> None:
-    """BUGS.md #34 — bug-still-present (LIVE v43): POST with `categorys` persists no categories.
+    """DHIS2_ISSUES.md #34 — bug-still-present (LIVE v43): POST with `categorys` persists no categories.
 
     Requires `make dhis2-run DHIS2_VERSION=v43`. POSTs a CategoryCombo using
     the misspelled `categorys` field. Reads back; asserts `categories: []`.
@@ -346,7 +346,7 @@ async def test_bug_34_v43_live_categorys_alias_silently_dropped(local_url: str) 
             )
             categories = after.get("categories") or []
             assert categories == [], (
-                f"BUGS.md #34: expected v43 to silently drop the `categorys` field, "
+                f"DHIS2_ISSUES.md #34: expected v43 to silently drop the `categorys` field, "
                 f"got {len(categories)} categories on the persisted combo. DHIS2 may have "
                 f"re-added the alias — verify upstream."
             )
@@ -357,7 +357,7 @@ async def test_bug_34_v43_live_categorys_alias_silently_dropped(local_url: str) 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_38_live_sharing_schema_lacks_external_access(local_url: str) -> None:
-    """BUGS.md #38 — bug-still-present (LIVE): the OpenAPI `SharingObject` does not declare `externalAccess`.
+    """DHIS2_ISSUES.md #38 — bug-still-present (LIVE): the OpenAPI `SharingObject` does not declare `externalAccess`.
 
     Requires `make dhis2-run DHIS2_VERSION=v{41,42,43}`. `sharingObject` is
     not an `/api/schemas` type on any major (`404 E1005 Type sharingObject
@@ -370,16 +370,16 @@ async def test_bug_38_live_sharing_schema_lacks_external_access(local_url: str) 
         document = await client.get_raw("/api/openapi/openapi.json", params={"path": "/api/sharing"})
         schemas = document.get("components", {}).get("schemas", {})
         if not schemas:
-            # 2.41.10 answers an `/api`-prefixed `path` filter with an empty document (BUGS.md #123).
+            # 2.41.10 answers an `/api`-prefixed `path` filter with an empty document (DHIS2_ISSUES.md #123).
             document = await client.get_raw("/api/openapi.json")
             schemas = document.get("components", {}).get("schemas", {})
         sharing_object = schemas.get("SharingObject")
         assert sharing_object is not None, (
-            "BUGS.md #38: the OpenAPI document no longer carries a `SharingObject` component at all — "
+            "DHIS2_ISSUES.md #38: the OpenAPI document no longer carries a `SharingObject` component at all — "
             "find where the sharing wire shape moved before trusting this verifier."
         )
         assert "externalAccess" not in (sharing_object.get("properties") or {}), (
-            f"BUGS.md #38: expected the {client.version_key} OpenAPI SharingObject to lack `externalAccess`. "
+            f"DHIS2_ISSUES.md #38: expected the {client.version_key} OpenAPI SharingObject to lack `externalAccess`. "
             f"DHIS2 may have added the field — regenerate codegen and revisit "
             f"`dhis2w_client.{client.version_key}.sharing`."
         )
@@ -388,7 +388,7 @@ async def test_bug_38_live_sharing_schema_lacks_external_access(local_url: str) 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_39_v41_live_oauth2_rejects_v42_shape(local_url: str) -> None:
-    """BUGS.md #39 — bug-still-present (LIVE v41): v41 doesn't accept the v42 `clientId` shape.
+    """DHIS2_ISSUES.md #39 — bug-still-present (LIVE v41): v41 doesn't accept the v42 `clientId` shape.
 
     Requires `make dhis2-run DHIS2_VERSION=v41`. POSTs a v42-shape OAuth2 client
     (using `clientId`, not `cid`) directly via raw POST. On the originally-observed
@@ -419,7 +419,7 @@ async def test_bug_39_v41_live_oauth2_rejects_v42_shape(local_url: str) -> None:
             except Dhis2ApiError as exc:
                 # Modern v41 path: 409 with errorCode E4000 "Missing required property cid".
                 assert exc.status_code == 409, (
-                    f"BUGS.md #39: expected v41 to reject the v42-shape `clientId` body with 409 "
+                    f"DHIS2_ISSUES.md #39: expected v41 to reject the v42-shape `clientId` body with 409 "
                     f"(or silently persist with empty `cid` on the historical build), got "
                     f"{exc.status_code}. DHIS2 may have backported the `clientId` rename to v41 — "
                     f"verify upstream + drop the v41-specific `cid` codegen workaround."
@@ -433,7 +433,7 @@ async def test_bug_39_v41_live_oauth2_rejects_v42_shape(local_url: str) -> None:
                     isinstance(report, dict) and report.get("errorProperty") == "cid" for report in error_reports
                 )
                 assert cid_error, (
-                    f"BUGS.md #39: expected the 409 to flag `cid` as the missing property, got "
+                    f"DHIS2_ISSUES.md #39: expected the 409 to flag `cid` as the missing property, got "
                     f"errorReports={error_reports}. Re-investigate before drawing conclusions."
                 )
                 return
@@ -446,7 +446,7 @@ async def test_bug_39_v41_live_oauth2_rejects_v42_shape(local_url: str) -> None:
             )
             cid = after.get("cid")
             assert not cid, (
-                f"BUGS.md #39: expected v41 to silently drop `clientId` (cid stays empty) on the "
+                f"DHIS2_ISSUES.md #39: expected v41 to silently drop `clientId` (cid stays empty) on the "
                 f"historical 2-pre-2.41.8 build, got cid={cid!r}. DHIS2 may have backported the "
                 f"rename — verify upstream + drop the v41-specific `cid` codegen workaround."
             )
@@ -457,14 +457,14 @@ async def test_bug_39_v41_live_oauth2_rejects_v42_shape(local_url: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Backlog — every BUGS.md entry deserves a live verifier; fill in incrementally.
+# Backlog — every DHIS2_ISSUES.md entry deserves a live verifier; fill in incrementally.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_1_live_verifier(local_url: str) -> None:
-    """BUGS.md #1 — `/api/analytics/rawData` returns 404 without the `.json` URL suffix.
+    """DHIS2_ISSUES.md #1 — `/api/analytics/rawData` returns 404 without the `.json` URL suffix.
 
     Cross-version bug (v41/v42/v43): the sub-routes under `/api/analytics`
     only honour extension-suffixed paths. With `Accept: application/json`
@@ -499,13 +499,13 @@ async def test_bug_1_live_verifier(local_url: str) -> None:
         except Dhis2ApiError as exc:
             with_ext_error = exc
     assert excinfo.value.status_code == 404, (
-        f"BUGS.md #1: expected 404 on `/api/analytics/rawData` without `.json` "
+        f"DHIS2_ISSUES.md #1: expected 404 on `/api/analytics/rawData` without `.json` "
         f"(Tomcat 'no static resource' fall-through), got {excinfo.value.status_code}. "
         f"DHIS2 may have fixed content-negotiation on the sub-route — verify upstream + "
         f"drop the `.json`-hardcode in `dhis2w_core.plugins.analytics.service`."
     )
     assert with_ext_error is None or with_ext_error.status_code != 404, (
-        f"BUGS.md #1: expected `.json`-suffixed call to NOT be 404 (the workaround relies "
+        f"DHIS2_ISSUES.md #1: expected `.json`-suffixed call to NOT be 404 (the workaround relies "
         f"on the suffix making the route resolve), got "
         f"{with_ext_error.status_code if with_ext_error else 'OK'}."
     )
@@ -514,7 +514,7 @@ async def test_bug_1_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_2_live_verifier(local_url: str) -> None:
-    """BUGS.md #2 — `importStrategy=DELETE` is a soft-delete that still blocks parent DE deletion.
+    """DHIS2_ISSUES.md #2 — `importStrategy=DELETE` is a soft-delete that still blocks parent DE deletion.
 
     Cross-version bug. Picks one existing seeded DE + OU + DS combo,
     POSTs a data value, then `importStrategy=DELETE`s it, then tries
@@ -569,7 +569,7 @@ async def test_bug_2_live_verifier(local_url: str) -> None:
         with pytest.raises(Dhis2ApiError) as excinfo:
             await client.delete_raw(f"/api/dataElements/{first_de}")
     assert excinfo.value.status_code == 409, (
-        f"BUGS.md #2: expected 409 on DELETE of a DataElement with a soft-deleted DataValue "
+        f"DHIS2_ISSUES.md #2: expected 409 on DELETE of a DataElement with a soft-deleted DataValue "
         f"(the bug — soft-delete row blocks parent deletion), got "
         f"{excinfo.value.status_code}. DHIS2 may have fixed the reference-check to skip "
         f"deleted=true rows — verify upstream + drop the 'orphan DE/OU' workaround note in "
@@ -581,52 +581,52 @@ async def test_bug_2_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_3_live_verifier(local_url: str) -> None:
-    """BUGS.md #3 — TODO live verifier: Blank `audit.metadata` / `audit.tracker` / `audit.aggregate` in `dhis.conf` s...
+    """DHIS2_ISSUES.md #3 — TODO live verifier: Blank `audit.metadata` / `audit.tracker` / `audit.aggregate` in `dhis...
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #3 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #3 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #3")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #3")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_4_live_verifier(local_url: str) -> None:
-    """BUGS.md #4 — TODO live verifier: DHIS2 OAuth2 Authorization Server requires 10+ undocumented `dhis.conf` keys...
+    """DHIS2_ISSUES.md #4 — TODO live verifier: DHIS2 OAuth2 Authorization Server requires 10+ undocumented `dhis.con...
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #4 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #4 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #4")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #4")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_5_live_verifier(local_url: str) -> None:
-    """BUGS.md #5 — TODO live verifier: `organisationUnits` POST inside a user's capture scope enforces DESCENDANT, n...
+    """DHIS2_ISSUES.md #5 — TODO live verifier: `organisationUnits` POST inside a user's capture scope enforces DESCE...
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #5 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #5 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #5")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #5")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_6_live_verifier(local_url: str) -> None:
-    """BUGS.md #6 — bulk dataValueSets dryRun returns 409 even when every row is ignored.
+    """DHIS2_ISSUES.md #6 — bulk dataValueSets dryRun returns 409 even when every row is ignored.
 
     Cross-version bug. Sends a dryRun POST with one value pointing at
     nonexistent DE/OU UIDs (guaranteed to be rejected). DHIS2 surfaces
@@ -654,7 +654,7 @@ async def test_bug_6_live_verifier(local_url: str) -> None:
                 },
             )
     assert excinfo.value.status_code == 409, (
-        f"BUGS.md #6: expected 409 on an all-ignored bulk push (the bug), got "
+        f"DHIS2_ISSUES.md #6: expected 409 on an all-ignored bulk push (the bug), got "
         f"{excinfo.value.status_code}. DHIS2 may have switched to 200+WARNING — verify "
         f"upstream + check whether the `Dhis2ApiError`-catch in seed loader / aggregate "
         f"plugin can be simplified."
@@ -664,22 +664,22 @@ async def test_bug_6_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_9_live_verifier(local_url: str) -> None:
-    """BUGS.md #9 — TODO live verifier: DHIS2's strict OIDC property parser rejects entire provider config on typos
+    """DHIS2_ISSUES.md #9 — TODO live verifier: DHIS2's strict OIDC property parser rejects entire provider config...
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #9 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #9 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #9")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #9")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_10_live_verifier(local_url: str) -> None:
-    """BUGS.md #10 — `/api/loginConfig` field names don't match the writeable systemSettings keys.
+    """DHIS2_ISSUES.md #10 — `/api/loginConfig` field names don't match the writeable systemSettings keys.
 
     Cross-version bug. `/api/loginConfig` advertises
     `applicationIntroduction` etc. but the writeable system-setting key
@@ -704,7 +704,7 @@ async def test_bug_10_live_verifier(local_url: str) -> None:
     # error code, same load-bearing symptom: the loginConfig field name is not a valid
     # writeable system-settings key. Either rejection confirms the bug is present.
     assert excinfo.value.status_code in (404, 409), (
-        f"BUGS.md #10: expected rejection (404 on v42/v43 'Setting does not exist' or 409 on "
+        f"DHIS2_ISSUES.md #10: expected rejection (404 on v42/v43 'Setting does not exist' or 409 on "
         f"v41 'Key is not supported') for the loginConfig-style key "
         f"`applicationIntroduction`, got {excinfo.value.status_code}. DHIS2 may have aligned "
         f"the loginConfig field names with the writeable systemSettings keys — verify "
@@ -716,7 +716,7 @@ async def test_bug_10_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_11_live_verifier(local_url: str) -> None:
-    """BUGS.md #11 — `POST /api/staticContent/logo_front` ignores upload until `keyUseCustomLogoFront=true` set.
+    """DHIS2_ISSUES.md #11 — `POST /api/staticContent/logo_front` ignores upload until `keyUseCustomLogoFront=true` set.
 
     Cross-version bug. Uploads a minimal 1x1 PNG via multipart form,
     explicitly resets `keyUseCustomLogoFront` to `false` (to undo any
@@ -758,7 +758,7 @@ async def test_bug_11_live_verifier(local_url: str) -> None:
             login_config = await client.get_raw("/api/loginConfig", params={"fields": "useCustomLogoFront"})
             use_custom = login_config.get("useCustomLogoFront")
             assert use_custom is False, (
-                f"BUGS.md #11: expected loginConfig.useCustomLogoFront=false after upload + flag "
+                f"DHIS2_ISSUES.md #11: expected loginConfig.useCustomLogoFront=false after upload + flag "
                 f"reset (the bug — DHIS2 stores the file but doesn't activate it), got "
                 f"{use_custom!r}. DHIS2 may have wired the staticContent POST to auto-flip the "
                 f"flag — verify upstream + drop the auto-flip in `Dhis2Client.customize."
@@ -778,22 +778,22 @@ async def test_bug_11_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_12_live_verifier(local_url: str) -> None:
-    """BUGS.md #12 — TODO live verifier: DHIS2 login app leaves `html` transparent, so browser zoom > 100% exposes th...
+    """DHIS2_ISSUES.md #12 — TODO live verifier: DHIS2 login app leaves `html` transparent, so browser zoom > 100% ex...
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #12 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #12 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #12")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #12")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_13_live_verifier(local_url: str) -> None:
-    """BUGS.md #13 — OAS enum says `MOD_Z_SCORE` but the runtime accepts only `MODIFIED_Z_SCORE`.
+    """DHIS2_ISSUES.md #13 — OAS enum says `MOD_Z_SCORE` but the runtime accepts only `MODIFIED_Z_SCORE`.
 
     Cross-version bug (v41/v42/v43). v42/v43 expose a standalone
     `OutlierDetectionAlgorithm` schema; v41 inlines the same enum on
@@ -810,18 +810,18 @@ async def test_bug_13_live_verifier(local_url: str) -> None:
     inlined = (schemas.get("OutlierDetectionMetadata") or {}).get("properties", {}).get("algorithm") or {}
     values = set(named.get("enum") or inlined.get("enum") or [])
     assert values, (
-        "BUGS.md #13: could not locate the OutlierDetection algorithm enum at either "
+        "DHIS2_ISSUES.md #13: could not locate the OutlierDetection algorithm enum at either "
         "`OutlierDetectionAlgorithm.enum` (v42/v43) or "
         "`OutlierDetectionMetadata.properties.algorithm.enum` (v41). DHIS2 may have moved or "
         "removed the schema entirely — re-investigate the shape."
     )
     assert "MOD_Z_SCORE" in values, (
-        f"BUGS.md #13: expected the OAS algorithm enum to still carry the truncated "
+        f"DHIS2_ISSUES.md #13: expected the OAS algorithm enum to still carry the truncated "
         f"`MOD_Z_SCORE`, got values={sorted(values)}. DHIS2 may have renamed it — verify "
         f"upstream + drop the string-literal workaround in the analytics outlier examples."
     )
     assert "MODIFIED_Z_SCORE" not in values, (
-        "BUGS.md #13: if the OAS now also exposes `MODIFIED_Z_SCORE`, the rename has landed. "
+        "DHIS2_ISSUES.md #13: if the OAS now also exposes `MODIFIED_Z_SCORE`, the rename has landed. "
         "Re-run codegen and drop the workaround."
     )
 
@@ -829,10 +829,10 @@ async def test_bug_13_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_14_live_verifier(local_url: str) -> None:
-    """BUGS.md #14 — `Route.auth` is an undiscriminated `oneOf` in the OAS.
+    """DHIS2_ISSUES.md #14 — `Route.auth` is an undiscriminated `oneOf` in the OAS.
 
     Cross-version bug (v41/v42/v43; v41 doesn't even have the
-    `oauth2-client-credentials` variant — see BUGS.md #39). The
+    `oauth2-client-credentials` variant — see DHIS2_ISSUES.md #39). The
     load-bearing symptom is that `Route.auth` carries a bare `oneOf`
     with no `discriminator` block, so codegen can't emit a typed
     tagged union. v41 partially advanced by adding a `type` string
@@ -848,12 +848,12 @@ async def test_bug_14_live_verifier(local_url: str) -> None:
     schemas = spec.get("components", {}).get("schemas", {}) or {}
     route_auth = (schemas.get("Route") or {}).get("properties", {}).get("auth") or {}
     assert "oneOf" in route_auth, (
-        f"BUGS.md #14: expected `Route.auth` to still be a `oneOf` shape, got "
+        f"DHIS2_ISSUES.md #14: expected `Route.auth` to still be a `oneOf` shape, got "
         f"keys={sorted(route_auth)}. DHIS2 may have restructured Route entirely — "
         f"re-investigate before drawing conclusions about the spec-patch."
     )
     assert "discriminator" not in route_auth, (
-        f"BUGS.md #14: expected `Route.auth` to remain undiscriminated, got "
+        f"DHIS2_ISSUES.md #14: expected `Route.auth` to remain undiscriminated, got "
         f"discriminator={route_auth.get('discriminator')!r}. DHIS2 may have projected the "
         f"Jackson @JsonTypeInfo onto the OAS — drop the spec-patch in "
         f"`dhis2w_codegen.spec_patches::_patch_auth_scheme_discriminators` and regenerate."
@@ -863,7 +863,7 @@ async def test_bug_14_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_15_live_verifier(local_url: str) -> None:
-    """BUGS.md #15 — `JobConfiguration.jobParameters` + `WebMessage.response` lack a usable polymorphic shape.
+    """DHIS2_ISSUES.md #15 — `JobConfiguration.jobParameters` + `WebMessage.response` lack a usable polymorphic shape.
 
     Cross-version bug (v41/v42/v43). Same family as #14: springdoc doesn't
     project Jackson `@JsonTypeInfo` annotations onto these polymorphic
@@ -884,7 +884,7 @@ async def test_bug_15_live_verifier(local_url: str) -> None:
     job_params = (schemas.get("JobConfiguration") or {}).get("properties", {}).get("jobParameters") or {}
     web_response = (schemas.get("WebMessage") or {}).get("properties", {}).get("response") or {}
     assert "oneOf" in job_params and "discriminator" not in job_params, (
-        f"BUGS.md #15: expected JobConfiguration.jobParameters to be an undiscriminated "
+        f"DHIS2_ISSUES.md #15: expected JobConfiguration.jobParameters to be an undiscriminated "
         f"oneOf, got keys={sorted(job_params)}. DHIS2 may have added the discriminator — "
         f"verify upstream + drop the `dict[str, Any]` flatten in "
         f"`packages/dhis2w-codegen/src/dhis2w_codegen/oas_emit.py`."
@@ -892,7 +892,7 @@ async def test_bug_15_live_verifier(local_url: str) -> None:
     web_response_is_bare_object = sorted(web_response.keys()) == ["type"] and web_response.get("type") == "object"
     web_response_is_oneof_no_discriminator = "oneOf" in web_response and "discriminator" not in web_response
     assert web_response_is_bare_object or web_response_is_oneof_no_discriminator, (
-        f"BUGS.md #15: expected WebMessage.response to be either a bare `oneOf` without a "
+        f"DHIS2_ISSUES.md #15: expected WebMessage.response to be either a bare `oneOf` without a "
         f"discriminator (v42/v43) or an opaque `{{type: object}}` (v41), got "
         f"keys={sorted(web_response)}. DHIS2 may have added the discriminator — drop the "
         f"flatten + typed accessors on `WebMessageResponse`."
@@ -902,7 +902,7 @@ async def test_bug_15_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_16_live_verifier(local_url: str) -> None:
-    """BUGS.md #16 — `POST /api/documents` multipart returns 415, forcing the two-step upload flow.
+    """DHIS2_ISSUES.md #16 — `POST /api/documents` multipart returns 415, forcing the two-step upload flow.
 
     Cross-version bug. The documents endpoint only accepts application/json;
     multipart uploads 415. Callers have to upload to /api/fileResources
@@ -919,7 +919,7 @@ async def test_bug_16_live_verifier(local_url: str) -> None:
                 files={"file": ("probe.txt", b"hello", "text/plain")},
             )
     assert excinfo.value.status_code == 415, (
-        f"BUGS.md #16: expected 415 on multipart POST to /api/documents (the bug), got "
+        f"DHIS2_ISSUES.md #16: expected 415 on multipart POST to /api/documents (the bug), got "
         f"{excinfo.value.status_code}. DHIS2 may now accept multipart directly — verify "
         f"upstream + drop the two-step upload flow in `dhis2w_client.v{{N}}.files`."
     )
@@ -928,7 +928,7 @@ async def test_bug_16_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_17_live_verifier(local_url: str) -> None:
-    """BUGS.md #17 — `POST /api/messageConversations` returns UID on `Location` header, not in JSON body.
+    """DHIS2_ISSUES.md #17 — `POST /api/messageConversations` returns UID on `Location` header, not in JSON body.
 
     Cross-version bug. Most DHIS2 POSTs carry the new UID at
     `response.uid`; messages put it on the `Location` header and leave
@@ -955,11 +955,11 @@ async def test_bug_17_live_verifier(local_url: str) -> None:
             with contextlib.suppress(Exception):
                 await client.delete_raw(f"/api/messageConversations/{loc_uid}")
     assert location, (
-        "BUGS.md #17: expected a `Location` header on the create response (carrying the "
+        "DHIS2_ISSUES.md #17: expected a `Location` header on the create response (carrying the "
         "new UID), got empty. DHIS2 may have moved the UID into the JSON body."
     )
     assert envelope_uid is None, (
-        f"BUGS.md #17: expected `response.uid` to be absent (the bug — the UID lives only "
+        f"DHIS2_ISSUES.md #17: expected `response.uid` to be absent (the bug — the UID lives only "
         f"on Location), got envelope_uid={envelope_uid!r}. DHIS2 may now also include it "
         f"in the JSON body — verify upstream + drop the Location-header parsing workaround."
     )
@@ -968,7 +968,7 @@ async def test_bug_17_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_18_live_verifier(local_url: str) -> None:
-    """BUGS.md #18a — reply endpoint stores `application/json` body verbatim as message text.
+    """DHIS2_ISSUES.md #18a — reply endpoint stores `application/json` body verbatim as message text.
 
     Cross-version bug. Creates a message thread (admin to self), POSTs
     a reply with `Content-Type: application/json` body `{"text":"second"}`,
@@ -1008,7 +1008,7 @@ async def test_bug_18_live_verifier(local_url: str) -> None:
             assert len(messages) >= 2, f"expected at least 2 messages, got {len(messages)}"
             second_text = messages[1].get("text", "")
             assert second_text.startswith("{") and "second" in second_text, (
-                f"BUGS.md #18a: expected reply body to be stored as the literal JSON string "
+                f"DHIS2_ISSUES.md #18a: expected reply body to be stored as the literal JSON string "
                 f'`{{"text":"second"}}` (the bug), got {second_text!r}. DHIS2 may have wired '
                 f"the reply endpoint to parse application/json — verify upstream + drop the "
                 f"text/plain encoding in `MessagingAccessor.reply`."
@@ -1021,7 +1021,7 @@ async def test_bug_18_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_19_live_verifier(local_url: str) -> None:
-    """BUGS.md #19 — `/api/validationResults?fields=*` returns id-only nested refs.
+    """DHIS2_ISSUES.md #19 — `/api/validationResults?fields=*` returns id-only nested refs.
 
     Cross-version bug. The endpoint silently ignores `fields=*` and
     `fields=:all`, returning sparse nested refs (`{id: "..."}`). The
@@ -1038,7 +1038,7 @@ async def test_bug_19_live_verifier(local_url: str) -> None:
     first = rows[0] if isinstance(rows[0], dict) else {}
     rule = first.get("validationRule") or {}
     assert isinstance(rule, dict) and set(rule.keys()) - {"id"} == set(), (
-        f"BUGS.md #19: expected `validationRule` to be id-only despite fields=*, got "
+        f"DHIS2_ISSUES.md #19: expected `validationRule` to be id-only despite fields=*, got "
         f"keys={sorted(rule)}. DHIS2 may now expand fields=* properly — verify upstream + "
         f"simplify the explicit selector in `dhis2w_client.v{{N}}.validation.list_results`."
     )
@@ -1096,7 +1096,7 @@ async def test_option_item_delete_removes_the_option(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_21_live_verifier(local_url: str) -> None:
-    """BUGS.md #21 — the nested `attributeValues.value:eq:X` filter splits by major.
+    """DHIS2_ISSUES.md #21 — the nested `attributeValues.value:eq:X` filter splits by major.
 
     2.41.9.1 accepts the nested path with 200; 2.42.6 and 2.43.1 refuse it with
     400 E1003 `Unknown path property`, so the UID shorthand
@@ -1114,16 +1114,18 @@ async def test_bug_21_live_verifier(local_url: str) -> None:
             )
         except Dhis2ApiError as error:
             assert version_key != "v41", (
-                f"BUGS.md #21: 2.41.9.1 accepted the nested path in the 2026-09 sweep; now it refuses with "
+                f"DHIS2_ISSUES.md #21: 2.41.9.1 accepted the nested path in the 2026-09 sweep; now it refuses with "
                 f"{error.status_code}. Re-run the repro and update the entry."
             )
-            assert error.status_code == 400, f"BUGS.md #21: expected 400 on v42/v43, got {error.status_code}"
+            assert error.status_code == 400, f"DHIS2_ISSUES.md #21: expected 400 on v42/v43, got {error.status_code}"
             body = error.body if isinstance(error.body, dict) else {}
-            assert body.get("errorCode") == "E1003", f"BUGS.md #21: expected E1003, got {body.get('errorCode')!r}"
+            assert body.get("errorCode") == "E1003", (
+                f"DHIS2_ISSUES.md #21: expected E1003, got {body.get('errorCode')!r}"
+            )
         else:
             assert version_key == "v41", (
-                "BUGS.md #21: v42/v43 accepted the nested `attributeValues.value` filter. DHIS2 may have wired up "
-                "nested attribute-value walking — verify upstream + drop the UID-shorthand workaround in "
+                "DHIS2_ISSUES.md #21: v42/v43 accepted the nested `attributeValues.value` filter. DHIS2 may have "
+                "wired up nested attribute-value walking — verify upstream + drop the UID-shorthand workaround in "
                 "`dhis2w_client.v{N}.option_sets.OptionSetsAccessor.find_option_by_attribute`."
             )
 
@@ -1131,7 +1133,7 @@ async def test_bug_21_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_23_live_verifier(local_url: str) -> None:
-    """BUGS.md #23 — single-pass `/api/metadata` with DataSets trips Hibernate flush error.
+    """DHIS2_ISSUES.md #23 — single-pass `/api/metadata` with DataSets trips Hibernate flush error.
 
     TODO: needs the full Sierra Leone play-fixture bundle (~1300 OUs +
     every transitively-required object) staged at
@@ -1146,16 +1148,16 @@ async def test_bug_23_live_verifier(local_url: str) -> None:
     in the body. Two-pass workaround in
     `infra/scripts/seed/loader.py` should NOT be triggered.
 
-    See BUGS.md #23 for the curl repro + the two-pass workaround.
+    See DHIS2_ISSUES.md #23 for the curl repro + the two-pass workaround.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: needs infra/fixtures/play/full_bundle.json — see BUGS.md #23")
+    pytest.skip("TODO: needs infra/fixtures/play/full_bundle.json — see DHIS2_ISSUES.md #23")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_24_live_verifier(local_url: str) -> None:
-    """BUGS.md #24 — built-in TET `Person` blocks imports sharing the name on fresh installs.
+    """DHIS2_ISSUES.md #24 — built-in TET `Person` blocks imports sharing the name on fresh installs.
 
     Cross-version bug. Confirms a `Person` TET exists, then POSTs a
     new TET with a different UID but the same `name`. Asserts 409
@@ -1178,7 +1180,7 @@ async def test_bug_24_live_verifier(local_url: str) -> None:
                 body={"id": "BUGS24Probe", "name": "Person", "shortName": "Person"},
             )
     assert excinfo.value.status_code == 409, (
-        f"BUGS.md #24: expected 409 on a same-name TET import (the bug — `TET.name` is UNIQUE "
+        f"DHIS2_ISSUES.md #24: expected 409 on a same-name TET import (the bug — `TET.name` is UNIQUE "
         f"at the DB level so any import sharing the built-in `Person` name fails), got "
         f"{excinfo.value.status_code}. DHIS2 may have loosened the constraint — verify "
         f"upstream + drop the `resolve_tracked_entity_names` ladder in "
@@ -1189,37 +1191,37 @@ async def test_bug_24_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_26_live_verifier(local_url: str) -> None:
-    """BUGS.md #26 — TODO live verifier: Admin OU scope is cached per session — scope changes need a re-login
+    """DHIS2_ISSUES.md #26 — TODO live verifier: Admin OU scope is cached per session — scope changes need a re-login
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #26 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #26 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #26")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #26")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_27_live_verifier(local_url: str) -> None:
-    """BUGS.md #27 — TODO live verifier: Fresh DHIS2 installs are flaky during first metadata import
+    """DHIS2_ISSUES.md #27 — TODO live verifier: Fresh DHIS2 installs are flaky during first metadata import
 
     Placeholder. Fill in the live wire check that asserts the bug is
     still observable on a real DHIS2 stack. When DHIS2 ships a fix, the
     assertion fails — the loud signal we can drop the workaround.
 
-    See BUGS.md #27 for the curl repro + the workaround pointer.
+    See DHIS2_ISSUES.md #27 for the curl repro + the workaround pointer.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("TODO: implement live verifier — see BUGS.md #27")
+    pytest.skip("TODO: implement live verifier — see DHIS2_ISSUES.md #27")
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_28_live_verifier(local_url: str) -> None:
-    """BUGS.md #28 — `RelativePeriods` OAS schema is 45 booleans, not an enum.
+    """DHIS2_ISSUES.md #28 — `RelativePeriods` OAS schema is 45 booleans, not an enum.
 
     Cross-version bug. Codegen-shape decision DHIS2's `/api/openapi.json`
     has been doing for years. `RelativePeriods` enumerates every relative
@@ -1234,7 +1236,7 @@ async def test_bug_28_live_verifier(local_url: str) -> None:
     props = rel.get("properties") or {}
     boolean_props = [name for name, body in props.items() if (body or {}).get("type") == "boolean"]
     assert len(boolean_props) >= 30, (
-        f"BUGS.md #28: expected RelativePeriods to carry many boolean properties (got "
+        f"DHIS2_ISSUES.md #28: expected RelativePeriods to carry many boolean properties (got "
         f"{len(boolean_props)}). If DHIS2 reshaped it as a single enum, this test is "
         f"the loud signal to revisit `dhis2w_client.v{{N}}.helpers.viz` + drop "
         f"`RelativePeriod` shim."
@@ -1248,11 +1250,11 @@ async def test_bug_28_live_verifier(local_url: str) -> None:
         "Test design bug — `/api/metadata?filter=indicators:id:eq:X` returns 409 "
         "(`Unknown path property: indicators`). `/api/metadata` doesn't accept "
         "`<type>:<prop>:<op>:<value>` filters; it uses a different filter scheme. "
-        "Need to rewrite against the correct /api/metadata filter syntax. See BUGS.md #29."
+        "Need to rewrite against the correct /api/metadata filter syntax. See DHIS2_ISSUES.md #29."
     ),
 )
 async def test_bug_29_live_verifier(local_url: str) -> None:
-    """BUGS.md #29 — `/api/metadata?filter=...&rootJunction=OR` silently ANDs multiple filters.
+    """DHIS2_ISSUES.md #29 — `/api/metadata?filter=...&rootJunction=OR` silently ANDs multiple filters.
 
     Cross-version bug. DHIS2 advertises `rootJunction` for cross-filter
     boolean logic but the metadata endpoint ignores the parameter and
@@ -1284,7 +1286,7 @@ async def test_bug_29_live_verifier(local_url: str) -> None:
         )
     indicator_rows = with_or.get("indicators") or []
     assert indicator_rows == [], (
-        f"BUGS.md #29: expected rootJunction=OR with conflicting filters to still AND on "
+        f"DHIS2_ISSUES.md #29: expected rootJunction=OR with conflicting filters to still AND on "
         f"v41/v42/v43 (empty result). Got {len(indicator_rows)} rows — DHIS2 may have wired "
         f"up rootJunction properly. Verify upstream + drop the per-filter fanout workaround "
         f"in `dhis2w_client.v{{N}}.metadata.search`."
@@ -1294,7 +1296,7 @@ async def test_bug_29_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_30_live_verifier(local_url: str) -> None:
-    """BUGS.md #30 — `/api/appHub` returns `versions[*].created` as epoch-millis integers.
+    """DHIS2_ISSUES.md #30 — `/api/appHub` returns `versions[*].created` as epoch-millis integers.
 
     Cross-version bug. DHIS2 proxies App Hub responses and converts ISO-8601
     timestamps into epoch-millis integers. Any parser that expects strings
@@ -1319,7 +1321,7 @@ async def test_bug_30_live_verifier(local_url: str) -> None:
         pytest.skip("first App Hub app has no versions")
     created = versions[0].get("created")
     assert isinstance(created, int), (
-        f"BUGS.md #30: expected `versions[0].created` to be an epoch-millis int, got "
+        f"DHIS2_ISSUES.md #30: expected `versions[0].created` to be an epoch-millis int, got "
         f"{type(created).__name__}({created!r}). DHIS2 may have fixed the proxy "
         f"normalisation — verify upstream + relax the union type in "
         f"`dhis2w_client.v{{N}}.apps`."
@@ -1329,7 +1331,7 @@ async def test_bug_30_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_31_live_verifier(local_url: str) -> None:
-    """BUGS.md #31 — `/api/expressions/description` refuses every predictor aggregator, in either case.
+    """DHIS2_ISSUES.md #31 — `/api/expressions/description` refuses every predictor aggregator, in either case.
 
     On 2.41.9.1, 2.42.6 and 2.43.1 the description endpoint answers
     `status: ERROR "Expression is not well-formed"` for `avg(...)`, `AVG(...)`,
@@ -1355,15 +1357,15 @@ async def test_bug_31_live_verifier(local_url: str) -> None:
             )
             verdicts[spelling] = body.get("status")
     assert all(status != "OK" for status in verdicts.values()), (
-        f"BUGS.md #31: the description endpoint accepted an aggregator ({verdicts}); the entry's premise moved again, "
-        "re-run its repro and update it."
+        f"DHIS2_ISSUES.md #31: the description endpoint accepted an aggregator ({verdicts}); the entry's premise "
+        "moved again, re-run its repro and update it."
     )
 
 
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_35_live_verifier(local_url: str) -> None:
-    """BUGS.md #35 — v43-only: dataValueSets POST aborts when DE belongs to multiple datasets.
+    """DHIS2_ISSUES.md #35 — v43-only: dataValueSets POST aborts when DE belongs to multiple datasets.
 
     Sets up the bug condition (DE in 2+ DataSets) by creating a probe
     DataSet that references an existing seeded DE, then POSTs a value
@@ -1426,7 +1428,7 @@ async def test_bug_35_live_verifier(local_url: str) -> None:
                     },
                 )
             assert excinfo.value.status_code == 409, (
-                f"BUGS.md #35: expected 409 on dataValueSets POST without envelope `dataSet` "
+                f"DHIS2_ISSUES.md #35: expected 409 on dataValueSets POST without envelope `dataSet` "
                 f"(DE is in 2+ DataSets), got {excinfo.value.status_code}. DHIS2 may have "
                 f"restored v42's auto-target tolerance — verify upstream + drop the per-dataset "
                 f"grouping in `infra/scripts/seed/loader.py::import_data_values`."
@@ -1436,7 +1438,10 @@ async def test_bug_35_live_verifier(local_url: str) -> None:
             error_codes = {c.get("errorCode") for c in conflicts if isinstance(c, dict)}
             assert "E8002" in error_codes or any(
                 "Data set detection failed" in (c.get("value") or "") for c in conflicts if isinstance(c, dict)
-            ), f"BUGS.md #35: expected `E8002 Data set detection failed` in the conflicts, got conflicts={conflicts!r}."
+            ), (
+                f"DHIS2_ISSUES.md #35: expected `E8002 Data set detection failed` in the conflicts, "
+                f"got conflicts={conflicts!r}."
+            )
         finally:
             with contextlib.suppress(Exception):
                 await client.delete_raw(f"/api/dataSets/{probe_uid}")
@@ -1445,7 +1450,7 @@ async def test_bug_35_live_verifier(local_url: str) -> None:
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_36_live_verifier(local_url: str) -> None:
-    """BUGS.md #36 — v43-only: event-analytics build fails with `column 'yearly' does not exist`.
+    """DHIS2_ISSUES.md #36 — v43-only: event-analytics build fails with `column 'yearly' does not exist`.
 
     Skipped: the verifier would have to POST /api/resourceTables/analytics
     without `skipPrograms=lxAQ7Zs9VYR` and poll the task for the bad-SQL
@@ -1459,10 +1464,10 @@ async def test_bug_36_live_verifier(local_url: str) -> None:
     There's no client-side fix because the bug is in DHIS2's analytics
     table builder, not in any request-shape the client controls.
 
-    See BUGS.md #36 for the curl repro + workaround details.
+    See DHIS2_ISSUES.md #36 for the curl repro + workaround details.
     """
     _skip_if_stack_unreachable(local_url)
-    pytest.skip("infra-level workaround only — see BUGS.md #36")
+    pytest.skip("infra-level workaround only — see DHIS2_ISSUES.md #36")
 
 
 _BUG_42_FIELD = "keyAnalysisDisplayProperty"
@@ -1470,7 +1475,7 @@ _BUG_42_FIELD = "keyAnalysisDisplayProperty"
 
 @pytest.mark.upstream_bug
 async def test_bug_42_generated_system_settings_rejects_lowercase_display_property() -> None:
-    """BUGS.md #42 — bug-still-present: generated `SystemSettings` can't parse a settings payload.
+    """DHIS2_ISSUES.md #42 — bug-still-present: generated `SystemSettings` can't parse a settings payload.
 
     `/api/systemSettings` serialises `keyAnalysisDisplayProperty` lowercase
     (`"name"`), which the OAS `DisplayProperty` enum (`NAME`/`SHORTNAME`)
@@ -1487,7 +1492,7 @@ async def test_bug_42_generated_system_settings_rejects_lowercase_display_proper
     with pytest.raises(ValidationError) as exc_info:
         SystemSettings.model_validate(payload)
     assert _BUG_42_FIELD in str(exc_info.value), (
-        "BUGS.md #42: expected the lowercase enum to be the validation failure. "
+        "DHIS2_ISSUES.md #42: expected the lowercase enum to be the validation failure. "
         "If this changed, DHIS2 may have fixed the casing — verify upstream."
     )
 
@@ -1498,7 +1503,7 @@ async def test_bug_42_generated_system_settings_rejects_lowercase_display_proper
 @pytest.mark.upstream_bug
 @pytest.mark.slow
 async def test_bug_42_live_system_settings_lowercase_display_property(local_url: str) -> None:
-    """BUGS.md #42 — bug-still-present (LIVE): real `/api/systemSettings` breaks generated `SystemSettings`.
+    """DHIS2_ISSUES.md #42 — bug-still-present (LIVE): real `/api/systemSettings` breaks generated `SystemSettings`.
 
     Requires a running stack (`make dhis2-run DHIS2_VERSION=<N>`). Fetches the
     real settings object, asserts `keyAnalysisDisplayProperty` is the lowercase
@@ -1515,7 +1520,7 @@ async def test_bug_42_live_system_settings_lowercase_display_property(local_url:
         _skip_unless_version(client, _AnyVersion)
         raw = await client.get_raw("/api/systemSettings")
         assert raw.get(_BUG_42_FIELD) == "name", (
-            f"BUGS.md #42: expected /api/systemSettings to return {_BUG_42_FIELD!r} as lowercase "
+            f"DHIS2_ISSUES.md #42: expected /api/systemSettings to return {_BUG_42_FIELD!r} as lowercase "
             f"'name'; got {raw.get(_BUG_42_FIELD)!r}. DHIS2 may have fixed the casing — verify "
             f"upstream, then collapse the SecuritySettings projection into the generated SystemSettings."
         )
@@ -1533,14 +1538,14 @@ def _mock_v41_connect() -> None:
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #115 — enrollments ordered by createdAt answer 409 on 2.41.9.x / 2.42.6.
+# DHIS2_ISSUES.md #115 — enrollments ordered by createdAt answer 409 on 2.41.9.x / 2.42.6.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_115_enrollments_ordered_by_created_at_answer_409() -> None:
-    """BUGS.md #115 — bug-still-present: the enrollment read fails inside its SQL when ordered by `createdAt`."""
+    """DHIS2_ISSUES.md #115 — still present: the enrollment read fails inside its SQL when ordered by `createdAt`."""
     _mock_v41_connect()
     respx.get(url__regex=r"https://dhis2\.example/api/tracker/enrollments.*").mock(
         return_value=httpx.Response(
@@ -1561,14 +1566,14 @@ async def test_bug_115_enrollments_ordered_by_created_at_answer_409() -> None:
     error_body = excinfo.value.body
     assert isinstance(error_body, dict)
     assert 'column reference "created" is ambiguous' in str(error_body.get("message")), (
-        "BUGS.md #115: a 2.41.9.x / 2.42.6 enrollment read ordered by createdAt should still answer the "
-        "ambiguous-column 409. If this changes, re-run the repro in BUGS.md #115 and let the enrollment poll "
+        "DHIS2_ISSUES.md #115: a 2.41.9.x / 2.42.6 enrollment read ordered by createdAt should still answer the "
+        "ambiguous-column 409. If this changes, re-run the repro in DHIS2_ISSUES.md #115 and let the enrollment poll "
         "order by createdAt again."
     )
 
 
 # ---------------------------------------------------------------------------
-# BUGS.md #116 — 2.42.6 refuses a type-scoped tracked entity read with includeDeleted=true.
+# DHIS2_ISSUES.md #116 — 2.42.6 refuses a type-scoped tracked entity read with includeDeleted=true.
 # ---------------------------------------------------------------------------
 
 
@@ -1583,7 +1588,7 @@ def _mock_v42_connect() -> None:
 @pytest.mark.upstream_bug
 @respx.mock
 async def test_bug_116_v42_type_scoped_tombstone_read_answers_409() -> None:
-    """BUGS.md #116 — bug-still-present: the type-scoped read with `includeDeleted=true` fails in DHIS2's SQL."""
+    """DHIS2_ISSUES.md #116 — still present: the type-scoped read with `includeDeleted=true` fails in DHIS2's SQL."""
     _mock_v42_connect()
     respx.get(url__regex=r"https://dhis2\.example/api/tracker/trackedEntities.*").mock(
         return_value=httpx.Response(
@@ -1606,6 +1611,7 @@ async def test_bug_116_v42_type_scoped_tombstone_read_answers_409() -> None:
     error_body = excinfo.value.body
     assert isinstance(error_body, dict)
     assert "trailing junk after numeric literal" in str(error_body.get("devMessage")), (
-        "BUGS.md #116: a 2.42.6 type-scoped read with includeDeleted=true should still fail inside DHIS2's SQL. "
-        "If this changes, re-run the repro in BUGS.md #116 and drop the retry branch in the dhis2w-fhir pack's poll."
+        "DHIS2_ISSUES.md #116: a 2.42.6 type-scoped read with includeDeleted=true should still fail inside "
+        "DHIS2's SQL. If this changes, re-run the repro in DHIS2_ISSUES.md #116 and drop the retry branch in "
+        "the dhis2w-fhir pack's poll."
     )

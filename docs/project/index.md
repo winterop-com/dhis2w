@@ -5,7 +5,7 @@ title: Project
 # Project
 
 The living record of the toolkit: what it does today, what changed, what is
-planned, and the upstream quirks worked around along the way. These pages are
+planned, and the upstream issues worked around along the way. These pages are
 the meta layer around the surface docs (Client, CLI, and the MCP pack's own site) and the architecture
 reference.
 
@@ -41,14 +41,14 @@ reference.
 
     [Open the FHIR design pages](https://winterop-com.github.io/dhis2w-fhir/design/roadmap/)
 
-- **Upstream DHIS2 quirks**
+- **Upstream DHIS2 issues**
 
     ---
 
-    The catalogue of upstream DHIS2 bugs and surprises, each with a `curl` repro
-    and the workaround applied in this repo.
+    The upstream DHIS2 issues this toolkit works around, organised into groups
+    ready to report, each with a `curl` repro and the workaround applied in this repo.
 
-    [Review the quirks](upstream-quirks.md)
+    [Review the issues](upstream-issues.md)
 
 - **Decisions and lessons**
 
@@ -66,7 +66,7 @@ reference.
   [CLI reference](../cli-reference.md) and [MCP reference](https://winterop-com.github.io/dhis2w-mcp/tool-reference/)
   are the source of truth when a count drifts.
 - **Upstream quirks** and the **planning** pages render their repository-root
-  source files (`BUGS.md`, the migration plan) directly, so editing the root
+  source files (`DHIS2_ISSUES.md`, the migration plan) directly, so editing the root
   file updates the site on the next build.
 - **Roadmap** describes what is next, never what shipped; finished items are
   deleted from it rather than rewritten into history.

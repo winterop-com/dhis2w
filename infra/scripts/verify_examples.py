@@ -100,14 +100,14 @@ SKIP_BY_DEFAULT: frozenset[str] = frozenset(
 SKIP_BY_VERSION: dict[str, frozenset[str]] = {
     "v43": frozenset(
         {
-            # BUGS.md #36 — v43's full `POST /api/resourceTables/analytics`
+            # DHIS2_ISSUES.md #36 — v43's full `POST /api/resourceTables/analytics`
             # job aborts with `column "yearly" does not exist` when there's
             # 2024 event data for `lxAQ7Zs9VYR` (Antenatal Care). The
             # `?skipPrograms=` workaround DHIS2 should honour is silently
             # ignored on v43. Analytics tables stay empty, so this example's
             # explicit "did analytics build?" probe correctly raises.
             "client/viz_multiline_by_province.py",
-            # Same BUGS.md #36 — v43's event-analytics SQL emitter rejects
+            # Same DHIS2_ISSUES.md #36 — v43's event-analytics SQL emitter rejects
             # the 2024 event data the fixture carries. Both run green on
             # v41 and v42, which is why they live in the common set.
             "client/analytics_events_enrollments.py",
@@ -116,7 +116,7 @@ SKIP_BY_VERSION: dict[str, frozenset[str]] = {
     ),
     "v44": frozenset(
         {
-            # BUGS.md #36 on the 2.44 development build: the analytics job aborts in the event
+            # DHIS2_ISSUES.md #36 on the 2.44 development build: the analytics job aborts in the event
             # stage on `column "yearly" does not exist`, as on 2.43, so the aggregate table is
             # never rebuilt and these queries then fail with `column ax.monthly does not exist`.
             "client/viz_multiline_by_province.py",

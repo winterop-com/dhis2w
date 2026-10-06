@@ -152,7 +152,7 @@ services:
         echo 'Triggering analytics table generation...'
         # NOTE: `?skipPrograms=lxAQ7Zs9VYR` is intended as a workaround for
         # the v43 SQL grammar bug on Antenatal-Care event analytics
-        # (BUGS.md #36 — `column "yearly" does not exist`), but DHIS2 v43
+        # (DHIS2_ISSUES.md #36 — `column "yearly" does not exist`), but DHIS2 v43
         # silently ignores the query parameter — the resulting job runs
         # with `skipPrograms: []` regardless. Tracked as part of #36 until
         # the upstream fix lands; left in place to make intent clear.

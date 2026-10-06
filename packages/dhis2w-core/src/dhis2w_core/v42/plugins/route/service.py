@@ -58,7 +58,7 @@ class RoutePayload(BaseModel):
     `auth` is the discriminated `AuthScheme` union — one of five typed
     variants keyed on `type`. The codegen `spec_patches` module
     synthesises the Jackson discriminator that upstream DHIS2 omits
-    (BUGS.md #14), so this field is fully typed end-to-end. Callers
+    (DHIS2_ISSUES.md #14), so this field is fully typed end-to-end. Callers
     either build a concrete variant directly (e.g.
     `HttpBasicAuthScheme(username=..., password=...)`) or pass a raw
     dict with a `type` key and pydantic routes it to the right subclass.

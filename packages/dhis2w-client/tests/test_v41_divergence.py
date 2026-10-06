@@ -7,7 +7,7 @@ when a future codegen regen, refactor, or DHIS2 fix unwittingly
 realigns v41 with v42, this file's assertions surface the change
 before it ships.
 
-The tests are NOT redundant with the BUGS regression suite. The BUGS
+The tests are NOT redundant with the DHIS2_ISSUES.md regression suite. The DHIS2_ISSUES.md
 suite asserts the live wire behaves the way the workaround expects;
 these assert the v41 hand-written tree's *static shape* still differs
 from v42 in the documented ways.
@@ -37,7 +37,7 @@ import pytest
 
 
 def test_v41_grid_rows_is_widened_to_list_list_any() -> None:
-    """BUGS adapter — `Grid.rows: list[list[Any]] | None` overrides the v41 OAS's lying `list[list[dict[str, Any]]]`.
+    """DHIS2_ISSUES.md adapter — `Grid.rows: list[list[Any]] | None` widens the v41 OAS's `list[list[dict[str, Any]]]`.
 
     v41 OAS declares row cells as `dict[str, Any]` but the actual wire
     carries scalars / null. `dhis2w_client.v41.analytics.Grid` subclasses

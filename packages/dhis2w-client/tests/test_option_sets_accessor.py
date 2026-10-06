@@ -367,7 +367,7 @@ async def test_resolve_attribute_uid_raises_on_unknown_code(
 async def test_find_option_by_attribute_uses_uid_as_filter_key(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """BUGS.md #21 workaround: filter uses `<attributeUid>:eq:<value>` not `attributeValues.value`."""
+    """DHIS2_ISSUES.md #21 workaround: filter uses `<attributeUid>:eq:<value>` not `attributeValues.value`."""
     mock_system_info(server_version)
     _mock_attribute_lookup()
     list_route = respx.get("https://dhis2.example/api/options").mock(

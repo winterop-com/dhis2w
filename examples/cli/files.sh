@@ -17,7 +17,7 @@ trap 'rm -rf "$TMP"' EXIT
 # 1. External URL document — no bytes, DHIS2 just stores the link.
 d2w files documents upload-url "Workspace README" "https://github.com/winterop-com/dhis2-utils"
 
-# 2. Binary document — workspace drives a two-step under the hood (see BUGS.md #16):
+# 2. Binary document — workspace drives a two-step under the hood (see DHIS2_ISSUES.md #16):
 #    upload as fileResource(domain=DOCUMENT), then POST /api/documents with url=<uid>.
 echo "hello dhis2" > "$TMP/hello.txt"
 UPLOAD=$(d2w files documents upload "$TMP/hello.txt" --name "files-example-readme")

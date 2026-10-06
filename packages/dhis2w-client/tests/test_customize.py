@@ -25,7 +25,7 @@ async def test_upload_logo_front_sends_multipart_and_flips_flag(client: Dhis2Cli
     """Upload posts a multipart to /api/staticContent/logo_front AND flips keyUseCustomLogoFront=true.
 
     The flag flip is load-bearing — without it, DHIS2 redirects GETs back to the
-    built-in default (BUGS.md entry 11).
+    built-in default (DHIS2_ISSUES.md entry 11).
     """
     upload = respx.post("https://dhis2.example/api/staticContent/logo_front").mock(
         return_value=httpx.Response(204),

@@ -1,4 +1,4 @@
-"""v43-only — saving a CategoryCombo no longer auto-generates CategoryOptionCombos (BUGS.md #33).
+"""v43-only — saving a CategoryCombo no longer auto-generates CategoryOptionCombos (DHIS2_ISSUES.md #33).
 
 On DHIS2 v42 and earlier, `POST /api/categoryCombos` triggered server-side
 generation of every `CategoryOptionCombo` (the cross-product of the

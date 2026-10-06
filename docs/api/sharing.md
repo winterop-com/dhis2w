@@ -34,7 +34,7 @@ async with Dhis2Client(url, auth) as client:
     # current is a `SharingObject` (publicAccess, user, userAccesses[], userGroupAccesses[]).
     # DHIS2 defines no `externalAccess` on `SharingObject` on any supported major:
     # the field is absent from the OpenAPI document, and a write carrying it answers
-    # 200 "Access control set" while discarding the value (BUGS.md #38).
+    # 200 "Access control set" while discarding the value (DHIS2_ISSUES.md #38).
 
     sharing = (
         SharingBuilder(owner_user_id=admin_uid)

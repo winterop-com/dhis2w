@@ -17,7 +17,7 @@ Endpoints covered (pass the full path including extension / sub-resource):
 - `/api/analytics.json` (default)
 - `/api/analytics.csv`
 - `/api/analytics.xlsx`
-- `/api/analytics/rawData.json` (requires `.json` suffix, see BUGS.md #1)
+- `/api/analytics/rawData.json` (requires `.json` suffix, see DHIS2_ISSUES.md #1)
 - `/api/analytics/dataValueSet.json` (same)
 - `/api/analytics/events/query/<program>.json`
 
@@ -254,7 +254,7 @@ class AnalyticsAccessor:
         if extra_params:
             params.update(extra_params)
         # `.json` suffix keeps the events/enrollments query on the JSON grid
-        # response across majors (BUGS.md #1).
+        # response across majors (DHIS2_ISSUES.md #1).
         raw = await self._client.get_raw(f"/api/analytics/{mode}/query/{program}.json", params=params)
         return Grid.model_validate(raw)
 

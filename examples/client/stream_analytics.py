@@ -13,7 +13,7 @@ Three shapes covered below:
 
 1. `/api/analytics.json` — typed envelope, easy to parse downstream.
 2. `/api/analytics.csv` — tiny wire format when cells are the whole point.
-3. `/api/analytics/rawData.json` — BUGS.md #1 workaround path
+3. `/api/analytics/rawData.json` — DHIS2_ISSUES.md #1 workaround path
    (Accept-negotiation is broken on the sub-resources; the `.json`
    extension must be on the URL).
 

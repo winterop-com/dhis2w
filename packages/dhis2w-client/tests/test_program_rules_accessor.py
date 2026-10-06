@@ -137,14 +137,14 @@ async def test_variables_for_names_source_type_field_explicitly(
     assert "programRuleVariableSourceType" in fields
 
 
-# ---- actions_for (uses rule→actions forward ref; BUGS.md #22c) ---------------
+# ---- actions_for (uses rule→actions forward ref; DHIS2_ISSUES.md #22c) ---------------
 
 
 @respx.mock
 async def test_actions_for_uses_rule_forward_reference(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """BUGS.md #22c — action→rule back-ref is unreliable; fetch rule + unwrap `programRuleActions`."""
+    """DHIS2_ISSUES.md #22c — action→rule back-ref is unreliable; fetch rule + unwrap `programRuleActions`."""
     mock_system_info(server_version)
     route = respx.get("https://dhis2.example/api/programRules/pr1").mock(
         return_value=httpx.Response(

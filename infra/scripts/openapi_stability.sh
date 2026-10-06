@@ -4,7 +4,7 @@
 # fresh boots, then list every JSON pointer whose value differs between them.
 #
 # DHIS2 builds `/api/openapi/openapi.json` at startup, and on 2.42.6, 2.43.1 and 2.43.2
-# the same image yields a different document on each boot (BUGS.md #133):
+# the same image yields a different document on each boot (DHIS2_ISSUES.md #133):
 # where two Java members collide, the one that wins changes. The committed
 # `generated/v{N}/openapi.json` is one such draw, so every component this
 # script reports is a candidate for the `pin-boot-dependent-shapes` spec patch.

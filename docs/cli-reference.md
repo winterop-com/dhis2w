@@ -125,7 +125,7 @@ $ d2w analytics outlier-detection [OPTIONS]
 * `--period, --pe <str>`: Period identifier (e.g. LAST_12_MONTHS, 202401).
 * `--start-date <str>`: ISO date YYYY-MM-DD.
 * `--end-date <str>`: ISO date YYYY-MM-DD.
-* `--algorithm <str>`: Z_SCORE (default) | MODIFIED_Z_SCORE | MIN_MAX. (Upstream OAS still shows MOD_Z_SCORE but the server rejects that value — see BUGS.md.)
+* `--algorithm <str>`: Z_SCORE (default) | MODIFIED_Z_SCORE | MIN_MAX. (Upstream OAS still shows MOD_Z_SCORE but the server rejects that value — see DHIS2_ISSUES.md.)
 * `--threshold <float>`: Standard-deviation cutoff (default 3.0).
 * `--max-results <int>`: Cap the number of outliers returned (default 500).
 * `--order-by <str>`: ABS_DEV | STANDARD_DEVIATION | Z_SCORE | ...
@@ -341,7 +341,7 @@ Auto-dispatches on `source`: an existing file on disk → multipart upload to
 catalog and installed via `POST /api/appHub/{versionId}`. A version id
 installs directly; an app id resolves to that app&#x27;s latest version (App Hub
 app ids and version ids are both bare UUIDs and easy to confuse — see
-BUGS.md #46). DHIS2 overwrites an existing install of the same app.
+DHIS2_ISSUES.md #46). DHIS2 overwrites an existing install of the same app.
 
 **Usage**:
 
@@ -1738,7 +1738,7 @@ $ d2w dev codegen fetch-openapi [OPTIONS]
 
 #### `d2w dev codegen oas-flips`
 
-List every JSON pointer whose value differs between captures of one release (BUGS.md #133).
+List every JSON pointer whose value differs between captures of one release (DHIS2_ISSUES.md #133).
 
 **Usage**:
 
@@ -1980,7 +1980,7 @@ $ d2w doctor [OPTIONS] COMMAND [ARGS]...
 
 * `metadata`: Run workspace metadata-health probes only...
 * `integrity`: Run DHIS2&#x27;s own...
-* `bugs`: Run BUGS.md workaround drift detection...
+* `bugs`: Run DHIS2_ISSUES.md workaround drift...
 
 ### `d2w doctor metadata`
 
@@ -2012,7 +2012,7 @@ $ d2w doctor integrity [OPTIONS]
 
 ### `d2w doctor bugs`
 
-Run BUGS.md workaround drift detection (workspace maintenance, not operator-facing).
+Run DHIS2_ISSUES.md workaround drift detection (workspace maintenance, not operator-facing).
 
 **Usage**:
 

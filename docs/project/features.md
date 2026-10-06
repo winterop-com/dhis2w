@@ -69,7 +69,7 @@ Each DHIS2 version (v41, v42, v43, v44) has its own generated tree under
 `dhis2w_client.generated.v{N}/`. One wire shape is hand-written beside the
 generated tree: `MapView` and its three enums live in `dhis2w_client.v{N}.maps`,
 so every tree exposes one shape no matter what a release lists for
-`mapView` on `/api/schemas` (BUGS.md #43).
+`mapView` on `/api/schemas` (DHIS2_ISSUES.md #43).
 
 ### Resource Accessors
 
@@ -98,7 +98,7 @@ await client.resources.data_elements.delete(uid)
 | **Files** | `documents()`, `file_resources()`, `upload()`, `download()` |
 | **Messaging** | `conversations()`, `send()`, `reply()`, `mark_read()` |
 | **Customization** | `logo_front()`, `logo_banner()`, `style()`, `system_setting()` |
-| **Maps** | `maps.list_all()`, `get()`, `create_from_spec()` from a `MapSpec` of `MapLayerSpec` layers, `clone()`, `delete()`; every major authors through `/api/metadata`, which is the only path that persists a layer's references (BUGS.md #114) |
+| **Maps** | `maps.list_all()`, `get()`, `create_from_spec()` from a `MapSpec` of `MapLayerSpec` layers, `clone()`, `delete()`; every major authors through `/api/metadata`, which is the only path that persists a layer's references (DHIS2_ISSUES.md #114) |
 
 ### Bulk Operations
 
@@ -168,7 +168,7 @@ mounted through the external entry-point mechanism when the pack is installed.
 | **fhir** | FHIR Implementation Guide generation, serving, capture, and forwarding - the [`dhis2w-fhir`](https://github.com/winterop-com/dhis2w-fhir) pack, installed alongside the CLI with `uv tool install 'dhis2w-cli[fhir]'`. See [FHIR](#fhir). |
 | **messaging** | Message conversations: list, get, send, reply, mark read/unread, ticket-workflow priority/status/assignment. |
 | **maintenance** | Background tasks, cache clear, data-integrity checks, soft-delete cleanup, validation runs, predictor runs, analytics-table rebuild. |
-| **doctor** | Health probes: ~100+ metadata checks, DHIS2 data-integrity checks, BUGS.md workaround drift detection. |
+| **doctor** | Health probes: ~100+ metadata checks, DHIS2 data-integrity checks, DHIS2_ISSUES.md workaround drift detection. |
 | **security** | The read-only security posture scanner — version and patch posture, transport and security headers, password policy and registration settings, authority risk categorisation, role and account audits, installed-apps inventory, anonymous-access and default-credential probes, public-metadata sharing, route targets, personal access tokens, external login methods, auditing posture, and a resumable `audit` runner writing Markdown / plaintext / CSV / HTML reports — is the [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) pack, installed alongside the CLI with `uv tool install 'dhis2w-cli[security]'` (or `uv add dhis2w-security` in a project). |
 | **system** | System info, current user (whoami), calendar, system-settings read/write. |
 | **customize** | Brand + theme an instance: login logos, banner, CSS, preset apply. |
@@ -285,7 +285,7 @@ d2w customize       Brand + theme an instance
 d2w doctor          Health diagnostics
   metadata              ~100+ metadata health checks
   integrity             DHIS2 data-integrity checks
-  bugs                  BUGS.md workaround drift detection
+  bugs                  DHIS2_ISSUES.md workaround drift detection
 
 d2w browser         UI automation (requires [browser] extra)
   pat                   Mint a Personal Access Token via Playwright
@@ -557,7 +557,7 @@ Available across CLI, MCP, and library:
 ### Health and Diagnostics
 
 `d2w doctor` runs ~100+ metadata health checks, DHIS2's own data-integrity
-checks, and BUGS.md workaround drift detection. Available via CLI and MCP.
+checks, and DHIS2_ISSUES.md workaround drift detection. Available via CLI and MCP.
 
 ### Examples
 

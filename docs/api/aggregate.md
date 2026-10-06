@@ -20,7 +20,7 @@ from dhis2w_core.profile import profile_from_env
 
 async with open_client(profile_from_env()) as client:
     # Push two values. `import_grouped_by_dataset` is the cross-version
-    # write path (required on v43 BUGS #35, accepted on v41 + v42). The
+    # write path (required on v43 DHIS2_ISSUES.md #35, accepted on v41 + v42). The
     # typed `DataValue`s are validated by pydantic before they hit the wire.
     values = [
         DataValue(
@@ -41,7 +41,7 @@ async with open_client(profile_from_env()) as client:
         ),
     ]
     # `import_grouped_by_dataset` POSTs one envelope per DataSet group
-    # (required on v43 BUGS #35). Returns a list — one WebMessageResponse
+    # (required on v43 DHIS2_ISSUES.md #35). Returns a list — one WebMessageResponse
     # per POST. Aggregate the per-envelope counts to get a total.
     envelopes = await client.data_values.import_grouped_by_dataset(values)
     total_imported = sum((env.import_count().imported if env.import_count() else 0) for env in envelopes)
@@ -120,7 +120,7 @@ async with open_client(profile_from_env()) as client:
 
 ## When to use which write path
 
-`import_grouped_by_dataset(values)` is the safe cross-version default. It pre-fetches each `DataElement`'s `DataSet` membership and POSTs one `{"dataSet": …, "dataValues": [...]}` envelope per group — required on DHIS2 v43 for any DE that belongs to multiple DataSets (BUGS #35: v43 rejects mixed batches with `409 E8002`). v41 + v42 accept the same envelope shape, so the call is portable.
+`import_grouped_by_dataset(values)` is the safe cross-version default. It pre-fetches each `DataElement`'s `DataSet` membership and POSTs one `{"dataSet": …, "dataValues": [...]}` envelope per group — required on DHIS2 v43 for any DE that belongs to multiple DataSets (DHIS2_ISSUES.md #35: v43 rejects mixed batches with `409 E8002`). v41 + v42 accept the same envelope shape, so the call is portable.
 
 `client.data_values.stream(values, ...)` is the streaming alternative for very large imports — wraps the values as an async-byte stream so httpx2 doesn't have to materialise the full payload in memory.
 

@@ -163,7 +163,7 @@ async def test_hub_list_applies_client_side_query_filter(
 async def test_hub_list_ingests_epoch_millis_created_field(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """Per BUGS.md #30, `versions[*].created` is an int on the wire — the model absorbs it."""
+    """Per DHIS2_ISSUES.md #30, `versions[*].created` is an int on the wire — the model absorbs it."""
     mock_system_info(server_version)
     payload = [
         {

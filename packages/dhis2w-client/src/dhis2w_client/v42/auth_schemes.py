@@ -3,7 +3,7 @@
 DHIS2's `/api/routes` and `/api/webhooks` objects carry an `auth` block
 describing how DHIS2 talks to upstream targets. OpenAPI defines the five
 leaf schemas — `HttpBasicAuthScheme`, `ApiTokenAuthScheme`, ... — but
-historically dropped the Jackson `type` discriminator (BUGS.md #14).
+historically dropped the Jackson `type` discriminator (DHIS2_ISSUES.md #14).
 
 The codegen emitter patches the spec at build time (see
 `dhis2w_codegen.spec_patches`) to synthesise the discriminator block +

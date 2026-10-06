@@ -30,7 +30,7 @@ def _components(aggregation_type: dict[str, Any], page_item_ref: str, instant_fi
 
 
 def test_every_boot_variant_patches_to_one_shape() -> None:
-    """Two boots that disagree on every flip-prone component patch to identical components (BUGS.md #133)."""
+    """Two boots that disagree on every flip-prone component patch to identical components (DHIS2_ISSUES.md #133)."""
     first = _components(_AGGREGATION_TYPE_REF, "TrackerRelationship", "integer")
     second = _components({"type": "boolean"}, "EntityType", "string")
 

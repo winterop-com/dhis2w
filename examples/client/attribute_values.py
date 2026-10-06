@@ -9,7 +9,7 @@ Options, external-warehouse IDs on OrganisationUnits.
 This example uses the seeded `SNOMED_CODE` attribute (attached to every
 vaccine Option on a fresh e2e dump) to demonstrate the canonical flows:
 
-1. `resolve_attribute_uid` — business code → UID (needed for BUGS.md
+1. `resolve_attribute_uid` — business code → UID (needed for DHIS2_ISSUES.md
    #21's filter quirk under the hood).
 2. `get_value(resource, uid, attribute)` — read one value.
 3. `set_value(...)` + `delete_value(...)` — read-merge-write round-trip.

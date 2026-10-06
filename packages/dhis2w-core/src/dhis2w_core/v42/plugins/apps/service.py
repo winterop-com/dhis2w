@@ -54,7 +54,7 @@ async def install_from_hub(profile: Profile, app_or_version_id: str) -> InstallT
     """Install an App Hub app by version id, or by app id (latest version is resolved).
 
     DHIS2's `POST /api/appHub/{versionId}` only accepts a version id; handing it
-    an app id 404s through the server's App Hub proxy (BUGS.md #46). App ids and
+    an app id 404s through the server's App Hub proxy (DHIS2_ISSUES.md #46). App ids and
     version ids are both bare UUIDs, so this resolves the given id against the
     configured catalog (`GET /api/appHub`): a version id installs directly; an
     app id resolves to that app's latest version. Raises `InstallTargetError`

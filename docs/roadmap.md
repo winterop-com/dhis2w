@@ -36,7 +36,7 @@ Nineteen top-level domains: `analytics`, `apps`, `customize`, `data`, `datastore
 - **Bundle operations**: `export` / `import` / `diff` (file-vs-file and file-vs-live) with per-resource filters + dangling-reference warning on export; `diff-profiles` for staging-vs-prod drift.
 - **Authoring sub-apps**: `options get / find / sync` for OptionSet sync; `attribute get / set / delete / find` for cross-resource AttributeValue workflows; `program-rule get / vars-for / validate-expression / where-de-is-used`; `sql-view list / get / execute / refresh / adhoc`; `viz list / get / create / clone / delete`; `dashboard list / get / add-item / remove-item`; `map list / get / create / clone / delete`; `legend-sets list / get / create / clone / delete`; four full `X / XGroup / XGroupSet` authoring triples with canonical DHIS2 naming — `organisation-units` / `organisation-unit-groups` / `organisation-unit-group-sets` (plus `organisation-unit-levels` for per-depth rename), `data-elements` / `data-element-groups` / `data-element-group-sets`, `indicators` / `indicator-groups` / `indicator-group-sets`, and `category-options` / `category-option-groups` / `category-option-group-sets`; plus the `program-indicators` + `program-indicator-groups` pair (DHIS2 has no `programIndicatorGroupSet`). Aggregate data-set surface: `data-sets list / get / create / add-element / remove-element / delete` + `sections list / get / create / add-element / remove-element / reorder / delete`. Authoring flip side of maintenance runs: `validation-rules {list,show,create,delete}` + `validation-rule-groups` + `predictors {list,show,create,delete}` + `predictor-groups`. Tracker-schema authoring complete end-to-end: `tracked-entity-attributes` + `tracked-entity-types` (with TETA linkage) + `programs {list,show,create,rename,add-attribute,remove-attribute,add-to-ou,remove-from-ou,delete}` + `program-stages {list,show,create,rename,add-element,remove-element,reorder,delete}`. Category-dimension authoring complete end-to-end: `categories {list,show,create,rename,add-option,remove-option,delete}` + `category-combos {list,show,create,rename,add-category,remove-category,wait-for-cocs,delete,build}` (the `build` verb is the one-pass create-or-reuse helper for the full stack, fed a JSON `CategoryComboBuildSpec`) + read-only `category-option-combos {list,show,list-for-combo}`.
 
-`d2w doctor` runs ~100 checks on a live instance (20 metadata-health probes + 81 DHIS2 integrity checks + BUGS tripwires).
+`d2w doctor` runs ~100 checks on a live instance (20 metadata-health probes + 81 DHIS2 integrity checks + DHIS2_ISSUES.md tripwires).
 
 ### MCP surface
 
@@ -57,14 +57,14 @@ Via `/api/openapi.json` codegen (`generated/v{N}/oas/`, currently populated on v
 - Every `components/schemas` entry — 562 classes + 260 StrEnums + 104 aliases on v42; 984 classes on v43.
 - Consumers in `dhis2w-client`: `envelopes.py`, `auth_schemes.py`, `aggregate.py`, `system.py`, `maintenance.py`, and `generated/v42/tracker.py` are all thin shims over the OAS output.
 - Emitter is deterministic + version-scoped; `d2w dev codegen oas-rebuild --version v{N}` regenerates from the committed `openapi.json` without network.
-- **Spec-patches framework** for known-upstream OAS gaps (`dhis2w_codegen.spec_patches`). Each patch is idempotent + carries a `bugs_ref` pointer; the rebuild log names which gap was worked around. Current patches: `*AuthScheme` discriminators (BUGS.md #14 — still unfixed in v43).
+- **Spec-patches framework** for known-upstream OAS gaps (`dhis2w_codegen.spec_patches`). Each patch is idempotent + carries a `bugs_ref` pointer; the rebuild log names which gap was worked around. Current patches: `*AuthScheme` discriminators (DHIS2_ISSUES.md #14 — still unfixed in v43).
 
 Remaining hand-written in `dhis2w-client` (by design):
 
 - `WebMessageResponse` subclass + `DataIntegrityReport` / `DataIntegrityResult` / `Me` / `Notification` — helper methods and client-side convenience shapes that aren't in OpenAPI.
 - `AnalyticsMetaData` — typed parser helper over `Grid.metaData` (a bare `dict[str, Any]` on the wire). `Grid` / `GridHeader` come straight from the OAS codegen.
 - `TrackerBundle` — the `POST /api/tracker` envelope isn't in OpenAPI under that name. Thin wrapper on OAS tracker models.
-- `PeriodType` + `RelativePeriod` StrEnums (24 period frequencies + 45 rolling windows; upstream Java enums the OpenAPI schema doesn't expose — see BUGS.md #28).
+- `PeriodType` + `RelativePeriod` StrEnums (24 period frequencies + 45 rolling windows; upstream Java enums the OpenAPI schema doesn't expose — see DHIS2_ISSUES.md #28).
 
 ### Typing posture
 
@@ -111,8 +111,8 @@ Public distribution is active — every workspace member (except `dhis2w-codegen
 - **Narrative tutorials**: `docs/cli/tutorial.md`, `docs/client/tutorial.md`, `docs/guides/visualizations.md` (step-by-step viz + dashboard composition).
 - **Examples index** (`docs/examples.md`) catalogues one version-neutral example tree: `examples/{cli,client}/` hold a single copy of each example that runs against v41, v42, v43, and v44 alike, with a variant under `examples/{surface}/v{N}/` only where one major genuinely has an example the others cannot run. The FHIR examples live in the `dhis2w-fhir` pack. `make verify-examples` executes every one of them against a live instance; anything it cannot run states its reason in the skip list, its own header, and the README. Tracker-schema authoring examples (steps 1 / 2 / 3 under `examples/cli/tracker_*.sh`) round-trip the full chain end-to-end.
 - **Architecture docs** cover every plugin, the client, auth, profiles, codegen, typed schemas, plugins runtime, external plugins, versioning. MCP and browser automation are documented on their packs' own sites.
-- **One directory per feature surface**: `docs/{client,cli,query}/` each hold their own guides, reference, and design, and each has a navigation tab of its own; the MCP, browser, and FHIR tabs point at their packs' sites. `docs/guides/` keeps only what is genuinely cross-cutting, and `docs/project/` is the catalog, the roadmap, the upstream quirks, and the maintainer-facing pages.
-- **`BUGS.md`** — nearly a hundred upstream DHIS2 quirks with live `curl` repros + v43 re-audit status (entry count drifts as new ones land; the file itself is the source of truth).
+- **One directory per feature surface**: `docs/{client,cli,query}/` each hold their own guides, reference, and design, and each has a navigation tab of its own; the MCP, browser, and FHIR tabs point at their packs' sites. `docs/guides/` keeps only what is genuinely cross-cutting, and `docs/project/` is the catalog, the roadmap, the upstream issues, and the maintainer-facing pages.
+- **`DHIS2_ISSUES.md`** — nearly a hundred upstream DHIS2 quirks with live `curl` repros + v43 re-audit status (entry count drifts as new ones land; the file itself is the source of truth).
 
 ### Test coverage
 
@@ -122,7 +122,7 @@ Detailed test gaps + the planned next moves are in [Testing roadmap](#testing-ro
 
 ### Upstream quirks tracked
 
-Nearly a hundred entries in the repo-root `BUGS.md` (the file is the source of truth — `grep -c '^- \[#' BUGS.md` prints the live count); the security-scanner cycle added the #50-#61 cluster. Recent additions cover the seed / workflow cycle: DataSet Hibernate flush ordering (#23), Person-TET built-in name collisions (#24), admin OU scope cached per session (#26), fresh-install flakiness on first metadata import (#27), `RelativePeriods` OAS schema shape (#28), `/api/metadata` ignoring `rootJunction` (#29 — the reason `metadata search` has to fan out N requests instead of one), App Hub `versions[*].created` returning epoch-millis ints instead of ISO-8601 strings (#30), and the predictor-expression parser rejecting uppercase aggregators (#31 — forces `avg()` / `sum()` lowercase even though DHIS2 docs use uppercase). The v43-specific cluster (#34–#38) plus the v41 OAuth2 wire-shape quirk (#39) round out the recent set.
+Nearly a hundred entries in the repo-root `DHIS2_ISSUES.md` (the file is the source of truth — `grep -c '^- \[#' DHIS2_ISSUES.md` prints the live count); the security-scanner cycle added the #50-#61 cluster. Recent additions cover the seed / workflow cycle: DataSet Hibernate flush ordering (#23), Person-TET built-in name collisions (#24), admin OU scope cached per session (#26), fresh-install flakiness on first metadata import (#27), `RelativePeriods` OAS schema shape (#28), `/api/metadata` ignoring `rootJunction` (#29 — the reason `metadata search` has to fan out N requests instead of one), App Hub `versions[*].created` returning epoch-millis ints instead of ISO-8601 strings (#30), and the predictor-expression parser rejecting uppercase aggregators (#31 — forces `avg()` / `sum()` lowercase even though DHIS2 docs use uppercase). The v43-specific cluster (#34–#38) plus the v41 OAuth2 wire-shape quirk (#39) round out the recent set.
 
 ## Gaps surfaced during use
 
@@ -208,7 +208,7 @@ validation, env caveat — #439) leave these open, none blocking:
   `Dhis2ApiError(302)` / empty-body error instead of the 401-flavored failure the kodo panel's expiry
   detector expects. Needs a live test against a genuinely expired cookie per supported DHIS2 version;
   if the redirect is real, map redirect-to-login on API calls to an auth-flavored error (and log the
-  server behaviour in `BUGS.md`).
+  server behaviour in `DHIS2_ISSUES.md`).
 - **Non-TTY fail-fast for secret prompts.** All four `profile add` secret branches (pat / basic /
   oauth2 / session) fall into an interactive hidden prompt when the env var is unset or empty; in a
   non-TTY subprocess that blocks on an open stdin pipe or dies with a generic `Aborted.`. A shared
@@ -236,12 +236,12 @@ validation, env caveat — #439) leave these open, none blocking:
 Listing collapsed onto one surface — generic `metadata list <type>` + the `metadata_list` MCP tool (see the 2026-06-04 decisions-log entry). Three follow-ups remain:
 
 - **Re-expose type-specific list filters + curated columns.** The dropped typed lists had ergonomic filters (`--domain-type`, `--program-type`, `--period-type`, viz `--type`, …) and resource-aware columns. They currently round-trip through the generic `--filter <prop>:<op>:<value>` DSL. Design how to surface the common ones on the canonical command/tool (named convenience flags? a per-resource filter registry?) before migrating docs/examples, so the rewrites aren't redone.
-- **Guard the `/api/metadata?<resource>=true` bundle export against giant payloads.** For organisation units this can embed geojson geometry and balloon to a size that can overload the server. Needs a size/field guard (or a refusal with a `--fields` hint) on `metadata export`; warrants a `BUGS.md` entry once characterized with a repro.
+- **Guard the `/api/metadata?<resource>=true` bundle export against giant payloads.** For organisation units this can embed geojson geometry and balloon to a size that can overload the server. Needs a size/field guard (or a refusal with a `--fields` hint) on `metadata export`; warrants a `DHIS2_ISSUES.md` entry once characterized with a repro.
 - **Migrate docs/examples** — largely done. The stale references were swept: the removed `metadata_<type>_list` MCP example calls moved to the generic `metadata_list(resource=...)`, the removed `option-sets attribute` CLI subgroup to `metadata attributes`, and `user-group` / `user-role` to `user group` / `user role`; the showcase doc examples were fixed. `infra/scripts/check_example_refs.py` (wired into `make check-examples` + CI) now resolves every example's CLI command paths against the Typer tree and every `call_tool` name against the live MCP tool set, so this class of drift fails the fast suite instead of surfacing only in nightly e2e.
 
 ### Small-model bridge: CLI read-surface follow-ups
 
-Surfaced by the `dhis2w-mcp-bridge` gap probes (small local models driving the CLI). Shipped: camelCase discovery + did-you-mean, `type list --json`, `show`→`get` help, the rewritten `dhis2_cli` docstring (incl. `search`/`usage`/field-presets/nested-filters/export-warning + a WRITES primer), single-string-arg tolerance, paging help, `--filter` nested/`in`/`null` help, read-only allowlist for `metadata usage`/`export`, the analytics/tracker/aggregate help-text fills, the tracker `--program` fix, malformed-UID pre-validation on `metadata get` (BUGS #47), relationship mutators + deletes honor `--json`, headless `route create` (`--no-auth` + clean ValidationError), `files documents list --details` (no more filename-as-FR-UID), and `metadata share` accepting the plural type. See `docs/notes/small-model-bridge.md` + `docs/notes/bridge-verification.md`. Remaining:
+Surfaced by the `dhis2w-mcp-bridge` gap probes (small local models driving the CLI). Shipped: camelCase discovery + did-you-mean, `type list --json`, `show`→`get` help, the rewritten `dhis2_cli` docstring (incl. `search`/`usage`/field-presets/nested-filters/export-warning + a WRITES primer), single-string-arg tolerance, paging help, `--filter` nested/`in`/`null` help, read-only allowlist for `metadata usage`/`export`, the analytics/tracker/aggregate help-text fills, the tracker `--program` fix, malformed-UID pre-validation on `metadata get` (DHIS2_ISSUES.md #47), relationship mutators + deletes honor `--json`, headless `route create` (`--no-auth` + clean ValidationError), `files documents list --details` (no more filename-as-FR-UID), and `metadata share` accepting the plural type. See `docs/notes/small-model-bridge.md` + `docs/notes/bridge-verification.md`. Remaining:
 
 - **Removed typed `list` discoverability** — point `metadata <subapp> list`/`show` at `metadata list <type>` / `get` (hidden redirect commands or epilog).
 - ~~**Missing authoring verbs: `optionSets` + `userGroups` `create`/`delete`**~~ Shipped: `metadata option-sets create/delete` + `user-group create/delete` (build the schema, POST via `resources.<accessor>.create`, return a typed WebMessageResponse). v41/v42/v43 + tests + examples.
@@ -286,7 +286,7 @@ Demoted / parked:
 - `apps snapshot` example + CI hook — the feature works, just the `restore --dry-run` demo still isn't in `examples/cli/apps.sh`. Low value without an active need.
 - `ProgramStageSection` grouping — rarely used in practice; `metadata patch` covers the occasional need. Promote if a concrete caller surfaces.
 
-BUGS.md #15 (undiscriminated `JobConfiguration.jobParameters` + `WebMessage.response` unions) stays off the near-term list: the sibling-field discriminator pattern doesn't fit the AuthScheme-style spec-patches approach, and the scheduler plugin isn't an active workflow. Revisit when someone hits a real-world need.
+DHIS2_ISSUES.md #15 (undiscriminated `JobConfiguration.jobParameters` + `WebMessage.response` unions) stays off the near-term list: the sibling-field discriminator pattern doesn't fit the AuthScheme-style spec-patches approach, and the scheduler plugin isn't an active workflow. Revisit when someone hits a real-world need.
 
 ## Strategic options (pick one before the next cycle)
 
@@ -378,7 +378,7 @@ Niche but valuable for compliance + forensics use cases.
      against the published host, so the host release comes first.
   4. *Remove it from the host.* The moved files go; the moved documentation pages
      leave redirects; the Makefile, workflows, `CLAUDE.md`, the feature list and
-     `BUGS.md` follow. `dhis2w-integration` lists the pack in `ecosystem.yaml`.
+     `DHIS2_ISSUES.md` follow. `dhis2w-integration` lists the pack in `ecosystem.yaml`.
 
   **What each move adds to that:**
 
@@ -393,7 +393,7 @@ Niche but valuable for compliance + forensics use cases.
   - **FHIR** - the three FHIR members with the capture UI frontend and its
     toolchain; `examples/fhir` with the committed guides; `docs/fhir`; the FHIR
     scripts (`verify_igs.py`, `publisher_qa_summary.py`) and workflows (frontend,
-    publisher check). The git history moves with it. `BUGS.md` splits: the IG
+    publisher check). The git history moves with it. `DHIS2_ISSUES.md` splits: the IG
     publisher entries move, and each DHIS2 bug keeps its entry here with its
     workaround linked in the FHIR repository. Known work before the move: 17 FHIR
     tests import `dhis2w_cli.main`; six read files outside their package (the API
@@ -409,7 +409,7 @@ Niche but valuable for compliance + forensics use cases.
 ## Long-term / exploratory
 
 - **Further `dhis2w-browser` workflows**, layered on `authenticated_session`: Maintenance app driving (actions that don't have REST), Org-unit-tree drag-drop edits. Dashboard creation is covered by the REST `DashboardsAccessor.add_item`; layout drag-drop is UI-only but deferred until a concrete need appears.
-- **Scheduled jobs plugin (`/api/jobConfigurations`)** — blocked on BUGS.md #15 (undiscriminated `jobParameters` + `WebMessage.response` unions). Revisit when the OAS discriminator is fixed upstream, or when a concrete scheduling workflow forces us to hand-roll typed payloads for the common job types.
+- **Scheduled jobs plugin (`/api/jobConfigurations`)** — blocked on DHIS2_ISSUES.md #15 (undiscriminated `jobParameters` + `WebMessage.response` unions). Revisit when the OAS discriminator is fixed upstream, or when a concrete scheduling workflow forces us to hand-roll typed payloads for the common job types.
 - **Interactive aggregate-data-entry TUI** — `d2w data entry <ds> <pe> <ou>` launches a terminal spreadsheet bound to one data set × period × org unit. Questionary or textual for the UI; posts via `client.data_values.stream` on save. Powerful offline-capable data-entry fallback when the UI is down.
 - **`dhis2w-chrome` — local-LLM browser extension (PII-safe).** A Chrome extension that drives DHIS2 from the browser using a **local** LLM — it `fetch`es the user's on-box OpenAI-compatible endpoint (LM Studio / Ollama on `localhost`) instead of a cloud API, so patient/tracker data never leaves the machine. The competitive wedge over cloud-based competitor extensions: those are legally unusable for PII deployments (health-data law), where a local extension is the *only* option. Reuses the local-inference foundation (the `ModelBackend` story, model selection, the bridge's discovery lessons). Same decision boundary as everywhere else — local for PII, cloud for aggregate. Alternative in-browser routes (WebLLM/transformers.js via WebGPU; Chrome's built-in Prompt API / Gemini Nano) are weaker and parked. A new product surface (the repo has `dhis2w-browser` for Playwright automation, not an extension); post-1.0.
 - **Router as the default MCP surface for *all* clients (cloud + local)?** — `dhis2w-mcp-router` (search+dispatch over upstream MCP servers; see [surfaces](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-surfaces/) + [design](https://winterop-com.github.io/dhis2w-mcp/architecture/mcp-router/)) is a strong candidate to become the *recommended* entry point for everyone, not just small local models. It future-proofs against tool-surface growth (more DHIS2 tools never inflate the model's context — search is lazy), gives one chokepoint for read-only/host/audit policy, federates multiple servers, and offers typed discovery (validated: `gemma-4-26b-a4b-qat` drove the full 311-tool surface through it at 16k context). **But "for all" is not yet earned** — it has real trade-offs vs connecting to the full server directly: a `search_tools` round-trip per task (extra latency a capable cloud model holding the full payload avoids), a proxy hop + failure point, and a hard dependence on search *quality* (keyword ranking is crude today — a missed search = a tool the model can't reach; the full surface has no "search missed it" failure mode). The decision is **gated on data**: the router benchmark lane (local models over router vs direct full-mcp vs bridge) plus embeddings-based ranking should settle whether router-for-all holds, or whether the honest answer is "router default for local + growing surfaces; direct full server as the low-latency escape hatch for capable cloud; bridge as the max-simplicity/max-security option." Don't promote it to default-for-all until the numbers say so — same measure-don't-assert discipline as the oracle.
@@ -436,7 +436,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 **A1. Schema contract tests against the live play instances (per-PR, read-only).** — **shipped.**
 `@pytest.mark.contract` suite + `.github/workflows/contract.yml` cover representative resources against `play.im.dhis2.org/dev-2-{42,43}`. Each test fetches one real instance and runs it through the generated pydantic model, asserting it validates. Catches DHIS2 ship-day API changes before users do. Next iteration: widen the resource set + add a nightly cron alongside the PR-trigger.
 
-**A2. `BUGS.md` regression-suite scaffolding.** — **shipped.**
+**A2. `DHIS2_ISSUES.md` regression-suite scaffolding.** — **shipped.**
 `@pytest.mark.upstream_bug` marker pairs bug-still-present + workaround halves; see `packages/dhis2w-client/tests/test_upstream_bugs.py`. `make test-upstream-bugs` runs the whole catalogue. Next iteration: lifecycle automation (open a tracking issue when a bug-still-present test starts failing — the signal to delete the workaround).
 
 **A3. Multi-version CI matrix** — **shipped.**
@@ -446,7 +446,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 `packages/dhis2w-client/tests/test_parser_properties.py` covers UID generation/validation, period parsing round-trips, and the JSON Patch builder with hypothesis strategies. Remaining targets, one PR per parser:
 
 - Filter DSL (`name:ilike:foo`, `code:in:[a,b]`, nested `attributeValues.attribute.id:eq:UID`).
-- URL construction — no double-slashes, correct encoding, `.json` suffix on `/api/analytics/*` (BUGS.md #1).
+- URL construction — no double-slashes, correct encoding, `.json` suffix on `/api/analytics/*` (DHIS2_ISSUES.md #1).
 
 **A5. Generated-code golden snapshots.** — **shipped.**
 `packages/dhis2w-codegen/tests/test_snapshots.py` loads each committed `schemas_manifest.json`, runs `emit()` + `emit_from_openapi()` into a tmp dir, and asserts byte-for-byte equality against the committed `generated/v{N}/` tree. Parameterised over v41 / v42 / v43 / v44. CI fails the moment codegen drifts from the committed tree.
@@ -521,7 +521,7 @@ Playwright is a runtime dep (for screenshot capture, OIDC login automation), not
 ### What we're explicitly skipping
 
 - **Load testing.** Not a server; the bottleneck is always the upstream DHIS2 instance, not our client. Premature.
-- **Contract testing via Pact / Schemathesis.** The OpenAPI spec is too unreliable (BUGS.md #14, #15, #28 are spec-quality issues). Our own contract tests against live instances pay better.
+- **Contract testing via Pact / Schemathesis.** The OpenAPI spec is too unreliable (DHIS2_ISSUES.md #14, #15, #28 are spec-quality issues). Our own contract tests against live instances pay better.
 - **Hypothesis-jsonschema for the OAS models.** Tempting, but the `extra="allow"` shapes spin Hypothesis on impossible negative cases.
 - **Mutation testing on generated code.** Mechanically derived; mutations there don't tell us anything we can fix.
 

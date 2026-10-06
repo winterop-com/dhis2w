@@ -3,7 +3,7 @@
 DHIS2 2.42.6 and 2.43.1 read the organisation unit mode from `orgUnitMode` on
 every tracker read, take the units as `orgUnit` on `/api/tracker/events` and
 as `orgUnits` on the tracked entity and enrollment reads, and drop or refuse
-the other spellings (BUGS.md #113). These assert each read
+the other spellings (DHIS2_ISSUES.md #113). These assert each read
 service sends the key its endpoint honours, on every version tree alike.
 """
 

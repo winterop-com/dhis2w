@@ -80,7 +80,7 @@ def oas_flips_cmd(
     documents: Annotated[list[Path], typer.Argument(help="Two or more captures of the same release's openapi.json.")],
     json_output: Annotated[bool, typer.Option("--json", help="Emit the report as JSON.")] = False,
 ) -> None:
-    """List every JSON pointer whose value differs between captures of one release (BUGS.md #133)."""
+    """List every JSON pointer whose value differs between captures of one release (DHIS2_ISSUES.md #133)."""
     if len(documents) < 2:
         raise typer.BadParameter("pass at least two captures")
     report = compare_documents(documents)

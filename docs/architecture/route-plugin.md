@@ -34,13 +34,13 @@ a discriminated union of six variants keyed on `type`:
 | --- | --- | --- |
 | `none` | nothing | Open upstream — DHIS2 forwards as-is. |
 | `http-basic` | `username` + `password` | Classic `Authorization: Basic <b64>`. |
-| `api-token` | `token` | DHIS2-specific `Authorization: ApiToken <token>` (NOT standard `Bearer` — see BUGS.md #4e). |
+| `api-token` | `token` | DHIS2-specific `Authorization: ApiToken <token>` (NOT standard `Bearer` — see DHIS2_ISSUES.md #4e). |
 | `api-headers` | `headers: dict[str, str]` | Arbitrary custom headers (e.g. `X-Api-Key`). |
 | `api-query-params` | `queryParams: dict[str, str]` | Auth via URL query string (older APIs). |
 | `oauth2-client-credentials` | `clientId`, `clientSecret`, `tokenUri`, `scopes` | OAuth2 Client Credentials grant; DHIS2 caches the access token between calls. |
 
 The codegen `spec_patches` module synthesises the Jackson discriminator
-that upstream DHIS2 omits (BUGS.md #14), so the union is fully typed
+that upstream DHIS2 omits (DHIS2_ISSUES.md #14), so the union is fully typed
 end-to-end. Callers either build a concrete variant
 (`HttpBasicAuthScheme(username=..., password=...)`) or pass a raw dict
 with a `type` key — pydantic routes it to the right subclass.

@@ -349,7 +349,7 @@ async def test_await_completion_reads_the_job_configuration_when_the_feed_is_cle
     monkeypatch: pytest.MonkeyPatch,
     server_version: str,
 ) -> None:
-    """A feed that empties after rows ends the watch from `lastExecutedStatus` (BUGS.md #143), on every tree."""
+    """A feed that empties after rows ends the watch from `lastExecutedStatus` (DHIS2_ISSUES.md #143), on every tree."""
 
     async def _instant_sleep(_: float) -> None:
         return None

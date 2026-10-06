@@ -19,7 +19,7 @@ from dhis2w_core.v43.client_context import open_client
 _SHAPE_TO_PATH: dict[str, str] = {
     # v42+ MVC mapping quirk: rawData/dataValueSet sub-resources require the
     # explicit .json suffix even with Accept: application/json. The parent
-    # /api/analytics path honours content negotiation normally. See BUGS.md #1.
+    # /api/analytics path honours content negotiation normally. See DHIS2_ISSUES.md #1.
     "table": "/api/analytics",
     "raw": "/api/analytics/rawData.json",
     "dvs": "/api/analytics/dataValueSet.json",
@@ -259,7 +259,7 @@ async def query_outlier_detection(
     Each row is ordered per the `headers` list; typical fields include
     `dx`, `pe`, `ou`, `value`, `mean`, `stdDev`, `absDev`, `zScore`. Note:
     DHIS2's OpenAPI schema documents a separate `OutlierDetectionResponse`
-    type, but the wire format is actually `Grid` — see BUGS.md for the
+    type, but the wire format is actually `Grid` — see DHIS2_ISSUES.md for the
     schema-vs-reality divergence.
     """
     params: dict[str, Any] = {}

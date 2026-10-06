@@ -9,7 +9,7 @@ Categories covered:
 - v43 CategoryCombo: `categorys` legacy alias dropped from the
   write-payload path (`categories` is the sole field name).
 
-Mocked-then-live coverage for these lives in the BUGS regression suite
+Mocked-then-live coverage for these lives in the DHIS2_ISSUES.md regression suite
 (paired `test_bug_34_*` in `test_upstream_bugs.py`); this
 file's tests stay structural — they don't hit the wire, they just
 assert the v43 source code shape stayed divergent.
@@ -48,5 +48,5 @@ def test_v43_category_combo_create_payload_uses_categories_key(tree: str) -> Non
     )
     assert '"categorys":' not in create_source, (
         f'{tree} CategoryCombosAccessor.create must not use the v42 `"categorys":` alias — '
-        f"v43 silently no-ops on it (BUGS.md #34). Source body:\n{create_source}"
+        f"v43 silently no-ops on it (DHIS2_ISSUES.md #34). Source body:\n{create_source}"
     )

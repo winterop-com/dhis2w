@@ -132,7 +132,7 @@ async def test_service_list_documents_returns_typed_rows(profile: Profile) -> No
 async def test_service_upload_document_writes_bytes_and_returns_document(profile: Profile, tmp_path: Path) -> None:
     """Two-step upload: fileResource (domain=DOCUMENT) -> document JSON -> typed `Document`.
 
-    See BUGS.md #16 for why `/api/documents` doesn't accept multipart directly.
+    See DHIS2_ISSUES.md #16 for why `/api/documents` doesn't accept multipart directly.
     """
     _mock_preamble()
     payload = tmp_path / "report.txt"

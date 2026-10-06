@@ -127,7 +127,7 @@ async def remove_soft_deleted(profile: Profile, target: SoftDeleteTarget) -> Non
     """Hard-delete rows that were soft-deleted by a prior DELETE import.
 
     DHIS2 keeps soft-deleted rows so audit trails stay intact, but those rows
-    block parent-metadata removal (see BUGS.md #2). This endpoint purges them.
+    block parent-metadata removal (see DHIS2_ISSUES.md #2). This endpoint purges them.
     """
     endpoint = _SOFT_DELETE_ENDPOINT[target]
     async with open_client(profile) as client:

@@ -6,7 +6,7 @@ Three sub-commands, three probe modules:
   wrong with this instance's configuration?"
 - `integrity` — wraps DHIS2's own `/api/dataIntegrity/summary` so one doctor
   run covers DHIS2's ~40 built-in checks alongside ours.
-- `bugs` — drift detection against BUGS.md workarounds. Useful for workspace
+- `bugs` — drift detection against DHIS2_ISSUES.md workarounds. Useful for workspace
   maintenance but not the operator-facing default.
 
 `run_doctor()` with no category filter runs metadata + integrity (the two

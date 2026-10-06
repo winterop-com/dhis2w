@@ -21,7 +21,7 @@ Mounted as `d2w dev codegen` when working from the workspace.
 
 `discover.py` fetches `/api/schemas` and normalises the response into a `SchemasManifest`. `emit.py` walks the manifest and renders one pydantic model file per schema via Jinja templates (in `templates/`). `oas_emit.py` does the same for the OpenAPI spec (instance-side shapes — tracker writes, envelopes, auth schemes). `diff.py` powers the cross-version diff command.
 
-Spec patches (e.g. injecting auth-scheme discriminators that DHIS2 omits — see BUGS.md #14) live in `spec_patches.py` and apply during emission.
+Spec patches (e.g. injecting auth-scheme discriminators that DHIS2 omits — see DHIS2_ISSUES.md #14) live in `spec_patches.py` and apply during emission.
 
 Full architecture: https://winterop-com.github.io/dhis2w/codegen/.
 

@@ -39,7 +39,7 @@ class CompleteDataSetRegistration(BaseModel):
 
     Hand-written rather than generated: the OpenAPI document declares
     `/api/completeDataSetRegistrations` with an untyped request body and ships no component schema for
-    the row it carries, so there is nothing under `generated/v{41,42,43}/oas` to import (BUGS.md 80).
+    the row it carries, so there is nothing under `generated/v{41,42,43}/oas` to import (DHIS2_ISSUES.md 80).
     """
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)

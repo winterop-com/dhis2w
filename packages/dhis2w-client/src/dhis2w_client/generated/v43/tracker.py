@@ -10,7 +10,7 @@ DHIS2 accepts for bulk writes).
 
 DHIS2 v43's OpenAPI exposes the event schema under the redundant name
 `TrackerTrackerEvent` (vs `TrackerEvent` in v42). The alias below keeps the
-public name `TrackerEvent` stable across versions; see BUGS.md for the
+public name `TrackerEvent` stable across versions; see DHIS2_ISSUES.md for the
 upstream naming quirk.
 """
 

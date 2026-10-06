@@ -4,7 +4,7 @@ Three sub-commands map to three probe categories:
 
     d2w doctor metadata     # workspace metadata-health probes (default)
     d2w doctor integrity    # DHIS2's own /api/dataIntegrity summary
-    d2w doctor bugs         # BUGS.md workaround drift detection
+    d2w doctor bugs         # DHIS2_ISSUES.md workaround drift detection
 
     d2w doctor              # no sub-command → runs metadata + integrity
     d2w doctor --all        # runs every category
@@ -120,7 +120,7 @@ def integrity_command() -> None:
 
 @app.command("bugs")
 def bugs_command() -> None:
-    """Run BUGS.md workaround drift detection (workspace maintenance, not operator-facing)."""
+    """Run DHIS2_ISSUES.md workaround drift detection (workspace maintenance, not operator-facing)."""
     _run(("bugs",))
 
 

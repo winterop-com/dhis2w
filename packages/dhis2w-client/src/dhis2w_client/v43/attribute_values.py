@@ -15,7 +15,7 @@ per-type sibling class.
 
 `client.option_sets` keeps its own thin option-specific wrappers
 (`get_option_attribute_value` etc.) for ergonomics — they now delegate
-here so the wire-shape workarounds (BUGS.md #21's attribute-UID-as-
+here so the wire-shape workarounds (DHIS2_ISSUES.md #21's attribute-UID-as-
 filter-property) live in one place.
 """
 
@@ -40,7 +40,7 @@ class AttributeValuesAccessor:
 
         Integrations usually know an Attribute by its business `code`
         (e.g. `SNOMED_CODE`) but DHIS2's filter DSL for attribute values
-        keys by the Attribute's UID (BUGS.md #21). This helper turns the
+        keys by the Attribute's UID (DHIS2_ISSUES.md #21). This helper turns the
         code into a UID via `/api/attributes?filter=code:eq:{code}`; UIDs
         pass through unchanged.
         """
@@ -174,7 +174,7 @@ class AttributeValuesAccessor:
         """Reverse lookup — every resource UID whose attribute value matches.
 
         DHIS2's filter DSL for attribute values is the quirky
-        `<attributeUid>:eq:<value>` form (see BUGS.md #21). This helper
+        `<attributeUid>:eq:<value>` form (see DHIS2_ISSUES.md #21). This helper
         resolves the business code to UID then emits the quirky-but-
         working filter. Additional constraints pass through as
         `extra_filters` — e.g. scope an Option lookup to one OptionSet

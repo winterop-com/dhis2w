@@ -8,7 +8,7 @@ set -euo pipefail
 # Z_SCORE is the default; MODIFIED_Z_SCORE is more robust when outliers already
 # exist in the training data; MIN_MAX uses hard min/max bounds.
 # (Upstream DHIS2 quirk: OpenAPI emits `MOD_Z_SCORE` but the server rejects it
-# at runtime, accepting `MODIFIED_Z_SCORE` instead. See BUGS.md.)
+# at runtime, accepting `MODIFIED_Z_SCORE` instead. See DHIS2_ISSUES.md.)
 
 echo "--- Z-score outliers in Kambia, last 12 months (threshold=2.0)"
 d2w analytics outlier-detection \

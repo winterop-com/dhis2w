@@ -42,7 +42,7 @@ async with Dhis2Client(...) as client:
 
 ## Self-ref stripping
 
-DHIS2's `/api/trackedEntityTypes/{uid}` read embeds `trackedEntityTypeAttributes[].trackedEntityType = {id: <parent>}` even though that field is the inverse side the importer rejects on PUT. The accessor strips it automatically before every update, mirroring the DataSet + DataSetElement workaround (BUGS tracker parity — same shape as `_strip_self_ref_from_dse`).
+DHIS2's `/api/trackedEntityTypes/{uid}` read embeds `trackedEntityTypeAttributes[].trackedEntityType = {id: <parent>}` even though that field is the inverse side the importer rejects on PUT. The accessor strips it automatically before every update, mirroring the DataSet + DataSetElement workaround (DHIS2_ISSUES.md tracker parity — same shape as `_strip_self_ref_from_dse`).
 
 ## `unique` + `generated` + `pattern`
 

@@ -77,7 +77,7 @@ class FilesAccessor:
         """Upload a binary as a DHIS2 document and return the created `Document`.
 
         DHIS2 doesn't accept multipart-form POSTs on `/api/documents`
-        directly (415 Unsupported Media Type — see BUGS.md #16). The
+        directly (415 Unsupported Media Type — see DHIS2_ISSUES.md #16). The
         correct workflow is a two-step:
 
         1. Upload the bytes as a `FileResource` with `domain=DOCUMENT` via

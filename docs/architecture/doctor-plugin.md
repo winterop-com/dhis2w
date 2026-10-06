@@ -6,7 +6,7 @@ sub-commands, one unified report shape:
 ```
 d2w doctor metadata     # workspace-specific instance-health checks
 d2w doctor integrity    # DHIS2's own /api/dataIntegrity/summary
-d2w doctor bugs         # BUGS.md workaround drift detection
+d2w doctor bugs         # DHIS2_ISSUES.md workaround drift detection
 
 d2w doctor              # default: metadata + integrity
 d2w doctor --all        # includes bugs
@@ -70,7 +70,7 @@ The integrity probes `skip` with a hint if DHIS2 hasn't run its checks yet
 
 ### `bugs` — workspace drift detection (maintenance)
 
-Verifies BUGS.md workarounds still apply. When DHIS2 fixes an upstream
+Verifies DHIS2_ISSUES.md workarounds still apply. When DHIS2 fixes an upstream
 bug a `pass` probe flips to `warn`, giving the workspace a nudge to clean
 up the corresponding workaround without manually watching every DHIS2
 release note. Not usually the right default for operators — run via
@@ -78,7 +78,7 @@ release note. Not usually the right default for operators — run via
 
 Current `bugs` probes cover: DHIS2 version floor, `/api/me` auth,
 `/api/loginConfig` summary, `/.well-known/openid-configuration`,
-BUGS.md #1 (analytics `.json` suffix), #4 (OAuth2 endpoints), #11
+DHIS2_ISSUES.md #1 (analytics `.json` suffix), #4 (OAuth2 endpoints), #11
 (custom-logo flag), #13 (`MOD_Z_SCORE` rejection), plus the UserRole
 `authorities` schema-pluralization probe.
 
@@ -153,7 +153,7 @@ for probe in report.probes:
 - **Behavioural quirks that require a write** (soft-delete on
   `/api/dataValueSets`, `organisationUnits` capture-scope DESCENDANT
   rule, bulk-import 409 reporting) — probing them would mutate state.
-  Documented in `BUGS.md`; not automated.
+  Documented in `DHIS2_ISSUES.md`; not automated.
 - **UI bugs** (login-app `html { transparent }` at non-100% zoom) —
   needs a browser; not reachable from an HTTP probe.
 - **dhis.conf audit / changelog settings** — DHIS2 doesn't expose these

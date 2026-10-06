@@ -1,4 +1,4 @@
-"""Per-version OAuth2 client-registration payload shapes (BUGS.md #39)."""
+"""Per-version OAuth2 client-registration payload shapes (DHIS2_ISSUES.md #39)."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def test_v44_payload_uses_client_id_not_cid() -> None:
 
 @pytest.mark.parametrize("builder", [build_v43, build_v44], ids=["v43", "v44"])
 def test_v43_onward_register_the_openid_scopes_and_require_pkce(builder: object) -> None:
-    """2.43.2 and 2.44 refuse `ALL` and a client without PKCE (BUGS.md #134); the builders register what they allow."""
+    """2.43.2 and 2.44 refuse `ALL` and a client without PKCE (DHIS2_ISSUES.md #134); builders send what they allow."""
     payload = builder(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[operator]
     assert payload["scopes"] == "openid,email,profile,username"
     assert json.loads(payload["clientSettings"])["settings.client.require-proof-key"] is True
@@ -72,14 +72,14 @@ def test_v43_onward_refuse_a_scope_outside_the_openid_set(builder: object) -> No
 
 
 def test_v41_emits_arrays_for_multivalued_fields() -> None:
-    """v41 rejects strings on multi-valued fields with a Jackson error; it needs arrays (BUGS.md #39)."""
+    """v41 rejects strings on multi-valued fields with a Jackson error; it needs arrays (DHIS2_ISSUES.md #39)."""
     payload = build_v41(**_common_kwargs())  # type: ignore[arg-type]
     for field in ("clientAuthenticationMethods", "authorizationGrantTypes", "redirectUris", "scopes"):
         assert isinstance(payload[field], list)
 
 
 def test_v42_onward_emit_comma_separated_strings_for_multivalued_fields() -> None:
-    """2.42.6 and 2.43.1 answer 201 to arrays and store nothing for them (BUGS.md #117); strings persist."""
+    """2.42.6 and 2.43.1 answer 201 to arrays and store nothing for them (DHIS2_ISSUES.md #117); strings persist."""
     for builder in (build_v42, build_v43, build_v44):
         scope = "ALL" if builder is build_v42 else "openid"
         payload = builder(**{**_common_kwargs(), "scope": scope})  # type: ignore[arg-type]

@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 #   positions 2-3: data read / write. '--' means no data-level access.
 #   positions 4-7: reserved; must be '----'.
 #
-# Each position is either the letter or '-'. See BUGS.md and
+# Each position is either the letter or '-'. See DHIS2_ISSUES.md and
 # docs/architecture/user-plugin.md for the full mapping.
 AccessPattern = Literal["rw", "r-", "--"]
 
@@ -87,7 +87,7 @@ class SharingBuilder(BaseModel):
     from the OpenAPI document on every supported major, and a write that
     carries it answers 200 `"Access control set"` while discarding the value.
     The builder exposes no `external_access` knob and the materialised wire
-    shape names no `externalAccess` (BUGS.md #38).
+    shape names no `externalAccess` (DHIS2_ISSUES.md #38).
     """
 
     model_config = ConfigDict(extra="allow")

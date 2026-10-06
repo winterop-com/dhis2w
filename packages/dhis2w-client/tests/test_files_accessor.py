@@ -74,7 +74,7 @@ async def test_upload_document_uses_two_step_fileresource_then_document(
 ) -> None:
     """`/api/documents` rejects multipart — upload routes through fileResource + JSON link.
 
-    See BUGS.md #16. Flow:
+    See DHIS2_ISSUES.md #16. Flow:
     1. POST /api/fileResources with domain=DOCUMENT (multipart) -> fileResource uid
     2. POST /api/documents (JSON) with url=<fileResourceUid> -> document uid
     3. GET  /api/documents/{uid} -> typed Document

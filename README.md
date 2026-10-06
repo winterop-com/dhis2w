@@ -308,7 +308,7 @@ See [`docs/guides/connecting-to-dhis2.md`](docs/guides/connecting-to-dhis2.md) f
 - API reference (mkdocstrings-rendered): `docs/api/`
 - Releasing: [`docs/releasing.md`](docs/releasing.md)
 - Roadmap: [`docs/roadmap.md`](docs/roadmap.md)
-- Upstream DHIS2 quirks we've tripped over: [`BUGS.md`](BUGS.md)
+- Upstream DHIS2 issues, grouped for reporting: [`DHIS2_ISSUES.md`](DHIS2_ISSUES.md)
 - Runnable examples: [`examples/`](examples/README.md) — [`examples/cli/`](examples/cli/) and [`examples/client/`](examples/client/); the MCP examples live in the [`dhis2w-mcp` repository](https://github.com/winterop-com/dhis2w-mcp/tree/main/examples) and the FHIR examples in the [`dhis2w-fhir` repository](https://github.com/winterop-com/dhis2w-fhir/tree/main/examples). One copy of each example, running against v41, v42, v43, and v44 alike; an example that exists for a single major lives under that major's subdirectory — [`examples/client/v43/`](examples/client/v43/) for the v43 schema divergences (`removed_resources.py`, `section_user_removed.py`, `category_combo_coc_regen.py`, …; see [`docs/architecture/schema-diff-v41-v42-v43.md`](docs/architecture/schema-diff-v41-v42-v43.md)) and [`examples/client/v41/`](examples/client/v41/) for the v41 wire quirks (`oauth2_cid_field.py`, `grid_rows_wire_shape.py`, `apps_display_name.py`).
 
 Hard requirements, conventions, and the plugin / auth / workspace model are documented in `CLAUDE.md` and the `docs/` site.

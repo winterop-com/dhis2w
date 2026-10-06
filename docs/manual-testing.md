@@ -273,7 +273,7 @@ uv run d2w maintenance task status ANALYTICS_TABLE "$(uv run d2w maintenance tas
 # Cache — Hibernate + app caches.
 uv run d2w maintenance cache
 
-# Soft-delete cleanup (unblocks parent-metadata removal; see BUGS.md #2).
+# Soft-delete cleanup (unblocks parent-metadata removal; see DHIS2_ISSUES.md #2).
 uv run d2w maintenance cleanup data-values
 uv run d2w maintenance cleanup events
 uv run d2w maintenance cleanup enrollments

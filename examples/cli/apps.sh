@@ -28,7 +28,7 @@ d2w --json apps list | head
 
 # The configured App Hub catalog (proxied server-side). Each row carries
 # a top-level `id` (the app id) and a version count — both app ids and version
-# ids are bare UUIDs and easy to confuse (see BUGS.md #46).
+# ids are bare UUIDs and easy to confuse (see DHIS2_ISSUES.md #46).
 d2w apps hub-list --limit 5
 
 # List every published version of one app (version / id / channel / DHIS2

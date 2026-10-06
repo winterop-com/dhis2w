@@ -15,7 +15,7 @@ response.httpStatus  # "Created"
 response.httpStatusCode  # 201
 response.status  # "OK"
 
-response.created_uid  # "abc123uid12" — pulls response.uid, closes BUGS.md #4f
+response.created_uid  # "abc123uid12" — pulls response.uid, closes DHIS2_ISSUES.md #4f
 report = response.object_report()  # typed ObjectReport when the inner is a create/update
 counts = response.import_count()  # typed ImportCount for /api/dataValueSets imports
 full_report = response.import_report()  # typed ImportReport for /api/metadata bulk imports
@@ -79,7 +79,7 @@ match scheme:
 | `type` value | Class | Use for |
 |---|---|---|
 | `http-basic` | `HttpBasicAuthScheme` | `Authorization: Basic base64(u:p)` |
-| `api-token` | `ApiTokenAuthScheme` | DHIS2-flavour static token — `Authorization: ApiToken <v>` (NOT standard `Bearer`, see BUGS.md #4e) |
+| `api-token` | `ApiTokenAuthScheme` | DHIS2-flavour static token — `Authorization: ApiToken <v>` (NOT standard `Bearer`, see DHIS2_ISSUES.md #4e) |
 | `api-headers` | `ApiHeadersAuthScheme` | Arbitrary custom headers map |
 | `api-query-params` | `ApiQueryParamsAuthScheme` | Query-string param map |
 | `oauth2-client-credentials` | `OAuth2ClientCredentialsAuthScheme` | Upstream OAuth2 client-credentials flow |

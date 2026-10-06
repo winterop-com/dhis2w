@@ -34,7 +34,7 @@ uv run d2w dev codegen fetch-openapi --url http://localhost:8080 \
                                   --username admin --password district
 
 # Compare captures of one release and list the JSON pointers that differ between them
-# (DHIS2 resolves some properties differently on each boot; see BUGS.md #133)
+# (DHIS2 resolves some properties differently on each boot; see DHIS2_ISSUES.md #133)
 uv run d2w dev codegen oas-flips boot-1/openapi.json boot-2/openapi.json
 
 # /api/schemas: regenerate from the committed schemas_manifest.json (no network)

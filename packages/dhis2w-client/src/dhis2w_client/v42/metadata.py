@@ -13,7 +13,7 @@ DELETE` surface per resource type). Covers:
   `--resource <type>` narrowing to one resource kind, `--fields` extra
   columns in the typed response, `exact=True` to switch from `ilike`
   substring to `eq` exact match. DHIS2's `/api/metadata` silently
-  ignores `rootJunction` and ANDs multiple filters (see BUGS.md #29),
+  ignores `rootJunction` and ANDs multiple filters (see DHIS2_ISSUES.md #29),
   so OR-across-fields needs N requests.
 - `usage` — reverse lookup: "what metadata references this UID?" Given
   a UID, resolves the owning resource via `/api/identifiableObjects/{uid}`,
@@ -301,7 +301,7 @@ class MetadataAccessor:
 
         A single `rootJunction=OR` call would be cleaner, but DHIS2's
         `/api/metadata` endpoint silently ignores `rootJunction` and
-        ANDs multiple filters (BUGS.md #29), so N requests are the only
+        ANDs multiple filters (DHIS2_ISSUES.md #29), so N requests are the only
         way to get cross-field OR.
         """
         operator = "eq" if exact else "ilike"

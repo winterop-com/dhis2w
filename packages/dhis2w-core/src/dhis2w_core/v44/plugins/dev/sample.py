@@ -181,7 +181,7 @@ def sample_data_value_command(
                 return
             _step("delete via importStrategy=DELETE")
             await client.post_raw("/api/dataValueSets", payload, params={"importStrategy": "DELETE"})
-            _ok("deleted (soft-delete — DHIS2 keeps the row marked deleted=true; see BUGS.md #2)")
+            _ok("deleted (soft-delete — DHIS2 keeps the row marked deleted=true; see DHIS2_ISSUES.md #2)")
 
     asyncio.run(_run())
     _pass(started)

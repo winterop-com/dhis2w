@@ -75,7 +75,7 @@ def add_command(
     catalog and installed via `POST /api/appHub/{versionId}`. A version id
     installs directly; an app id resolves to that app's latest version (App Hub
     app ids and version ids are both bare UUIDs and easy to confuse — see
-    BUGS.md #46). DHIS2 overwrites an existing install of the same app.
+    DHIS2_ISSUES.md #46). DHIS2 overwrites an existing install of the same app.
     """
     from dhis2w_core.v44.plugins.apps import service
 

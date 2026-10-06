@@ -67,7 +67,7 @@ The generated [MCP tool reference](https://winterop-com.github.io/dhis2w-mcp/too
 | User admin (users, groups, roles, sharing) | `d2w user` + `d2w user group` + `d2w user role` | 16 | [User plugin](architecture/user-plugin.md) / [User groups + roles](architecture/user-groups-and-roles.md) |
 | Customize (login page / logos / CSS / system settings) | `d2w customize` | 7 | [Customize plugin](architecture/customize-plugin.md) |
 | Apps (`/api/apps` + `/api/appHub` + snapshot/restore) | `d2w apps` | 13 | [Apps API](api/apps.md) |
-| Doctor (BUGS tripwires + integrity checks + metadata health) | `d2w doctor` | 4 | [Doctor plugin](architecture/doctor-plugin.md) |
+| Doctor (DHIS2_ISSUES.md tripwires + integrity checks + metadata health) | `d2w doctor` | 4 | [Doctor plugin](architecture/doctor-plugin.md) |
 | Security posture (settings, authorities, audit, report) | `d2w security` (the `dhis2w-security` pack) | 3 | [`dhis2w-security`](https://github.com/winterop-com/dhis2w-security) |
 | Dev (codegen, uid, pat, oauth2 client, sample fixtures) | `d2w dev` | — (dev-only) | [Codegen](codegen.md) |
 | Browser automation (Playwright-driven PAT mint, screenshots, OIDC login) | `d2w browser` | — (runs out-of-process) | [Browser automation](https://winterop-com.github.io/dhis2w-browser/) |
