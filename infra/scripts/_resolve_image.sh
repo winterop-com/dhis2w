@@ -12,8 +12,8 @@
 #   $1                      — version key in vXX form (v43)
 #   $DHIS2_VERSION env var  — same, used when no positional arg
 #
-# A pin in `infra/versions.env` is either a `dhis2/core` tag (`2.43.1.0`,
-# printed as `dhis2/core:2.43.1.0`) or a full image reference containing
+# A pin in `infra/versions.env` is either a `dhis2/core` tag (`2.43.2.0`,
+# printed as `dhis2/core:2.43.2.0`) or a full image reference containing
 # `/` (`dhis2/core-dev@sha256:...`, printed as-is) for a major with no
 # release yet. A dotted tag passed directly (e.g. "2.43.0.0") bypasses the
 # lookup, which runs a specific tag without editing versions.env.
