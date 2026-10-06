@@ -7,6 +7,8 @@ DHIS2_CONF     ?= ./$(DHIS2_VERSION)/dhis.conf
 DHIS2_URL      ?= http://localhost:8080
 DHIS2_USER     ?= admin
 DHIS2_PASS     ?= district
+# Services `up-fresh` starts; empty means every service. compose adds each one's dependencies.
+UP_SERVICES    ?=
 # Resolve the pinned Docker tag from versions.env (`DHIS2_V43=2.43.1.0` etc.).
 # DHIS2_VERSION is the vXX key (v41 | v42 | v43); a dotted tag (e.g. "2.43.0.0")
 # bypasses the lookup. An invalid value yields an empty tag and a hard error.
@@ -44,7 +46,7 @@ up-fresh: ## wipe volumes + logs, then start the base stack (always pulls the pi
 	@printf '%s' "$(DHIS2_VERSION)" > home/.volume-major
 	# `--pull always` so codegen + e2e-dump builds always regenerate against the
 	# exact registry image for the pin, never a stale local cache.
-	@$(COMPOSE) up -d --pull always --remove-orphans
+	@$(COMPOSE) up -d --pull always --remove-orphans $(UP_SERVICES)
 
 down: ## stop the stack (keeps volumes)
 	@echo ">>> Stopping stack"
@@ -90,9 +92,11 @@ up-seeded: ## up + wait + seed + profile — one-shot "I want a DHIS2 with auth 
 # newly pinned image through the postgres init file, DHIS2 migrates it on startup the way a
 # production instance migrates a restored backup, and the result is dumped back. Minutes rather
 # than the full seed's half hour on v43. A seed change still needs `build-e2e-dump`.
+# Only `dhis2` and what it depends on start: the analytics-trigger sidecar would otherwise fire an
+# analytics run (a new job configuration row, a tracked entity search audit) while pg_dump reads.
 migrate-e2e-dump: ## restore the committed dump into the pinned image, let DHIS2 migrate it, dump it back
 	@echo ">>> Migrating the e2e dump for DHIS2 $(DHIS2_VERSION) to the pinned image"
-	@$(MAKE) up-fresh
+	@$(MAKE) up-fresh UP_SERVICES=dhis2
 	@cd .. && DHIS2_VERSION=$(DHIS2_VERSION) uv run --with bcrypt python infra/scripts/build_e2e_dump.py --dump-only --url $(DHIS2_URL) --username $(DHIS2_USER) --password $(DHIS2_PASS) --dhis2-version $(DHIS2_VERSION)
 	@$(MAKE) down
 
