@@ -96,6 +96,10 @@ def pg_dump(container: str, output: Path, *, postgres_user: str, postgres_db: st
     """Run `pg_dump | gzip` via `docker exec` and write the result to `output`."""
     _log(f">>> Dumping database to {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
+    # The flags follow the backup script of dhis2-server-tools
+    # (https://github.com/dhis2/dhis2-server-tools, `pg_dump -O -Fp -T aggregated_* -T analytics_*
+    # -T completeness_*`, with the `audit` rows exported apart and truncated), with one
+    # deliberate difference: the `analytics_rs_*` resource tables stay in, see below.
     cmd = [
         "docker",
         "exec",
@@ -121,6 +125,9 @@ def pg_dump(container: str, output: Path, *, postgres_user: str, postgres_db: st
         "--exclude-table=analytics_20*",
         "--exclude-table=aggregated_*",
         "--exclude-table=completeness_*",
+        # The audit log of the seeding itself: rows nobody reads, which server-tools keeps out of
+        # its database dump too. The table stays, empty.
+        "--exclude-table-data=audit",
         "-U",
         postgres_user,
         "-d",
@@ -186,6 +193,21 @@ async def build(url: str, username: str, password: str, output: Path, container:
     pg_dump(container, output, postgres_user="dhis", postgres_db="dhis")
 
 
+async def dump_only(url: str, username: str, password: str, output: Path, container: str) -> None:
+    """Dump the running database as it stands, once DHIS2 answers - no seeding, no analytics.
+
+    The migrate path of `make migrate-e2e-dump`: the committed dump was restored into the newly
+    pinned image, DHIS2 ran its own Flyway migrations on startup, and what remains is to dump the
+    migrated database - the same upgrade path a production DHIS2 takes from a server-tools backup.
+    """
+    _log(f">>> Waiting for DHIS2 at {url}")
+    await wait_for_ready(url, username, password)
+    async with Dhis2Client(url, BasicAuth(username=username, password=password)) as client:
+        info = await client.system.info()
+        _log(f">>> Migrated to DHIS2 {info.version} ({info.revision})")
+    pg_dump(container, output, postgres_user="dhis", postgres_db="dhis")
+
+
 def main() -> int:
     """Parse args and run the build."""
     default_version = os.environ.get("DHIS2_VERSION", "v42")
@@ -208,13 +230,19 @@ def main() -> int:
         default=POSTGRES_CONTAINER_DEFAULT,
         help="name of the running postgres container (auto-detected if not found)",
     )
+    parser.add_argument(
+        "--dump-only",
+        action="store_true",
+        help="dump the running database without seeding it (the migrate path of `make migrate-e2e-dump`)",
+    )
     args = parser.parse_args()
 
     output_path = Path(args.output).resolve() if args.output else default_dump_path(args.dhis2_version)
     container = detect_postgres_container(args.container)
 
     try:
-        asyncio.run(build(args.url, args.username, args.password, output_path, container))
+        run = dump_only if args.dump_only else build
+        asyncio.run(run(args.url, args.username, args.password, output_path, container))
     except Exception as exc:  # noqa: BLE001 — top-level runner
         print(f"!!! build failed: {exc}", file=sys.stderr)
         return 1

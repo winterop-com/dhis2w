@@ -1,4 +1,4 @@
-.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v41 dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples refresh-setup refresh-and-verify
+.PHONY: help install lint check-examples test test-slow test-contract test-durations coverage docs docs-serve docs-build docs-cli build publish-all deps-upgrade clean clean-artifacts dhis2-run dhis2-down dhis2-seed dhis2-versions-check dhis2-versions-bump dhis2-build-e2e-dump dhis2-migrate-e2e-dump dhis2-codegen-all dhis2-codegen-play dhis2-codegen-play-v41 dhis2-codegen-play-v42 dhis2-codegen-play-v43 verify-examples refresh-setup refresh-and-verify
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -40,6 +40,7 @@ help:
 	@echo "  dhis2-versions-check  Show whether any pinned DHIS2 minor is behind the latest Docker Hub patch"
 	@echo "  dhis2-versions-bump   Rewrite versions.env to the latest patch for each non-held minor (then regenerate codegen)"
 	@echo "  dhis2-build-e2e-dump  Wipe + populate a fresh DHIS2 with test data, regenerate infra/\$$(DHIS2_VERSION)/dump.sql.gz"
+	@echo "  dhis2-migrate-e2e-dump  Restore the committed dump into the pinned image, let DHIS2 migrate it, dump it back (pin bumps)"
 	@echo "  refresh-setup         Wipe + rebuild e2e dump + seed (no example verify — fast iteration on setup)"
 	@echo "  refresh-and-verify    Rebuild dump + seed + refresh analytics + run every example"
 	@echo ""
@@ -202,6 +203,9 @@ dhis2-down:
 
 dhis2-build-e2e-dump:
 	@$(MAKE) -C infra build-e2e-dump DHIS2_VERSION=$(or $(DHIS2_VERSION),v43)
+
+dhis2-migrate-e2e-dump:
+	@$(MAKE) -C infra migrate-e2e-dump DHIS2_VERSION=$(or $(DHIS2_VERSION),v43)
 
 dhis2-versions-check:
 	@$(UV) run python infra/scripts/check_version_bumps.py

@@ -1,4 +1,4 @@
-.PHONY: help versions pull build up up-fresh up-seeded down clean status logs ps pat seed profile wait build-e2e-dump
+.PHONY: help versions pull build up up-fresh up-seeded down clean status logs ps pat seed profile wait build-e2e-dump migrate-e2e-dump
 .DEFAULT_GOAL := help
 
 DHIS2_VERSION  ?= v43
@@ -85,6 +85,16 @@ up-seeded: ## up + wait + seed + profile — one-shot "I want a DHIS2 with auth 
 	@$(MAKE) wait
 	@$(MAKE) seed
 	@$(MAKE) profile
+
+# The fast rebuild, for a pin bump with the seed unchanged: the committed dump is restored into the
+# newly pinned image through the postgres init file, DHIS2 migrates it on startup the way a
+# production instance migrates a restored backup, and the result is dumped back. Minutes rather
+# than the full seed's half hour on v43. A seed change still needs `build-e2e-dump`.
+migrate-e2e-dump: ## restore the committed dump into the pinned image, let DHIS2 migrate it, dump it back
+	@echo ">>> Migrating the e2e dump for DHIS2 $(DHIS2_VERSION) to the pinned image"
+	@$(MAKE) up-fresh
+	@cd .. && DHIS2_VERSION=$(DHIS2_VERSION) uv run --with bcrypt python infra/scripts/build_e2e_dump.py --dump-only --url $(DHIS2_URL) --username $(DHIS2_USER) --password $(DHIS2_PASS) --dhis2-version $(DHIS2_VERSION)
+	@$(MAKE) down
 
 build-e2e-dump: ## populate a fresh DHIS2 with test metadata + data + analytics, then dump to infra/$(DHIS2_VERSION)/dump.sql.gz
 	@echo ">>> Building e2e dump for DHIS2 $(DHIS2_VERSION) — this WIPES any existing volume state"
