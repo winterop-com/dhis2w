@@ -449,7 +449,7 @@ class TrackerAccessor:
         `SCHEDULE` / `SKIPPED` / `VISITED`) via `status`. `org_unit` rides the
         singular `orgUnit` key and `ou_mode` the `orgUnitMode` key: DHIS2
         2.42.6 and 2.43.1 refuse `orgUnits` on this read and drop `ouMode`,
-        while the two sibling reads take `orgUnits` (BUGS.md #113).
+        while the two sibling reads take `orgUnits` (DHIS2_ISSUES.md #113).
         `updated_after` and `occurred_after` accept an ISO string, `date`, or
         `datetime`.
         `extra_params` covers the rest (`order`, `occurredBefore`,
@@ -536,7 +536,7 @@ def _read_params(
     events, because DHIS2 2.42.6 and 2.43.1 drop the other spelling on the
     first two (the read comes back unscoped) and refuse it on events. The
     mode rides `orgUnitMode` on every read; `ouMode` is dropped on those
-    releases (BUGS.md #113). Date args normalise to ISO via `_to_iso`.
+    releases (DHIS2_ISSUES.md #113). Date args normalise to ISO via `_to_iso`.
     """
     params: dict[str, Any] = {}
     if program is not None:

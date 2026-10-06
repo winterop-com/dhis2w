@@ -1,4 +1,4 @@
-"""v41-only — OAuth2 client wire-shape lies: response uses `cid`, not `clientId` (BUGS.md #39).
+"""v41-only — OAuth2 client wire-shape lies: response uses `cid`, not `clientId` (DHIS2_ISSUES.md #39).
 
 DHIS2 v41's `/api/oAuth2Clients` endpoint returns the client identifier
 under the field `cid` instead of the documented `clientId`. v42 + v43
@@ -49,7 +49,7 @@ async def main() -> None:
             print(f"  {uid:16s}  {cid:30s}  {client_id:25s}  {name}")
         print()
         print("Note: on v41, the wire emits the identifier as `cid`. v42/v43 use `clientId`.")
-        print("See BUGS.md #39 — the per-version handler is in `dhis2w_core/v41/plugins/dev/sample.py`.")
+        print("See DHIS2_ISSUES.md #39 — the per-version handler is in `dhis2w_core/v41/plugins/dev/sample.py`.")
 
 
 if __name__ == "__main__":

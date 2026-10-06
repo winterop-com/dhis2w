@@ -200,7 +200,7 @@ class DataValuesAccessor:
         """Import typed `DataValue`s grouped by dataset — explicit-envelope POST.
 
         v43 added auto-target dataset detection that aborts mixed-DE chunks
-        (BUGS.md #35). v42 accepts the same explicit `{"dataSet": "<id>",
+        (DHIS2_ISSUES.md #35). v42 accepts the same explicit `{"dataSet": "<id>",
         "dataValues": [...]}` envelope shape that v43 needs. Using this
         method on v42 is forward-compatible: code that works on v42 keeps
         working on v43 without changes.

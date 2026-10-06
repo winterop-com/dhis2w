@@ -341,7 +341,7 @@ This tutorial walks operator workflows: profile setup, metadata reads + writes, 
 
 ## Probing instance health: `d2w doctor`
 
-One read-only command, roughly 100 checks — 20 metadata-health probes + 81 DHIS2 data-integrity checks + every BUGS.md tripwire. Run it on any DHIS2 instance before integrating with it:
+One read-only command, roughly 100 checks — 20 metadata-health probes + 81 DHIS2 data-integrity checks + every DHIS2_ISSUES.md tripwire. Run it on any DHIS2 instance before integrating with it:
 
 ```bash
 d2w doctor                            # all probes; fail on any fail/warn

@@ -77,7 +77,7 @@ class ValidationAnalysisResult(BaseModel):
 # explicitly. This default selector makes the list + get responses carry the
 # same display-friendly detail the analysis endpoint returns inline, so
 # callers get readable rule names + importance + operator without a second
-# lookup. See BUGS.md #19 for the upstream quirk.
+# lookup. See DHIS2_ISSUES.md #19 for the upstream quirk.
 _DEFAULT_RESULT_FIELDS: str = (
     "id,leftsideValue,rightsideValue,notificationSent,dayInPeriod,created,"
     "validationRule[id,displayName,importance,operator],"

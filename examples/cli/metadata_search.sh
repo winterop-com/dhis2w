@@ -8,7 +8,7 @@
 # resource type.
 #
 # Three parallel `/api/metadata` calls merge into one result set (DHIS2's
-# single-call `rootJunction=OR` is broken on `/api/metadata` — see BUGS.md #29).
+# single-call `rootJunction=OR` is broken on `/api/metadata` — see DHIS2_ISSUES.md #29).
 set -euo pipefail
 
 # --- Name fragment — the broadest pattern ----------------------------------

@@ -32,7 +32,7 @@ CLI:
 # Create an external link (no binary upload):
 d2w files documents upload-url "Annual report" "https://example.org/report.pdf"
 
-# Upload a binary document. Two-step under the hood (see BUGS.md #16):
+# Upload a binary document. Two-step under the hood (see DHIS2_ISSUES.md #16):
 d2w files documents upload report.pdf --name "2025 annual report"
 
 # Round-trip:
@@ -45,7 +45,7 @@ d2w files documents list --filter "name:like:2025"
 
 **Why binary upload is two-step:** `POST /api/documents` only accepts
 `application/json` — a multipart `POST /api/documents` gets a bare 415. See
-`BUGS.md #16` for the repro + why. `upload_document` handles the dance
+`DHIS2_ISSUES.md #16` for the repro + why. `upload_document` handles the dance
 automatically: uploads the bytes as a `FileResource(domain=DOCUMENT)`, then
 posts the document JSON with `url=<fileResourceUid>`. Callers see a single
 `d2w files documents upload` CLI call / single `client.files.upload_document(...)`

@@ -139,7 +139,7 @@ class WebMessageResponse(WebMessage):
         """Pull `response.uid` when the inner envelope is an ObjectReport.
 
         DHIS2's ObjectReport names the created identifier `uid` (not `id`) —
-        see BUGS.md #4f. This property hides the defensive lookup.
+        see DHIS2_ISSUES.md #4f. This property hides the defensive lookup.
         """
         if self.response is None:
             return None

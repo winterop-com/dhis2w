@@ -44,7 +44,7 @@ POSTs `/api/maintenance/cache` (204 No Content). Drops every server-side cache �
 
 ## Soft-delete cleanup
 
-`d2w data aggregate delete` and `d2w data tracker push` with `importStrategy=DELETE` don't actually remove rows — they mark them `deleted=true` so DHIS2 can preserve audit trails. Soft-deleted children block parent-metadata removal (see BUGS.md #2). The cleanup sub-commands hit the dedicated maintenance endpoints to purge each kind:
+`d2w data aggregate delete` and `d2w data tracker push` with `importStrategy=DELETE` don't actually remove rows — they mark them `deleted=true` so DHIS2 can preserve audit trails. Soft-deleted children block parent-metadata removal (see DHIS2_ISSUES.md #2). The cleanup sub-commands hit the dedicated maintenance endpoints to purge each kind:
 
 ```bash
 d2w maintenance cleanup data-values         # POST /api/maintenance/softDeletedDataValueRemoval

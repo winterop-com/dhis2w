@@ -210,7 +210,7 @@ result = await mcp.call_tool(
 # -> {"query": "measles", "hits": {"dataElements": [...]}, "total": 7}
 ```
 
-**Why three HTTP calls instead of one?** DHIS2's `/api/metadata` endpoint silently ignores `rootJunction` and ANDs multiple filters (see BUGS.md #29). The accessor fans out three concurrent single-filter calls (one per field) and merges them with UID dedup. Three round-trips for cross-field OR — when DHIS2 fixes the endpoint's filter semantics, this collapses back to one call.
+**Why three HTTP calls instead of one?** DHIS2's `/api/metadata` endpoint silently ignores `rootJunction` and ANDs multiple filters (see DHIS2_ISSUES.md #29). The accessor fans out three concurrent single-filter calls (one per field) and merges them with UID dedup. Three round-trips for cross-field OR — when DHIS2 fixes the endpoint's filter semantics, this collapses back to one call.
 
 ## `metadata usage` — reverse lookup "what references this UID?"
 

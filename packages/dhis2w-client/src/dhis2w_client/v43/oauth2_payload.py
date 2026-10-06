@@ -1,12 +1,12 @@
 """OAuth2 client-registration wire payload, v43 shape.
 
 DHIS2 v43 names the client-id property `clientId` (v41 still uses `cid`,
-BUGS.md #39). Multi-valued fields ship as comma-separated strings: 2.42.6
+DHIS2_ISSUES.md #39). Multi-valued fields ship as comma-separated strings: 2.42.6
 and 2.43.1 answer 201 to JSON arrays and store nothing for those fields,
 after which the authorization server answers 500 for the client
-(BUGS.md #117). v41 is the tree that needs arrays.
+(DHIS2_ISSUES.md #117). v41 is the tree that needs arrays.
 
-2.43.2 applies the two registration rules 2.44 has (BUGS.md #134): a client
+2.43.2 applies the two registration rules 2.44 has (DHIS2_ISSUES.md #134): a client
 may register only the OpenID scopes (`openid`, `email`, `profile`,
 `username`; `ALL` is refused), and a client must require PKCE. So this
 builder always registers those four scopes and always sets

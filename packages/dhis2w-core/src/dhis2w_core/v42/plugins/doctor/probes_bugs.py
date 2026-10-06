@@ -1,4 +1,4 @@
-"""Workspace drift-detection probes — verify BUGS.md workarounds still apply.
+"""Workspace drift-detection probes — verify DHIS2_ISSUES.md workarounds still apply.
 
 These probes exist to catch when DHIS2 fixes an upstream bug — our `pass`
 turns to `warn` and we know to clean up the corresponding workaround.
@@ -64,7 +64,7 @@ async def probe_auth(client: Dhis2Client) -> ProbeResult:
 
 
 async def probe_analytics_rawdata_json_suffix(client: Dhis2Client) -> ProbeResult:
-    """Check BUGS.md #1 — `/api/analytics/rawData` requires `.json` suffix."""
+    """Check DHIS2_ISSUES.md #1 — `/api/analytics/rawData` requires `.json` suffix."""
     without_suffix_404 = False
     try:
         await client.get_raw(
@@ -81,14 +81,14 @@ async def probe_analytics_rawdata_json_suffix(client: Dhis2Client) -> ProbeResul
             category="bugs",
             status="warn",
             message="GET /api/analytics/rawData (no suffix) didn't 404 — upstream may have fixed content negotiation",
-            bugs_ref="BUGS.md #1",
+            bugs_ref="DHIS2_ISSUES.md #1",
         )
     return ProbeResult(
         name="analytics-rawdata-json-suffix",
         category="bugs",
         status="pass",
         message="404 without .json as expected (workaround still needed)",
-        bugs_ref="BUGS.md #1",
+        bugs_ref="DHIS2_ISSUES.md #1",
     )
 
 
@@ -103,7 +103,7 @@ async def probe_oauth2_discovery(client: Dhis2Client) -> ProbeResult:
                 category="bugs",
                 status="skip",
                 message="OAuth2 not enabled (no /.well-known/openid-configuration)",
-                bugs_ref="BUGS.md #4",
+                bugs_ref="DHIS2_ISSUES.md #4",
             )
         return ProbeResult(
             name="oauth2-discovery",
@@ -121,7 +121,7 @@ async def probe_oauth2_discovery(client: Dhis2Client) -> ProbeResult:
             category="bugs",
             status="fail",
             message=f"discovery missing fields: {missing}",
-            bugs_ref="BUGS.md #4",
+            bugs_ref="DHIS2_ISSUES.md #4",
         )
     issuer = discovery.get("issuer", "?")
     return ProbeResult(
@@ -198,7 +198,7 @@ async def probe_userrole_schema_naming(client: Dhis2Client) -> ProbeResult:
 
 
 async def probe_outlier_algorithm_enum(client: Dhis2Client) -> ProbeResult:
-    """Check BUGS.md #13 — DHIS2 server still rejects `MOD_Z_SCORE` even though OAS declares it."""
+    """Check DHIS2_ISSUES.md #13 — DHIS2 server still rejects `MOD_Z_SCORE` even though OAS declares it."""
     try:
         await client.get_raw(
             "/api/analytics/outlierDetection",
@@ -218,7 +218,7 @@ async def probe_outlier_algorithm_enum(client: Dhis2Client) -> ProbeResult:
                 category="bugs",
                 status="pass",
                 message="server still rejects MOD_Z_SCORE (use MODIFIED_Z_SCORE)",
-                bugs_ref="BUGS.md #13",
+                bugs_ref="DHIS2_ISSUES.md #13",
             )
         if exc.status_code == 400:
             return ProbeResult(
@@ -226,14 +226,14 @@ async def probe_outlier_algorithm_enum(client: Dhis2Client) -> ProbeResult:
                 category="bugs",
                 status="skip",
                 message=f"unclear response: {exc.status_code} {message[:80]!r}",
-                bugs_ref="BUGS.md #13",
+                bugs_ref="DHIS2_ISSUES.md #13",
             )
         return ProbeResult(
             name="outlier-algorithm-enum",
             category="bugs",
             status="warn",
             message=f"unexpected status {exc.status_code}",
-            bugs_ref="BUGS.md #13",
+            bugs_ref="DHIS2_ISSUES.md #13",
         )
     except Exception as exc:  # noqa: BLE001
         return ProbeResult(
@@ -244,12 +244,12 @@ async def probe_outlier_algorithm_enum(client: Dhis2Client) -> ProbeResult:
         category="bugs",
         status="warn",
         message="MOD_Z_SCORE accepted — upstream may have fixed the enum name",
-        bugs_ref="BUGS.md #13",
+        bugs_ref="DHIS2_ISSUES.md #13",
     )
 
 
 async def probe_custom_logo_flag_consistency(client: Dhis2Client) -> ProbeResult:
-    """Check BUGS.md #11 — `keyUseCustomLogoFront` system setting mirrors `/api/loginConfig.useCustomLogoFront`."""
+    """Check DHIS2_ISSUES.md #11 — the `keyUseCustomLogoFront` setting mirrors `/api/loginConfig.useCustomLogoFront`."""
     try:
         config = await client.get_raw("/api/loginConfig")
         setting = await client.get_raw("/api/systemSettings/keyUseCustomLogoFront")
@@ -259,7 +259,7 @@ async def probe_custom_logo_flag_consistency(client: Dhis2Client) -> ProbeResult
             category="bugs",
             status="fail",
             message=f"probe failed: {exc}",
-            bugs_ref="BUGS.md #11",
+            bugs_ref="DHIS2_ISSUES.md #11",
         )
     login_flag = config.get("useCustomLogoFront")
     raw_setting = setting.get("keyUseCustomLogoFront")
@@ -273,7 +273,7 @@ async def probe_custom_logo_flag_consistency(client: Dhis2Client) -> ProbeResult
             category="bugs",
             status="pass",
             message=f"consistent: loginConfig={login_flag} keySetting={raw_setting}",
-            bugs_ref="BUGS.md #11",
+            bugs_ref="DHIS2_ISSUES.md #11",
         )
     return ProbeResult(
         name="custom-logo-flag",
@@ -284,7 +284,7 @@ async def probe_custom_logo_flag_consistency(client: Dhis2Client) -> ProbeResult
             f"vs keyUseCustomLogoFront={raw_setting}. "
             "Upload won't be visible until both agree."
         ),
-        bugs_ref="BUGS.md #11",
+        bugs_ref="DHIS2_ISSUES.md #11",
     )
 
 

@@ -457,7 +457,7 @@ async def test_doctor_refuses_pre_v41_dhis2(profile: Profile) -> None:
 
 @respx.mock
 async def test_bugs_rawdata_warns_when_fix_appears_upstream(profile: Profile) -> None:
-    """BUGS #1 — if /api/analytics/rawData stops 404'ing, bug may be fixed upstream."""
+    """DHIS2_ISSUES.md #1 — if /api/analytics/rawData stops 404'ing, bug may be fixed upstream."""
     _mock_preamble()
     _mock_bugs_pass()
     respx.get("https://dhis2.example/api/analytics/rawData").mock(
@@ -466,7 +466,7 @@ async def test_bugs_rawdata_warns_when_fix_appears_upstream(profile: Profile) ->
     report = await service.run_doctor(profile, categories=("bugs",))
     probe = next(p for p in report.probes if p.name == "analytics-rawdata-json-suffix")
     assert probe.status == "warn"
-    assert probe.bugs_ref == "BUGS.md #1"
+    assert probe.bugs_ref == "DHIS2_ISSUES.md #1"
 
 
 @respx.mock

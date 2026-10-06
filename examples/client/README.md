@@ -51,14 +51,14 @@ DHIS2 v43 differs from v42 in a handful of resource shapes — `DashboardItem.us
 | `map_basemaps.py` | `Map.basemaps` v43-only addition (collection of `Basemap`) |
 | `section_user_removed.py` | `Section.user` removed in v43 (also `Section.favorite`) |
 | `removed_resources.py` | `pushAnalysis`, `externalFileResource`, `dataInputPeriods` removed in v43 |
-| `category_combo_coc_regen.py` | v43 BUGS #33: CategoryCombo saves no longer auto-regen the COC matrix — `client.category_combos.wait_for_coc_generation(...)` workaround |
+| `category_combo_coc_regen.py` | v43 DHIS2_ISSUES.md #33: CategoryCombo saves no longer auto-regen the COC matrix — `client.category_combos.wait_for_coc_generation(...)` workaround |
 
 ### [`v41/`](v41/) — v41 wire quirks
 
-DHIS2 v41 has a small set of wire-shape quirks the workspace tracks in `BUGS.md`. v42 and v43 ship no equivalents because the quirks do not exist there.
+DHIS2 v41 has a small set of wire-shape quirks the workspace tracks in `DHIS2_ISSUES.md`. v42 and v43 ship no equivalents because the quirks do not exist there.
 
 | Example | Quirk / change kind |
 | --- | --- |
-| `oauth2_cid_field.py` | v41 OAuth2 client wire shape uses `cid` instead of `clientId` (BUGS.md #39) |
+| `oauth2_cid_field.py` | v41 OAuth2 client wire shape uses `cid` instead of `clientId` (DHIS2_ISSUES.md #39) |
 | `apps_display_name.py` | v41 `App.displayName` runtime override (the `App.model_rebuild()` materialisation path) |
 | `grid_rows_wire_shape.py` | v41 `Grid.rows` widening — OAS says `list[list[dict]]`, wire is scalars |

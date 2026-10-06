@@ -171,7 +171,7 @@ class TaskModule:
         items: list[object] = data if isinstance(data, list) else []
         if not items and seen:
             # The feed had rows and is now empty: 2.44 wipes a failed job's notifications about a
-            # second after its terminal row (BUGS.md #143), so a poll can miss that row entirely.
+            # second after its terminal row (DHIS2_ISSUES.md #143), so a poll can miss that row entirely.
             # The job configuration keeps the outcome.
             ended = await self._ended_from_job_configuration(task_uid)
             if ended is not None:

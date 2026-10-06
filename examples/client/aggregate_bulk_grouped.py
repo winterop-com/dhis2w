@@ -6,7 +6,7 @@ separate `{"dataSet": "<id>", "dataValues": [...]}` envelope.
 
 On v43 this is necessary: bare `/api/dataValueSets` POSTs that mix
 values whose DEs belong to multiple DataSets get rejected with
-`409 E8002 Data set detection failed` (BUGS.md #35). v41 + v42
+`409 E8002 Data set detection failed` (DHIS2_ISSUES.md #35). v41 + v42
 silently auto-target one of the matching DataSets, but they ALSO
 accept the explicit envelope — so this code path works unchanged
 when the target upgrades.
@@ -43,7 +43,7 @@ async def main() -> None:
         # v43 enforces `E8023 Data set not usable with attribute option combo`
         # when the posted attributeOptionCombo doesn't match the DataSet's CC,
         # so the default AOC below (`HllvX50cXC0`) only works for default-CC
-        # DataSets. v41/v42 silently accepted any AOC. (BUGS.md #41)
+        # DataSets. v41/v42 silently accepted any AOC. (DHIS2_ISSUES.md #41)
         # DataSet.categoryCombo[id,isDefault] is filtered client-side rather
         # than server-side via `categoryCombo.isDefault:eq:true` because v41
         # rejects that filter shape with 400.

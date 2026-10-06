@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `d2w doctor` — one command, pure reads, probes every known BUGS.md gotcha + workspace requirement.
+# `d2w doctor` — one command, pure reads, probes every known DHIS2_ISSUES.md gotcha + workspace requirement.
 # Run via `uv run bash examples/cli/doctor.sh`.
 set -euo pipefail
 
@@ -18,6 +18,6 @@ for probe in report['probes']:
 
 # d2w doctor exits 1 if any probe fails — drop it into CI / Makefile:
 # - pass: workspace requirements met, bug workarounds still effective
-# - warn: bug may have been fixed upstream; re-check the related BUGS.md entry
+# - warn: bug may have been fixed upstream; re-check the related DHIS2_ISSUES.md entry
 # - fail: auth broken, version too old, or a required endpoint is missing
 # - skip: feature disabled on this instance (e.g. OAuth2 not configured)

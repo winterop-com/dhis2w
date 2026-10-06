@@ -125,7 +125,7 @@ class ProgramRulesAccessor:
         that collection. A direct filter on `/api/programRuleActions` would
         be cleaner but DHIS2 strips the `programRule` back-reference from
         action responses (same one-way-ownership pattern documented
-        in BUGS.md #22c), so the rule-forward path is the only
+        in DHIS2_ISSUES.md #22c), so the rule-forward path is the only
         reliable route.
         """
         rule = await self.get_rule(rule_uid)

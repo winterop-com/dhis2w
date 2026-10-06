@@ -7,13 +7,13 @@ that pass while reporting the rest as ignored.
 
 The same two-row payload goes in under each mode. One row carries text where
 the data element takes a number. On DHIS2 2.42 and 2.43 both modes commit the
-valid row and ignore the invalid one (BUGS.md #112), so this example prints
+valid row and ignore the invalid one (DHIS2_ISSUES.md #112), so this example prints
 what the instance actually did rather than what the switch promises. The good
 row's value changes on every import, because a value equal to what the
 instance already holds is reported as ignored too.
 
 DHIS2 v42 answers an import that carries any conflict with HTTP 409, even when
-the other row was committed; v43 answers 200 (BUGS.md #6). The client raises
+the other row was committed; v43 answers 200 (DHIS2_ISSUES.md #6). The client raises
 on the 409, and the import summary is the exception's body, so both shapes
 are read here.
 

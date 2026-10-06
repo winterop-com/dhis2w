@@ -218,7 +218,7 @@ async def test_delete_data_value_threads_optional_combos(profile: Profile) -> No
     assert request.url.params["co"] == "HllvX50cXC0"
     # DHIS2's /api/dataValues addresses the attribute option combo via cc (its
     # CategoryCombo UID) + cp (its option UIDs, ;-joined) — there is no
-    # attributeOptionCombo query param (BUGS.md #50).
+    # attributeOptionCombo query param (DHIS2_ISSUES.md #50).
     assert request.url.params["cc"] == "bRowv6yZOF2"
     assert request.url.params["cp"] == "optA0000001;optB0000002"
     assert "aoc" not in request.url.params
@@ -249,7 +249,7 @@ async def test_set_data_value_forwards_cc_and_cp_attribute_pair(profile: Profile
 
 
 async def test_set_data_value_rejects_half_of_the_attribute_pair(profile: Profile) -> None:
-    """A cc without cp (or vice versa) is a caller error — DHIS2 needs both together (BUGS.md #50)."""
+    """A cc without cp (or vice versa) is a caller error — DHIS2 needs both together (DHIS2_ISSUES.md #50)."""
     with pytest.raises(ValueError, match="must be provided together"):
         await service.set_data_value(
             profile,

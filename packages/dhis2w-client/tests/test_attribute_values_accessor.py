@@ -225,7 +225,7 @@ async def test_delete_value_returns_false_when_attribute_not_set(
 async def test_find_uids_by_value_emits_uid_as_filter_key(
     server_version: str, mock_system_info: Callable[..., None]
 ) -> None:
-    """BUGS.md #21 quirk: filter is `<attrUid>:eq:<value>`, applies to every resource."""
+    """DHIS2_ISSUES.md #21 quirk: filter is `<attrUid>:eq:<value>`, applies to every resource."""
     mock_system_info(server_version)
     _mock_attribute_lookup(code="SNOMED_CODE", attribute_uid="AttrSnom001")
     route = respx.get("https://dhis2.example/api/organisationUnits").mock(

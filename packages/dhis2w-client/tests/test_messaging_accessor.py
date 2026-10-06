@@ -89,7 +89,7 @@ async def test_send_posts_every_recipient_type_and_parses_location_header(
 
     DHIS2's `POST /api/messageConversations` returns just a status envelope
     (no `response.uid`); the created UID is on the 201 `Location` header
-    (see BUGS.md #17). `send()` extracts it + GETs the conversation back so
+    (see DHIS2_ISSUES.md #17). `send()` extracts it + GETs the conversation back so
     the caller receives a typed object.
     """
     mock_system_info(server_version)

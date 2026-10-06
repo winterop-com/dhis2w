@@ -83,7 +83,8 @@ def _aggregate_target(runner: CliRunner) -> tuple[str, str] | None:
         ],
     )
     assert result.exit_code == 0, result.output
-    # Every major answers 400 to `filter=periodType:eq:Monthly` (BUGS.md #128), so the period type is matched here.
+    # Every major answers 400 to `filter=periodType:eq:Monthly` (DHIS2_ISSUES.md #128), so the period type is
+    # matched here.
     for data_set in json.loads(result.output):
         if data_set.get("periodType") != "Monthly":
             continue

@@ -4,7 +4,7 @@ name: DHIS2 version bump check
 # minor whose `infra/versions.env` pin is behind, this bumps the pin, regenerates
 # the matching `generated/v{N}` tree against the new image, and opens a PR. The
 # codegen snapshot + e2e suites then gate the schema diff — a mapView-style schema
-# removal (BUGS.md #43) shows up as a red PR instead of a silent breakage.
+# removal (DHIS2_ISSUES.md #43) shows up as a red PR instead of a silent breakage.
 on:
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC

@@ -30,7 +30,7 @@ programmatically; the same MCP tool set, from the [`dhis2w-mcp`](https://github.
 A plain `POST /api/staticContent/logo_front` writes bytes to disk but leaves
 `keyUseCustomLogoFront=false`. GETs then redirect to DHIS2's built-in default,
 so the upload appears to have had no effect. The accessor auto-flips the flag
-so the uploaded bytes actually render (tracked as BUGS.md entry 11).
+so the uploaded bytes actually render (tracked as DHIS2_ISSUES.md entry 11).
 
 ## Why `applicationTitle` isn't prefixed but the others are
 
@@ -38,7 +38,7 @@ DHIS2's system-setting keys are inconsistent — `applicationTitle` is
 unprefixed, while the four closely related login-page strings are
 `keyApplication{Intro,Notification,Footer,RightFooter}`. `/api/loginConfig`
 advertises them under yet a third naming scheme (`applicationDescription`,
-`applicationLeftSideFooter`, …). Tracked as BUGS.md entry 10. The preset
+`applicationLeftSideFooter`, …). Tracked as DHIS2_ISSUES.md entry 10. The preset
 ships the correct wire-key names so callers never have to discover the map.
 
 ## Applying the committed preset
@@ -81,7 +81,7 @@ level >100%, or on some HiDPI tall windows — the blue `.app` only fills
 color below the footer (dark grey / black in dark-themed Chrome, white
 elsewhere).
 
-This is a DHIS2 upstream bug (BUGS.md entry 12). We can't fix it from the
+This is a DHIS2 upstream bug (DHIS2_ISSUES.md entry 12). We can't fix it from the
 customize surface: `POST /api/files/style` doesn't affect the login app,
 and a full `loginPageTemplate` takeover is out of scope here. DHIS2 needs
 one line in the login-app's bundled CSS: `html { background: #2a5298; }`.
@@ -95,7 +95,7 @@ CSS a bad default:
    and the 24×24 OIDC button icon. Wordmarks clip in the corner; square
    monograms stay legible at both sizes but make the upper-right slot
    look randomly placed. No single asset design satisfies both.
-2. **The login app's bundled CSS leaves `html` transparent** — see BUGS.md
+2. **The login app's bundled CSS leaves `html` transparent** — see DHIS2_ISSUES.md
    entry 12. At any zoom >100% or on a tall window, the browser's native
    background shows below the footer.
 

@@ -8,7 +8,7 @@ Exercises the typical workflow that combines the two plugins:
 3. List, reply, mark-read, delete.
 
 `send()` returns a typed `MessageConversation` — DHIS2 puts the new UID
-on the `Location` header rather than in the JSON envelope (see BUGS.md
+on the `Location` header rather than in the JSON envelope (see DHIS2_ISSUES.md
 #17), but the accessor papers over that.
 
 Usage:

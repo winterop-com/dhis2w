@@ -45,7 +45,7 @@ Rows are inherently schema-less (the SQL defines the columns), so
 list tells callers what each position means. `.as_dicts()` pivots into
 column-name-keyed dicts when preferred.
 
-BUGS.md-worthy behaviours to watch for:
+DHIS2_ISSUES.md-worthy behaviours to watch for:
 
 - Variable and criteria values are sanitised server-side to alphanumeric
   characters only — wildcards and punctuation live in the SQL template,

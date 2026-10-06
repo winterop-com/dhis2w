@@ -101,7 +101,7 @@ async def test_combo_create_rejects_empty_categories() -> None:
 
 @respx.mock
 async def test_combo_create_against_v43_uses_categories_not_categorys() -> None:
-    """v43 dropped the `categorys` alias (BUGS.md #34); writes must use `categories`."""
+    """v43 dropped the `categorys` alias (DHIS2_ISSUES.md #34); writes must use `categories`."""
     respx.get("https://dhis2.example/").mock(return_value=httpx.Response(200, text="<html></html>"))
     respx.get("https://dhis2.example/api/system/info").mock(
         return_value=httpx.Response(200, json={"version": "2.43.0"}),

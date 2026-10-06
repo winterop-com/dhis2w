@@ -6,7 +6,7 @@
 
 - Importing a CSV / JSON file that's larger than the host's free RAM.
 - Pipe-style imports where the source is an `AsyncIterable[bytes]` (e.g. a transform step that emits a row at a time).
-- Mixed-DataSet writes on DHIS2 v43 — the grouped path is the workaround for BUGS #35.
+- Mixed-DataSet writes on DHIS2 v43 — the grouped path is the workaround for DHIS2_ISSUES.md #35.
 - Reading a form's values back after a write, or pulling one organisation unit's year for a report.
 - Exporting a national year to a file or an object store without holding it in memory.
 
@@ -35,11 +35,11 @@ async with open_client(profile_from_env()) as client:
 
 ## Partly invalid imports: `atomic_mode`
 
-`stream(..., atomic_mode="ALL" | "OBJECT")` forwards DHIS2's `atomicMode` switch. DHIS2 documents `ALL` as rejecting the whole import when any row is rejected and `OBJECT` as committing the rows that pass. On DHIS2 2.42 and 2.43 the switch has no observable effect on `/api/dataValueSets`: a payload with one valid row and one row that fails value-type validation commits the valid row under both modes and reports the other as ignored (BUGS.md #112). The parameter is forwarded so a build that honours it gets the documented behaviour; do not rely on `ALL` to keep a partly invalid import out.
+`stream(..., atomic_mode="ALL" | "OBJECT")` forwards DHIS2's `atomicMode` switch. DHIS2 documents `ALL` as rejecting the whole import when any row is rejected and `OBJECT` as committing the rows that pass. On DHIS2 2.42 and 2.43 the switch has no observable effect on `/api/dataValueSets`: a payload with one valid row and one row that fails value-type validation commits the valid row under both modes and reports the other as ignored (DHIS2_ISSUES.md #112). The parameter is forwarded so a build that honours it gets the documented behaviour; do not rely on `ALL` to keep a partly invalid import out.
 
 A value equal to what the instance already holds also counts as ignored, so an unchanged re-import reads as `ignored=N` under either mode.
 
-DHIS2 v42 answers any import that carries a conflict with HTTP 409, even when the other rows were committed; v43 answers 200 with the same `WARNING` envelope (BUGS.md #6). `stream` raises `Dhis2ApiError` on the 409, and the import summary is the exception's `body`:
+DHIS2 v42 answers any import that carries a conflict with HTTP 409, even when the other rows were committed; v43 answers 200 with the same `WARNING` envelope (DHIS2_ISSUES.md #6). `stream` raises `Dhis2ApiError` on the 409, and the import summary is the exception's `body`:
 
 ```python
 from dhis2w_client import WebMessageResponse
@@ -127,7 +127,7 @@ values = [
 
 async with open_client(profile_from_env()) as client:
     # `import_grouped_by_dataset` is the cross-version write path
-    # (required on v43 for DEs in multiple DataSets — BUGS #35).
+    # (required on v43 for DEs in multiple DataSets — DHIS2_ISSUES.md #35).
     # Returns `list[WebMessageResponse]` — one envelope per DataSet group.
     envelopes = await client.data_values.import_grouped_by_dataset(values)
     for env in envelopes:

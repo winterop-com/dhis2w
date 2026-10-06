@@ -40,7 +40,7 @@ _AUTH_TYPES: dict[str, str] = {
     "api-token": (
         "Static API token in the `Authorization` header. DHIS2 sends "
         "`Authorization: ApiToken <token>` — a DHIS2-specific scheme, NOT standard `Bearer`. "
-        "Upstream services must accept the ApiToken scheme, or you'll get 401s. See BUGS.md #4e."
+        "Upstream services must accept the ApiToken scheme, or you'll get 401s. See DHIS2_ISSUES.md #4e."
     ),
     "api-headers": (
         "Arbitrary custom HTTP headers (e.g. `X-Api-Key: abc`). "

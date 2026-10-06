@@ -3,7 +3,7 @@
 DHIS2's springdoc-generated `openapi.json` has known gaps — polymorphic
 `oneOf` unions emitted without a discriminator block, variant schemas
 missing the Jackson `type` tag, etc. Every such gap has an entry in
-`BUGS.md` awaiting an upstream fix.
+`DHIS2_ISSUES.md` awaiting an upstream fix.
 
 This module is how we patch around them locally: each `SpecPatch` runs
 against the in-memory `components.schemas` dict and mutates it into what
@@ -15,7 +15,7 @@ the input and short-circuits if upstream has landed a proper fix. When
 that happens the patch becomes a no-op and can be retired.
 
 Every patch carries a `bugs_ref` pointer so the log output names which
-gap was worked around, and the `BUGS.md` entry stays synced with the
+gap was worked around, and the `DHIS2_ISSUES.md` entry stays synced with the
 patch.
 """
 
@@ -61,7 +61,7 @@ def _inject_auth_scheme_tags(components: dict[str, dict[str, Any]]) -> None:
 
     Also restores `scopes` on `OAuth2ClientCredentialsAuthScheme` — DHIS2
     omits it from the OAS even though the server accepts + emits it (tracked
-    in BUGS.md #14 alongside the discriminator fix).
+    in DHIS2_ISSUES.md #14 alongside the discriminator fix).
 
     Done once per codegen run; idempotent if called again. The variants are
     referenced from multiple parents (`Route.auth`, `RouteParams.auth`,
@@ -84,7 +84,7 @@ def _inject_auth_scheme_tags(components: dict[str, dict[str, Any]]) -> None:
 
 
 def _patch_auth_scheme_discriminators(components: dict[str, dict[str, Any]]) -> bool:
-    """Inject the discriminator block for every `<parent>.auth` oneOf of AuthSchemes (BUGS.md #14).
+    """Inject the discriminator block for every `<parent>.auth` oneOf of AuthSchemes (DHIS2_ISSUES.md #14).
 
     Handles three separate DHIS2 schemas that share the same polymorphic
     `oneOf` shape: `Route.auth`, `RouteParams.auth`, `WebhookTarget.auth`.
@@ -191,7 +191,7 @@ def _rewrite_dropped_refs(node: Any, bad_refs: set[str]) -> None:
 
 
 # DHIS2 builds its OpenAPI document at startup, and where two Java members map to one
-# property the one that wins changes from boot to boot of the same image (BUGS.md #133).
+# property the one that wins changes from boot to boot of the same image (DHIS2_ISSUES.md #133).
 # `infra/scripts/openapi_stability.sh` lists the pointers that move; every one that
 # reaches an emitted model is pinned here to the shape the live API actually serves.
 # `required` lists move too, but the emitter ignores `required`, so they are left alone.
@@ -264,12 +264,12 @@ def _is_primitive_branch(branch: Any) -> bool:
 ALL_PATCHES: tuple[SpecPatch, ...] = (
     SpecPatch(
         name="pin-boot-dependent-shapes",
-        bugs_ref="BUGS.md#133",
+        bugs_ref="DHIS2_ISSUES.md#133",
         apply=_pin_boot_dependent_shapes,
     ),
     SpecPatch(
         name="auth-scheme-discriminators",
-        bugs_ref="BUGS.md#14",
+        bugs_ref="DHIS2_ISSUES.md#14",
         apply=_patch_auth_scheme_discriminators,
     ),
     SpecPatch(

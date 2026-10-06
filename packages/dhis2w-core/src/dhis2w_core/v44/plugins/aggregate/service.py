@@ -133,7 +133,7 @@ def _apply_attribute_option_combo(
     DHIS2's /api/dataValues resolves an attribute option combo from the
     attribute CategoryCombo UID (`cc`) plus its category-option UIDs (`cp`,
     `;`-joined) — there is no attributeOptionCombo param. The two must be
-    supplied together; one without the other is a caller error (BUGS.md #50).
+    supplied together; one without the other is a caller error (DHIS2_ISSUES.md #50).
     """
     has_combo = attribute_combo is not None
     has_options = bool(attribute_options)
@@ -166,7 +166,7 @@ async def set_data_value(
     attribute option combo is addressed by `cc` (the attribute CategoryCombo
     UID) plus `cp` (its category-option UIDs). Pass `attribute_combo` and
     `attribute_options` together — the server resolves them into the option
-    combo (BUGS.md #50).
+    combo (DHIS2_ISSUES.md #50).
     """
     params: dict[str, Any] = {
         "de": data_element,
@@ -198,7 +198,7 @@ async def delete_data_value(
 
     Attribute option combos are addressed by `cc` (attribute CategoryCombo
     UID) plus `cp` (its category-option UIDs), never a bare
-    attributeOptionCombo param (BUGS.md #50).
+    attributeOptionCombo param (DHIS2_ISSUES.md #50).
     """
     params: dict[str, Any] = {"de": data_element, "pe": period, "ou": org_unit}
     if category_option_combo is not None:
@@ -223,7 +223,7 @@ async def set_data_value_followup(
 
     DHIS2 returns an empty 200; a non-2xx raises. Returns a small typed summary. The body is built
     as a dict at the HTTP boundary rather than via the generated `DataValueFollowUpRequest`, whose
-    v43+ schema types `period` as an object the live wire doesn't require (BUGS.md #49).
+    v43+ schema types `period` as an object the live wire doesn't require (DHIS2_ISSUES.md #49).
     """
     body: dict[str, Any] = {
         "dataElement": data_element,

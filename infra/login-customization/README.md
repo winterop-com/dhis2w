@@ -36,7 +36,7 @@ DHIS2's login-app bundled CSS leaves `html` transparent and sets
 `.app { height: 100vh }`. At any browser zoom >100% or on tall windows,
 the browser's native background shows through below the footer. This is
 upstream — `POST /api/files/style` only affects post-auth pages; we
-can't fix it without a full `loginPageTemplate` takeover. See BUGS.md
+can't fix it without a full `loginPageTemplate` takeover. See DHIS2_ISSUES.md
 entry 12.
 
 ## Regenerating the logos

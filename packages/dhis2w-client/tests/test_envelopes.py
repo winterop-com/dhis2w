@@ -90,7 +90,7 @@ def test_import_count_from_data_value_set_response() -> None:
 
 
 def test_created_uid_falls_back_to_id_when_no_uid() -> None:
-    """Defensive lookup: BUGS.md #4f — some endpoints return `id` not `uid`."""
+    """Defensive lookup: DHIS2_ISSUES.md #4f — some endpoints return `id` not `uid`."""
     envelope = WebMessageResponse.model_validate(
         {"status": "OK", "response": {"id": "fromIdField", "name": "something"}}
     )

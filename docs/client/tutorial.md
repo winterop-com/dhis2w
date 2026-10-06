@@ -471,7 +471,7 @@ Registering a tuple DHIS2 already holds counts `updated`, not a conflict, so the
 Helpers on `WebMessageResponse`:
 
 - `.status`, `.httpStatus`, `.httpStatusCode`, `.message` — envelope scalar fields
-- `.created_uid` — UID from an object-report envelope (handles DHIS2's `response.uid` vs `id` inconsistency, see BUGS.md #4f)
+- `.created_uid` — UID from an object-report envelope (handles DHIS2's `response.uid` vs `id` inconsistency, see DHIS2_ISSUES.md #4f)
 - `.import_count()` → typed `ImportCount` (flat OR nested `response.importCount` forms)
 - `.conflicts()` → `list[Conflict]` — per-row rejections with `property`, `value`, `errorCode`
 - `.rejected_indexes()` → `list[int]` — payload-array indexes DHIS2 refused

@@ -81,7 +81,7 @@ async def upsert_oauth2_client(client: Dhis2Client) -> None:
     payload = oauth2_payload(client.version_key)
     # Delete and recreate rather than PUT: on 2.43.1 a PUT drops the client's
     # `clientSettings` and `tokenSettings`, after which the authorization
-    # server answers 500 for it (BUGS.md #96).
+    # server answers 500 for it (DHIS2_ISSUES.md #96).
     for item in items:
         await client.delete_raw(f"/api/oAuth2Clients/{item['id']}")
     if items:

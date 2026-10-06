@@ -63,7 +63,7 @@ d2w maintenance cache
 
 # --- Soft-delete cleanup ----------------------------------------------------
 # DHIS2 keeps rows soft-deleted (deleted=true) after importStrategy=DELETE.
-# Soft-deleted children block parent-metadata removal (BUGS.md #2). Purge:
+# Soft-deleted children block parent-metadata removal (DHIS2_ISSUES.md #2). Purge:
 d2w maintenance cleanup data-values --yes
 d2w maintenance cleanup events --yes
 d2w maintenance cleanup enrollments --yes

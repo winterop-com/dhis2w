@@ -266,7 +266,7 @@ def outlier_detection_command(
         typer.Option(
             "--algorithm",
             help="Z_SCORE (default) | MODIFIED_Z_SCORE | MIN_MAX. "
-            "(Upstream OAS still shows MOD_Z_SCORE but the server rejects that value — see BUGS.md.)",
+            "(Upstream OAS still shows MOD_Z_SCORE but the server rejects that value — see DHIS2_ISSUES.md.)",
         ),
     ] = None,
     threshold: Annotated[

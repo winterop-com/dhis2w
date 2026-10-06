@@ -181,7 +181,7 @@ def sample_data_value_command(
                 return
             _step("delete via importStrategy=DELETE")
             await client.post_raw("/api/dataValueSets", payload, params={"importStrategy": "DELETE"})
-            _ok("deleted (soft-delete — DHIS2 keeps the row marked deleted=true; see BUGS.md #2)")
+            _ok("deleted (soft-delete — DHIS2 keeps the row marked deleted=true; see DHIS2_ISSUES.md #2)")
 
     asyncio.run(_run())
     _pass(started)
@@ -231,7 +231,7 @@ def sample_oauth2_client_command(
         async with Dhis2Client(resolved_url, auth=admin_auth) as admin:
             fetched = await admin.get_raw(f"/api/oAuth2Clients/{creds.uid}")
             # v41 wire-shape: the client identifier comes back as `cid`, not `clientId`
-            # (see BUGS.md #39). v42/v43 use `clientId`.
+            # (see DHIS2_ISSUES.md #39). v42/v43 use `clientId`.
             fetched_id = fetched.get("cid") or fetched.get("clientId")
             if fetched_id != resolved_client_id:
                 _fail(f"round-trip mismatch: expected client id={resolved_client_id!r}, got {fetched!r}")

@@ -50,7 +50,7 @@ Marked with `@pytest.mark.slow` so the default `make test` skips them. They run 
 
 ## Tier 3: upstream-bug regression suite (`make test-upstream-bugs`)
 
-Every entry in `BUGS.md` (top-level) describing a real DHIS2-side bug we've worked around in this repo gets a paired test in `packages/dhis2w-client/tests/test_upstream_bugs.py`. Each pair has two flavours:
+Every entry in `DHIS2_ISSUES.md` (top-level) describing a real DHIS2-side bug we've worked around in this repo gets a paired test in `packages/dhis2w-client/tests/test_upstream_bugs.py`. Each pair has two flavours:
 
 **Mocked (fast, default)**
 
@@ -65,14 +65,14 @@ All flavours carry `@pytest.mark.upstream_bug`. `make test-upstream-bugs` filter
 
 ### Adding a new pair
 
-1. Append a `### N. <summary>` entry to `BUGS.md` with the curl repro + workaround pointer.
+1. Append a `### N. <summary>` entry to `DHIS2_ISSUES.md` with the curl repro + workaround pointer.
 2. Add three tests to `packages/dhis2w-client/tests/test_upstream_bugs.py`:
    - `test_bug_N_<short>_<bug-pattern>` — mocked bug-still-present (respx).
    - `test_bug_N_workaround_<does_the_right_thing>` — mocked workaround-works (respx).
    - `test_bug_N_v<X>_live_<bug-pattern>` — `@pytest.mark.slow` live verifier. Calls `_skip_if_stack_unreachable(local_url)` + `_skip_unless_version(client, "v<X>")` at the top, then POSTs / GETs against the real wire. Cleans up any mutations.
-3. Reference BUGS.md #N in every docstring so the link is bidirectional.
+3. Reference DHIS2_ISSUES.md #N in every docstring so the link is bidirectional.
 
-The pattern is illustrated in the file with BUGS.md #34 (v43 dropping the `categorys` wire alias) covered end-to-end across all three flavours.
+The pattern is illustrated in the file with DHIS2_ISSUES.md #34 (v43 dropping the `categorys` wire alias) covered end-to-end across all three flavours.
 
 ## Test connection details
 

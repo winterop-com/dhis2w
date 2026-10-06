@@ -93,7 +93,7 @@ async with open_client(profile_from_env()) as client:
         domain="MESSAGE_ATTACHMENT",
     )
 
-    # Send — returns a typed MessageConversation (BUGS.md #17 workaround).
+    # Send — returns a typed MessageConversation (DHIS2_ISSUES.md #17 workaround).
     conversation = await client.messaging.send(
         subject="Report",
         text="Latest numbers attached.",
@@ -107,7 +107,7 @@ async with open_client(profile_from_env()) as client:
     await client.messaging.delete_conversation(conversation.id)
 ```
 
-## BUGS.md #17 — the Location-header UID dance
+## DHIS2_ISSUES.md #17 — the Location-header UID dance
 
 `POST /api/messageConversations` returns `201 Created` with the new UID
 on the `Location` header, NOT in the JSON envelope. Every other DHIS2
@@ -115,7 +115,7 @@ create endpoint carries `response.uid` inside the body. The accessor
 papers over this: `send()` extracts the UID from `Location` and GETs the
 conversation back, so callers receive a typed `MessageConversation`
 object the way they do from `client.files.upload_document`. See
-`BUGS.md #17` for the full repro + upstream-fix preference.
+`DHIS2_ISSUES.md #17` for the full repro + upstream-fix preference.
 
 Related wire quirks the accessor handles so callers don't have to:
 

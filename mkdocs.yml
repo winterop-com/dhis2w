@@ -167,7 +167,7 @@ nav:
       - Overview: project/index.md
       - Feature catalog: project/features.md
       - Roadmap: roadmap.md
-      - Upstream DHIS2 quirks: project/upstream-quirks.md
+      - Upstream DHIS2 issues: project/upstream-issues.md
       - Decisions log: decisions.md
       - Lessons learned: lessons.md
       - Maintaining:
@@ -210,7 +210,7 @@ markdown_extensions:
   - pymdownx.mark
   - pymdownx.smartsymbols
   - pymdownx.snippets:
-      # Lets docs pages embed repository-root files (BUGS.md, the planning
+      # Lets docs pages embed repository-root files (DHIS2_ISSUES.md, the planning
       # docs) via `--8<-- "FILE"` so the site renders them without a second
       # copy. base_path is the repo root (where mkdocs runs).
       base_path:

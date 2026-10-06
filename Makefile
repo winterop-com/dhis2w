@@ -78,7 +78,7 @@ test-contract:
 	@$(UV) run pytest -v -m contract packages
 
 test-upstream-bugs:
-	@echo ">>> Running upstream-bug regression tests (paired with BUGS.md entries)"
+	@echo ">>> Running upstream-bug regression tests (paired with DHIS2_ISSUES.md entries)"
 	@$(UV) run pytest -v -m upstream_bug packages
 
 test-slow:

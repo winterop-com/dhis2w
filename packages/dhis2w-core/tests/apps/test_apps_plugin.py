@@ -263,7 +263,7 @@ async def test_install_from_hub_with_version_id_installs_directly(profile: Profi
 
 @respx.mock
 async def test_install_from_hub_with_app_id_resolves_latest_version(profile: Profile) -> None:
-    """An App Hub *app* id resolves to that app's latest version (BUGS.md #46); resolved_from='app-id'."""
+    """An App Hub *app* id resolves to that app's latest version (DHIS2_ISSUES.md #46); resolved_from='app-id'."""
     _mock_preamble()
     respx.get("https://dhis2.example/api/appHub").mock(return_value=httpx.Response(200, json=_HUB))
     install_route = respx.post("https://dhis2.example/api/appHub/ver-200").mock(return_value=httpx.Response(201))

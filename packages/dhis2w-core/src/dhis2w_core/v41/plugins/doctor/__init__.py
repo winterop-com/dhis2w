@@ -1,4 +1,4 @@
-"""Doctor plugin — probe a DHIS2 instance for known BUGS.md gotchas + workspace hard requirements."""
+"""Doctor plugin — probe a DHIS2 instance for known DHIS2_ISSUES.md gotchas + workspace hard requirements."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ class _DoctorPlugin:
         return Contribution(
             name="doctor",
             description=(
-                "Probe a DHIS2 instance for known BUGS.md gotchas + workspace hard requirements. One command, pure "
-                "reads, pass/warn/fail per probe with BUGS.md cross-refs."
+                "Probe a DHIS2 instance for known DHIS2_ISSUES.md gotchas + workspace hard requirements. One command, "
+                "pure reads, pass/warn/fail per probe with DHIS2_ISSUES.md cross-refs."
             ),
             cli_module="dhis2w_core.v41.plugins.doctor.cli",
             mcp_module=None,

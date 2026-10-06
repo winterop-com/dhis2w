@@ -45,7 +45,7 @@ actually shipped and fixed:
 **The uncoded case sits on a category option rather than an option, and that is not
 arbitrary.** DHIS2 requires a non-empty `code` on every `Option`, answering `E4000
 Missing required property 'code'` both to an option with no code and to one coded `""`,
-while it accepts a `CategoryOption` with neither (BUGS.md #65). So the emitter's
+while it accepts a `CategoryOption` with neither (DHIS2_ISSUES.md #65). So the emitter's
 uncoded-*option* fallback is unreachable from any instance DHIS2 built, and the category
 option is where the fallback can actually be exercised.
 
@@ -53,7 +53,7 @@ option is where the fallback can actually be exercised.
 finding.** A duplicate code is rejected with 409 on every class tried - `optionSets`,
 `categoryOptions`, `organisationUnits` - because DHIS2 enforces code uniqueness per
 class. And an empty-string code is not stored: DHIS2 reports `created: 1` and then
-returns the object with no `code` at all (BUGS.md #66), so it is indistinguishable from
+returns the object with no `code` at all (DHIS2_ISSUES.md #66), so it is indistinguishable from
 an uncoded one. `d2w fhir validate`'s `duplicate-code` finding and the `code is empty`
 branch of `describe_code_defect` are therefore nets for metadata that reached the
 database some other way, not states a seeded instance can reproduce.
@@ -323,7 +323,7 @@ async def seed_form_translations(client: Dhis2Client) -> int:
     `PUT /api/<collection>/<uid>/translations` replaces the object's whole translation list and
     touches nothing else, which is what makes this safe to run over objects the play bundle owns:
     a re-run restores exactly the same list, and no other field of the object is rewritten. DHIS2
-    answers `204 No Content`; `POST` on the same path is refused with `E1004` (BUGS.md #78).
+    answers `204 No Content`; `POST` on the same path is refused with `E1004` (DHIS2_ISSUES.md #78).
     """
     for entry in FORM_TRANSLATIONS:
         await client.put_raw(

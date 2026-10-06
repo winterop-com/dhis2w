@@ -13,7 +13,7 @@ Both take the dimension and filter tokens `/api/analytics` takes
 this is the library path.
 
 Uses the seeded Child Programme. Runs on v41 and v42; v43's event-analytics
-SQL emitter rejects the 2024 event data the fixture carries (BUGS.md #36), so
+SQL emitter rejects the 2024 event data the fixture carries (DHIS2_ISSUES.md #36), so
 `make verify-examples` skips this one on a v43 stack.
 
 Usage:

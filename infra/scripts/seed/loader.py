@@ -586,7 +586,7 @@ async def resolve_tracked_entity_names(
 
     `name` and `shortName` are UNIQUE instance-wide on both resources, so an
     install already holding a "Person" type or a "First name" attribute under
-    a different uid refuses the fixture's copy with E5003 (BUGS.md #24). The
+    a different uid refuses the fixture's copy with E5003 (DHIS2_ISSUES.md #24). The
     ladder, one rung at a time:
 
       1. Post the name the fixture carries — "Person", never "Person (Play)".
@@ -647,13 +647,13 @@ def _name_ladder_uids(payload: dict[str, list[dict[str, Any]]]) -> set[str]:
 
 # OU-tree sections come first + on their own — the fresh DHIS2 admin
 # has no OU scope until we attach the country root, and scope has to
-# be in place before any data-value / tracker writes (see BUGS.md #26).
+# be in place before any data-value / tracker writes (see DHIS2_ISSUES.md #26).
 _OU_FIRST_SECTIONS: frozenset[str] = frozenset(
     {"organisationUnitGroups", "organisationUnitGroupSets", "organisationUnits"},
 )
 
 # DataSets + Sections + DataEntryForms land in the LAST pass — the
-# Hibernate quirk documented in BUGS.md #23 prevents them from
+# Hibernate quirk documented in DHIS2_ISSUES.md #23 prevents them from
 # importing alongside their dependencies in one transaction.
 _DEFERRED_SECTIONS: frozenset[str] = frozenset(
     {"dataSets", "sections", "dataEntryForms"},
@@ -671,7 +671,7 @@ async def _post_metadata(
     """POST one bundle to `/api/metadata` with flakiness retry.
 
     Fresh DHIS2 installs sometimes hit timing bugs on the first
-    few imports (see BUGS.md #27). Retry with a short delay — usually
+    few imports (see DHIS2_ISSUES.md #27). Retry with a short delay — usually
     the second or third attempt succeeds against the same payload.
 
     `keep_conflict_report` turns a 409 carrying a structured import report
@@ -736,7 +736,7 @@ async def import_ou_tree(
     """Post the OU pass (`organisationUnits` + groups + group sets).
 
     Runs first so admin can be attached to the country root before any
-    data-write endpoint is touched (BUGS.md #26).
+    data-write endpoint is touched (DHIS2_ISSUES.md #26).
     """
     payload = _build_pass(bundle, lambda section: section in _OU_FIRST_SECTIONS)
     if not payload:
@@ -802,7 +802,7 @@ async def import_deferred_metadata(
     """Post the deferred DataSet + Section + DataEntryForm sections.
 
     Run last because DHIS2 trips a Hibernate flush error when these are
-    imported in the same transaction as their dependencies (BUGS.md #23).
+    imported in the same transaction as their dependencies (DHIS2_ISSUES.md #23).
     """
     payload = _build_pass(bundle, lambda section: section in _DEFERRED_SECTIONS)
     if not payload:
@@ -835,7 +835,7 @@ async def import_metadata_bundle(
 
 # Chunk size for `/api/dataValueSets` POSTs. v41 + v42 happily accept
 # 10 k-row chunks in seconds; v43's stricter validation (per-DE category
-# combo cross-check, plus the auto-target validator from BUGS.md #35)
+# combo cross-check, plus the auto-target validator from DHIS2_ISSUES.md #35)
 # pushes a single 10 k-row chunk past 5 minutes under linux/amd64
 # emulation on arm64 macOS — which times out the httpx2 read deadline.
 # 1 k strikes the balance: each chunk completes in ~5-10 s on v43, total
@@ -848,7 +848,7 @@ async def _build_dataelement_to_dataset(client: Dhis2Client) -> dict[str, str]:
     """Map every data-element id to one of the datasets that contain it.
 
     DHIS2 v43 added auto-target validation on `/api/dataValueSets`
-    (BUGS.md #35) — posts without an envelope `dataSet` get rejected
+    (DHIS2_ISSUES.md #35) — posts without an envelope `dataSet` get rejected
     when a DE is referenced by multiple datasets. The fix is to scope
     each chunk to a single dataset, which v41 + v42 also accept.
 
@@ -877,7 +877,7 @@ async def import_data_values(client: Dhis2Client) -> WebMessageResponse:
     188 k values in a single POST blows past the client's default 30 s
     read timeout on a fresh stack. Chunk into 10 k-row batches grouped by
     dataset — each chunk POSTs `{"dataSet": "<id>", "dataValues": [...]}`
-    so DHIS2 v43's auto-target validator (BUGS.md #26) accepts the import.
+    so DHIS2 v43's auto-target validator (DHIS2_ISSUES.md #26) accepts the import.
 
     Every row still round-trips through `DataValue.model_validate` so the
     typed shape is exercised on all 188 k rows.
@@ -1145,12 +1145,12 @@ async def seed_play(client: Dhis2Client) -> None:
       3. Assign admin to the Sierra Leone root across every scope
          (organisationUnits / dataViewOrganisationUnits /
          teiSearchOrganisationUnits). Reconnect the client so the
-         session's cached OU scope refreshes (BUGS.md #26).
+         session's cached OU scope refreshes (DHIS2_ISSUES.md #26).
       4. Settle the tracked entity type + attribute names, clearing any
          built-in holding "Person" / "First name" / "Last name" out of the
          way (see `resolve_tracked_entity_names`).
       5. Import everything except DataSets + Sections + DataEntryForms.
-      6. Import the deferred DataSet trio on its own (BUGS.md #23).
+      6. Import the deferred DataSet trio on its own (DHIS2_ISSUES.md #23).
       7. Seed the FHIR attribute fixtures — the option set, data set
          and org unit targets all exist by this point.
       8. Import the aggregate data values (chunked).
@@ -1169,7 +1169,7 @@ async def seed_play(client: Dhis2Client) -> None:
     _log(">>> Assigning admin to Sierra Leone OU scope")
     await assign_admin_to_sierra_leone(client)
     # DHIS2 caches OU scope per session — reconnect so the following
-    # writes pick up the new scope (BUGS.md #26).
+    # writes pick up the new scope (DHIS2_ISSUES.md #26).
     await client.close()
     await client.connect()
 
