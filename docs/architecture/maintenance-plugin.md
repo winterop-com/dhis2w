@@ -15,6 +15,7 @@ DHIS2 records every background job under `/api/system/tasks`. Three levels:
 | `GET /api/system/tasks` | `{TaskType: {uid: [notifications]}}` | `task types` |
 | `GET /api/system/tasks/{type}` | `{uid: [notifications]}` | `task list <type>` |
 | `GET /api/system/tasks/{type}/{uid}` | `[Notification]` | `task status <type> <uid>` |
+| `GET /api/jobConfigurations?filter=jobType:eq:{type}&filter=jobStatus:eq:RUNNING` | `{jobConfigurations: [JobConfiguration]}` | `task running <type>` |
 
 ```bash
 # Which job types does this instance track?
@@ -25,6 +26,10 @@ d2w maintenance task list ANALYTICS_TABLE
 
 # Every notification emitted by one task, oldest first.
 d2w maintenance task status ANALYTICS_TABLE e1xqWiuxDce
+
+# Is an ANALYTICS_TABLE job running now? Its task UID is what `task watch` follows,
+# so a caller about to start one can follow the running job instead.
+d2w maintenance task running ANALYTICS_TABLE
 
 # Stream notifications as they arrive; exits on the first completed=true row.
 d2w maintenance task watch DATA_INTEGRITY <uid> --interval 1 --timeout 120

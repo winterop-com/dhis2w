@@ -117,6 +117,33 @@ def task_list_command(
     _console.print(table)
 
 
+@task_app.command("running")
+def task_running_command(
+    task_type: Annotated[str, typer.Argument(help="Task type, e.g. ANALYTICS_TABLE.")],
+) -> None:
+    """List the jobs of a given type running now, to follow one rather than start a second."""
+    from dhis2w_core.v41.plugins.maintenance import service
+
+    jobs = asyncio.run(service.list_running_tasks(profile_from_env(), task_type))
+    if is_json_output():
+        typer.echo(json.dumps([job.model_dump(mode="json", exclude_none=True) for job in jobs], indent=2))
+        return
+    if not jobs:
+        typer.echo(f"no {task_type} job is running on this instance")
+        return
+    table = Table(title=f"{task_type} jobs running ({len(jobs)})")
+    for column in ("task UID", "name", "scheduling", "last executed"):
+        table.add_column(column, overflow="fold")
+    for job in jobs:
+        table.add_row(
+            job.id or "-",
+            job.name or "-",
+            str(job.schedulingType) if job.schedulingType is not None else "-",
+            job.lastExecuted.isoformat(timespec="seconds") if job.lastExecuted is not None else "-",
+        )
+    _console.print(table)
+
+
 @task_app.command("status")
 def task_status_command(
     task_type: Annotated[str, typer.Argument(help="Task type, e.g. ANALYTICS_TABLE.")],

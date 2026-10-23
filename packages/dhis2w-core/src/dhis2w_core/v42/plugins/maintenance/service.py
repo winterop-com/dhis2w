@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator, Sequence
 from enum import StrEnum
 
-from dhis2w_client.generated.v42.oas import ValidationResult
+from dhis2w_client.generated.v42.oas import JobConfiguration, ValidationResult
 from dhis2w_client.v42 import (
     DataIntegrityCheck,
     DataIntegrityReport,
@@ -58,6 +58,12 @@ async def list_task_ids(profile: Profile, task_type: str) -> list[str]:
     async with open_client(profile) as client:
         raw = await client.get_raw(f"/api/system/tasks/{task_type}")
     return sorted(raw.keys())
+
+
+async def list_running_tasks(profile: Profile, task_type: str) -> list[JobConfiguration]:
+    """Return the job configurations of one job type DHIS2 reports as running now."""
+    async with open_client(profile) as client:
+        return await client.tasks.running(task_type)
 
 
 async def get_task_notifications(profile: Profile, task_type: str, task_uid: str) -> list[Notification]:

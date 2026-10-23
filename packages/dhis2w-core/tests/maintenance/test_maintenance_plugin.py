@@ -68,6 +68,51 @@ async def test_list_task_ids_sorts_uids(profile: Profile) -> None:
 
 
 @respx.mock
+async def test_list_running_tasks_types_each_running_job(profile: Profile) -> None:
+    """The service answers the running job configurations of one type as typed models."""
+    _mock_system_info()
+    respx.get("https://dhis2.example/api/jobConfigurations").mock(
+        return_value=httpx.Response(
+            200,
+            json={"jobConfigurations": [{"id": "fPcZAVZHbf7", "jobType": "ANALYTICS_TABLE", "jobStatus": "RUNNING"}]},
+        )
+    )
+    jobs = await service.list_running_tasks(profile, "ANALYTICS_TABLE")
+    assert [job.id for job in jobs] == ["fPcZAVZHbf7"]
+
+
+@respx.mock
+def test_cli_task_running_lists_the_running_jobs(runner: CliRunner) -> None:
+    """`d2w maintenance task running` names the running job's task UID."""
+    _mock_system_info()
+    respx.get("https://dhis2.example/api/jobConfigurations").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "jobConfigurations": [
+                    {"id": "fPcZAVZHbf7", "name": "ANALYTICS_TABLE (1792660177041)", "schedulingType": "ONCE_ASAP"}
+                ]
+            },
+        )
+    )
+    result = runner.invoke(build_app(), ["maintenance", "task", "running", "ANALYTICS_TABLE"])
+    assert result.exit_code == 0, result.output
+    assert "fPcZAVZHbf7" in result.output
+
+
+@respx.mock
+def test_cli_task_running_says_when_none_runs(runner: CliRunner) -> None:
+    """No running job is said in words, with a zero exit."""
+    _mock_system_info()
+    respx.get("https://dhis2.example/api/jobConfigurations").mock(
+        return_value=httpx.Response(200, json={"jobConfigurations": []})
+    )
+    result = runner.invoke(build_app(), ["maintenance", "task", "running", "ANALYTICS_TABLE"])
+    assert result.exit_code == 0, result.output
+    assert "no ANALYTICS_TABLE job is running" in result.output
+
+
+@respx.mock
 async def test_get_task_notifications_reverses_order(profile: Profile) -> None:
     """DHIS2 returns notifications newest-first; service reverses to chronological."""
     _mock_system_info()
