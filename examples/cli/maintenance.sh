@@ -16,6 +16,9 @@ d2w maintenance task types
 # For one task type, list the recorded task UIDs.
 d2w maintenance task list ANALYTICS_TABLE
 
+# For one task type, list the jobs running now: follow one of these rather than start a second.
+d2w maintenance task running ANALYTICS_TABLE
+
 # Pretty-print every notification emitted by one task (oldest first). The
 # Rich table output wraps UIDs in border characters; `grep -oE` extracts the
 # first 11-char DHIS2 UID token out of the table and we take `head -1` — safe

@@ -2982,6 +2982,7 @@ $ d2w maintenance task [OPTIONS] COMMAND [ARGS]...
 * `types`: List every background-job type DHIS2...
 * `ls`: List every task UID recorded for a given...
 * `list`: List every task UID recorded for a given...
+* `running`: List the jobs of a given type running now,...
 * `status`: Print every notification emitted by a...
 * `watch`: Poll a task until it reports...
 
@@ -3025,6 +3026,24 @@ List every task UID recorded for a given job type.
 
 ```console
 $ d2w maintenance task list [OPTIONS] {task_type}
+```
+
+**Arguments**:
+
+* `task_type`: Task type, e.g. ANALYTICS_TABLE.  [required]
+
+**Options**:
+
+* `--help`: Show this message and exit.
+
+#### `d2w maintenance task running`
+
+List the jobs of a given type running now, to follow one rather than start a second.
+
+**Usage**:
+
+```console
+$ d2w maintenance task running [OPTIONS] {task_type}
 ```
 
 **Arguments**:

@@ -403,3 +403,52 @@ async def test_an_empty_feed_before_any_row_keeps_waiting(monkeypatch: pytest.Mo
 
     assert not configuration.called
     assert completion.message == "done"
+
+
+@respx.mock
+async def test_running_lists_the_job_configurations_running_now(
+    server_version: str, mock_system_info: Callable[..., None]
+) -> None:
+    """`tasks.running` asks for one type's RUNNING job configurations and types each one."""
+    mock_system_info(server_version)
+    route = respx.get("https://dhis2.example/api/jobConfigurations").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "jobConfigurations": [
+                    {
+                        "id": "fPcZAVZHbf7",
+                        "name": "ANALYTICS_TABLE (1792660177041)",
+                        "jobType": "ANALYTICS_TABLE",
+                        "jobStatus": "RUNNING",
+                        "schedulingType": "ONCE_ASAP",
+                    }
+                ]
+            },
+        )
+    )
+    client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
+    try:
+        await client.connect()
+        running = await client.tasks.running("ANALYTICS_TABLE")
+    finally:
+        await client.close()
+    assert [(job.id, str(job.jobStatus)) for job in running] == [("fPcZAVZHbf7", "RUNNING")]
+    params = route.calls.last.request.url.params
+    assert params.get_list("filter") == ["jobType:eq:ANALYTICS_TABLE", "jobStatus:eq:RUNNING"]
+    assert params["paging"] == "false"
+
+
+@respx.mock
+async def test_running_is_empty_when_nothing_runs(server_version: str, mock_system_info: Callable[..., None]) -> None:
+    """No running job of the type is an empty list, not an error."""
+    mock_system_info(server_version)
+    respx.get("https://dhis2.example/api/jobConfigurations").mock(
+        return_value=httpx.Response(200, json={"jobConfigurations": []})
+    )
+    client = Dhis2Client("https://dhis2.example", auth=BasicAuth(username="a", password="b"))
+    try:
+        await client.connect()
+        assert await client.tasks.running("ANALYTICS_TABLE") == []
+    finally:
+        await client.close()

@@ -93,7 +93,7 @@ await client.resources.data_elements.delete(uid)
 | **Data values** | `stream()` imports JSON / XML / CSV / ADX without buffering, with `atomic_mode`; `export()` reads a form's values back as a typed `DataValueSet`; `import_grouped_by_dataset()` for the v43 mixed-data-set path |
 | **Completeness** | `complete_data_set_registrations.export()` reads which forms are reported complete, by data set, period or date range, organisation unit and subtree |
 | **Maintenance** | `get_integrity_report()`, `iter_integrity_issues()`, `update_category_option_combos()`, `run_analytics_tables()` |
-| **Tasks** | `await_completion()` and `iter_notifications()` block on a background job; `poll_once()` reads its feed once and returns a cursor for the next tick |
+| **Tasks** | `await_completion()` and `iter_notifications()` block on a background job; `poll_once()` reads its feed once and returns a cursor for the next tick; `running(job_type)` lists the jobs of a type running now, so a caller can follow one rather than start a second |
 | **Apps** | `list()`, `hub_list()`, `install()`, `uninstall()`, `update()` |
 | **Files** | `documents()`, `file_resources()`, `upload()`, `download()` |
 | **Messaging** | `conversations()`, `send()`, `reply()`, `mark_read()` |

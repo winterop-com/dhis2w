@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
+from dhis2w_client.generated.v41.enums import JobStatus, JobType
+from dhis2w_client.generated.v41.oas import JobConfiguration
 from dhis2w_client.v41.maintenance import Notification
 
 if TYPE_CHECKING:
@@ -143,6 +145,23 @@ class TaskModule:
         # (returned above) or raises `TaskTimeoutError` on its own deadline. This raise
         # only satisfies the `TaskCompletion` return type for the impossible fall-through.
         raise TaskTimeoutError(f"task {task_ref!r} did not complete within the iterator's timeout")
+
+    async def running(self, job_type: JobType | str) -> list[JobConfiguration]:
+        """List the job configurations of one job type that DHIS2 reports as running now.
+
+        Reads `/api/jobConfigurations` filtered on the type and on `jobStatus` RUNNING, so a
+        caller about to start a job can follow the one already running instead. An empty list
+        means none is running; the uid of an entry is the task uid `poll_once` follows.
+        """
+        raw = await self._client.get_raw(
+            "/api/jobConfigurations",
+            params={
+                "filter": [f"jobType:eq:{job_type}", f"jobStatus:eq:{JobStatus.RUNNING}"],
+                "fields": "id,name,jobType,jobStatus,schedulingType,lastExecuted",
+                "paging": "false",
+            },
+        )
+        return [JobConfiguration.model_validate(item) for item in raw.get("jobConfigurations") or []]
 
     async def poll_once(
         self,
