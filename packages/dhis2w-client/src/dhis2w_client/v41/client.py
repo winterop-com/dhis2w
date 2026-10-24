@@ -775,13 +775,24 @@ class Dhis2Client:
     def _parse_json(response: httpx2.Response) -> dict[str, Any]:
         """Parse a successful response body into a dict (wrapping non-dict JSON under "data").
 
-        An empty body maps to `{}` — DHIS2 DELETEs and some 204-style
-        endpoints return nothing. A *non-empty* body that isn't JSON raises
-        `Dhis2ApiError` with a snippet: a 200 with an HTML body is almost
-        always a proxy or SSO login page standing in for the API, and
+        An empty body maps to `{}` where nothing is an answer: a 204, and a
+        write (POST, PUT, PATCH, DELETE), which DHIS2 often answers with no
+        body. A GET answered 200 with nothing raises `Dhis2ApiError`: every
+        DHIS2 read answers with a document, and 2.42 answers a data value
+        set export outside the account's data scope with an empty 200, so
+        reading it as `{}` would turn a refusal into an empty result
+        (DHIS2_ISSUES.md #146). A *non-empty* body that isn't JSON
+        raises `Dhis2ApiError` with a snippet: a 200 with an HTML body is
+        almost always a proxy or SSO login page standing in for the API, and
         silently returning `{}` would mask it.
         """
         if not response.content.strip():
+            if response.request.method == "GET" and response.status_code != 204:
+                raise Dhis2ApiError(
+                    status_code=response.status_code,
+                    message="answered a read with an empty body where a JSON document was expected "
+                    "(DHIS2 does this for data outside the account's scope)",
+                )
             return {}
         try:
             parsed = response.json()

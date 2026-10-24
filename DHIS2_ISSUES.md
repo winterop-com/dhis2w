@@ -34,7 +34,7 @@ the retest log at the end lists which ones it did.
 | [Authentication: OAuth2, OIDC and tokens](#authentication-oauth2-oidc-and-tokens) | [#4](#4-dhis2-oauth2-authorization-server-requires-10-undocumented-dhisconf-keys-all-set-together-or-authorizetoken-silently-degrade), [#4b](#4b-oauth2token-on-a-misconfigured-stack-returns-dhis2s-generic-401-instead-of-the-spring-as-error-json), [#4c](#4c-the-oauth2-signing-key-rotates-on-every-startup-so-every-outstanding-access-token-dies-v41-mints-an-opaque-token-and-issues-no-refresh-token-at-all), [#4d](#4d-dhis2-conflates-oauth2-and-oidc-across-its-config-keys-docs-and-code-paths), [#4h](#4h-dhis2-refuses-its-own-oauth2-jwts-with-invalid-mapping-claim-whatever-the-resolved-users-openid-says), [#9](#9-dhis2s-strict-oidc-property-parser-rejects-entire-provider-config-on-typos), [#39](#39-v41-oauth2-client-wire-shape--cid-not-clientid--strict-array-typed-multi-valued-fields), [#96](#96-on-2431-the-oauth2-authorization-server-500s-for-any-registered-client-whose-settings-or-grant-types-are-empty-and-post-apioauth2clients-creates-exactly-that-client), [#117](#117-the-multi-valued-oauth2-client-fields-take-arrays-on-v41-and-comma-separated-strings-on-v42v43-and-each-major-fails-silently-or-loudly-on-the-other-shape), [#120](#120-serverbaseurl-is-logged-as-invalid-for-a-value-that-satisfies-the-messages-own-rule-and-the-authorization-server-then-stamps-a-slashed-iss), [#134](#134-2432-and-244-refuse-all-as-an-oauth2-client-scope-require-pkce-on-every-registered-client-and-report-the-scope-refusal-as-a-missing-required-property) | 6 | 9 | 10 | 7 | not yet |
 | [Server configuration (dhis.conf) and audit](#server-configuration-dhisconf-and-audit) | [#3](#3-blank-auditmetadata--audittracker--auditaggregate-in-dhisconf-silently-fall-back-to-audit-enabled-defaults), [#53](#53-the-audit-posture-lives-only-in-dhisconf-and-is-exposed-by-no-api-endpoint-so-it-cannot-be-verified-remotely), [#54](#54-dhis2-applies-create-update-delete-security-as-the-default-matrix-when-a-scope-key-is-absent-or-empty), [#137](#137-get-apiauditstrackedentity-answers-500-with-a-raw-nullpointerexception-message-when-trackedentities-is-absent-and-ignores-page--pagesize--paging-when-it-is-present) | 3 | 4 | 4 | 2 | not yet |
 | [Security headers and CORS](#security-headers-and-cors) | [#55](#55-dhis2-calls-spring-securitys-defaultsdisabled-and-never-emits-coop--coep--corp-so-cross-origin-isolation-headers-are-absent-on-every-stock-instance), [#60](#60-hsts-presence-depends-on-the-proxy-in-front-of-dhis2-and-csp-state-is-observable-only-on-the-wire--where-the-header-itself-is-instance-dependent), [#61](#61-keycorswhitelist-was-removed-from-systemsettings-the-cors-origin-list-is-only-readable-from-apiconfigurationcorswhitelist) | 3 | 3 | 3 | 3 | not yet |
-| [Users, organisation unit scopes and authorities](#users-organisation-unit-scopes-and-authorities) | [#5](#5-organisationunits-post-inside-a-users-capture-scope-enforces-descendant-not-sibling-of-scope), [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login), [#45](#45-v41-get-apiauthorities-returns-500), [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field), [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only) | 4 | 3 | 2 | 2 | not yet |
+| [Users, organisation unit scopes and authorities](#users-organisation-unit-scopes-and-authorities) | [#5](#5-organisationunits-post-inside-a-users-capture-scope-enforces-descendant-not-sibling-of-scope), [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login), [#45](#45-v41-get-apiauthorities-returns-500), [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field), [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only), [#146](#146-v42-a-data-value-set-export-outside-the-accounts-data-scope-answers-200-with-an-empty-body) | 4 | 3 | 2 | 2 | not yet |
 | [Metadata API and import](#metadata-api-and-import) | [#22c](#22c-apimetadata-bundle-import-drops-programruleactionprogramrule-link), [#23](#23-single-pass-apimetadata-with-datasets--dependencies-trips-a-hibernate-flush-error), [#24](#24-fresh-installs-built-in-tet-person--teas-first-namelast-name-collide-with-imports-sharing-those-names), [#27](#27-fresh-dhis2-installs-are-flaky-during-first-metadata-import), [#92](#92-apimetadata-import-rewrites-optionsortorder-to-a-0-based-sequence), [#104](#104-post-apimetadataimportstrategydelete-sorts-a-bundle-in-creation-order-so-a-type-and-the-attribute-it-collects-cannot-be-removed-in-one-post), [#119](#119-a-multi-type-post-apimetadataimportstrategydelete-answers-500-transaction-silently-rolled-back-naming-no-object), [#124](#124-preheatidentifiercode-does-not-resolve-code-keyed-references-and-names-a-uid-that-appears-nowhere-in-the-payload) | 5 | 5 | 6 | 6 | not yet |
 | [Metadata reads: filters, field selection and ordering](#metadata-reads-filters-field-selection-and-ordering) | [#21](#21-attribute-value-filters-path-property-is-the-attribute-uid-not-attributevaluesvalue), [#29](#29-apimetadatafilterrootjunctionor-silently-ignores-rootjunction-and-ands-multiple-filters), [#47](#47-metadata-get-with-a-malformed-uid-returns-http-405-instead-of-404), [#48](#48-filtering-on-a-nested-geometry-path-geometrytype-returns-400-unknown-path-property), [#63](#63-datasetdatasetelements-is-serialised-in-a-different-order-on-every-request), [#93](#93-programrules-is-not-a-field-on-the-program-schema-and-fields-drops-it-without-a-word), [#128](#128-filterperiodtypeopvalue-on-apidatasets-answers-400-e1003-for-every-operator-and-spelling-so-the-period-type-cannot-be-filtered-server-side) | 5 | 7 | 7 | 7 | not yet |
 | [Metadata write validation: names, codes and references](#metadata-write-validation-names-codes-and-references) | [#4g](#4g-dhis2-accepts-whitespace-abusive-values-for-name-shortname-and-code-on-metadata-create), [#34](#34-v43-categorycombocategorys-legacy-alias-dropped--wire-writes-silently-no-op-without-categories), [#65](#65-optioncode-is-required-while-its-sibling-categoryoptioncode-is-optional-and--counts-as-missing), [#66](#66-an-empty-string-code-is-silently-stored-as-absent-rather-than-kept-or-rejected), [#110](#110-a-program-stage-can-exist-with-program-null), [#111](#111-metadata-name-fields-store-comparison-characters-literally-and-serve-them-unescaped) | 5 | 5 | 5 | 6 | not yet |
@@ -2619,13 +2619,13 @@ settings verdicts still run. See `_fetch_cors_whitelist` in
 
 ## Users, organisation unit scopes and authorities
 
-**Summary.** User scope and user metadata behave differently from what the API suggests: data capture scope is enforced as descendant-of-scope with a conflict that names neither scope nor ancestor, a scope change needs a new login on 2.42.6, `GET /api/authorities` answers 500 in an API-only container, and fields such as `passwordLastUpdated` and the two-factor state move between majors without a diagnostic. A client managing users cannot rely on one shape or one refusal across releases.
+**Summary.** User scope and user metadata behave differently from what the API suggests: data capture scope is enforced as descendant-of-scope with a conflict that names neither scope nor ancestor, a scope change needs a new login on 2.42.6, `GET /api/authorities` answers 500 in an API-only container, and fields such as `passwordLastUpdated` and the two-factor state move between majors without a diagnostic. A data value set export outside the account's data scope answers 200 with nothing on 2.42.7, where tracker answers the same situation 403. A client managing users cannot rely on one shape or one refusal across releases.
 
-**Versions affected:** 2.41.10 (4 of 5), 2.42.6 (3 of 5), 2.43.2 (2 of 5), 2.44-SNAPSHOT `c48aedc` (2 of 5). Each issue's status lines give the release-by-release detail.
+**Versions affected:** 2.41.10 (4 of 6), 2.42.6 (3 of 6), 2.43.2 (2 of 6), 2.44-SNAPSHOT `c48aedc` (2 of 6). Each issue's status lines give the release-by-release detail.
 
 **Reported:** not yet.
 
-**Issues:** [#5](#5-organisationunits-post-inside-a-users-capture-scope-enforces-descendant-not-sibling-of-scope), [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login), [#45](#45-v41-get-apiauthorities-returns-500), [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field), [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only).
+**Issues:** [#5](#5-organisationunits-post-inside-a-users-capture-scope-enforces-descendant-not-sibling-of-scope), [#26](#26-admin-ou-scope-is-cached-per-session--scope-changes-need-a-re-login), [#45](#45-v41-get-apiauthorities-returns-500), [#56](#56-v41-serves-passwordlastupdated-twice--flat-and-nested-under-usercredentials-v42v43-serve-only-the-flat-field), [#58](#58-v42v43-apiusers-exposes-no-2fa-state-for-other-users-admin-2fa-audit-moved-to-apiuserstwofactor-master-only), [#146](#146-v42-a-data-value-set-export-outside-the-accounts-data-scope-answers-200-with-an-empty-body).
 
 ### 5. `organisationUnits` POST inside a user's capture scope enforces DESCENDANT, not sibling-of-scope
 
@@ -2919,6 +2919,48 @@ curl -s -u admin:district \
 **Workaround in this repo:** per-tree `_wire.py` selects the 2FA source: v41 reads `twoFactorEnabled` (falling back to `userCredentials.twoFA`) from `/api/users`; v42/v43 read `GET /api/users/twoFactor/summary` (`privileged.withAllAuthorityMissing2FA`). The hygiene check ([`dhis2w_security/core/hygiene.py`](https://github.com/winterop-com/dhis2w-security/blob/main/src/dhis2w_security/core/hygiene.py)) degrades to a clear note on v42/v43 when the endpoint returns 404 (not backported) or 403 (auditing account is not a superuser), instead of a false all-clear.
 
 **How to know it's fixed:** `GET /api/users/twoFactor/summary` returns 200 for a user holding `ALL` on a released 2.42 / 2.43 patch.
+
+**Verifier:** none yet.
+
+---
+
+### 146. v42: a data value set export outside the account's data scope answers 200 with an empty body
+
+**Observed on:** DHIS2 2.42.7 (`play.im.dhis2.org/stable-2-42-7`), 2026-10-23, as play's `admin`, whose data capture org units there are two districts (`P1HohXRfAkY`, `YuQRtpLP10I`) with no data view or search org units, so the root `ImspTQPwCqd` is outside its scope. Not tried on 2.43.2, where play's `admin` holds the root; not retested on 2.41.10, 2.42.6 or 2.44.
+
+**Repro:**
+
+```bash
+# Outside admin's scope: 200, zero bytes.
+curl -s -u admin:district -o /dev/null -w '%{http_code} %{size_download}\n' \
+  'https://play.im.dhis2.org/stable-2-42-7/api/dataValueSets.json?dataSet=pBOMPrpg1QX&period=202507&orgUnit=ImspTQPwCqd&children=true'
+# 200 0
+
+# The same request as system: the 16 values.
+curl -s -u system:System123 \
+  'https://play.im.dhis2.org/stable-2-42-7/api/dataValueSets.json?dataSet=pBOMPrpg1QX&period=202507&orgUnit=ImspTQPwCqd&children=true' | jq '.dataValues | length'
+# 16
+
+# In scope with nothing to export answers a document, not nothing:
+curl -s -u system:System123 \
+  'https://play.im.dhis2.org/stable-2-42-7/api/dataValueSets.json?dataSet=pBOMPrpg1QX&period=190001&orgUnit=DiszpKrYNg8'
+# {"dataSet":"pBOMPrpg1QX","completeDate":null,"period":"190001","orgUnit":"DiszpKrYNg8","dataValues":[]}
+
+# Tracker refuses the same situation out loud:
+curl -s -u admin:district -o /dev/null -w '%{http_code}\n' \
+  'https://play.im.dhis2.org/stable-2-42-7/api/tracker/events?orgUnit=ImspTQPwCqd'
+# 403  "Organisation unit is not part of your search scope: ImspTQPwCqd"
+```
+
+**Expected:** a 409 or 403 naming the org unit outside the account's data scope, as the tracker endpoints answer.
+
+**Actual:** 200 with an empty body. A client cannot tell the refusal from an export that found nothing unless it notices the body is missing the data set every data value set names.
+
+**Impact:** a client that reads an empty successful body as an empty document turns the refusal into an empty data value set, and a pipeline exporting and importing it reports success having moved nothing.
+
+**Workaround in this repo:** every tree's `Dhis2Client._parse_json` (`packages/dhis2w-client/src/dhis2w_client/v{41,42,43,44}/client.py`) raises `Dhis2ApiError` for a GET answered 200 with an empty body, so `data_values.export()` raises instead of returning an empty `DataValueSet`.
+
+**How to know it's fixed:** the first request above answers 409 or 403 with a message naming `ImspTQPwCqd`.
 
 **Verifier:** none yet.
 
