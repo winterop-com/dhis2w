@@ -172,6 +172,12 @@ Dhis2ClientError                     # base
 
 `Dhis2ApiError` carries `status_code`, `message`, and `body` (parsed JSON if available, else text).
 
+Two successful responses raise it too, because each stands in for a refusal: a 200 whose body is
+not JSON (a proxy or SSO login page in front of the API), and a GET answered 200 with no body at
+all, which every DHIS2 read answers with a document and 2.42 sends for a data value set export
+outside the account's data scope ([DHIS2_ISSUES.md #146](https://github.com/winterop-com/dhis2w/blob/main/DHIS2_ISSUES.md)).
+A write (POST, PUT, PATCH, DELETE) answered with no body, and any 204, parses as an empty document.
+
 ## Design choices
 
 - **`httpx2.AsyncClient` is held as an attribute, not constructed per call.** Connection pooling matters for MCP tools that an agent hits dozens of times per session.
