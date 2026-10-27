@@ -9,7 +9,9 @@ import pytest
 import respx
 from dhis2w_client import BasicAuth
 from dhis2w_client.v41.oauth2_payload import build_register_payload as build_v41
+from dhis2w_client.v42 import oauth2_payload as v42_payload
 from dhis2w_client.v42.oauth2_payload import build_register_payload as build_v42
+from dhis2w_client.v43 import oauth2_payload as v43_payload
 from dhis2w_client.v43.oauth2_payload import build_register_payload as build_v43
 from dhis2w_client.v44.oauth2_payload import build_register_payload as build_v44
 from dhis2w_core.oauth2_registration import register_oauth2_client
@@ -64,11 +66,42 @@ def test_v42_onward_register_the_openid_scopes_and_require_pkce(builder: object)
     assert json.loads(payload["clientSettings"])["settings.client.require-proof-key"] is True
 
 
-@pytest.mark.parametrize("builder", [build_v42, build_v43, build_v44], ids=["v42", "v43", "v44"])
-def test_v42_onward_refuse_a_scope_outside_the_openid_set(builder: object) -> None:
-    """Requesting `ALL` against a 2.42.7, 2.43.2 or 2.44 client fails before the request instead of with a 409."""
+def test_v44_refuses_the_all_scope() -> None:
+    """Requesting `ALL` against a 2.44 client fails before the request instead of with a 409 (DHIS2_ISSUES.md #134)."""
     with pytest.raises(ValueError, match="allows only the scopes"):
-        builder(**{**_common_kwargs(), "scope": "ALL"})  # type: ignore[operator]
+        build_v44(**{**_common_kwargs(), "scope": "ALL"})  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("builder", [build_v42, build_v43], ids=["v42", "v43"])
+def test_v42_v43_register_the_all_scope_for_earlier_patches(builder: object) -> None:
+    """`ALL` registers the legacy client older v42 and v43 patches recognise, without forcing PKCE."""
+    payload = builder(**{**_common_kwargs(), "scope": "ALL"})  # type: ignore[operator]
+    assert payload["scopes"] == "ALL"
+    assert "settings.client.require-proof-key" not in json.loads(payload["clientSettings"])
+
+
+@pytest.mark.parametrize("builder", [build_v42, build_v43], ids=["v42", "v43"])
+def test_v42_v43_refuse_a_scope_outside_both_sets(builder: object) -> None:
+    """A scope that is neither `ALL` nor an OpenID scope fails before the request."""
+    with pytest.raises(ValueError, match="requests either ALL"):
+        builder(**{**_common_kwargs(), "scope": "ALL,openid"})  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    ("module", "raw_version", "expected"),
+    [
+        (v42_payload, "2.42.6", "ALL"),
+        (v42_payload, "2.42.6.1", "ALL"),
+        (v42_payload, "2.42.7", "openid"),
+        (v42_payload, "2.42.8-SNAPSHOT", "openid"),
+        (v43_payload, "2.43.1", "ALL"),
+        (v43_payload, "2.43.2", "openid"),
+        (v43_payload, "2.43.3-SNAPSHOT", "openid"),
+    ],
+)
+def test_default_scope_follows_the_server_patch(module: object, raw_version: str, expected: str) -> None:
+    """The OpenID-scope rules start at 2.42.7 and 2.43.2; earlier patches keep `ALL` (DHIS2_ISSUES.md #134)."""
+    assert module.default_scope_for(raw_version) == expected  # type: ignore[attr-defined]
 
 
 def test_v41_emits_arrays_for_multivalued_fields() -> None:
@@ -129,3 +162,5 @@ async def test_register_oauth2_client_dispatches_to_v42_builder_on_v42_server() 
     body = register_route.calls.last.request.read()
     assert b'"clientId"' in body
     assert b'"cid"' not in body
+    # 2.42.4 predates the OpenID-scope rules, so the default registers `ALL`.
+    assert json.loads(body)["scopes"] == "ALL"

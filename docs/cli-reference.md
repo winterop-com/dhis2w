@@ -9450,7 +9450,7 @@ $ d2w profile bootstrap [OPTIONS] {name}
 * `--admin-user <str>`: Admin username (for basic bootstrap).
 * `--client-id <str>`: OAuth2 client_id to register (auth=oauth2).  [default: dhis2-utils-local]
 * `--redirect-uri <str>`: OAuth2 redirect URI.  [default: http://localhost:8765]
-* `--scope <str>`: OAuth2 scope.  [default: ALL]
+* `--scope <str>`: OAuth2 scope; default picked from the server version (openid or ALL).
 * `--pat-description <str>`: PAT description (auth=pat).
 * `--pat-expires-in-days <int>`: PAT lifetime in days; omit for no expiry.
 * `--global`: Save to ~/.config/dhis2/profiles.toml (default).
@@ -9606,7 +9606,7 @@ $ d2w profile oauth2 client register [OPTIONS]
 * `--admin-user <str>`
 * `--client-id <str>`: [default: dhis2-utils-local]
 * `--redirect-uri <str>`: [default: http://localhost:8765]
-* `--scope <str>`: Scope a login requests; 2.43.2 allows only the OpenID scopes.  [default: openid]
+* `--scope <str>`: Scope a login requests; default openid from 2.43.2 (OpenID scopes only), ALL before.
 * `--name <str>`
 * `--help`: Show this message and exit.
 

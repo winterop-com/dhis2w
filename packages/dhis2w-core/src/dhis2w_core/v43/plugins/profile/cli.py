@@ -702,7 +702,10 @@ def bootstrap_command(
         str, typer.Option("--client-id", help="OAuth2 client_id to register (auth=oauth2).")
     ] = "dhis2-utils-local",
     redirect_uri: Annotated[str, typer.Option("--redirect-uri", help="OAuth2 redirect URI.")] = DEFAULT_REDIRECT_URI,
-    scope: Annotated[str, typer.Option("--scope", help="OAuth2 scope.")] = "ALL",
+    scope: Annotated[
+        str | None,
+        typer.Option("--scope", help="OAuth2 scope; default picked from the server version (openid or ALL)."),
+    ] = None,
     pat_description: Annotated[
         str | None, typer.Option("--pat-description", help="PAT description (auth=pat).")
     ] = None,

@@ -81,14 +81,15 @@ async def register_oauth2_client(
     `clientId` and accept arrays too (DHIS2_ISSUES.md #39). The per-version
     `dhis2w_client.v{N}.oauth2_payload.build_register_payload` builder
     owns each shape; this helper connects, looks at `client.version_key`,
-    and dispatches to the matching builder. Without `scope`, a login requests
-    the builder's `DEFAULT_SCOPE` (`openid` on v42 to v44, which refuse `ALL`,
-    DHIS2_ISSUES.md #134) and `ALL` on v41.
+    and dispatches to the matching builder. Without `scope`, the tree picks the
+    scope from the server's exact version: `openid` where the OpenID-scope rules
+    apply (2.42.7, 2.43.2 and 2.44 refuse `ALL`, DHIS2_ISSUES.md #134) and `ALL`
+    on v41 and on earlier v42 and v43 patches.
     """
     secret_hash = _bcrypt_hash(client_secret)
     async with Dhis2Client(base_url, auth=admin_auth) as client:
         payload_module = importlib.import_module(f"dhis2w_client.{client.version_key}.oauth2_payload")
-        resolved_scope = scope or str(getattr(payload_module, "DEFAULT_SCOPE", "ALL"))
+        resolved_scope = scope or _default_scope(payload_module, client.raw_version)
         payload = payload_module.build_register_payload(
             client_id=client_id,
             client_secret_hash=secret_hash,
@@ -107,6 +108,14 @@ async def register_oauth2_client(
         redirect_uri=redirect_uri,
         scope=resolved_scope,
     )
+
+
+def _default_scope(payload_module: object, raw_version: str) -> str:
+    """Return the tree's scope for `raw_version`: its `default_scope_for`, else `DEFAULT_SCOPE`, else `ALL`."""
+    default_scope_for = getattr(payload_module, "default_scope_for", None)
+    if callable(default_scope_for):
+        return str(default_scope_for(raw_version))
+    return str(getattr(payload_module, "DEFAULT_SCOPE", "ALL"))
 
 
 def build_admin_auth(*, pat: str | None, username: str | None, password: str | None) -> AuthProvider:
