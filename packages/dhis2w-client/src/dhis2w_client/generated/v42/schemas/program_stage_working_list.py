@@ -44,9 +44,7 @@ class ProgramStageWorkingList(BaseModel):
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     program: Reference | None = Field(default=None, description="Reference to Program.")
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
-    programStageQueryCriteria: Any | None = Field(
-        default=None, description="Reference to ProgramStageQueryCriteria. Length/value max=255."
-    )
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    programStageQueryCriteria: Any | None = Field(default=None, description="Reference to ProgramStageQueryCriteria.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

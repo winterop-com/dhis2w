@@ -45,6 +45,6 @@ class DataApprovalWorkflow(BaseModel):
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
     periodType: PeriodType | None = Field(default=None, description="Reference to PeriodType. Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

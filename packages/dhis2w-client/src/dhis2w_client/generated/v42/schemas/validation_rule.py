@@ -30,7 +30,7 @@ class ValidationRule(BaseModel):
     aggregateExportAttributeOptionCombo: str | None = Field(default=None, description="Length/value max=2147483647.")
     aggregateExportCategoryOptionCombo: str | None = Field(default=None, description="Length/value max=2147483647.")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
@@ -63,10 +63,10 @@ class ValidationRule(BaseModel):
     periodType: PeriodType | None = Field(default=None, description="Reference to PeriodType. Length/value max=255.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
     rightSide: Any | None = Field(default=None, description="Reference to Expression. Unique. Length/value max=255.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
     skipFormValidation: bool | None = None
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     validationRuleGroups: list[Any] | None = Field(
         default=None, description="Collection of ValidationRuleGroup. Read-only (inverse side)."

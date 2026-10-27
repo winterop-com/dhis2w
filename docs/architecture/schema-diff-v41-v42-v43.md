@@ -1,6 +1,6 @@
 # Schema diff: v41 -> v42 -> v43
 
-Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.10.0`, v42 = `2.42.6.0`, v43 = `2.43.2.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
+Reference of every schema change across the three supported DHIS2 majors (v41 = `2.41.10.0`, v42 = `2.42.7.0`, v43 = `2.43.2.0`) as seen by `dhis2w-client`'s codegen. Two sources of truth:
 
 - **`/api/schemas`** drives `dhis2w_client.generated.v{N}.schemas` (and the `client.resources.X` accessors). Run `d2w dev codegen diff v41 v42` or `d2w dev codegen diff v42 v43` to regenerate the schema-side diff.
 - **`/api/openapi.json`** drives `dhis2w_client.generated.v{N}.oas` (the request/response shapes used by tracker, auth schemes, data-value imports, etc.). Diff is a plain `ls` comparison of the per-version `oas/` trees — there is no dedicated CLI command for it yet.
@@ -81,7 +81,7 @@ These resources are gone in v43 (`externalFileResource` is gone from the current
 | Schema | Class on the server | Notes |
 | --- | --- | --- |
 | `dataInputPeriods` | `org.hisp.dhis.dataset.DataInputPeriod` | Folded into `dataSet.dataInputPeriods` inline; no top-level resource. |
-| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.10.0`, `2.42.6.0`, `2.43.2.0`); use the `externalAccess` field on `fileResource` directly. |
+| `externalFileResource` | `org.hisp.dhis.fileresource.ExternalFileResource` | Gone on every pinned release (`2.41.10.0`, `2.42.7.0`, `2.43.2.0`); use the `externalAccess` field on `fileResource` directly. |
 | `pushanalysis` | `org.hisp.dhis.pushanalysis.PushAnalysis` | Push-analysis is removed in v43. |
 
 ### Schemas-side: breaking shape changes
@@ -130,7 +130,7 @@ Fields removed in v43, beyond the breaking-shape and resource removals above. Mo
 
 | Schema | Removed fields |
 | --- | --- |
-| `access` | `externalize` (also gone on `2.41.10.0` and `2.42.6.0`) |
+| `access` | `externalize` (also gone on `2.41.10.0` and `2.42.7.0`) |
 | `categoryCombo` | `favorite` |
 | `categoryOption` | `aggregationType`, `dimensionItem`, `dimensionItemType`, `favorite`, `legendSet`, `legendSets` |
 | `dashboard` | `displayFormName`, `displayShortName`, `formName`, `shortName` |

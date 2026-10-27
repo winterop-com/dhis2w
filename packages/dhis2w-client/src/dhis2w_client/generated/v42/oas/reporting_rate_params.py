@@ -35,14 +35,6 @@ class ReportingRateParamsLastUpdatedBy(_BaseModel):
     id: str | None = None
 
 
-class ReportingRateParamsLegendSet(_BaseModel):
-    """OpenAPI schema `ReportingRateParamsLegendSet`."""
-
-    model_config = _ConfigDict(extra="allow", populate_by_name=True, defer_build=True)
-
-    id: str | None = None
-
-
 class ReportingRateParams(_BaseModel):
     """OpenAPI schema `ReportingRateParams`."""
 
@@ -64,7 +56,6 @@ class ReportingRateParams(_BaseModel):
     formName: str | None = None
     lastUpdated: datetime | None = None
     lastUpdatedBy: ReportingRateParamsLastUpdatedBy | None = None
-    legendSet: ReportingRateParamsLegendSet | None = None
     metric: ReportingRateMetric | None = None
     queryMods: QueryModifiers | None = None
     sharing: Sharing | None = None

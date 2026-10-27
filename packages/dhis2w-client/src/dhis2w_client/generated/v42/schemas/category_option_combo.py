@@ -28,7 +28,7 @@ class CategoryOptionCombo(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
     categoryOptions: list[Any] | None = Field(default=None, description="Collection of CategoryOption.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
@@ -55,5 +55,5 @@ class CategoryOptionCombo(BaseModel):
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     shortName: str | None = Field(default=None, description="Length/value max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

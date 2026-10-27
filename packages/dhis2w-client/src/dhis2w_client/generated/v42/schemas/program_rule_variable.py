@@ -47,7 +47,7 @@ class ProgramRuleVariable(BaseModel):
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     trackedEntityAttribute: Reference | None = Field(default=None, description="Reference to TrackedEntityAttribute.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     useCodeForOptionSet: bool | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     valueType: ValueType | None = None

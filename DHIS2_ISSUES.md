@@ -30,7 +30,7 @@ the retest log at the end lists which ones it did.
 
 | Group | Issues | 2.41.10 | 2.42.6 | 2.43.2 | 2.44-SNAPSHOT `c48aedc` | Reported |
 | --- | --- | --- | --- | --- | --- | --- |
-| [OpenAPI document (v41 / v42 / v43 / v44)](#openapi-document-v41--v42--v43--v44) | [#13](#13-outlierdetectionalgorithm-oas-enum-reports-mod_z_score-but-dhis2-rejects-that-value-at-runtime), [#14](#14-oas-routeauth-is-a-oneof-with-no-discriminator--and-the-auth-scheme-schemas-are-missing-their-jackson-type-field), [#15](#15-oas-emits-jobconfigurationjobparameters-and-webmessageresponse-as-undiscriminated-oneofs), [#28](#28-openapi-relativeperiods-schema-exposes-45-boolean-fields-instead-of-an-enum), [#42](#42-get-apisystemsettings-returns-keyanalysisdisplayproperty-name-lowercase--generated-systemsettings-enum-rejects-it), [#49](#49-v43-datavaluefollowuprequestperiod-is-typed-as-an-object-but-the-wire-accepts-a-string), [#51](#51-apitokenexpire-is-optional-in-the-openapi-document-and-required-by-apischemas-so-the-two-introspection-surfaces-disagree-on-whether-a-non-expiring-pat-is-representable), [#52](#52-no-version-invariant-generated-oauth2-client-schema-v41-emits-only-the-array-typed-oauth2client-v42v43-only-the-comma-string-dhis2oauth2client), [#80](#80-apicompletedatasetregistrations-has-no-component-schema-in-the-openapi-document), [#94](#94-apiopenapiopenapijson-types-the-same-id-reference-under-two-different-component-names-on-243x), [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant), [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing), [#122](#122-the-openapi-documents-infoversion-reads-242-on-a-2431-server), [#123](#123-the-v41-openapi-document-keeps-api-in-servers0url-and-spells-every-path-key-unprefixed-and-path-is-either-ignored-or-silently-empty), [#133](#133-one-image-builds-a-different-openapi-document-and-apischemas-on-each-boot-colliding-members-resolve-in-no-fixed-order), [#144](#144-get-apimetadatadependencies-is-documented-to-answer-metadataexportparams-the-request-parameter-bag-not-the-export-bundle-it-returns) | 12 | 12 | 14 | 13 | not yet |
+| [OpenAPI document (v41 / v42 / v43 / v44)](#openapi-document-v41--v42--v43--v44) | [#13](#13-outlierdetectionalgorithm-oas-enum-reports-mod_z_score-but-dhis2-rejects-that-value-at-runtime), [#14](#14-oas-routeauth-is-a-oneof-with-no-discriminator--and-the-auth-scheme-schemas-are-missing-their-jackson-type-field), [#15](#15-oas-emits-jobconfigurationjobparameters-and-webmessageresponse-as-undiscriminated-oneofs), [#28](#28-openapi-relativeperiods-schema-exposes-45-boolean-fields-instead-of-an-enum), [#42](#42-get-apisystemsettings-returns-keyanalysisdisplayproperty-name-lowercase--generated-systemsettings-enum-rejects-it), [#49](#49-v43-datavaluefollowuprequestperiod-is-typed-as-an-object-but-the-wire-accepts-a-string), [#51](#51-apitokenexpire-is-optional-in-the-openapi-document-and-required-by-apischemas-so-the-two-introspection-surfaces-disagree-on-whether-a-non-expiring-pat-is-representable), [#52](#52-no-version-invariant-generated-oauth2-client-schema-v41-emits-only-the-array-typed-oauth2client-v42v43-only-the-comma-string-dhis2oauth2client), [#80](#80-apicompletedatasetregistrations-has-no-component-schema-in-the-openapi-document), [#94](#94-apiopenapiopenapijson-types-the-same-id-reference-under-two-different-component-names-on-243x), [#95](#95-categoryoptionaggregationtype-is-schema-typed-boolean-on-2431-while-every-sibling-says-constant), [#100](#100-the-openapi-document-routes-put-apitypeuidsharing-for-23-types-whose-schema-says-shareable-false-and-the-refusal-blames-data-sharing), [#122](#122-the-openapi-documents-infoversion-reads-242-on-a-2431-server), [#123](#123-the-v41-openapi-document-keeps-api-in-servers0url-and-spells-every-path-key-unprefixed-and-path-is-either-ignored-or-silently-empty), [#133](#133-one-image-builds-a-different-openapi-document-and-apischemas-on-each-boot-colliding-members-resolve-in-no-fixed-order), [#144](#144-get-apimetadatadependencies-is-documented-to-answer-metadataexportparams-the-request-parameter-bag-not-the-export-bundle-it-returns), [#148](#148-importconflictsconflicts-is-documented-as-a-boolean-while-the-wire-carries-the-list-of-conflicts) | 13 | 12 | 15 | 14 | not yet |
 | [Authentication: OAuth2, OIDC and tokens](#authentication-oauth2-oidc-and-tokens) | [#4](#4-dhis2-oauth2-authorization-server-requires-10-undocumented-dhisconf-keys-all-set-together-or-authorizetoken-silently-degrade), [#4b](#4b-oauth2token-on-a-misconfigured-stack-returns-dhis2s-generic-401-instead-of-the-spring-as-error-json), [#4c](#4c-the-oauth2-signing-key-rotates-on-every-startup-so-every-outstanding-access-token-dies-v41-mints-an-opaque-token-and-issues-no-refresh-token-at-all), [#4d](#4d-dhis2-conflates-oauth2-and-oidc-across-its-config-keys-docs-and-code-paths), [#4h](#4h-dhis2-refuses-its-own-oauth2-jwts-with-invalid-mapping-claim-whatever-the-resolved-users-openid-says), [#9](#9-dhis2s-strict-oidc-property-parser-rejects-entire-provider-config-on-typos), [#39](#39-v41-oauth2-client-wire-shape--cid-not-clientid--strict-array-typed-multi-valued-fields), [#96](#96-on-2431-the-oauth2-authorization-server-500s-for-any-registered-client-whose-settings-or-grant-types-are-empty-and-post-apioauth2clients-creates-exactly-that-client), [#117](#117-the-multi-valued-oauth2-client-fields-take-arrays-on-v41-and-comma-separated-strings-on-v42v43-and-each-major-fails-silently-or-loudly-on-the-other-shape), [#120](#120-serverbaseurl-is-logged-as-invalid-for-a-value-that-satisfies-the-messages-own-rule-and-the-authorization-server-then-stamps-a-slashed-iss), [#134](#134-2432-and-244-refuse-all-as-an-oauth2-client-scope-require-pkce-on-every-registered-client-and-report-the-scope-refusal-as-a-missing-required-property) | 6 | 9 | 10 | 7 | not yet |
 | [Server configuration (dhis.conf) and audit](#server-configuration-dhisconf-and-audit) | [#3](#3-blank-auditmetadata--audittracker--auditaggregate-in-dhisconf-silently-fall-back-to-audit-enabled-defaults), [#53](#53-the-audit-posture-lives-only-in-dhisconf-and-is-exposed-by-no-api-endpoint-so-it-cannot-be-verified-remotely), [#54](#54-dhis2-applies-create-update-delete-security-as-the-default-matrix-when-a-scope-key-is-absent-or-empty), [#137](#137-get-apiauditstrackedentity-answers-500-with-a-raw-nullpointerexception-message-when-trackedentities-is-absent-and-ignores-page--pagesize--paging-when-it-is-present) | 3 | 4 | 4 | 2 | not yet |
 | [Security headers and CORS](#security-headers-and-cors) | [#55](#55-dhis2-calls-spring-securitys-defaultsdisabled-and-never-emits-coop--coep--corp-so-cross-origin-isolation-headers-are-absent-on-every-stock-instance), [#60](#60-hsts-presence-depends-on-the-proxy-in-front-of-dhis2-and-csp-state-is-observable-only-on-the-wire--where-the-header-itself-is-instance-dependent), [#61](#61-keycorswhitelist-was-removed-from-systemsettings-the-cors-origin-list-is-only-readable-from-apiconfigurationcorswhitelist) | 3 | 3 | 3 | 3 | not yet |
@@ -59,7 +59,7 @@ the retest log at the end lists which ones it did.
 | [Maintenance API](#maintenance-api) | [#126](#126-post-apimaintenance-answers-success-to-any-query-flag-name-real-or-invented-while-the-path-form-refuses-an-unknown-name) | 1 | 1 | 1 | 1 | not yet |
 | [Scheduler job notifications](#scheduler-job-notifications) | [#143](#143-244-clears-a-failed-jobs-notification-feed-about-a-second-after-its-terminal-row) | 0 | 0 | 0 | 1 | not yet |
 | [Container image (2.44)](#container-image-244) | [#135](#135-the-244-image-has-no-shell-and-never-reads-java_opts-and-trackedentityattributeconfidential-is-gone-from-the-schema) | 0 | 0 | 0 | 1 | not yet |
-| **All groups** | 142 issues | **94** | **99** | **120** | **121** | |
+| **All groups** | 143 issues | **95** | **99** | **121** | **122** |
 
 ## How to add an issue
 
@@ -79,7 +79,7 @@ the retest log at the end lists which ones it did.
 
 **Summary.** The OpenAPI document served at `/api/openapi/openapi.json` does not describe the API the same server runs. Polymorphic properties are emitted as bare `oneOf`s with no `discriminator`, enums and types disagree with what the handlers accept or return, request bodies and component schemas are missing, export routes declare their request-parameter bag as their response, `info.version` is a constant rather than the build's version, and one image builds a different document on each boot. An API client generated from the document, or validated against it, rejects valid traffic or accepts invalid traffic, and has to carry a hand-written patch per finding. The document facts, the per-major findings table and the repros below were verified against the live document of each pinned release.
 
-**Versions affected:** 2.41.10 (12 of 16), 2.42.6 (12 of 16), 2.43.2 (14 of 16), 2.44-SNAPSHOT `c48aedc` (13 of 16). Not retested or inconclusive: 1 on 2.44-SNAPSHOT `c48aedc`. Each issue's status lines give the release-by-release detail.
+**Versions affected:** 2.41.10 (13 of 17), 2.42.6 (12 of 17), 2.43.2 (15 of 17), 2.44-SNAPSHOT `c48aedc` (14 of 17). Not retested or inconclusive: 1 on 2.44-SNAPSHOT `c48aedc`. Each issue's status lines give the release-by-release detail.
 
 **Reported:** not yet.
 
@@ -1330,6 +1330,8 @@ of `2.41.10`.
 
 **Status on 2.44 (v44 preview, rev c48aedc, 2026-10-06):** STILL. Five boots of `c48aedc` (four fresh, one audited) moved `Instant/oneOf` order, `required` on `MetadataExportParams` and `TrackerEventParams`, the operationId of `POST /api/dataSets/{uid}/form`, the `oneOf` order of the `/api/files/script`, `/api/files/style` and `/api/files/style/external` responses, and `enrollmentStatus` on the 16 `analytics/trackedEntities/{query,aggregate}` routes (see the OpenAPI document section).
 
+**Status on 2.42.7 (v42 pin, rev 633b694, 2026-10-27):** STILL. Three fresh boots of `dhis2/core:2.42.7.0` on an empty database (`infra/scripts/openapi_stability.sh`) disagree on 7 pointers: `Page.items` (`EntityType`, `TrackerEnrollment`, `TrackerRelationship`) with the `EntityType` placeholder component, `Instant/oneOf` order, the operationId of `GET /api/dataValueSets/`, and the `oneOf` order of the `200` responses of `/api/files/script`, `/api/files/style` and `/api/files/style/external`. Every boot, and the codegen capture, types `ImportConflicts.conflicts` as `boolean` where play's `stable-2-42-7` documents the array (#148).
+
 **Status on 2.43.2 (v43 pin, rev 13927ae, 2026-10-06):** STILL, on fewer pointers. Four fresh boots of `dhis2/core:2.43.2.0` on an empty database (`infra/scripts/openapi_stability.sh` plus the codegen capture) disagree on 11 pointers: `CategoryOption.aggregationType` and `CategoryOptionParams.aggregationType` with their `required` lists, `Instant/oneOf` order, the operationId of `POST /api/dataSets/{uid}/form`, and the `oneOf` order of the `200` responses of `/api/files/script`, `/api/files/style` and `/api/files/style/external`. The `required` lists of `ObjectReport`, `TypeReport`, `Grid` and `MetadataExportParams` and the `outlierDetection` and `trackedEntities/query` parameters agree on all four. `programStatus` and the new `enrollmentStatus` on `/api/analytics/trackedEntities/query/{trackedEntityType}` are the boolean-with-array-default `{"type":"boolean","default":[]}` on every boot. The pinned codegen emits the same tree from all four captures.
 
 **Repro:**
@@ -1441,6 +1443,50 @@ the generated `MetadataExportParams`; `d2w metadata export` parses `/api/metadat
 
 **How to know it's fixed:** the `jq` above shows a bundle schema (or a `$ref` to one) for the
 `200` of all eight routes, and `objects` carries `required: true`.
+
+### 148. `ImportConflicts.conflicts` is documented as a boolean, while the wire carries the list of conflicts
+
+**Observed on:** `play.im.dhis2.org/stable-2-41-10` (`2.41.10`), `stable-2-43-2` (`2.43.2`) and `dev`
+(`2.44-SNAPSHOT`), 2026-10-27, and the committed captures of `2.41.10.0`, `2.43.2.0` and the v44
+preview `c48aedc`, which all type the property `boolean`. `2.42.7` is the exception: play's
+`stable-2-42-7` documents the array, as the committed `2.42.6.0` capture did.
+
+**Status on 2.42.7 (2026-10-27):** STILL on the local stack: four fresh boots of `dhis2/core:2.42.7.0` on an
+empty database (the codegen capture plus three from `infra/scripts/openapi_stability.sh`) document
+the boolean, while play's long-running `stable-2-42-7` documents the array, so which shape wins
+depends on the instance (#133).
+
+**Repro:**
+
+```bash
+# The document: boolean on 2.41, 2.43 and 2.44.
+curl -sL --location-trusted -u admin:district https://play.dhis2.org/2.43/api/openapi/openapi.json \
+  | jq -c '.components.schemas.ImportConflicts.properties.conflicts'
+# {"type":"boolean"}
+
+# The wire: an import summary (the same `ImportConflicts` type) carries a list.
+curl -s -u admin:district -H 'Content-Type: application/json' -X POST \
+  'https://play.im.dhis2.org/stable-2-43-2/api/dataValueSets?dryRun=true' \
+  -d '{"dataValues":[{"dataElement":"nope1234567","period":"202501","orgUnit":"ImspTQPwCqd","value":"1"}]}' \
+  | jq -c '.response.conflicts'
+# [{"objects":{"args":"[nope1234567]"},"value":"Data set detection failed, ...","errorCode":"E8003","indexes":[0]}]
+```
+
+**Expected:** `ImportConflicts.conflicts` is `{"type":"array","items":{"$ref":"#/components/schemas/ImportConflict"}}`
+on every boot of every release, as play's `2.42.7` documents it.
+
+**Actual:** `{"type":"boolean"}` on most documents. `ImportConflicts` is the `200` of
+`POST /api/synchronization/dataPush`.
+
+**Impact:** a client generated from the document types the conflict list as a boolean and fails
+validation on the first response that carries a conflict.
+
+**Workaround in this repo:** the `pin-boot-dependent-shapes` spec patch pins the property to the
+array of `ImportConflict` before emission
+(`packages/dhis2w-codegen/src/dhis2w_codegen/spec_patches.py`), so `generated/v{41,42,43,44}/oas/import_conflicts.py`
+types `conflicts: list[ImportConflict] | None`.
+
+**How to know it's fixed:** the first `jq` above prints the array shape on every boot.
 
 ---
 

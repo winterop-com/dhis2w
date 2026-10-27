@@ -27,7 +27,7 @@ class Document(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     attachment: bool | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     contentType: str | None = Field(default=None, description="Length/value max=255.")
     created: datetime | None = None
@@ -41,7 +41,7 @@ class Document(BaseModel):
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     url: str | None = Field(default=None, description="Length/value max=2147483647.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

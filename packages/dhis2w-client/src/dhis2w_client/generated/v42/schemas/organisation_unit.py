@@ -29,7 +29,7 @@ class OrganisationUnit(BaseModel):
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     address: str | None = Field(default=None, description="Length/value max=255.")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     childs: list[Any] | None = Field(
         default=None, description="Collection of OrganisationUnit. Read-only (inverse side)."
     )
@@ -77,7 +77,7 @@ class OrganisationUnit(BaseModel):
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: str | None = Field(default=None, description="Length/value max=2147483647.")
     url: str | None = Field(default=None, description="Length/value max=255.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

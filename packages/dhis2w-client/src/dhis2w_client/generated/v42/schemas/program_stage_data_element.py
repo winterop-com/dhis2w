@@ -46,7 +46,7 @@ class ProgramStageDataElement(BaseModel):
     name: str | None = Field(default=None, description="Length/value min=1, max=2147483647.")
     programStage: Reference | None = Field(default=None, description="Reference to ProgramStage.")
     renderOptionsAsRadio: bool | None = None
-    renderType: Any | None = Field(default=None, description="Reference to DeviceRenderTypeMap. Length/value max=255.")
+    renderType: Any | None = Field(default=None, description="Reference to DeviceRenderTypeMap.")
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     skipAnalytics: bool | None = None
     skipSynchronization: bool | None = None

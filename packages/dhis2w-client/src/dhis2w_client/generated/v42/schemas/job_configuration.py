@@ -44,7 +44,7 @@ class JobConfiguration(BaseModel):
     favorites: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
     href: str | None = None
     id: str | None = Field(default=None, description="Unique. Length/value min=11, max=11.")
-    jobParameters: Any | None = Field(default=None, description="Reference to JobParameters. Length/value max=255.")
+    jobParameters: Any | None = Field(default=None, description="Reference to JobParameters.")
     jobStatus: JobStatus | None = None
     jobType: JobType | None = None
     lastAlive: datetime | None = None

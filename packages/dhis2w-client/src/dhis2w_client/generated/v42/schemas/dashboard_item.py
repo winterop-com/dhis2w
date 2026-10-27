@@ -56,7 +56,7 @@ class DashboardItem(BaseModel):
     shape: DashboardItemShape | None = None
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     text: str | None = Field(default=None, description="Length/value max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: DashboardItemType | None = Field(default=None, description="Read-only.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     users: list[Any] | None = Field(default=None, description="Collection of User.")

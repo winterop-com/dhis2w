@@ -206,6 +206,9 @@ _BOOT_DEPENDENT_PROPERTIES: dict[tuple[str, str], dict[str, Any]] = {
     ("Page", "items"): {"type": "array", "items": {}},
     # A JSON-schema `$ref` keyword is a string; some boots type it `any`.
     ("SchemaObject", "$ref"): {"type": "string"},
+    # The wire carries a list of `ImportConflict`, but most boots of every major type it
+    # `boolean`; only some 2.42.7 boots document the list (DHIS2_ISSUES.md #148).
+    ("ImportConflicts", "conflicts"): {"type": "array", "items": {"$ref": "#/components/schemas/ImportConflict"}},
 }
 
 # Placeholders that only exist while a boot-dependent property points at them: DHIS2's own
@@ -226,7 +229,7 @@ def _pin_boot_dependent_shapes(components: dict[str, dict[str, Any]]) -> bool:
         if not isinstance(properties, dict) or property_name not in properties:
             continue
         # v41 inlines the enum and has no `AggregationType` component; never point at a missing one.
-        target = shape.get("$ref", "").removeprefix("#/components/schemas/")
+        target = (shape.get("$ref") or shape.get("items", {}).get("$ref", "")).removeprefix("#/components/schemas/")
         if target and target not in components:
             continue
         if properties[property_name] != shape:

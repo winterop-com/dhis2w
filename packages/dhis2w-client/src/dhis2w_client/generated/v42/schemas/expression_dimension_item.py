@@ -29,7 +29,7 @@ class ExpressionDimensionItem(BaseModel):
     aggregateExportAttributeOptionCombo: str | None = Field(default=None, description="Length/value max=2147483647.")
     aggregateExportCategoryOptionCombo: str | None = Field(default=None, description="Length/value max=2147483647.")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     created: datetime | None = None
     createdBy: Reference | None = Field(default=None, description="Reference to User.")
@@ -53,8 +53,8 @@ class ExpressionDimensionItem(BaseModel):
     missingValueStrategy: MissingValueStrategy | None = None
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     slidingWindow: bool | None = None
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
