@@ -20,7 +20,12 @@ FROM postgis/postgis:17-3.5
 # `Valid-Until` has passed, which makes `apt-get update` exit 100 on every
 # build. Neither package below comes from that suite (wal2json is pgdg,
 # python3-bcrypt is bullseye main).
+#
+# The pgdg source is pointed at apt-archive.postgresql.org: apt.postgresql.org
+# no longer serves `bullseye-pgdg` (its Release file answers 404), and the
+# archive keeps the suite, wal2json included, under the same signing key.
 RUN sed -i '/bullseye-security/d' /etc/apt/sources.list && \
+    sed -i 's|http://apt.postgresql.org/|https://apt-archive.postgresql.org/|' /etc/apt/sources.list.d/*.list && \
     DEBIAN_FRONTEND=noninteractive apt-get update -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         postgresql-17-wal2json \
