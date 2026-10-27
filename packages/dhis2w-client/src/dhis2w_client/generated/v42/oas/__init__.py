@@ -1140,12 +1140,7 @@ from .replace_operation import ReplaceOperation
 from .report import Report
 from .report_params import ReportParams, ReportParamsCreatedBy, ReportParamsLastUpdatedBy
 from .reporting_params import ReportingParams
-from .reporting_rate_params import (
-    ReportingRateParams,
-    ReportingRateParamsCreatedBy,
-    ReportingRateParamsLastUpdatedBy,
-    ReportingRateParamsLegendSet,
-)
+from .reporting_rate_params import ReportingRateParams, ReportingRateParamsCreatedBy, ReportingRateParamsLastUpdatedBy
 from .reserved_value import ReservedValue
 from .reset_password_request import ResetPasswordRequest
 from .response_body_emitter import ResponseBodyEmitter
@@ -2167,7 +2162,6 @@ _classes = {
     "ReportingParams": ReportingParams,
     "ReportingRateParamsCreatedBy": ReportingRateParamsCreatedBy,
     "ReportingRateParamsLastUpdatedBy": ReportingRateParamsLastUpdatedBy,
-    "ReportingRateParamsLegendSet": ReportingRateParamsLegendSet,
     "ReportingRateParams": ReportingRateParams,
     "ReservedValue": ReservedValue,
     "ResetPasswordRequest": ResetPasswordRequest,
@@ -3959,7 +3953,6 @@ __all__ = [
     "ReportingRateParams",
     "ReportingRateParamsCreatedBy",
     "ReportingRateParamsLastUpdatedBy",
-    "ReportingRateParamsLegendSet",
     "ReservedValue",
     "ResetPasswordRequest",
     "ResourceTableType",

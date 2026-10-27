@@ -28,7 +28,7 @@ class TrackedEntityAttribute(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     confidential: bool | None = None
     created: datetime | None = None
@@ -61,13 +61,13 @@ class TrackedEntityAttribute(BaseModel):
     orgunitScope: bool | None = None
     pattern: str | None = Field(default=None, description="Length/value max=255.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
     skipSynchronization: bool | None = None
     sortOrderInListNoProgram: int | None = Field(default=None, description="Length/value max=2147483647.")
     sortOrderInVisitSchedule: int | None = Field(default=None, description="Length/value max=2147483647.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     unique: bool | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     valueType: ValueType | None = None

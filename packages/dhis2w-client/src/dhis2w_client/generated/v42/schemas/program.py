@@ -28,11 +28,9 @@ class Program(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     accessLevel: AccessLevel | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
-    categoryMappings: list[Any] | None = Field(
-        default=None, description="Collection of ProgramCategoryMapping. Length/value max=255."
-    )
+    categoryMappings: list[Any] | None = Field(default=None, description="Collection of ProgramCategoryMapping.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     completeEventsExpiryDays: int | None = Field(default=None, description="Length/value max=2147483647.")
     created: datetime | None = None
@@ -102,13 +100,13 @@ class Program(BaseModel):
     relationshipLabel: str | None = Field(default=None, description="Length/value min=2, max=2147483647.")
     selectEnrollmentDatesInFuture: bool | None = None
     selectIncidentDatesInFuture: bool | None = None
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
     skipOffline: bool | None = None
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
     trackedEntityAttributeLabel: str | None = Field(default=None, description="Length/value min=2, max=2147483647.")
     trackedEntityType: Reference | None = Field(default=None, description="Reference to TrackedEntityType.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     useFirstStageDuringRegistration: bool | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     userRoles: list[Any] | None = Field(default=None, description="Collection of UserRole. Read-only (inverse side).")

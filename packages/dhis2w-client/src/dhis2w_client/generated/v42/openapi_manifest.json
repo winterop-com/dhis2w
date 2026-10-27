@@ -1,7 +1,7 @@
 {
   "version_key": "v42",
-  "raw_version": "2.42.6",
-  "openapi_sha256": "7c39fa21128d7a6ca27b90cba0da8cb43ad8e7f19bb0ecd721a28fd4ccfa08d1",
+  "raw_version": "2.42.7",
+  "openapi_sha256": "ac8c2d279ad5e148b570519ecffb6197d5f695970db9da8433184cbf2318aba9",
   "components_total": 930,
   "emitted": {
     "enums": [
@@ -1150,7 +1150,6 @@
       "ReportingParams",
       "ReportingRateParamsCreatedBy",
       "ReportingRateParamsLastUpdatedBy",
-      "ReportingRateParamsLegendSet",
       "ReportingRateParams",
       "ReservedValue",
       "ResetPasswordRequest",

@@ -26,7 +26,7 @@ class Dashboard(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    allowedFilters: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    allowedFilters: list[Any] | None = Field(default=None, description="Collection of String.")
     attributeValues: Any | None = Field(
         default=None, description="Reference to AttributeValues. Read-only (inverse side)."
     )
@@ -39,20 +39,20 @@ class Dashboard(BaseModel):
     displayFormName: str | None = Field(default=None, description="Read-only.")
     displayName: str | None = Field(default=None, description="Read-only.")
     displayShortName: str | None = Field(default=None, description="Read-only.")
-    embedded: Any | None = Field(default=None, description="Reference to EmbeddedDashboard. Length/value max=255.")
+    embedded: Any | None = Field(default=None, description="Reference to EmbeddedDashboard.")
     favorite: bool | None = Field(default=None, description="Read-only.")
-    favorites: list[Any] | None = Field(default=None, description="Collection of String. Length/value max=255.")
+    favorites: list[Any] | None = Field(default=None, description="Collection of String.")
     formName: str | None = Field(default=None, description="Length/value max=2147483647.")
     href: str | None = None
     id: str | None = Field(default=None, description="Unique. Length/value min=11, max=11.")
-    itemConfig: Any | None = Field(default=None, description="Reference to ItemConfig. Length/value max=255.")
+    itemConfig: Any | None = Field(default=None, description="Reference to ItemConfig.")
     itemCount: int | None = Field(default=None, description="Read-only.")
     lastUpdated: datetime | None = None
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
-    layout: Any | None = Field(default=None, description="Reference to Layout. Length/value max=255.")
+    layout: Any | None = Field(default=None, description="Reference to Layout.")
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     restrictFilters: bool | None = None
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Length/value min=1, max=50.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

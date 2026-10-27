@@ -26,7 +26,7 @@ class Section(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombos: list[Any] | None = Field(
         default=None, description="Collection of CategoryCombo. Read-only (inverse side)."
     )
@@ -38,7 +38,7 @@ class Section(BaseModel):
     description: str | None = Field(default=None, description="Length/value min=2, max=2147483647.")
     disableDataElementAutoGroup: bool | None = None
     displayName: str | None = Field(default=None, description="Read-only.")
-    displayOptions: str | None = Field(default=None, description="Length/value max=50000.")
+    displayOptions: str | None = Field(default=None, description="Length/value max=2147483647.")
     favorite: bool | None = Field(default=None, description="Read-only.")
     favorites: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
     greyedFields: list[Any] | None = Field(default=None, description="Collection of DataElementOperand.")
@@ -52,5 +52,5 @@ class Section(BaseModel):
     showColumnTotals: bool | None = None
     showRowTotals: bool | None = None
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

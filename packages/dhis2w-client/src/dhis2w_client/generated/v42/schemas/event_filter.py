@@ -35,9 +35,7 @@ class EventFilter(BaseModel):
     description: str | None = Field(default=None, description="Length/value max=255.")
     displayDescription: str | None = Field(default=None, description="Read-only.")
     displayName: str | None = Field(default=None, description="Read-only.")
-    eventQueryCriteria: Any | None = Field(
-        default=None, description="Reference to EventQueryCriteria. Length/value max=255."
-    )
+    eventQueryCriteria: Any | None = Field(default=None, description="Reference to EventQueryCriteria.")
     favorite: bool | None = Field(default=None, description="Read-only.")
     favorites: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
     href: str | None = None
@@ -47,6 +45,6 @@ class EventFilter(BaseModel):
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     program: str | None = Field(default=None, description="Length/value min=11, max=11.")
     programStage: str | None = Field(default=None, description="Length/value min=11, max=11.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

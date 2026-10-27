@@ -27,7 +27,7 @@ class User(BaseModel):
 
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     accountExpiry: datetime | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     avatar: Reference | None = Field(default=None, description="Reference to FileResource.")
     birthday: datetime | None = None
     catDimensionConstraints: list[Any] | None = Field(default=None, description="Collection of Category.")

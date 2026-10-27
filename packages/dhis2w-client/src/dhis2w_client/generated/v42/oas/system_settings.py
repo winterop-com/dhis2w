@@ -52,6 +52,7 @@ class SystemSettings(_BaseModel):
     jobsLogDebugBelowSeconds: int | None = None
     jobsMaxCronDelayHours: int | None = None
     jobsRescheduleAfterMinutes: int | None = None
+    jobsRescheduleAnalyticsAfterMinutes: int | None = None
     keyAcceptanceRequiredForApproval: bool | None = None
     keyAccountRecovery: bool | None = None
     keyAllowObjectAssignment: bool | None = None

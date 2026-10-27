@@ -47,8 +47,8 @@ class Report(BaseModel):
         default=None, description="Reference to RelativePeriods. Read-only (inverse side)."
     )
     reportParams: Any | None = Field(default=None, description="Reference to ReportingParams.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     type: ReportType | None = None
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     visualization: Reference | None = Field(default=None, description="Reference to Visualization.")

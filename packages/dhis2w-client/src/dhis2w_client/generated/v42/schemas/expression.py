@@ -28,4 +28,4 @@ class Expression(BaseModel):
     expression: str | None = Field(default=None, description="Length/value max=2147483647.")
     missingValueStrategy: MissingValueStrategy | None = None
     slidingWindow: bool | None = None
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")

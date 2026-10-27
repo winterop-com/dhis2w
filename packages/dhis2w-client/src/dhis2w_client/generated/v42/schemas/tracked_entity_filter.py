@@ -40,10 +40,8 @@ class TrackedEntityFilter(BaseModel):
         default=None, description="Reference to FilterPeriod. Read-only (inverse side)."
     )
     enrollmentStatus: EnrollmentStatus | None = None
-    entityQueryCriteria: Any | None = Field(
-        default=None, description="Reference to EntityQueryCriteria. Length/value max=255."
-    )
-    eventFilters: list[Any] | None = Field(default=None, description="Collection of EventFilter. Length/value max=255.")
+    entityQueryCriteria: Any | None = Field(default=None, description="Reference to EntityQueryCriteria.")
+    eventFilters: list[Any] | None = Field(default=None, description="Collection of EventFilter.")
     favorite: bool | None = Field(default=None, description="Read-only.")
     favorites: list[Any] | None = Field(default=None, description="Collection of String. Read-only (inverse side).")
     followup: bool | None = None
@@ -53,8 +51,8 @@ class TrackedEntityFilter(BaseModel):
     lastUpdatedBy: Reference | None = Field(default=None, description="Reference to User.")
     name: str | None = Field(default=None, description="Length/value min=1, max=230.")
     program: Reference | None = Field(default=None, description="Reference to Program.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     sortOrder: int | None = Field(default=None, description="Length/value max=2147483647.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

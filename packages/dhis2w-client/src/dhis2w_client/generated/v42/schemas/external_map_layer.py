@@ -48,7 +48,7 @@ class ExternalMapLayer(BaseModel):
     mapLayerPosition: MapLayerPosition | None = None
     mapService: MapService | None = None
     name: str | None = Field(default=None, description="Unique. Length/value min=1, max=230.")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     url: str | None = Field(default=None, description="Length/value max=2147483647.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

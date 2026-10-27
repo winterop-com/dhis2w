@@ -58,5 +58,5 @@ class ProgramNotificationTemplate(BaseModel):
     sendRepeatable: bool | None = None
     sharing: Any | None = Field(default=None, description="Reference to Sharing. Read-only (inverse side).")
     subjectTemplate: str | None = Field(default=None, description="Length/value max=100.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")

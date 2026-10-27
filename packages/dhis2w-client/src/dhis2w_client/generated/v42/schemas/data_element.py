@@ -30,7 +30,7 @@ class DataElement(BaseModel):
     access: Any | None = Field(default=None, description="Reference to Access. Read-only (inverse side).")
     aggregationLevels: list[Any] | None = Field(default=None, description="Collection of Integer.")
     aggregationType: AggregationType | None = None
-    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues. Length/value max=255.")
+    attributeValues: Any | None = Field(default=None, description="Reference to AttributeValues.")
     categoryCombo: Reference | None = Field(default=None, description="Reference to CategoryCombo.")
     code: str | None = Field(default=None, description="Unique. Length/value max=50.")
     commentOptionSet: Reference | None = Field(default=None, description="Reference to OptionSet.")
@@ -64,14 +64,12 @@ class DataElement(BaseModel):
     optionSet: Reference | None = Field(default=None, description="Reference to OptionSet.")
     optionSetValue: bool | None = Field(default=None, description="Read-only.")
     queryMods: Any | None = Field(default=None, description="Reference to QueryModifiers. Read-only (inverse side).")
-    sharing: Any | None = Field(default=None, description="Reference to Sharing. Length/value max=255.")
+    sharing: Any | None = Field(default=None, description="Reference to Sharing.")
     shortName: str | None = Field(default=None, description="Unique. Length/value min=1, max=50.")
-    style: Any | None = Field(default=None, description="Reference to ObjectStyle. Length/value max=255.")
-    translations: list[Any] | None = Field(default=None, description="Collection of Translation. Length/value max=255.")
+    style: Any | None = Field(default=None, description="Reference to ObjectStyle.")
+    translations: list[Any] | None = Field(default=None, description="Collection of Translation.")
     url: str | None = Field(default=None, description="Length/value max=255.")
     user: Reference | None = Field(default=None, description="Reference to User. Read-only (inverse side).")
     valueType: ValueType | None = None
-    valueTypeOptions: Any | None = Field(
-        default=None, description="Reference to ValueTypeOptions. Length/value max=255."
-    )
+    valueTypeOptions: Any | None = Field(default=None, description="Reference to ValueTypeOptions.")
     zeroIsSignificant: bool | None = None
