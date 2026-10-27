@@ -98,7 +98,7 @@ After `uv tool install dhis2w-cli`, run the CLI directly:
 ```bash
 d2w --help
 d2w --version  # also: -V — shows package version + active plugin tree
-d2w system info --url https://play.im.dhis2.org/dev-2-43 --username admin --password district
+d2w system info --url https://play.dhis2.org/2.43 --username admin --password district
 ```
 
 `d2w --version` surfaces which plugin tree (`v41` / `v42` / `v43` / `v44`) the CLI booted with and where that came from in the resolution chain (`profile.version` → `DHIS2_VERSION` env → default `v43`). Helps debug "which DHIS2 major is this CLI talking to" without reading the profile by hand.
@@ -112,7 +112,7 @@ d2w system info --url https://play.im.dhis2.org/dev-2-43 --username admin --pass
 # uvx --from <pkg> <cmd>  # required when they differ — that's our case
 
 uvx --from dhis2w-cli d2w --help
-uvx --from dhis2w-cli d2w system info --url https://play.im.dhis2.org/dev-2-43 --username admin --password district
+uvx --from dhis2w-cli d2w system info --url https://play.dhis2.org/2.43 --username admin --password district
 
 # With the browser extra
 uvx --from 'dhis2w-cli[browser]' d2w browser pat --url ...
@@ -134,7 +134,7 @@ uv add dhis2w-client
 from dhis2w_client import BasicAuth, Dhis2Client
 
 async with Dhis2Client(
-    base_url="https://play.im.dhis2.org/dev-2-43",
+    base_url="https://play.dhis2.org/2.43",
     auth=BasicAuth(username="admin", password="district"),
 ) as client:
     me = await client.system.me()
@@ -172,7 +172,7 @@ uvx --refresh dhis2w-mcp
       "command": "uvx",
       "args": ["dhis2w-mcp"],
       "env": {
-        "DHIS2_URL": "https://play.im.dhis2.org/dev-2-43",
+        "DHIS2_URL": "https://play.dhis2.org/2.43",
         "DHIS2_USERNAME": "admin",
         "DHIS2_PASSWORD": "district"
       }
@@ -187,7 +187,7 @@ Restart Claude Desktop. PAT auth works the same way — replace the username/pas
 
 ```bash
 claude mcp add d2w -s user \
-  -e DHIS2_URL=https://play.im.dhis2.org/dev-2-43 \
+  -e DHIS2_URL=https://play.dhis2.org/2.43 \
   -e DHIS2_PAT=d2p_... \
   -- uvx dhis2w-mcp
 ```

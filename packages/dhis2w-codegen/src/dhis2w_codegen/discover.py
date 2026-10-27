@@ -94,11 +94,17 @@ class SchemasManifest(BaseModel):
         return self
 
 
-async def discover(url: str, auth: AuthProvider) -> SchemasManifest:
-    """Fetch system info and schemas from a live DHIS2 instance."""
+async def discover(url: str, auth: AuthProvider, *, follow_redirects_with_auth: bool = False) -> SchemasManifest:
+    """Fetch system info and schemas from a live DHIS2 instance.
+
+    `follow_redirects_with_auth` adopts whatever URL `url` redirects to, as
+    `Dhis2Client` does; it is what lets a version alias such as
+    `https://play.dhis2.org/2.43` reach the demo it currently points at.
+    """
     from dhis2w_client.v42.client import Dhis2Client
 
-    client = Dhis2Client(base_url=url, auth=auth, allow_version_fallback=True)
+    resolved_url = await resolve_base_url(url, follow_redirects_with_auth=follow_redirects_with_auth)
+    client = Dhis2Client(base_url=resolved_url, auth=auth, allow_version_fallback=True)
     try:
         info = await _system_info_without_version_gate(client)
         raw_version = str(info.get("version", ""))
@@ -116,7 +122,7 @@ def _strip_host(endpoint: str | None) -> str | None:
     """Reduce a fully-qualified apiEndpoint to its `/api/...` path.
 
     DHIS2's `/api/schemas` returns absolute URLs pinned to whatever host the
-    request hit — `https://play.im.dhis2.org/dev-2-43/api/dataElements` for
+    request hit — `https://play.im.dhis2.org/stable-2-43-2/api/dataElements` for
     the public play instance, `http://localhost:8080/api/dataElements` for a
     root-hosted dev stack. The committed manifest is consumed by callers who
     don't care which instance produced it, so drop everything before `/api/`.
@@ -125,6 +131,15 @@ def _strip_host(endpoint: str | None) -> str | None:
         return endpoint
     marker = endpoint.find("/api/")
     return endpoint[marker:] if marker != -1 else None
+
+
+async def resolve_base_url(url: str, *, follow_redirects_with_auth: bool = False) -> str:
+    """Resolve the canonical DHIS2 base URL behind `url` the same way `Dhis2Client.connect()` does."""
+    from dhis2w_client.v42.client import Dhis2Client
+
+    return await Dhis2Client._resolve_canonical_base_url(  # noqa: SLF001 — codegen bypasses connect(), so resolve here
+        url, trust_target=follow_redirects_with_auth
+    )
 
 
 async def _system_info_without_version_gate(client: Dhis2Client) -> dict[str, Any]:

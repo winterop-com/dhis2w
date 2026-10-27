@@ -275,7 +275,7 @@ def _class_doc_for(schema: Schema, version_key: str) -> _ClassDoc:
     summary = f"DHIS2 {label} - {kind} (generated from /api/schemas at DHIS2 {version_key})."
     # DHIS2's apiEndpoint is an absolute URL pinned to whatever instance we
     # discovered against — `http://localhost:8080/api/dataElements` for a
-    # root-hosted dev stack, `https://play.im.dhis2.org/dev-2-43/api/dataElements`
+    # root-hosted dev stack, `https://play.im.dhis2.org/stable-2-43-2/api/dataElements`
     # for the public play instance with a context path. Drop everything before
     # `/api/` so the docstring records the version-portable relative path.
     endpoint = schema.apiEndpoint

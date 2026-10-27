@@ -28,7 +28,7 @@ If you already use the `d2w` CLI or the MCP server, this library is what those l
 ## Prerequisites
 
 - Python 3.13+
-- A reachable DHIS2 instance (v41, v42, or v43; v44 as a preview). Local: `make dhis2-run`; remote: your own install or one of the `https://play.im.dhis2.org/dev-2-{41,42,43}` instances (`https://play.im.dhis2.org/dev` for the 2.44 development line).
+- A reachable DHIS2 instance (v41, v42, or v43; v44 as a preview). Local: `make dhis2-run`; remote: your own install or one of the `https://play.dhis2.org/2.41`, `/2.42` or `/2.43` demos, each a stable link that redirects to the latest release of that major (`https://play.im.dhis2.org/dev` for the 2.44 development line).
 - Credentials; PAT, username+password, or OAuth2 client config.
 
 ## Install

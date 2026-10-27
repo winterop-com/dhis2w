@@ -22,8 +22,13 @@ Six subcommands: `generate` and `rebuild` for the `/api/schemas` path, `fetch-op
 ```bash
 # /api/schemas: against a live instance. The canonical source is the local stack
 # running the pinned image (`make dhis2-codegen-all`); `make dhis2-codegen-play`
-# reads the play.im.dhis2.org/stable-2-4N-P channel that runs the same pin.
+# reads play.dhis2.org/2.4N, refusing when its latest release is not the pin.
 uv run d2w dev codegen generate --url http://localhost:8080 \
+                                  --username admin --password district
+
+# A URL that redirects to the instance (the play.dhis2.org/2.4N aliases) needs
+# --follow-redirects-with-auth, which `fetch-openapi` takes too.
+uv run d2w dev codegen generate --url https://play.dhis2.org/2.43 --follow-redirects-with-auth \
                                   --username admin --password district
 
 # /api/openapi/openapi.json: capture the live document verbatim into

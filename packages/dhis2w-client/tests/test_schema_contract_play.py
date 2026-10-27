@@ -1,7 +1,8 @@
-"""Live-schema contract tests against play.im.dhis2.org.
+"""Live-schema contract tests against the play.dhis2.org demo instances.
 
-Pulls one real instance of each major resource from `dev-2-41`,
-`dev-2-42` and `dev-2-43` and runs it through the matching generated pydantic model.
+Pulls one real instance of each major resource from the latest 2.41, 2.42
+and 2.43 releases (`play.dhis2.org/2.4N`) and the 2.44 development line
+(`play.im.dhis2.org/dev`) and runs it through the matching generated pydantic model.
 Catches DHIS2 ship-day API drift the day it lands — if a field type
 changes, a new required field appears, or an enum gains a constant we
 don't know about, the model_validate call below raises and this test
@@ -106,10 +107,10 @@ _V43_RESOURCES = _listable_resource_accessors("v43")
 _V44_RESOURCES = _listable_resource_accessors("v44")
 
 PLAY_URLS = {
-    "v41": "https://play.im.dhis2.org/dev-2-41",
-    "v42": "https://play.im.dhis2.org/dev-2-42",
-    "v43": "https://play.im.dhis2.org/dev-2-43",
-    # No `dev-2-44` channel exists while 2.44 is unreleased; `dev` runs the 2.44 development line.
+    "v41": "https://play.dhis2.org/2.41",
+    "v42": "https://play.dhis2.org/2.42",
+    "v43": "https://play.dhis2.org/2.43",
+    # 2.44 has no release yet, so its alias redirects to the instance list; `dev` runs the 2.44 line.
     "v44": "https://play.im.dhis2.org/dev",
 }
 
@@ -125,7 +126,12 @@ async def _make_client(url: str) -> AsyncIterator[Dhis2Client]:
     than the instance being down. A connection dropped mid-handshake gets one
     re-attempt before that skip decides anything.
     """
-    client = Dhis2Client(url, auth=BasicAuth(username="admin", password="district"), allow_version_fallback=True)
+    client = Dhis2Client(
+        url,
+        auth=BasicAuth(username="admin", password="district"),
+        allow_version_fallback=True,
+        follow_redirects_with_auth=True,
+    )
     try:
         try:
             await _once_more_if_the_connection_drops(f"connect {url}", client.connect)
@@ -142,21 +148,21 @@ async def _make_client(url: str) -> AsyncIterator[Dhis2Client]:
 
 @pytest.fixture
 async def play_v41_client() -> AsyncIterator[Dhis2Client]:
-    """Yield a connected client for `dev-2-41`, skipping if the host is down."""
+    """Yield a connected client for the latest 2.41 release, skipping if the host is down."""
     async for client in _make_client(PLAY_URLS["v41"]):
         yield client
 
 
 @pytest.fixture
 async def play_v42_client() -> AsyncIterator[Dhis2Client]:
-    """Yield a connected client for `dev-2-42`, skipping if the host is down."""
+    """Yield a connected client for the latest 2.42 release, skipping if the host is down."""
     async for client in _make_client(PLAY_URLS["v42"]):
         yield client
 
 
 @pytest.fixture
 async def play_v43_client() -> AsyncIterator[Dhis2Client]:
-    """Yield a connected client for `dev-2-43`, skipping if the host is down."""
+    """Yield a connected client for the latest 2.43 release, skipping if the host is down."""
     async for client in _make_client(PLAY_URLS["v43"]):
         yield client
 
@@ -345,9 +351,9 @@ async def test_v44_schema_contract(play_v44_client: Dhis2Client, accessor_name: 
 #
 # The Sierra Leone play fixture seeds the `IpHINAT79UW` Child Programme
 # (tracker, with-registration), so trackedEntities + enrollments always have
-# rows there. That program ships with zero events on the dev play instances,
+# rows there. That program ships with zero events on the play instances,
 # so the events check discovers a program that currently has events at runtime
-# rather than hard-coding one (the dev instances re-seed) — see
+# rather than hard-coding one (the play instances re-seed) — see
 # `_fetch_first_tracker_row`.
 # ---------------------------------------------------------------------------
 
@@ -426,8 +432,8 @@ async def _fetch_first_tracker_row(client: Dhis2Client, endpoint: str) -> Any:
     """Return one `/api/tracker/{endpoint}` row, or None if the instance has none.
 
     The `IpHINAT79UW` Child Programme has trackedEntities + enrollments but zero
-    events on the dev play instances, so the events case needs a program that
-    actually carries events. Rather than hard-code one (the dev instances
+    events on the play instances, so the events case needs a program that
+    actually carries events. Rather than hard-code one (the play instances
     re-seed, so any single program/event can vanish between runs and re-skip),
     discover a program with data at runtime: try the Child Programme, then probe
     every program (event programs first — they carry the seed's events) until one

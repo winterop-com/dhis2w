@@ -17,7 +17,7 @@ uv add dhis2w-client
 from dhis2w_client import BasicAuth, Dhis2Client
 
 async with Dhis2Client(
-    base_url="https://play.im.dhis2.org/dev-2-43",
+    base_url="https://play.dhis2.org/2.43",
     auth=BasicAuth(username="admin", password="district"),
 ) as client:
     me = await client.system.me()

@@ -1715,6 +1715,7 @@ $ d2w dev codegen generate [OPTIONS]
 * `--password <str>`: Basic-auth password.
 * `--pat <str>`: Personal Access Token.
 * `--output-root <path>`: Directory containing versioned subfolders; defaults to dhis2w-client&#x27;s generated/ folder.
+* `--follow-redirects-with-auth`: Adopt whatever URL --url redirects to and send the credential there (a version alias).
 * `--help`: Show this message and exit.
 
 #### `d2w dev codegen fetch-openapi`
@@ -1734,6 +1735,7 @@ $ d2w dev codegen fetch-openapi [OPTIONS]
 * `--password <str>`: Basic-auth password.
 * `--pat <str>`: Personal Access Token.
 * `--output-root <path>`: Directory of versioned subfolders; defaults to dhis2w-client generated/.
+* `--follow-redirects-with-auth`: Adopt whatever URL --url redirects to and send the credential there (a version alias).
 * `--help`: Show this message and exit.
 
 #### `d2w dev codegen oas-flips`
