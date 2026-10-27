@@ -95,7 +95,7 @@ async def test_discover_oidc_profile_builds_oauth2_profile() -> None:
     client_secret = discovered.profile.client_secret
     assert client_secret is not None and client_secret == "my-secret"
     # Default scope/redirect_uri mirror DHIS2 + the CLI loopback.
-    assert discovered.profile.scope == "ALL"
+    assert discovered.profile.scope == "openid"
     assert discovered.profile.redirect_uri == "http://localhost:8765"
 
 
