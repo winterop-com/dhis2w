@@ -494,7 +494,7 @@ async def discover_oidc_profile(
     *,
     client_id: str,
     client_secret: str,
-    scope: str = "ALL",
+    scope: str = "openid",
     redirect_uri: str = DEFAULT_REDIRECT_URI,
     version: Dhis2 | None = None,
 ) -> DiscoveredOidcProfile:

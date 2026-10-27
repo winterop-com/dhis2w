@@ -222,7 +222,7 @@ def sample_oauth2_client_command(
             client_id=resolved_client_id,
             client_secret="smoke-secret-do-not-use",
             redirect_uri=DEFAULT_REDIRECT_URI,
-            scope="ALL",
+            scope="openid",
             display_name="d2w dev sample oauth2-client (smoke test)",
         )
         _ok(f"created uid={creds.uid}")

@@ -37,7 +37,7 @@ def test_v41_payload_uses_cid_not_client_id() -> None:
 
 def test_v42_payload_uses_client_id_not_cid() -> None:
     """v42 renamed the property to `clientId`; payload must not carry `cid`."""
-    payload = build_v42(**_common_kwargs())  # type: ignore[arg-type]
+    payload = build_v42(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[arg-type]
     assert payload["clientId"] == "my-app"
     assert "cid" not in payload
 
@@ -56,17 +56,17 @@ def test_v44_payload_uses_client_id_not_cid() -> None:
     assert "cid" not in payload
 
 
-@pytest.mark.parametrize("builder", [build_v43, build_v44], ids=["v43", "v44"])
-def test_v43_onward_register_the_openid_scopes_and_require_pkce(builder: object) -> None:
-    """2.43.2 and 2.44 refuse `ALL` and a client without PKCE (DHIS2_ISSUES.md #134); builders send what they allow."""
+@pytest.mark.parametrize("builder", [build_v42, build_v43, build_v44], ids=["v42", "v43", "v44"])
+def test_v42_onward_register_the_openid_scopes_and_require_pkce(builder: object) -> None:
+    """2.42.7, 2.43.2 and 2.44 refuse `ALL` and a client without PKCE (DHIS2_ISSUES.md #134); builders comply."""
     payload = builder(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[operator]
     assert payload["scopes"] == "openid,email,profile,username"
     assert json.loads(payload["clientSettings"])["settings.client.require-proof-key"] is True
 
 
-@pytest.mark.parametrize("builder", [build_v43, build_v44], ids=["v43", "v44"])
-def test_v43_onward_refuse_a_scope_outside_the_openid_set(builder: object) -> None:
-    """Requesting `ALL` against a 2.43.2 or 2.44 client fails before the request instead of with a 409."""
+@pytest.mark.parametrize("builder", [build_v42, build_v43, build_v44], ids=["v42", "v43", "v44"])
+def test_v42_onward_refuse_a_scope_outside_the_openid_set(builder: object) -> None:
+    """Requesting `ALL` against a 2.42.7, 2.43.2 or 2.44 client fails before the request instead of with a 409."""
     with pytest.raises(ValueError, match="allows only the scopes"):
         builder(**{**_common_kwargs(), "scope": "ALL"})  # type: ignore[operator]
 
@@ -81,8 +81,7 @@ def test_v41_emits_arrays_for_multivalued_fields() -> None:
 def test_v42_onward_emit_comma_separated_strings_for_multivalued_fields() -> None:
     """2.42.6 and 2.43.1 answer 201 to arrays and store nothing for them (DHIS2_ISSUES.md #117); strings persist."""
     for builder in (build_v42, build_v43, build_v44):
-        scope = "ALL" if builder is build_v42 else "openid"
-        payload = builder(**{**_common_kwargs(), "scope": scope})  # type: ignore[arg-type]
+        payload = builder(**{**_common_kwargs(), "scope": "openid"})  # type: ignore[arg-type]
         assert payload["authorizationGrantTypes"] == "authorization_code,refresh_token"
         assert payload["clientAuthenticationMethods"] == "client_secret_basic,client_secret_post"
         assert payload["redirectUris"] == "http://localhost:8765"

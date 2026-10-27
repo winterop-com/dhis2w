@@ -25,7 +25,7 @@ Env:
     DHIS2_OAUTH_CLIENT_ID         from .env.auth
     DHIS2_OAUTH_CLIENT_SECRET     from .env.auth
     DHIS2_OAUTH_REDIRECT_URI      default http://localhost:8765
-    DHIS2_OAUTH_SCOPES            default ALL
+    DHIS2_OAUTH_SCOPES            default openid (2.41 and 2.42.6 take ALL)
     DHIS2_USERNAME / DHIS2_PASSWORD   enables the Playwright path
     DHIS2_OAUTH_NO_BROWSER=1      print auth URL instead of opening a browser
 
@@ -58,7 +58,7 @@ async def main() -> None:
             "Run `make dhis2-run` then `set -a; source infra/home/credentials/.env.auth; set +a` before this script.",
         )
     redirect_uri = os.environ.get("DHIS2_OAUTH_REDIRECT_URI", "http://localhost:8765")
-    scope = os.environ.get("DHIS2_OAUTH_SCOPES", "ALL")
+    scope = os.environ.get("DHIS2_OAUTH_SCOPES", "openid")
     username = os.environ.get("DHIS2_USERNAME")
     password = os.environ.get("DHIS2_PASSWORD")
     open_browser_env = os.environ.get("DHIS2_OAUTH_NO_BROWSER", "0") == "0"

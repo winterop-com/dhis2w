@@ -103,7 +103,7 @@ auth = OAuth2Auth(
     base_url="https://dhis2.example.org",
     client_id="dhis2-utils-local",
     client_secret="...",
-    scope="openid",  # 2.43.2 and 2.44 register only the OpenID scopes; 2.41 and 2.42 use `ALL`
+    scope="openid",  # 2.42.7, 2.43.2 and 2.44 register only the OpenID scopes; 2.41 uses `ALL`
     redirect_uri="http://localhost:8765",
     token_store=my_token_store,
     store_key="profile:prod",  # distinguishes tokens across profiles
@@ -171,7 +171,7 @@ Two subtleties in the registered OAuth2 client itself (seeded by `make dhis2-see
 
 - **`clientSecret` must be BCrypt-hashed.** DHIS2 wires a `BCryptPasswordEncoder` into Spring AS's client auth filter, so plaintext secrets in the DB always fail `/oauth2/token` with 401 `invalid_client`. The seed script hashes the plaintext before POSTing to `/api/oAuth2Clients`.
 - **`clientSettings` and `tokenSettings` must be non-empty Jackson-serialized Spring AS JSON.** Leaving them blank triggers `IllegalArgumentException: settings cannot be empty` inside `Dhis2OAuth2ClientServiceImpl.toObject` on `/oauth2/authorize`. The seed script sends the same defaults DHIS2's built-in settings app writes when a client is created via `/apps/settings#/oauth2`.
-- **The allowed scopes depend on the release.** DHIS2 has no fine-grained OAuth scopes. 2.41 and 2.42 recognise the single pseudo-scope `ALL`. 2.43.2 and 2.44 refuse `ALL` and accept only `openid`, `email`, `profile` and `username`, and require PKCE on every client (DHIS2_ISSUES.md #134). The seed registers what each major accepts, and the default `--scope` flag is `ALL` on the v41 and v42 trees and `openid` on v43 and v44.
+- **The allowed scopes depend on the release.** DHIS2 has no fine-grained OAuth scopes. 2.41 and 2.42.6 recognise the single pseudo-scope `ALL`. 2.42.7, 2.43.2 and 2.44 refuse `ALL` and accept only `openid`, `email`, `profile` and `username`, and require PKCE on every client (DHIS2_ISSUES.md #134). The seed registers what each major accepts, and the default `--scope` flag is `ALL` on the v41 tree and `openid` on v42, v43 and v44.
 
 The `d2w profile login` CLI preflights the server with a `GET /.well-known/openid-configuration` before opening a browser, so a misconfigured instance produces the message *"DHIS2 at ... does not expose OAuth2/OIDC endpoints — set `oauth2.server.enabled = on` in dhis.conf and restart"* rather than a cryptic mid-flow failure.
 

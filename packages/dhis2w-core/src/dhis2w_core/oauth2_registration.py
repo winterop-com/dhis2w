@@ -65,7 +65,7 @@ async def register_oauth2_client(
     client_id: str,
     client_secret: str,
     redirect_uri: str = DEFAULT_REDIRECT_URI,
-    scope: str = "ALL",
+    scope: str | None = None,
     display_name: str | None = None,
 ) -> OAuth2ClientCredentials:
     """POST /api/oAuth2Clients to register a new client; returns the persisted credentials.
@@ -81,16 +81,19 @@ async def register_oauth2_client(
     `clientId` and accept arrays too (DHIS2_ISSUES.md #39). The per-version
     `dhis2w_client.v{N}.oauth2_payload.build_register_payload` builder
     owns each shape; this helper connects, looks at `client.version_key`,
-    and dispatches to the matching builder.
+    and dispatches to the matching builder. Without `scope`, a login requests
+    the builder's `DEFAULT_SCOPE` (`openid` on v42 to v44, which refuse `ALL`,
+    DHIS2_ISSUES.md #134) and `ALL` on v41.
     """
     secret_hash = _bcrypt_hash(client_secret)
     async with Dhis2Client(base_url, auth=admin_auth) as client:
         payload_module = importlib.import_module(f"dhis2w_client.{client.version_key}.oauth2_payload")
+        resolved_scope = scope or str(getattr(payload_module, "DEFAULT_SCOPE", "ALL"))
         payload = payload_module.build_register_payload(
             client_id=client_id,
             client_secret_hash=secret_hash,
             redirect_uri=redirect_uri,
-            scope=scope,
+            scope=resolved_scope,
             display_name=display_name,
             client_settings_json=_OAUTH2_CLIENT_SETTINGS_JSON,
             token_settings_json=_OAUTH2_TOKEN_SETTINGS_JSON,
@@ -102,7 +105,7 @@ async def register_oauth2_client(
         client_id=client_id,
         client_secret=client_secret,
         redirect_uri=redirect_uri,
-        scope=scope,
+        scope=resolved_scope,
     )
 
 
