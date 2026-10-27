@@ -55,7 +55,7 @@ the retest log at the end lists which ones it did.
 | [Apps and App Hub](#apps-and-app-hub) | [#30](#30-apiapphub-returns-versionscreated-as-an-epoch-millis-integer-and-last_updated-as-null), [#46](#46-post-apiapphubversionid-returns-an-opaque-proxied-app-hub-404-when-given-an-app-id-instead-of-a-version-id) | 2 | 2 | 2 | 2 | not yet |
 | [Login page and branding](#login-page-and-branding) | [#10](#10-login-page-system-setting-keys-are-a-mix-of-prefixed-and-unprefixed), [#11](#11-post-apistaticcontentlogo_front-succeeds-but-dhis2-keeps-serving-the-built-in-default-until-keyusecustomlogofronttrue-is-also-set), [#12](#12-dhis2-login-app-leaves-html-transparent-so-browser-zoom--100-exposes-the-browsers-background-below-the-page) | 2 | 2 | 2 | 3 | not yet |
 | [Route API](#route-api) | [#4e](#4e-dhis2-route-api-api-token-auth-sends-authorization-apitoken-value--not-the-standard-bearer-scheme), [#57](#57-the-dhis2-public-route-authority-is-f_route_public_add-not-f_public_route_add) | 1 | 1 | 1 | 2 | not yet |
-| [Web API response envelope and list paging](#web-api-response-envelope-and-list-paging) | [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id), [#136](#136-list-reads-with-a-plain-fields-selection-are-answered-by-the-gist-engine-an-extra-gist-true-key-a-reordered-pager-and-a-nextpage-downgraded-to-http-behind-tls) | 1 | 1 | 1 | 2 | not yet |
+| [Web API response envelope and list paging](#web-api-response-envelope-and-list-paging) | [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id), [#136](#136-list-reads-with-a-plain-fields-selection-are-answered-by-the-gist-engine-an-extra-gist-true-key-a-reordered-pager-and-a-nextpage-downgraded-to-http-behind-tls), [#147](#147-an-anonymous-web-api-read-without-x-requested-with-is-redirected-to-the-login-page-on-243-over-http-behind-tls) | 1 | 1 | 2 | 2 | not yet |
 | [Maintenance API](#maintenance-api) | [#126](#126-post-apimaintenance-answers-success-to-any-query-flag-name-real-or-invented-while-the-path-form-refuses-an-unknown-name) | 1 | 1 | 1 | 1 | not yet |
 | [Scheduler job notifications](#scheduler-job-notifications) | [#143](#143-244-clears-a-failed-jobs-notification-feed-about-a-second-after-its-terminal-row) | 0 | 0 | 0 | 1 | not yet |
 | [Container image (2.44)](#container-image-244) | [#135](#135-the-244-image-has-no-shell-and-never-reads-java_opts-and-trackedentityattributeconfidential-is-gone-from-the-schema) | 0 | 0 | 0 | 1 | not yet |
@@ -9016,13 +9016,13 @@ DHIS2; the constant is the app's bug.
 
 ## Web API response envelope and list paging
 
-**Summary.** The response envelope names a created object's identifier `uid` while every read names it `id`, and on 2.44 list reads with a plain `fields=` selection are answered by the Gist engine, adding a `gist` key, reordering the pager and downgrading `nextPage` to `http://` behind TLS. A client parsing one envelope shape across create, read and list needs a special case for each.
+**Summary.** The response envelope names a created object's identifier `uid` while every read names it `id`, on 2.44 list reads with a plain `fields=` selection are answered by the Gist engine, adding a `gist` key, reordering the pager and downgrading `nextPage` to `http://` behind TLS, and an anonymous API read is answered with a redirect to the login page rather than a `401` unless it sends `X-Requested-With`. A client parsing one envelope shape across create, read, list and refusal needs a special case for each.
 
-**Versions affected:** 2.41.10 (1 of 2), 2.42.6 (1 of 2), 2.43.2 (1 of 2), 2.44-SNAPSHOT `c48aedc` (2 of 2). Each issue's status lines give the release-by-release detail.
+**Versions affected:** 2.41.10 (1 of 3), 2.42.6 (1 of 3), 2.43.2 (2 of 3), 2.44-SNAPSHOT `c48aedc` (2 of 3). Each issue's status lines give the release-by-release detail.
 
 **Reported:** not yet.
 
-**Issues:** [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id), [#136](#136-list-reads-with-a-plain-fields-selection-are-answered-by-the-gist-engine-an-extra-gist-true-key-a-reordered-pager-and-a-nextpage-downgraded-to-http-behind-tls).
+**Issues:** [#4f](#4f-dhis2s-webmessageresponse-envelope-names-the-created-objects-identifier-uid-not-id), [#136](#136-list-reads-with-a-plain-fields-selection-are-answered-by-the-gist-engine-an-extra-gist-true-key-a-reordered-pager-and-a-nextpage-downgraded-to-http-behind-tls), [#147](#147-an-anonymous-web-api-read-without-x-requested-with-is-redirected-to-the-login-page-on-243-over-http-behind-tls).
 
 ### 4f. DHIS2's WebMessageResponse envelope names the created object's identifier `uid`, not `id`
 
@@ -9120,6 +9120,46 @@ value, and a client that follows `nextPage` behind TLS is downgraded to plain HT
 
 **How to know it's fixed:** the three reads above answer the same keys, and both `nextPage` links
 start with `https://`.
+
+---
+
+### 147. An anonymous Web API read without `X-Requested-With` is redirected to the login page, on 2.43 over `http://` behind TLS
+
+**Observed on:** play `stable-2-43-2` and `stable-2-42-7`, 2026-10-27.
+
+**Status (2026-10-27):** new. On `2.43.2` the redirect also leaves TLS; on `2.42.7` it stays on `https://`.
+
+**Repro:**
+
+```bash
+B=https://play.im.dhis2.org/stable-2-43-2
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -H 'Accept: application/json' $B/api/system/info
+# 302 http://play.im.dhis2.org/stable-2-43-2/login/
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -H 'X-Requested-With: XMLHttpRequest' $B/api/system/info
+# 401 application/json;charset=UTF-8
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -H 'Accept: application/json' \
+  https://play.im.dhis2.org/stable-2-42-7/api/system/info
+# 302 https://play.im.dhis2.org/stable-2-42-7/dhis-web-login/
+```
+
+**Expected:** an unauthenticated request under `/api` answers `401` with the JSON error envelope,
+whatever its headers, the way it does once `X-Requested-With: XMLHttpRequest` is sent. A redirect
+issued behind TLS keeps the `https://` scheme.
+
+**Actual:** without `X-Requested-With`, `/api/system/info` and `/api/me` answer `302` to the login
+page, even with `Accept: application/json`. On `2.43.2` the `Location` is `http://`, so a client
+following it leaves TLS; on `2.42.7` it is `https://`.
+
+**Impact:** a client that tells a DHIS2 instance from another host by reading `/api/system/info`
+anonymously gets a login page instead of the JSON envelope, and concludes the host is not DHIS2. A
+client following the redirect behind TLS is sent to plain HTTP on 2.43.
+
+**Workaround in this repo:** the canonical-URL probe sends `X-Requested-With: XMLHttpRequest`
+(`_probe_looks_like_dhis2` in `packages/dhis2w-client/src/dhis2w_client/v{41,42,43,44}/client.py`),
+and `Dhis2Client(..., follow_redirects_with_auth=True)` adopts a redirect target without the probe.
+
+**How to know it's fixed:** the first read above answers `401` with a JSON body, and a redirect
+behind TLS names `https://`.
 
 ---
 
