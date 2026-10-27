@@ -127,6 +127,7 @@ class Dhis2Client:
         system_cache_ttl: float | None = 300.0,
         verify: bool | str = True,
         skip_version_probe: bool = False,
+        follow_redirects_with_auth: bool = False,
         event_hooks: Mapping[str, list[Callable[..., Any]]] | None = None,
     ) -> None:
         """Build a client. Call connect() or use as an async context manager before API calls.
@@ -175,6 +176,14 @@ class Dhis2Client:
         on access — only `get_raw`, `post_raw`, `get_response`, and
         friends are usable.
 
+        `follow_redirects_with_auth` (default `False`) makes `connect()` adopt
+        whatever URL the base URL redirects to, on any host or scheme, so the
+        credential is sent there. Without it, a redirect to another origin is
+        adopted only when it keeps the scheme, shares the registrable domain
+        and answers an anonymous `/api/system/info` like DHIS2. Turn it on for
+        a redirect that changes scheme, such as `http://play.dhis2.org/2.43`
+        landing on `https://`, and only for a URL whose redirect you trust.
+
         `event_hooks` (default `None`) passes httpx2 event hooks straight to the
         internal `AsyncClient`; `None` leaves httpx2 defaults untouched. The
         security audit uses a `request` hook to enforce its read-only allowlist.
@@ -187,6 +196,7 @@ class Dhis2Client:
         self._http: httpx2.AsyncClient | None = None
         self._verify = resolve_verify(verify)
         self._skip_version_probe = skip_version_probe
+        self._follow_redirects_with_auth = follow_redirects_with_auth
         self._event_hooks = event_hooks
         self._version_key: str | None = None
         self._raw_version: str | None = None
@@ -306,7 +316,11 @@ class Dhis2Client:
         returns once the pool is open.
         """
         if not self._skip_version_probe:
-            resolved = await self._resolve_canonical_base_url(self._base_url, verify=self._verify)
+            resolved = await self._resolve_canonical_base_url(
+                self._base_url,
+                verify=self._verify,
+                trust_target=self._follow_redirects_with_auth,
+            )
             if resolved != self._base_url:
                 self._base_url = resolved
         if self._http is None:
@@ -370,7 +384,12 @@ class Dhis2Client:
             raise
 
     @staticmethod
-    async def _resolve_canonical_base_url(base_url: str, *, verify: bool | ssl.SSLContext = True) -> str:
+    async def _resolve_canonical_base_url(
+        base_url: str,
+        *,
+        verify: bool | ssl.SSLContext = True,
+        trust_target: bool = False,
+    ) -> str:
         """Follow redirects (without auth) to find the canonical DHIS2 base URL.
 
         httpx2 strips Authorization headers on cross-host redirects as a security
@@ -389,6 +408,9 @@ class Dhis2Client:
         `/api/system/info` answers with a DHIS2 body. Anything else keeps the
         configured URL, so an open redirect or an SSO IdP never receives the
         instance's Authorization header.
+
+        With `trust_target`, the redirect target is adopted whatever its
+        origin, without the DHIS2 probe.
         """
         candidate = base_url.rstrip("/")
         try:
@@ -406,7 +428,7 @@ class Dhis2Client:
             if final.endswith(suffix):
                 final = final[: -len(suffix)].rstrip("/")
                 break
-        if Dhis2Client._same_origin(candidate, final):
+        if trust_target or Dhis2Client._same_origin(candidate, final):
             return final
         if not Dhis2Client._cross_origin_target_is_trusted(candidate, final):
             return candidate
@@ -470,7 +492,8 @@ class Dhis2Client:
         can claim. DHIS2 answers this endpoint either with system info (a
         `version` / `contextPath` object) or, for an anonymous caller on a
         locked-down instance, with its error envelope (`message` alongside
-        `httpStatus` / `httpStatusCode`). Any other JSON — an SSO IdP's login
+        `httpStatus` / `httpStatusCode`), which it sends only to a request carrying
+        `X-Requested-With` and otherwise redirects to its login page. Any other JSON — an SSO IdP's login
         descriptor, an unrelated API — is not DHIS2.
         """
         try:
@@ -481,7 +504,7 @@ class Dhis2Client:
             ) as probe:
                 response = await probe.get(
                     f"{base_url}/api/system/info",
-                    headers={"Accept": "application/json"},
+                    headers={"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"},
                 )
         except Exception:  # noqa: BLE001 — probe is best-effort
             return False

@@ -147,6 +147,14 @@ registrable domain and is never a sibling of anything), and answers
 envelope for an anonymous caller. Anything else keeps the URL you configured, so
 an open redirect or an SSO identity provider never receives your credentials.
 
+A version alias such as `https://play.dhis2.org/2.43` redirects to the current
+demo of that major and is adopted this way: the DHIS2 check sends
+`X-Requested-With`, without which DHIS2 answers an anonymous API read with its
+login page. `http://play.dhis2.org/2.43` lands on `https://`, a change of scheme
+that is never adopted on its own. For a URL whose redirect you trust,
+`Dhis2Client(..., follow_redirects_with_auth=True)` adopts wherever it lands, on
+any host or scheme, and sends the credential there.
+
 ## Profiles — three ways to build one
 
 ### A. Named profile from the TOML file

@@ -71,6 +71,8 @@ The defaults (`verify=True`, full version probe on `connect()`, raise on 4xx/5xx
 - `verify: bool | str = True` — TLS certificate verification. Threaded through the main httpx2 pool plus the canonical-URL and DHIS2-shape probes. Pass `False` for self-signed staging boxes, or the path to a custom CA bundle — a string path becomes an `ssl.SSLContext` (via `dhis2w_client._tls`) before it reaches httpx2. With `True`, verification reads the operating system trust store, and `SSL_CERT_FILE` / `SSL_CERT_DIR` are honoured first when set.
 - `skip_version_probe: bool = False` — when `True`, `connect()` opens the HTTP pool without the canonical-URL probe or the `/api/system/info` round-trip and returns. `version_key`, `raw_version`, and `resources` raise on access (the generated tree never binds), so only the raw-path methods (`get_raw`, `post_raw`, `get_response`, etc.) are usable. Suits health-checkers that want to *report* on those endpoints, very-low-privilege PATs that can't read `/api/system/info`, and tests injecting a mock transport.
 
+- `follow_redirects_with_auth: bool = False` — when `True`, `connect()` adopts whatever URL the base URL redirects to, on any host or scheme, without the DHIS2-shape probe, and every authenticated call goes there. Suits a redirect the default refuses, such as `http://play.dhis2.org/2.43` landing on the `https://` demo; `https://play.dhis2.org/2.43` is adopted without it. Turn it on only for a URL whose redirect you trust.
+
 See `examples/client/health_check.py` for the full health-checker pattern.
 
 ::: dhis2w_client.v43.client

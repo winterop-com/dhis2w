@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import ssl
 from pathlib import Path
 
@@ -320,6 +321,77 @@ async def test_resolve_canonical_base_url_rejects_non_dhis2_json_on_same_domain(
     )
     resolved = await Dhis2Client._resolve_canonical_base_url("https://dhis2.example.org")
     assert resolved == "https://dhis2.example.org"
+
+
+def _mock_play_alias() -> respx.Route:
+    """Mock the play demo's version alias: a redirect to another host, which sends anonymous reads to login."""
+    respx.get("http://play.dhis2.org/2.43/").mock(
+        return_value=httpx.Response(302, headers={"location": "https://play.im.dhis2.org/stable-2-43-2/"}),
+    )
+    respx.get("https://play.im.dhis2.org/stable-2-43-2/").mock(
+        return_value=httpx.Response(302, headers={"location": "https://play.im.dhis2.org/stable-2-43-2/login/"}),
+    )
+    respx.get("https://play.im.dhis2.org/stable-2-43-2/login/").mock(
+        return_value=httpx.Response(200, text="<html>login</html>"),
+    )
+    return respx.get("https://play.im.dhis2.org/stable-2-43-2/api/system/info")
+
+
+@respx.mock
+async def test_resolve_canonical_base_url_keeps_an_alias_whose_target_sends_anonymous_reads_to_login() -> None:
+    """A target that answers an anonymous system/info with a login redirect is not adopted by default."""
+    _mock_play_alias().mock(
+        return_value=httpx.Response(302, headers={"location": "http://play.im.dhis2.org/stable-2-43-2/login/"}),
+    )
+    resolved = await Dhis2Client._resolve_canonical_base_url("http://play.dhis2.org/2.43")
+    assert resolved == "http://play.dhis2.org/2.43"
+
+
+@respx.mock
+async def test_resolve_canonical_base_url_adopts_an_https_alias_whose_target_answers_the_probe() -> None:
+    """The DHIS2 probe sends X-Requested-With, so DHIS2 answers its error envelope rather than a login redirect."""
+    respx.get("https://play.dhis2.org/2.43/").mock(
+        return_value=httpx.Response(302, headers={"location": "https://play.im.dhis2.org/stable-2-43-2/"}),
+    )
+    respx.get("https://play.im.dhis2.org/stable-2-43-2/").mock(
+        return_value=httpx.Response(200, text="<html>login</html>"),
+    )
+    probe = respx.get(
+        "https://play.im.dhis2.org/stable-2-43-2/api/system/info",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ).mock(
+        return_value=httpx.Response(401, json={"httpStatus": "Unauthorized", "httpStatusCode": 401, "message": "x"}),
+    )
+    resolved = await Dhis2Client._resolve_canonical_base_url("https://play.dhis2.org/2.43")
+    assert resolved == "https://play.im.dhis2.org/stable-2-43-2"
+    assert probe.call_count == 1
+
+
+@respx.mock
+async def test_resolve_canonical_base_url_adopts_any_target_when_trusted() -> None:
+    """With trust_target, the redirect target is adopted across host and scheme, without the DHIS2 probe."""
+    probe = _mock_play_alias()
+    resolved = await Dhis2Client._resolve_canonical_base_url("http://play.dhis2.org/2.43", trust_target=True)
+    assert resolved == "https://play.im.dhis2.org/stable-2-43-2"
+    assert probe.call_count == 0
+
+
+@pytest.mark.parametrize("tree", ["v41", "v42", "v43", "v44"])
+@respx.mock
+async def test_follow_redirects_with_auth_sends_the_credential_to_the_redirect_target(tree: str) -> None:
+    """A client built with follow_redirects_with_auth reads system/info, credential attached, on the target."""
+    client_class = importlib.import_module(f"dhis2w_client.{tree}.client").Dhis2Client
+    info = _mock_play_alias().mock(return_value=httpx.Response(200, json={"version": "2.43.2"}))
+    client = client_class(
+        "http://play.dhis2.org/2.43",
+        auth=BasicAuth(username="admin", password="district"),
+        follow_redirects_with_auth=True,
+        allow_version_mismatch=True,
+    )
+    async with client:
+        assert client.base_url == "https://play.im.dhis2.org/stable-2-43-2"
+        assert client.raw_version == "2.43.2"
+    assert info.calls.last.request.headers["authorization"].startswith("Basic ")
 
 
 def test_registrable_domain_reduces_to_last_two_labels() -> None:
