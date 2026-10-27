@@ -52,3 +52,21 @@ async def test_fetch_openapi_rejects_non_json(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         await fetch_openapi(_BASE_URL, BasicAuth(username="admin", password="district"), tmp_path)
     assert not (tmp_path / "v43" / "openapi.json").exists()
+
+
+@respx.mock
+async def test_fetch_openapi_follows_a_trusted_redirect(tmp_path: Path) -> None:
+    """With `follow_redirects_with_auth`, the capture reads the instance a version alias redirects to."""
+    alias = "http://alias.test/2.43"
+    instance = "http://instance.test/stable-2-43-2"
+    respx.get(f"{alias}/").mock(return_value=httpx.Response(302, headers={"location": f"{instance}/"}))
+    respx.get(f"{instance}/").mock(return_value=httpx.Response(200, text="<html></html>"))
+    respx.get(f"{instance}/api/system/info").mock(return_value=httpx.Response(200, json={"version": "2.43.2"}))
+    respx.get(f"{instance}/api/openapi/openapi.json").mock(return_value=httpx.Response(200, content=_DOCUMENT))
+
+    capture = await fetch_openapi(
+        alias, BasicAuth(username="admin", password="district"), tmp_path, follow_redirects_with_auth=True
+    )
+
+    assert capture.version_key == "v43"
+    assert capture.path.read_bytes() == _DOCUMENT

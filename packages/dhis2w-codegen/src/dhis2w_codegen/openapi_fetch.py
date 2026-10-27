@@ -10,7 +10,7 @@ import httpx2
 from dhis2w_client import AuthProvider
 from pydantic import BaseModel, ConfigDict
 
-from dhis2w_codegen.discover import version_key_from_raw
+from dhis2w_codegen.discover import resolve_base_url, version_key_from_raw
 
 _OPENAPI_PATH = "/api/openapi/openapi.json"
 
@@ -28,15 +28,19 @@ class OpenApiCapture(BaseModel):
     changed: bool
 
 
-async def fetch_openapi(url: str, auth: AuthProvider, output_root: Path) -> OpenApiCapture:
+async def fetch_openapi(
+    url: str, auth: AuthProvider, output_root: Path, *, follow_redirects_with_auth: bool = False
+) -> OpenApiCapture:
     """Download the OpenAPI document and write it verbatim to `<output_root>/v{N}/openapi.json`.
 
     The bytes are stored exactly as the server sent them, so `openapi_sha256` in
     `openapi_manifest.json` fingerprints the live document rather than a reformatted copy.
+    `follow_redirects_with_auth` adopts whatever URL `url` redirects to, as `Dhis2Client` does.
     """
     headers = await auth.headers()
+    resolved_url = await resolve_base_url(url, follow_redirects_with_auth=follow_redirects_with_auth)
     async with httpx2.AsyncClient(
-        base_url=url.rstrip("/"),
+        base_url=resolved_url,
         headers=headers,
         timeout=httpx2.Timeout(300.0, connect=60.0),
     ) as http:

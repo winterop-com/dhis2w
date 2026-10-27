@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
 # Refresh the /api/schemas half of `generated/v{N}` from the public play
-# channel that runs the pinned release, without docker.
+# demo of the pinned release, without docker.
 #
-# The pin `DHIS2_V43=2.43.2.0` maps to `https://play.im.dhis2.org/stable-2-43-2`.
-# The script refuses to run when that channel reports another version.
+# The pin `DHIS2_V43=2.43.2.0` maps to the alias `https://play.dhis2.org/2.43`,
+# which redirects to the latest 2.43 release on play. The script refuses to
+# run when that release is not the pin: bump the pin first
+# (`make dhis2-versions-bump`).
 #
 # Only `generate` runs here. The OpenAPI document depends on `dhis.conf`
 # (play runs without the OAuth2 dynamic client registration this repo's
@@ -34,12 +36,12 @@ case "$image" in
     ;;
 esac
 
-# 2.43.2.0 -> major.minor.patch 2.43.2 -> channel stable-2-43-2
+# 2.43.2.0 -> major.minor.patch 2.43.2 (what play reports) and alias 2.43
 release="$(echo "$pin" | cut -d. -f1-3)"
-channel="stable-$(echo "$release" | tr . -)"
-url="https://play.im.dhis2.org/$channel"
+url="https://play.dhis2.org/$(echo "$pin" | cut -d. -f1-2)"
 
-reported="$(curl -fsS -u admin:district "$url/api/system/info" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
+# --location-trusted keeps the credential on the alias's redirect to play.im.dhis2.org.
+reported="$(curl -fsSL --location-trusted -u admin:district "$url/api/system/info" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])')"
 if [ "$reported" != "$release" ]; then
   echo "!!! $url reports $reported, expected $release" >&2
   exit 1
@@ -47,4 +49,4 @@ fi
 
 echo ">>> Refreshing generated/$version_key from $url ($reported)"
 cd "$repo_root"
-uv run d2w dev codegen generate --url "$url" --username admin --password district
+uv run d2w dev codegen generate --url "$url" --username admin --password district --follow-redirects-with-auth

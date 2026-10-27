@@ -116,7 +116,7 @@ Public distribution is active — every workspace member (except `dhis2w-codegen
 
 ### Test coverage
 
-Over 7,000 tests collected (`uv run pytest --collect-only -q | tail -1` is the source of truth); the mocked tier runs in seconds via `make test`, and the slow-marked + contract tiers run in `make test-slow` / `make test-contract` against a live stack (Playwright PAT creation, dashboard screenshot capture, Playwright-driven OIDC login, contract tests against `play.im.dhis2.org/dev-2-{42,43}`). Unit + CliRunner + respx-mocked HTTP; integration paths use in-process FastMCP `Client` against the real plugin tree. `make coverage` runs branch-coverage locally + on every CI run (produces `coverage.xml` as an artifact); the per-PR floor is set at 70%.
+Over 7,000 tests collected (`uv run pytest --collect-only -q | tail -1` is the source of truth); the mocked tier runs in seconds via `make test`, and the slow-marked + contract tiers run in `make test-slow` / `make test-contract` against a live stack (Playwright PAT creation, dashboard screenshot capture, Playwright-driven OIDC login, contract tests against `play.dhis2.org/2.4{1,2,3}` + `play.im.dhis2.org/dev`). Unit + CliRunner + respx-mocked HTTP; integration paths use in-process FastMCP `Client` against the real plugin tree. `make coverage` runs branch-coverage locally + on every CI run (produces `coverage.xml` as an artifact); the per-PR floor is set at 70%.
 
 Detailed test gaps + the planned next moves are in [Testing roadmap](#testing-roadmap) below.
 
@@ -426,7 +426,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 | Static                 | Type errors, unused imports, dead code                          | ruff + mypy + pyright (good)                                                | + add `deptry` for unused / missing deps      |
 | Unit                   | Pure logic, parsers, builders                                   | ~4,500 tests, respx-mocked HTTP (good)                                      | + property-based + mutation                   |
 | Codegen                | Generator emits wrong code                                      | Snapshot tests on the emitted tree pin the diff per PR                      | + mutation tests on the templates             |
-| Schema contract        | Generated code stops matching live API                          | `@pytest.mark.contract` suite hits `play.im.dhis2.org/dev-2-{42,43}`        | Widen to more resources + nightly cron        |
+| Schema contract        | Generated code stops matching live API                          | `@pytest.mark.contract` suite hits `play.dhis2.org/2.4{1,2,3}` + `play.im.dhis2.org/dev`        | Widen to more resources + nightly cron        |
 | Live integration       | End-to-end against real DHIS2                                   | E2E workflow matrix runs `make test-slow` against docker stack v41/v42/v43/v44 (v44 non-gating) | Add a read-only per-PR contract pass          |
 | Examples               | Documented usage drifts from reality                            | `make verify-examples` (nightly E2E) + `check_example_refs.py` resolves every example's CLI/MCP reference in fast CI | Snapshot stdout for diff-against-baseline     |
 | Upstream bugs          | Workaround breaks; fix lands and we don't notice                | `@pytest.mark.upstream_bug` pairs bug-still-present + workaround halves     | Lifecycle automation: open issue when bug clears |
@@ -434,7 +434,7 @@ The unique shape of this project — **we generate code from a moving REST API, 
 ### Tier A — high leverage, ~1 PR each
 
 **A1. Schema contract tests against the live play instances (per-PR, read-only).** — **shipped.**
-`@pytest.mark.contract` suite + `.github/workflows/contract.yml` cover representative resources against `play.im.dhis2.org/dev-2-{42,43}`. Each test fetches one real instance and runs it through the generated pydantic model, asserting it validates. Catches DHIS2 ship-day API changes before users do. Next iteration: widen the resource set + add a nightly cron alongside the PR-trigger.
+`@pytest.mark.contract` suite + `.github/workflows/contract.yml` cover representative resources against `play.dhis2.org/2.4{1,2,3}` + `play.im.dhis2.org/dev`. Each test fetches one real instance and runs it through the generated pydantic model, asserting it validates. Catches DHIS2 ship-day API changes before users do. Next iteration: widen the resource set + add a nightly cron alongside the PR-trigger.
 
 **A2. `DHIS2_ISSUES.md` regression-suite scaffolding.** — **shipped.**
 `@pytest.mark.upstream_bug` marker pairs bug-still-present + workaround halves; see `packages/dhis2w-client/tests/test_upstream_bugs.py`. `make test-upstream-bugs` runs the whole catalogue. Next iteration: lifecycle automation (open a tracking issue when a bug-still-present test starts failing — the signal to delete the workaround).
@@ -492,7 +492,7 @@ Walk every tool registered by FastMCP, assert:
 Stops the MCP surface from quietly degrading (missing docstrings, untyped returns).
 
 **B5. Live-instance smoke tests against play, parallel matrix.**
-Beyond contract tests (A1) — actual `d2w system whoami`, `d2w metadata list dataElements --limit 5`, etc., run against `play.im.dhis2.org/dev-2-{42,43}` in parallel. Catches "we shipped a release that actually works against real DHIS2."
+Beyond contract tests (A1) — actual `d2w system whoami`, `d2w metadata list dataElements --limit 5`, etc., run against `play.dhis2.org/2.4{1,2,3}` + `play.im.dhis2.org/dev` in parallel. Catches "we shipped a release that actually works against real DHIS2."
 
 ### Tier C — exotic / specialty
 

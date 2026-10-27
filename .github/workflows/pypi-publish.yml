@@ -226,8 +226,8 @@ jobs:
             dhis2w-cli)
               echo ">>> d2w --help (CLI tree builds)"
               retry_install uvx --refresh --from "dhis2w-cli==${VERSION}" d2w --help > /dev/null
-              echo ">>> d2w system info against play.im.dhis2.org/dev-2-43"
-              DHIS2_URL=https://play.im.dhis2.org/dev-2-43 \
+              echo ">>> d2w system info against play.dhis2.org/2.43"
+              DHIS2_URL=https://play.dhis2.org/2.43 \
               DHIS2_USERNAME=admin \
               DHIS2_PASSWORD=district \
               uvx --from "dhis2w-cli==${VERSION}" d2w system info

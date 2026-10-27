@@ -66,10 +66,10 @@ The generated code is **committed**, not gitignored. Diffs are reviewable in PRs
 
 - The v44 generated code describes that one build. A later development build may add, rename, or remove schemas before 2.44.0 ships.
 - The v44 end-to-end CI leg runs with `continue-on-error`: it reports, but does not gate a merge.
-- Contract tests reach v44 at `https://play.im.dhis2.org/dev`, the play channel that tracks the development line (there is no `dev-2-44` channel).
+- Contract tests reach v41, v42 and v43 through the stable `https://play.dhis2.org/2.4N` links, each redirecting to the latest release of that major, and v44 at `https://play.im.dhis2.org/dev`, the play channel that tracks the development line (`https://play.dhis2.org/2.44` redirects to the instance list until 2.44.0 ships).
 - v43 stays the canonical baseline and the startup default.
 
-When 2.44.0 ships, re-pin v44 in `infra/versions.env` to `2.44.0.0` and drop the `# held` marker, move `infra/v44/dump.sql.gz` to the release image (`make dhis2-migrate-e2e-dump DHIS2_VERSION=v44`), regenerate the tree (`make dhis2-codegen-all VERSIONS=v44`), sample boots with `infra/scripts/openapi_stability.sh v44 <output-dir>`, and review the codegen diff before making the v44 CI leg required.
+When 2.44.0 ships, re-pin v44 in `infra/versions.env` to `2.44.0.0` and drop the `# held` marker, point the v44 play URL in `packages/dhis2w-client/tests/conftest.py` and `test_schema_contract_play.py` at `https://play.dhis2.org/2.44`, move `infra/v44/dump.sql.gz` to the release image (`make dhis2-migrate-e2e-dump DHIS2_VERSION=v44`), regenerate the tree (`make dhis2-codegen-all VERSIONS=v44`), sample boots with `infra/scripts/openapi_stability.sh v44 <output-dir>`, and review the codegen diff before making the v44 CI leg required.
 
 ### Adding a major
 

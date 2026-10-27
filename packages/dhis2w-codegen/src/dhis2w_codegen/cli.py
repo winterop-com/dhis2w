@@ -35,16 +35,25 @@ def generate(
             help="Directory containing versioned subfolders; defaults to dhis2w-client's generated/ folder.",
         ),
     ] = None,
+    follow_redirects_with_auth: Annotated[
+        bool,
+        typer.Option(
+            "--follow-redirects-with-auth",
+            help="Adopt whatever URL --url redirects to and send the credential there (a version alias).",
+        ),
+    ] = False,
 ) -> None:
     """Generate the client for the DHIS2 version reported by `--url`."""
     auth = _auth_from_options(username=username, password=password, pat=pat)
     target_root = output_root or _default_output_root()
-    asyncio.run(_run(url=url, auth=auth, output_root=target_root))
+    asyncio.run(
+        _run(url=url, auth=auth, output_root=target_root, follow_redirects_with_auth=follow_redirects_with_auth)
+    )
 
 
-async def _run(*, url: str, auth: AuthProvider, output_root: Path) -> None:
+async def _run(*, url: str, auth: AuthProvider, output_root: Path, follow_redirects_with_auth: bool) -> None:
     _console.print(f"[bold]discovering[/bold] {url}")
-    manifest = await discover(url, auth)
+    manifest = await discover(url, auth, follow_redirects_with_auth=follow_redirects_with_auth)
     destination = output_root / manifest.version_key
     _console.print(f"  version: {manifest.raw_version} (→ {manifest.version_key})")
     _console.print(f"  schemas: {len(manifest.schemas)}")
@@ -63,11 +72,18 @@ def fetch_openapi_cmd(
         Path | None,
         typer.Option("--output-root", help="Directory of versioned subfolders; defaults to dhis2w-client generated/."),
     ] = None,
+    follow_redirects_with_auth: Annotated[
+        bool,
+        typer.Option(
+            "--follow-redirects-with-auth",
+            help="Adopt whatever URL --url redirects to and send the credential there (a version alias).",
+        ),
+    ] = False,
 ) -> None:
     """Capture the live OpenAPI document into `generated/v{N}/openapi.json` (run `oas-rebuild` after)."""
     auth = _auth_from_options(username=username, password=password, pat=pat)
     target_root = output_root or _default_output_root()
-    capture = asyncio.run(fetch_openapi(url, auth, target_root))
+    capture = asyncio.run(fetch_openapi(url, auth, target_root, follow_redirects_with_auth=follow_redirects_with_auth))
     state = "changed" if capture.changed else "unchanged"
     _console.print(
         f"[green]captured[/green] {capture.raw_version} (→ {capture.version_key}) "

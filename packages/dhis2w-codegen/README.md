@@ -15,7 +15,7 @@ Mounted as `d2w dev codegen` when working from the workspace.
 
 ## Convenience targets
 
-`make dhis2-codegen-play` regenerates v42 + v43 against `play.im.dhis2.org/dev-2-{42,43}` — the canonical sources. `make dhis2-codegen-all` spins up local docker stacks for every supported version in turn (~40 min).
+`make dhis2-codegen-play` refreshes the `/api/schemas` half of v41, v42 and v43 from `play.dhis2.org/2.4{1,2,3}` (stable links to the latest release of each major), refusing a major whose latest release is not the pin. `make dhis2-codegen-all` spins up local docker stacks for every supported version in turn (~40 min).
 
 ## Architecture
 

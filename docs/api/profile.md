@@ -22,7 +22,7 @@ async def main() -> None:
     if profile is None:
         # No DHIS2_URL+credentials env — construct one explicitly:
         profile = Profile(
-            base_url="https://play.im.dhis2.org/dev-2-43",
+            base_url="https://play.dhis2.org/2.43",
             auth="pat",
             token="d2pat_yourtoken",
         )

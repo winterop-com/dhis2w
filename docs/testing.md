@@ -107,7 +107,7 @@ def local_available(local_url: str) -> bool: ...  # probes /dhis-web-login/, gat
 
 Simple strings, not dataclasses — this sidesteps mypy's "duplicate conftest module" problem across workspace members.
 
-Live-against-play coverage lives in a separate workflow — `@pytest.mark.contract` (`.github/workflows/contract.yml`) hits `play.im.dhis2.org/dev-2-{42,43}` to catch upstream API drift. Nightly E2E never touches play.
+Live-against-play coverage lives in a separate workflow — `@pytest.mark.contract` (`.github/workflows/contract.yml`) hits `play.dhis2.org/2.4{1,2,3}` + `play.im.dhis2.org/dev` to catch upstream API drift. Nightly E2E never touches play.
 
 ## Reusing the test environment from a pack
 

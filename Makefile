@@ -14,7 +14,7 @@ help:
 	@echo "  lint             Run ruff format + ruff check + mypy + pyright"
 	@echo "  test             Run tests (excludes slow)"
 	@echo "  test-slow        Run slow tests only"
-	@echo "  test-contract    Run live-schema contract tests against play.im.dhis2.org"
+	@echo "  test-contract    Run live-schema contract tests against play.dhis2.org/2.4{1,2,3} + play.im.dhis2.org/dev"
 	@echo "  test-durations   Show 20 slowest tests"
 	@echo "  coverage         Run tests with coverage reporting"
 	@echo "  build            Build all workspace wheels"
@@ -46,7 +46,7 @@ help:
 	@echo ""
 	@echo "Code generation + examples:"
 	@echo "  dhis2-codegen-all     Spin up DHIS2 v41/v42/v43/v44 in turn and regenerate each v{N}/ (pass VERSIONS=\"v43 v44\" to narrow)"
-	@echo "  dhis2-codegen-play    Refresh the /api/schemas half of generated/v{N} from the play channel running each pin (no docker)"
+	@echo "  dhis2-codegen-play    Refresh the /api/schemas half of generated/v{N} from play.dhis2.org/2.4N, refused unless it runs the pin (no docker)"
 	@echo "  verify-examples       Run every non-interactive example + print PASS/FAIL summary"
 	@echo ""
 	@echo "  For niche targets (versions, wait, status, logs, pat) use 'make -C infra help'."
@@ -74,7 +74,7 @@ test:
 	@$(UV) run pytest -n auto -q -m "not slow and not contract" packages
 
 test-contract:
-	@echo ">>> Running live-schema contract tests against play.im.dhis2.org"
+	@echo ">>> Running live-schema contract tests against play.dhis2.org"
 	@$(UV) run pytest -v -m contract packages
 
 test-upstream-bugs:

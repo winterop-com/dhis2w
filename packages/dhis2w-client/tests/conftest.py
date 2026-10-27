@@ -29,10 +29,12 @@ def server_version(request: pytest.FixtureRequest) -> str:
     return _SERVER_VERSIONS[request.param]
 
 
+# Each `play.dhis2.org/2.4N` alias redirects to the latest release of that major. 2.44 has no
+# release yet (its alias redirects to the instance list), so v44 reads the `dev` channel.
 _PLAY_SERVERS = {
-    "v41": "https://play.im.dhis2.org/dev-2-41",
-    "v42": "https://play.im.dhis2.org/dev-2-42",
-    "v43": "https://play.im.dhis2.org/dev-2-43",
+    "v41": "https://play.dhis2.org/2.41",
+    "v42": "https://play.dhis2.org/2.42",
+    "v43": "https://play.dhis2.org/2.43",
     "v44": "https://play.im.dhis2.org/dev",
 }
 
@@ -41,17 +43,24 @@ _PLAY_SERVERS = {
 def play_target(request: pytest.FixtureRequest) -> tuple[str, str]:
     """Live read-only DHIS2 play server per major: returns (base_url, version_key).
 
+    The returned base URL is the instance the alias currently redirects to (its
+    `contextPath`), so a test connects there without following the redirect itself.
     Skips if the server isn't reachable, so offline runs don't fail. Reads only — the
     live tier never writes to the shared play demo (writes go to a local stack).
     """
     version_key = str(request.param)
     url = _PLAY_SERVERS[version_key]
     try:
-        with httpx2.Client(timeout=5.0) as client:
-            client.get(f"{url}/api/system/info.json", auth=("admin", "district")).raise_for_status()
-    except (httpx2.RequestError, httpx2.HTTPError):
+        with httpx2.Client(timeout=5.0, auth=("admin", "district")) as client:
+            response = client.get(f"{url}/api/system/info.json")
+            # httpx2 drops the credential on a cross-host redirect, so follow the alias by hand.
+            if response.is_redirect:
+                response = client.get(response.headers["location"])
+            response.raise_for_status()
+            resolved = str(response.json()["contextPath"]).rstrip("/")
+    except (httpx2.RequestError, httpx2.HTTPError, ValueError, KeyError):
         pytest.skip(f"play {version_key} not reachable at {url}")
-    return url, version_key
+    return resolved, version_key
 
 
 @pytest.fixture

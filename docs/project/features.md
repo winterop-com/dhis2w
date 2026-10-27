@@ -483,6 +483,10 @@ d2w dev codegen oas-flips <a> <b> # pointers that differ between captures of one
 d2w dev codegen diff <from> <to> # structural diff between versions
 ```
 
+`generate` and `fetch-openapi` take `--follow-redirects-with-auth` to read through a URL that
+redirects to the instance, such as `https://play.dhis2.org/2.43`, the stable link to the latest
+2.43 release on play. `make dhis2-codegen-play` and the contract tests read play through those links.
+
 ### Architecture
 
 - `discover.py`: fetch `/api/schemas`, normalize to `SchemasManifest`
