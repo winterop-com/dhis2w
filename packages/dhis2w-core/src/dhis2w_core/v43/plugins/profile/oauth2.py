@@ -25,8 +25,12 @@ def oauth2_client_register_command(
     client_id: Annotated[str, typer.Option("--client-id")] = "dhis2-utils-local",
     redirect_uri: Annotated[str, typer.Option("--redirect-uri")] = DEFAULT_REDIRECT_URI,
     scope: Annotated[
-        str, typer.Option("--scope", help="Scope a login requests; 2.43.2 allows only the OpenID scopes.")
-    ] = "openid",
+        str | None,
+        typer.Option(
+            "--scope",
+            help="Scope a login requests; default openid from 2.43.2 (OpenID scopes only), ALL before.",
+        ),
+    ] = None,
     display_name: Annotated[str | None, typer.Option("--name")] = None,
 ) -> None:
     """Register an OAuth2 client on DHIS2 via POST /api/oAuth2Clients.
