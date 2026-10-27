@@ -239,7 +239,9 @@ For each version N, the script:
 DHIS2 builds both introspection surfaces at startup, and where two Java members map to one
 property, the one that wins changes from boot to boot of the same image (DHIS2_ISSUES.md #95, #133). Two
 captures of `2.43.1` or `2.43.2` can disagree on `CategoryOption.aggregationType` (enum or boolean), and two of
-`2.42.6` on the item type of `Page`. The codegen pins every such property before emission
+`2.42.6` or `2.42.7` on the item type of `Page`. `ImportConflicts.conflicts` is typed `boolean` by most
+captures of every major although the wire carries a list (DHIS2_ISSUES.md #148). The codegen pins every such
+property before emission
 (`spec_patches.pin-boot-dependent-shapes` for OpenAPI, `schema_patches` for `/api/schemas`), so any
 capture of a pinned release emits the same models. The raw capture is committed as it arrived.
 

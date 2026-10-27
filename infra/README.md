@@ -196,7 +196,7 @@ For a walk-through of the DHIS2 `analytics_*` tables (schema, cross-verification
 
 **pgAdmin complains the server is out of date.** `compose.pgadmin.yml` pins `dpage/pgadmin4:9.18.0`; move the pin to a newer release when pgAdmin asks for one.
 
-**The postgres image build takes a while.** `make build` re-pulls the base layers and re-installs `postgresql-17-wal2json` and `python3-bcrypt`. It only has to run after a `Dockerfile` edit or on a machine with no cached layers; `make up` reuses the built image.
+**The postgres image build takes a while.** `make build` re-pulls the base layers and re-installs `postgresql-17-wal2json` and `python3-bcrypt`. The base image is Debian bullseye, whose PostgreSQL packages now live only on `apt-archive.postgresql.org`; the `Dockerfile` points the image's pgdg source there, so an `apt-get update` failing on `bullseye-pgdg` means that line was lost. It only has to run after a `Dockerfile` edit or on a machine with no cached layers; `make up` reuses the built image.
 
 **Port 8080 / 4000 / 5050 already in use.** Something else is bound to one of those ports on the host. `lsof -i :8080` to find the culprit, or change the published port in the relevant compose file.
 
