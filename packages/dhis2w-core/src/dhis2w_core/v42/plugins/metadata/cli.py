@@ -3061,7 +3061,8 @@ def dashboard_add_item_command(
         typer.secho("pass exactly one of --viz or --map", err=True, fg=typer.colors.RED)
         raise typer.Exit(2)
     target_uid = visualization_uid or map_uid
-    assert target_uid is not None
+    if target_uid is None:
+        raise ValueError("`target_uid` is required")
     kind = "visualization" if visualization_uid is not None else "map"
     dashboard = asyncio.run(
         service.dashboard_add_item(

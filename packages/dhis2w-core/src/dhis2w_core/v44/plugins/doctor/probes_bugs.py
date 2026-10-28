@@ -73,7 +73,7 @@ async def probe_analytics_rawdata_json_suffix(client: Dhis2Client) -> ProbeResul
         )
     except Dhis2ApiError as exc:
         without_suffix_404 = exc.status_code == 404
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110 - any other failure leaves the probe inconclusive
         pass
     if not without_suffix_404:
         return ProbeResult(

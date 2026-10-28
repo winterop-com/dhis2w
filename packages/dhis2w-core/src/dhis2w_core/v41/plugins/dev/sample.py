@@ -220,7 +220,7 @@ def sample_oauth2_client_command(
             base_url=resolved_url,
             admin_auth=admin_auth,
             client_id=resolved_client_id,
-            client_secret="smoke-secret-do-not-use",
+            client_secret="smoke-secret-do-not-use",  # noqa: S106 - throwaway local smoke-test client
             redirect_uri=DEFAULT_REDIRECT_URI,
             scope="ALL",
             display_name="d2w dev sample oauth2-client (smoke test)",
