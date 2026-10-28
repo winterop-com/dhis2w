@@ -36,7 +36,7 @@ def test_compute_delay_scales_exponentially_without_jitter() -> None:
 def test_compute_delay_jitter_stays_within_band() -> None:
     """Jitter keeps delays in [nominal*(1-jitter), nominal*(1+jitter)]."""
     policy = RetryPolicy(base_delay=1.0, backoff_factor=1.0, jitter=0.2, max_delay=10.0)
-    rng = random.Random(42)
+    rng = random.Random(42)  # noqa: S311 - seeded jitter, not cryptography
     for _ in range(100):
         delay = policy.compute_delay(1, rng=rng)
         assert 0.8 <= delay <= 1.2

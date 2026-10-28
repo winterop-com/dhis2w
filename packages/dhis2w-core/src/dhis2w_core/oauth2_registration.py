@@ -21,7 +21,7 @@ _OAUTH2_CLIENT_SETTINGS_JSON = (
     '"settings.client.require-authorization-consent":true}'
 )
 _OAUTH2_TOKEN_SETTINGS_JSON = (
-    '{"@class":"java.util.Collections$UnmodifiableMap",'
+    '{"@class":"java.util.Collections$UnmodifiableMap",'  # noqa: S105 - token lifetime settings, not a credential
     '"settings.token.reuse-refresh-tokens":true,'
     '"settings.token.x509-certificate-bound-access-tokens":false,'
     '"settings.token.id-token-signature-algorithm":'

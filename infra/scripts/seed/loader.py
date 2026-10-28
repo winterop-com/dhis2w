@@ -712,7 +712,8 @@ async def _post_metadata(
                 flush=True,
             )
             await _asyncio.sleep(retry_delay_seconds)
-    assert last_error is not None
+    if last_error is None:
+        raise RuntimeError("metadata POST made no attempt")
     raise last_error
 
 

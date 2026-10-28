@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import keyword
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -65,10 +65,13 @@ def format_output(output_dir: Path) -> None:
     are stringified via `from __future__ import annotations`, even though
     pydantic still evaluates them at model-schema time.
     """
-    with contextlib.suppress(FileNotFoundError):
-        subprocess.run(
-            ["ruff", "check", "--fix", "--select", "I,W,B033", str(output_dir)],
-            check=False,
-            capture_output=True,
-        )
-        subprocess.run(["ruff", "format", str(output_dir)], check=False, capture_output=True)
+    ruff = shutil.which("ruff")
+    if ruff is None:
+        return
+    # Fixed ruff invocations over the directory this generator just wrote.
+    subprocess.run(  # noqa: S603
+        [ruff, "check", "--fix", "--select", "I,W,B033", str(output_dir)],
+        check=False,
+        capture_output=True,
+    )
+    subprocess.run([ruff, "format", str(output_dir)], check=False, capture_output=True)  # noqa: S603

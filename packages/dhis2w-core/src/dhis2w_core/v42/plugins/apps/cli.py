@@ -147,7 +147,8 @@ def update_command(
             return
         _render_summary(summary, dry_run=dry_run)
         return
-    assert key is not None  # guarded above
+    if key is None:
+        raise ValueError("`key` is required")
     outcome = asyncio.run(service.update_one(profile, key, dry_run=dry_run))
     if is_json_output():
         typer.echo(outcome.model_dump_json(exclude_none=True))

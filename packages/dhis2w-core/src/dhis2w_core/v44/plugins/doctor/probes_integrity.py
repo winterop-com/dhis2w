@@ -12,6 +12,8 @@ parsing logic.
 
 from __future__ import annotations
 
+import contextlib
+
 from dhis2w_client.v44 import Dhis2Client
 
 from dhis2w_core.v44.plugins.doctor._models import ProbeResult
@@ -46,13 +48,12 @@ async def run_integrity_probes(client: Dhis2Client) -> list[ProbeResult]:
     # DHIS2's `/api/dataIntegrity` returns a bare JSON array; `get_raw` wraps that
     # under a `"data"` key when the top-level JSON isn't a dict.
     total_available: int | None = None
-    try:
+    # Coverage is informational, so any failure here is swallowed.
+    with contextlib.suppress(Exception):
         full_list = await client.get_raw("/api/dataIntegrity")
         items = full_list.get("data")
         if isinstance(items, list):
             total_available = len(items)
-    except Exception:  # noqa: BLE001 — coverage is informational; swallow
-        pass
     # DHIS2 returns an empty `{}` when checks haven't been run yet — tell the
     # operator to kick a run off.
     if not raw:

@@ -43,7 +43,7 @@ line-length = 120
 
 [tool.ruff.lint]
 fixable = ["ALL"]
-select = ["E", "W", "F", "I", "D", "SIM", "UP", "B", "TID251"]
+select = ["E", "W", "F", "I", "D", "SIM", "UP", "B", "TID251", "S"]
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.pydocstyle]
@@ -55,14 +55,16 @@ convention = "google"
 "urllib.request".msg = "Use httpx2."
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**/*.py" = ["D", "TID251"]
+"**/tests/**/*.py" = ["D", "TID251", "S101", "S104", "S105", "S106", "S107", "S108", "S603", "S607"]
+"examples/**/*.py" = ["S101", "S105", "S106"]
+"**/dhis2w_client/generated/**/*.py" = ["S105"]
 # `dhis2w_core.testing` is the test environment itself, shipped from src so a plugin pack in
 # another repository gets it from `dhis2w-core[testing]`. It builds the `httpx.Response`
 # objects respx consumes, exactly as a test file does.
 "**/src/dhis2w_core/testing.py" = ["TID251"]
 "**/__init__.py" = ["D104"]
 "**/src/**/*.py" = ["D102", "D105", "D107"]
-"infra/**/*.py" = ["D"]
+"infra/**/*.py" = ["D", "S603", "S607"]
 
 [tool.ruff.format]
 quote-style = "double"
