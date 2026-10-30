@@ -40,7 +40,7 @@ uv tool install "dhis2w-cli[fhir]"          # d2w fhir init / generate / validat
 uv tool install "dhis2w-cli[fhir,serve]"    # plus the serving facade behind d2w fhir serve
 ```
 
-In a project, `uv add dhis2w-fhir` (and `dhis2w-fhir-serve`, `dhis2w-fhir-engine` for the facade and the evaluation engine as libraries). Without the pack installed, `d2w fhir` prints the install command rather than failing as an unknown command; `d2w browser` and `d2w security` do the same for their packs.
+To build your own FHIR-to-DHIS2 service, `uv add dhis2w-fhir-engine` is enough: it holds the evaluation engine, the facade library, and its routes, with no `fhir.toml`, no SUSHI, and no docker. See [Compose a facade](https://winterop-com.github.io/dhis2w-fhir/401-compose-a-facade/). `uv add dhis2w-fhir` adds the guide generator, and `dhis2w-fhir-serve` the finished server with its capture UI. Without the pack installed, `d2w fhir` prints the install command rather than failing as an unknown command; `d2w browser` and `d2w security` do the same for their packs.
 
 ## Capability matrix
 
