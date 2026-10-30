@@ -453,7 +453,8 @@ this repository so API-only installs never pull Chromium.
 
 Turn a DHIS2 instance into a published FHIR R4 Implementation Guide, serve that guide as a read-and-capture
 facade, and drain what was captured back into DHIS2 (`d2w fhir init`, `generate`, `validate`, `serve`,
-`forward`, `doctor`), with a FHIRPath, CQL, and quality-measure evaluation engine beneath it. The pack registers
+`forward`, `doctor`), built on `dhis2w-fhir-engine`: FHIRPath, CQL, and quality-measure evaluation, the R4 models, and the
+facade library and routes a service composes on its own with `uv add dhis2w-fhir-engine`. The pack registers
 `d2w fhir` through the `dhis2w.plugins.v1` entry point. Without it installed, `d2w fhir` prints the install command
 above. The full catalog is in the pack's [documentation](https://winterop-com.github.io/dhis2w-fhir/).
 
