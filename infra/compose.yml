@@ -120,7 +120,9 @@ services:
     depends_on:
       dhis2:
         condition: service_healthy
-    restart: on-failure
+    # A capped retry: a run that fails every time (#36 on v43) must not queue a new
+    # analytics job every few seconds for as long as the stack is up.
+    restart: on-failure:3
     entrypoint:
       - bash
       - -c
