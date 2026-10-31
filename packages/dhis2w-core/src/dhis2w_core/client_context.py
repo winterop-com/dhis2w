@@ -128,6 +128,8 @@ async def open_client(
     system_cache_ttl: float | None = 300.0,
     timeout: float | None = None,
     event_hooks: Mapping[str, list[Callable[..., Any]]] | None = None,
+    max_response_bytes: int | None = None,
+    deadline: float | None = None,
 ) -> AsyncGenerator[Dhis2Client]:
     """Open a connected Dhis2Client for `profile` — yields inside `async with`.
 
@@ -175,6 +177,10 @@ async def open_client(
     `event_hooks` (default `None`) passes httpx2 event hooks through to the
     underlying `Dhis2Client`; the security audit uses a `request` hook to
     enforce its read-only allowlist.
+
+    `max_response_bytes` and `deadline` (default `None`, no limit) pass
+    through to `Dhis2Client`: the most a buffered answer may decode to, and
+    how many seconds one request may take, start to last byte.
     """
     auth = build_auth(profile, profile_name=profile_name, scope=scope)
     bound_tree = current_bound_version_tree()
@@ -190,6 +196,8 @@ async def open_client(
         http_limits=http_limits,
         system_cache_ttl=system_cache_ttl,
         event_hooks=event_hooks,
+        max_response_bytes=max_response_bytes,
+        deadline=deadline,
         **overrides,
     ) as client:
         yield client
