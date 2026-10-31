@@ -2,6 +2,16 @@
 
 Running list of architectural choices and the reasoning behind them. Each entry is a terse "we decided X because Y, alternatives were Z". This file is a first stop when you're wondering "why is it done that way?".
 
+## 2026-10-31 — A FHIR capture goes to DHIS2 where a server is asked to send it
+
+**Decision:** in the `dhis2w-fhir` pack, a capture goes to DHIS2 while the submitter waits, so DHIS2's answer reaches the person holding the form: `201` once DHIS2 has it, its reasons when it refuses, `202` while the server holds it. `d2w fhir serve` writes as its one account only where `[serve] delivery = "at-once"` asks; `profile` alone says which instance to read. A caller presenting their own account posts at once, and a composed `mount_facade` service has asked by handing over a connection. `d2w fhir forward` is a repair tool for the queue, not a step in the loop.
+
+**Why:** a refusal filed in a directory after its submitter has gone reaches nobody. Writing has to be asked for because projects point `profile` at national instances only to build a guide, and a test submission must not land there.
+
+**What keeps it safe:** a server retries only what it took on sending, recorded on the receipt, so upgrading never flushes old test captures; a retry carries the receipt's own identity, so an answer lost after DHIS2 saved never writes twice. The 2026-08-08 revisit trigger below is not hit: that record is written once with the receipt, and the last error lives in memory.
+
+**Alternatives rejected:** keeping the spool and drain as the normal path (nobody checks a folder); treating a named `profile` as permission (one line in `fhir.toml` would let a test Submit write to a national instance).
+
 ## 2026-09-30 — v44 preview pinned to a 2.44 development build by digest
 
 **Decision:** DHIS2 v44 is a fourth version tree (`dhis2w_client.v44`, `dhis2w_core.v44.plugins.*`, `dhis2w_client.generated.v44`, `Dhis2.V44`), shipped as a preview before 2.44.0 is released. The local stack pins one development build by digest in `infra/versions.env` - `dhis2/core-dev@sha256:4807b025...`, the 2.44-SNAPSHOT build of 2026-10-06 (revision `c48aedc`) - marked `# held` so the weekly version-bump check leaves it alone. The v44 generated code comes from that build, the v44 end-to-end CI leg runs with `continue-on-error`, and contract tests reach v44 at `https://play.im.dhis2.org/dev`. v43 stays the canonical baseline and the startup default. When 2.44.0 ships, the pin moves to `2.44.0.0` and the tree is regenerated (see [Versioning](architecture/versioning.md#v44-is-a-preview)).
