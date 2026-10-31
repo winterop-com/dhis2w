@@ -43,7 +43,7 @@ columns are unchanged since their last runs, so an issue added after those runs 
 | [Translations](#translations) | [#82](#82-post-apitypeuidtranslations-is-refused-with-e1004-only-identifiable-object-collections-can-be-removed-from), [#83](#83-an-objects-translations-come-back-in-a-content-derived-order-that-discards-the-order-they-were-written-in) | 2 | 2 | 2 | 2 | not yet |
 | [Sharing](#sharing) | [#38](#38-sharingobjectexternalaccess-dropped-from-the-wire-schema-writes-that-carry-it-answer-200-and-discard-it), [#59](#59-no-reliable-server-side-filter-for-non-default-sharing-publicaccessexternalaccess-are-unfilterable-sharingpublic-is-an-ineffective-volume-reducer), [#101](#101-get-apisharing-reports-no-metaallowexternalaccess-so-no-caller-can-discover-whether-a-type-permits-external-access-at-all) | 3 | 3 | 3 | 3 | not yet |
 | [Maps](#maps) | [#114](#114-v41-24191-a-map-layer-cannot-be-saved-with-its-references-through-the-api), [#138](#138-a-map-layers-fixed-periods-cannot-be-written-through-apimetadata-periods-fails-on-a-transient-period-and-rawperiods-is-dropped) | 1 | 2 | 2 | 2 | not yet |
-| [Aggregate data values and /api/dataValueSets import counts](#aggregate-data-values-and-apidatavaluesets-import-counts) | [#2](#2-importstrategydelete-on-apidatavaluesets-is-a-soft-delete-that-still-blocks-parent-metadata-deletion), [#6](#6-bulk-apidatavaluesets-push-returns-409-even-when-every-rows-ignored-hiding-the-per-row-conflict-detail), [#50](#50-post--delete-apidatavalues-has-no-attributeoptioncombo-query-param--the-attribute-option-combo-is-addressed-by-cc--cp), [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting), [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction), [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets), [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value), [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted), [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike), [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements), [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway), [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api), [#161](#161-2427-answers-a-read-of-a-data-value-that-does-not-exist-with-409-and-no-error-code) | 6 | 7 | 12 | 12 | not yet |
+| [Aggregate data values and /api/dataValueSets import counts](#aggregate-data-values-and-apidatavaluesets-import-counts) | [#2](#2-importstrategydelete-on-apidatavaluesets-is-a-soft-delete-that-still-blocks-parent-metadata-deletion), [#6](#6-bulk-apidatavaluesets-push-returns-409-even-when-every-rows-ignored-hiding-the-per-row-conflict-detail), [#50](#50-post--delete-apidatavalues-has-no-attributeoptioncombo-query-param--the-attribute-option-combo-is-addressed-by-cc--cp), [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting), [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction), [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets), [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value), [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted), [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike), [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements), [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway), [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api), [#161](#161-2427-answers-a-read-of-a-data-value-that-does-not-exist-with-409-and-no-error-code), [#162](#162-an-identical-post-apidatavaluesets-counts-as-updated-and-rewrites-storedby-on-243-where-241-and-242-ignore-it), [#163](#163-writing-a-data-value-needs-sharing-on-the-data-element-on-241-and-242-and-not-on-243-or-244) | 6 | 7 | 14 | 12 | not yet |
 | [Aggregate data entry rules: periods, category option combos and data sets](#aggregate-data-entry-rules-periods-category-option-combos-and-data-sets) | [#35](#35-v43-post-apidatavaluesets-aborts-the-whole-chunk-when-a-de-belongs-to-multiple-datasets), [#41](#41-v43-e8023--e8024-strict-cocaoc-matching-on-post-apidatavaluesets--forcetrue-doesnt-bypass), [#76](#76-v43-aggregate-conflicts-no-longer-name-the-offending-object-e8122-drops-object-and-property), [#110](#110-e8032-untimely-data-entry-names-neither-the-category-option-that-closed-nor-the-window-it-closed-on-and-a-window-ending-inside-a-period-closes-the-whole-period), [#125](#125-a-top-level-dataset-key-on-a-apidatavaluesets-payload-makes-every-later-import-answer-409-e7644-with-the-period-rendered-as-null-and-a-freshly-created-data-set-is-invisible-to-the-open-periods-check-for-about-two-minutes), [#139](#139-a-superuser-is-exempt-from-the-open-future-periods-check-on-apidatavaluesets) | 1 | 2 | 5 | 5 | not yet |
 | [Data set completeness registration](#data-set-completeness-registration) | [#78](#78-dryruntrue-on-apidatavaluesets-still-persists-the-completeness-registration), [#79](#79-completeness-registers-off-completedate-even-when-every-data-value-is-refused), [#81](#81-first-completeness-registration-for-a-never-persisted-period-fails-with-an-opaque-failed-to-flush-batchhandler-the-identical-retry-succeeds) | 2 | 2 | 1 | 1 | not yet |
 | [Analytics](#analytics) | [#1](#1-apianalyticsrawdata-and-apianalyticsdatavalueset-require-the-json-url-suffix), [#36](#36-v43-building-event-analytics-for-an-event-program-with-2024-data-fails-with-column-yearly-does-not-exist) | 1 | 1 | 2 | 2 | not yet |
@@ -3041,6 +3041,8 @@ and the value persists with the superuser as `storedBy`.
 
 **Status on 2.44 (v44 preview, rev c48aedc, 2026-10-06):** STILL, unchanged from rev `b732899`. A capture-only user scoped to Bo (`O6uvpzGd5pu`) writing at a sibling-of-scope organisation unit gets `409`, status `ERROR`, every `importCount` zero, and ``E8011 "Current user cannot enter data for org unit(s): `[W44FSibOu01]`"`` whose `objects` carries only `args`; `dryRun=true` and a real import answer the same, and the same row inside Bo answers `200 SUCCESS`.
 
+**Status (2026-10-31):** STILL on 2.41.10 and 2.42.7, and the `E7617` conflict names no organisation unit at all: its message reads ``Organisation unit: `null` not in hierarchy of current user``. 2.43.2 answers `E8011` naming the unit.
+
 **Status on 2.42.7 (v42 pin, rev 633b694, 2026-10-27):** STILL, unchanged from 2.42.6. A capture-only user (`F_DATAVALUE_ADD`, `F_EXPORT_DATA`, `M_dhis-web-dataentry`) scoped to Bo (`O6uvpzGd5pu`) writing at a sibling-of-scope organisation unit (a child of the root) gets `409`, `importCount.ignored: 1`, and ``E7617 "Organisation unit: `W42FSibOu01` not in hierarchy of current user: `W42FUser001`"`` whose `objects` carries only `organisationUnit` and `user`, naming neither the scope nor an ancestor; `dryRun=true` and a real import answer the same, and the same row at a Bo chiefdom answers `200 SUCCESS`.
 
 **Status on 2.43.2 (v43 pin, rev 13927ae, 2026-10-27):** STILL, unchanged from 2.43.1. A capture-only user scoped to Bo (`O6uvpzGd5pu`) writing at a sibling-of-scope organisation unit (Kenema `kJq2mPyFEHo`, a child of the root) gets `409`, status `ERROR`, every `importCount` zero, and ``E8011 "Current user cannot enter data for org unit(s): `[kJq2mPyFEHo]`"`` whose `objects` carries only `args`, naming neither the scope nor an ancestor. `dryRun=true` and a real import answer the same way, and the same row at an in-scope Bo chiefdom answers `200 SUCCESS`.
@@ -5359,11 +5361,11 @@ identifiable metadata as the reference.
 
 **Summary.** The aggregate data value surface reports outcomes that do not match what it did. On 2.43 and 2.44 `importCount` never reports `imported`, `importStrategy=CREATE` overwrites a live value, a `DELETE` of a value never written creates a tombstone, and inline `"deleted": true` is counted as `updated`; on every major `atomicMode` has no effect, a push whose every row is ignored answers 409, a `DELETE`-strategy import is a soft delete that still blocks metadata deletion, `dryRun=true` writes on `/api/dataValues` and answers 500 for some data elements on `/api/dataValueSets`, and a value whose data set was deleted cannot be deleted. A client cannot reconcile what it sent with what was stored from the response alone.
 
-**Versions affected:** 2.41.10 (6 of 13), 2.42.7 (7 of 13), 2.43.2 (12 of 13), 2.44-SNAPSHOT `c48aedc` (12 of 13). Not retested or inconclusive: 3 on 2.41.10, 1 on 2.44-SNAPSHOT `c48aedc`. Each issue's status lines give the release-by-release detail.
+**Versions affected:** 2.41.10 (6 of 15), 2.42.7 (7 of 15), 2.43.2 (14 of 15), 2.44-SNAPSHOT `c48aedc` (12 of 15). Not retested or inconclusive: 3 on 2.41.10, 3 on 2.44-SNAPSHOT `c48aedc`. Each issue's status lines give the release-by-release detail.
 
 **Reported:** not yet.
 
-**Issues:** [#2](#2-importstrategydelete-on-apidatavaluesets-is-a-soft-delete-that-still-blocks-parent-metadata-deletion), [#6](#6-bulk-apidatavaluesets-push-returns-409-even-when-every-rows-ignored-hiding-the-per-row-conflict-detail), [#50](#50-post--delete-apidatavalues-has-no-attributeoptioncombo-query-param--the-attribute-option-combo-is-addressed-by-cc--cp), [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting), [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction), [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets), [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value), [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted), [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike), [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements), [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway), [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api), [#161](#161-2427-answers-a-read-of-a-data-value-that-does-not-exist-with-409-and-no-error-code).
+**Issues:** [#2](#2-importstrategydelete-on-apidatavaluesets-is-a-soft-delete-that-still-blocks-parent-metadata-deletion), [#6](#6-bulk-apidatavaluesets-push-returns-409-even-when-every-rows-ignored-hiding-the-per-row-conflict-detail), [#50](#50-post--delete-apidatavalues-has-no-attributeoptioncombo-query-param--the-attribute-option-combo-is-addressed-by-cc--cp), [#84](#84-importstrategycreate-on-apidatavaluesets-overwrites-a-live-value-instead-of-conflicting), [#85](#85-apidatavaluesets-importcount-never-reports-imported-so-a-create-is-indistinguishable-from-a-correction), [#86](#86-blank-values-mean-opposite-things-on-the-two-data-surfaces-erasure-on-apitracker-e8120-on-apidatavaluesets), [#87](#87-importstrategydelete-of-a-data-value-that-was-never-written-materialises-a-tombstone-carrying-the-payloads-value), [#88](#88-inline-deleted-true-on-a-data-value-soft-deletes-it-but-is-counted-as-updated-never-deleted), [#112](#112-atomicmode-on-post-apidatavaluesets-has-no-effect-a-partly-invalid-import-commits-the-valid-rows-under-all-and-object-alike), [#129](#129-post-apidatavaluesetsdryruntrue-answers-500-dataentrygroupvalues-because-valid-is-null-for-five-of-one-data-sets-nineteen-data-elements), [#130](#130-post-apidatavaluesdryruntrue-accepts-dryrun-and-writes-the-value-anyway), [#140](#140-a-data-value-whose-data-set-has-been-deleted-cannot-be-deleted-through-the-api), [#161](#161-2427-answers-a-read-of-a-data-value-that-does-not-exist-with-409-and-no-error-code)., [#162](#162-an-identical-post-apidatavaluesets-counts-as-updated-and-rewrites-storedby-on-243-where-241-and-242-ignore-it), [#163](#163-writing-a-data-value-needs-sharing-on-the-data-element-on-241-and-242-and-not-on-243-or-244)
 
 ### 2. `importStrategy=DELETE` on `/api/dataValueSets` is a soft-delete that still blocks parent metadata deletion
 
@@ -6114,6 +6116,59 @@ refused request on 2.42.7, and has nothing but the message text to tell the two 
 **How to know it's fixed:** the read above answers 404 on a 2.42 release.
 
 ---
+
+### 162. An identical `POST /api/dataValueSets` counts as `updated` and rewrites `storedBy` on 2.43, where 2.41 and 2.42 ignore it
+
+**Observed on:** local stacks, 2026-10-31.
+
+**Status on 2.41.10 and 2.42.7 (2026-10-31):** NOT PRESENT. Re-posting 116 identical values answers `importCount` `{"imported": 0, "updated": 0, "ignored": 116, "deleted": 0}`, and `storedBy` stays the user who first wrote them.
+
+**Status on 2.43.2 (2026-10-31):** YES. The same re-post answers `{"imported": 0, "updated": 116, "ignored": 0, "deleted": 0}`, and `storedBy` becomes the user who re-posted.
+
+**Status on 2.44:** not retested.
+
+**Repro (against the seeded demo database, with a second user who may write at the organisation unit):**
+
+```bash
+BODY='{"dataSet":"BfMAe6Itzgt","period":"202609","orgUnit":"M9q1wOOsrXp","dataValues":[{"dataElement":"s46m5MS0hxu","categoryOptionCombo":"Prlt0C1RF0s","value":"12"}]}'
+curl -s -u clerk:password -H 'Content-Type: application/json' -X POST "http://localhost:8080/api/dataValueSets" -d "$BODY"
+curl -s -u admin:district -H 'Content-Type: application/json' -X POST "http://localhost:8080/api/dataValueSets" -d "$BODY" | jq .response.importCount
+curl -s -u admin:district "http://localhost:8080/api/dataValueSets?dataSet=BfMAe6Itzgt&period=202609&orgUnit=M9q1wOOsrXp" | jq '.dataValues[].storedBy'
+```
+
+**Expected.** A value that did not change is reported the same way on every release, and does not change who is recorded as having entered it.
+
+**Actual.** 2.43.2 reports a write that changed no value as an update and replaces the author, so `storedBy` names whoever re-sent the data last rather than whoever entered it. 2.41.10 and 2.42.7 leave both alone.
+
+**Impact.** A retried capture or a re-run import silently reattributes data on 2.43. On 2.41 and 2.42 a test that re-posts identical values and reads `storedBy` reads the first author, which looks like the second post used the wrong credentials.
+
+**Workaround in this repo.** None needed: `dhis2w_fhir_engine.facade.delivery` keeps the receipt's own `submitted_by`, and the facade's live proofs post fresh values.
+
+### 163. Writing a data value needs sharing on the data element on 2.41 and 2.42, and not on 2.43 or 2.44
+
+**Observed on:** local stacks, 2026-10-31, with a capture-only user holding `F_DATAVALUE_ADD`, write sharing on the data set and on its category options, and a capture scope on the organisation unit. The data elements have public access `--------`.
+
+**Status on 2.41.10 and 2.42.7 (2026-10-31):** Refused: `409` with `E7610 Data element not found or not accessible` for every data element, until the user has sharing on them.
+
+**Status on 2.43.2 (2026-10-31):** YES. Accepted with no sharing on the data elements: all 116 values written.
+
+**Status on 2.44 (2026-10-31):** Accepted the same way. It is not counted in the status table, which holds that column at its last full run.
+
+**Repro (against the seeded demo database, as that user):**
+
+```bash
+curl -s -u clerk:password -H 'Content-Type: application/json' -X POST "http://localhost:8080/api/dataValueSets" \
+  -d '{"dataSet":"BfMAe6Itzgt","period":"202609","orgUnit":"M9q1wOOsrXp","dataValues":[{"dataElement":"s46m5MS0hxu","categoryOptionCombo":"Prlt0C1RF0s","value":"12"}]}' \
+  | jq '.response.conflicts'
+```
+
+**Expected.** One rule across releases, and a release note where it changes. Which of the two is intended is for DHIS2 to say.
+
+**Actual.** A user who cannot see a data element can write values to it on 2.43 and 2.44, and cannot on 2.41 and 2.42. The same deployment changes behaviour on upgrade with nothing stating it.
+
+**Impact.** A deployment that scopes data entry by data element sharing loses that scope on upgrading to 2.43.
+
+**Workaround in this repo.** None needed: under `read_as_caller` and `d2w fhir serve --auth dhis2` a capture goes under the caller's credentials, so whichever rule a release applies is what the caller meets.
 
 ## Aggregate data entry rules: periods, category option combos and data sets
 
