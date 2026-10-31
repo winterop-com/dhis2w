@@ -529,9 +529,9 @@ async with Dhis2Client(base_url, auth=PatAuth(token)) as client:
 ### Canonical URL Discovery
 
 `connect()` follows the base URL's redirects once, without credentials, and adopts the
-destination when it is same-origin, or a same-scheme sibling on the same registrable
-domain that answers like DHIS2, so `https://play.dhis2.org/2.43` reaches the current 2.43
-demo. `follow_redirects_with_auth=True` adopts any destination, across host and scheme.
+destination when it is same-origin, or a same-scheme subdomain of the configured host, or
+a same-scheme host under `dhis2.org`, that answers like DHIS2, so
+`https://play.dhis2.org/2.43` reaches the current 2.43 demo. `follow_redirects_with_auth=True` adopts any destination, across host and scheme.
 
 ### Three-Surface Plugin Model
 

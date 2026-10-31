@@ -139,10 +139,12 @@ redirect). The client follows that chain once with no credentials and adopts the
 destination as the base URL for everything after — but only when the destination
 earns it. A same-origin destination is adopted outright. A different origin is
 adopted only when it keeps the configured scheme (an `https://` base URL is never
-traded for `http://`), sits on the same registrable domain as the configured host
-(the last two labels, so `play.dhis2.org` and `play.im.dhis2.org` are siblings
-under `dhis2.org`; an IP address or a single-label host such as `localhost` has no
-registrable domain and is never a sibling of anything), and answers
+traded for `http://`), has a host the configured host answers for (that host on
+another port, a subdomain of it, or, for the play demos, any host under `dhis2.org`,
+so `play.dhis2.org` reaches `play.im.dhis2.org`; two hosts that only share their
+last labels do not qualify, since `dhis2.health.co.uk` and `attacker.co.uk` have
+different registrants, and an IP address or a single-label host such as `localhost`
+is never adopted across origins), and answers
 `/api/system/info` with a parsed DHIS2 body — system info, or DHIS2's own error
 envelope for an anonymous caller. Anything else keeps the URL you configured, so
 an open redirect or an SSO identity provider never receives your credentials.

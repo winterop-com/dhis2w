@@ -84,6 +84,9 @@ from dhis2w_client.v44.visualizations import VisualizationsAccessor
 _VERSION_RE = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?")
 _HTTP_LOG = logging.getLogger("dhis2w_client.http")
 
+# Domains a base URL's redirect may move within, between any two hosts under them.
+_ADOPTABLE_DOMAINS = frozenset({"dhis2.org"})
+
 
 def _body_message(body: object) -> str:
     """The `message` of a DHIS2 error envelope, or an empty string when the body carries none."""
@@ -179,8 +182,9 @@ class Dhis2Client:
         `follow_redirects_with_auth` (default `False`) makes `connect()` adopt
         whatever URL the base URL redirects to, on any host or scheme, so the
         credential is sent there. Without it, a redirect to another origin is
-        adopted only when it keeps the scheme, shares the registrable domain
-        and answers an anonymous `/api/system/info` like DHIS2. Turn it on for
+        adopted only when it keeps the scheme, its host is the configured host,
+        a subdomain of it, or both hosts sit under `dhis2.org`, and it answers an
+        anonymous `/api/system/info` like DHIS2. Turn it on for
         a redirect that changes scheme, such as `http://play.dhis2.org/2.43`
         landing on `https://`, and only for a URL whose redirect you trust.
 
@@ -403,8 +407,8 @@ class Dhis2Client:
 
         Credentials stay bound to the configured origin unless the redirect
         target earns adoption on all three counts: it keeps the configured
-        scheme (an HTTPS base URL is never traded for HTTP), it sits on the
-        same registrable domain as the configured host, and its
+        scheme (an HTTPS base URL is never traded for HTTP), its host is one
+        `_cross_origin_target_is_trusted` accepts, and its
         `/api/system/info` answers with a DHIS2 body. Anything else keeps the
         configured URL, so an open redirect or an SSO IdP never receives the
         instance's Authorization header.
@@ -448,27 +452,35 @@ class Dhis2Client:
         """Return True if `target` may be adopted as the canonical URL for `configured`.
 
         Two conditions, both structural: the scheme is unchanged (an HTTPS
-        base URL is never traded for HTTP), and both hosts share a
-        registrable domain, which is what makes the DHIS2 `play.dhis2.org` ->
-        `play.im.dhis2.org` redirect adoptable while an unrelated host is not.
+        base URL is never traded for HTTP), and the target's host is the
+        configured host on another port, a subdomain of it, or, with the
+        configured host, under a domain in `_ADOPTABLE_DOMAINS`, which is what
+        makes the DHIS2 `play.dhis2.org` -> `play.im.dhis2.org` redirect
+        adoptable. Two hosts that only share their last labels do not qualify:
+        `dhis2.health.co.uk` and `attacker.co.uk` have different registrants, as
+        do two names under a shared platform domain.
         """
         left = httpx2.URL(configured)
         right = httpx2.URL(target)
         if left.scheme != right.scheme:
             return False
-        domain = Dhis2Client._registrable_domain(left.host)
-        return domain is not None and domain == Dhis2Client._registrable_domain(right.host)
+        configured_host = Dhis2Client._dns_name(left.host)
+        target_host = Dhis2Client._dns_name(right.host)
+        if configured_host is None or target_host is None:
+            return False
+        if target_host == configured_host or target_host.endswith(f".{configured_host}"):
+            return True
+        return any(
+            configured_host.endswith(f".{domain}") and target_host.endswith(f".{domain}")
+            for domain in _ADOPTABLE_DOMAINS
+        )
 
     @staticmethod
-    def _registrable_domain(host: str | None) -> str | None:
-        """Return the last two labels of `host`, or None when it has no registrable domain.
+    def _dns_name(host: str | None) -> str | None:
+        """Return `host` in lower case, or None for an IP literal or a host of fewer than two labels.
 
-        A deliberate approximation of the public-suffix list, chosen over a
-        bundled PSL snapshot that would need refreshing: `play.dhis2.org` and
-        `play.im.dhis2.org` both reduce to `dhis2.org`. An IP literal, or a
-        host of fewer than two labels such as `localhost`, has no registrable
-        domain and therefore never matches anything — such hosts reach the
-        canonical URL through the same-origin path instead.
+        Neither of those is ever adopted across origins: they reach the canonical URL
+        through the same-origin path instead.
         """
         if not host:
             return None
@@ -482,7 +494,7 @@ class Dhis2Client:
         labels = cleaned.split(".")
         if len(labels) < 2 or not all(labels):
             return None
-        return ".".join(labels[-2:])
+        return cleaned
 
     @staticmethod
     async def _probe_looks_like_dhis2(base_url: str, *, verify: bool | ssl.SSLContext = True) -> bool:
