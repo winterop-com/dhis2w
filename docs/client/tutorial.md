@@ -775,6 +775,26 @@ Backoff: `delay = min(max_delay, base_delay * backoff_factor ** (attempt - 1))` 
 
 See `examples/client/retry_policy.py` for a runnable demo across default / aggressive / non-idempotent-opt-in policies.
 
+## Bounding one answer
+
+An instance you do not control can answer with more than a script means to hold, or send bytes slowly enough that no single read times out. `Dhis2Client` takes two limits, both off by default:
+
+```python
+from dhis2w_client import Dhis2Client, RequestDeadlineError, ResponseTooLargeError
+
+async with Dhis2Client(base_url, auth=auth, max_response_bytes=64 * 1024 * 1024, deadline=120.0) as client:
+    try:
+        info = await client.system.info()
+    except ResponseTooLargeError as exc:
+        ...  # the answer decoded past exc.limit bytes
+    except RequestDeadlineError as exc:
+        ...  # the request ran past exc.deadline seconds, start to last byte
+```
+
+- `max_response_bytes` counts a buffered body as it decodes, so a few hundred bytes of nested gzip are stopped before they expand in memory. `stream()` writes a body to its sink and applies the limit only to an error body it buffers.
+- `deadline` covers one request from start to last byte, where `timeout` limits each read. `stream()` is not covered.
+- Whatever you set, `connect()` reads no body while it follows the base URL's redirects, and parses at most 1 MiB of `/api/system/info` when it checks a redirect target looks like DHIS2.
+
 ## Concurrency
 
 The client's `httpx2.AsyncClient` is shared across concurrent calls on the same `Dhis2Client` instance; safe to use with `asyncio.gather`.

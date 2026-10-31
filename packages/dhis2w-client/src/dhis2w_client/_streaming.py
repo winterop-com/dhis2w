@@ -25,6 +25,7 @@ from typing import Any, Protocol, cast, runtime_checkable
 
 import httpx2
 
+from dhis2w_client._bounded import read_capped
 from dhis2w_client.errors import AuthenticationError, Dhis2ApiError, format_unauthorized_message
 
 _DEFAULT_CHUNK_SIZE = 64 * 1024  # 64 KiB balances syscall count vs chunk overhead.
@@ -83,7 +84,11 @@ async def stream_to_sink(
     async with http.stream(method, path, params=query_params, headers=headers) as response:
         if response.status_code >= 400:
             # 4xx / 5xx responses are small; buffer the body for the error.
-            await response.aread()
+            limit = client._max_response_bytes  # noqa: SLF001
+            if limit is None:
+                await response.aread()
+            else:
+                response = await read_capped(response, limit, method=method, path=path)
             body: Any
             try:
                 body = response.json()

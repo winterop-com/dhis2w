@@ -25,6 +25,12 @@ if TYPE_CHECKING:
         OAuth2FlowError as OAuth2FlowError,
     )
     from dhis2w_client.errors import (
+        RequestDeadlineError as RequestDeadlineError,
+    )
+    from dhis2w_client.errors import (
+        ResponseTooLargeError as ResponseTooLargeError,
+    )
+    from dhis2w_client.errors import (
         UnsupportedVersionError as UnsupportedVersionError,
     )
     from dhis2w_client.errors import (
@@ -829,6 +835,8 @@ __all__ = [
     "ValidationRuleGroupsAccessor",
     "ValidationRulesAccessor",
     "VersionPinMismatchError",
+    "RequestDeadlineError",
+    "ResponseTooLargeError",
     "VisualizationSpec",
     "VisualizationsAccessor",
     "WebMessageResponse",
@@ -1056,6 +1064,8 @@ _LAZY_EXPORTS: dict[str, str] = {
     "ValidationRuleGroupsAccessor": "dhis2w_client.v41.validation_rule_groups",
     "ValidationRulesAccessor": "dhis2w_client.v41.validation_rules",
     "VersionPinMismatchError": "dhis2w_client.errors",
+    "RequestDeadlineError": "dhis2w_client.errors",
+    "ResponseTooLargeError": "dhis2w_client.errors",
     "VisualizationSpec": "dhis2w_client.v41.visualizations",
     "VisualizationsAccessor": "dhis2w_client.v41.visualizations",
     "WebMessageResponse": "dhis2w_client.v41.envelopes",

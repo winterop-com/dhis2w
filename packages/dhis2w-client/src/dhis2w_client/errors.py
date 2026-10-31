@@ -85,6 +85,24 @@ class Dhis2ApiError(Dhis2ClientError):
             return None
 
 
+class ResponseTooLargeError(Dhis2ClientError):
+    """Raised when a response decodes to more than the client's `max_response_bytes`."""
+
+    def __init__(self, *, method: str, path: str, limit: int) -> None:
+        """Name the request and the limit it passed."""
+        super().__init__(f"{method} {path} answered more than the {limit} bytes this client reads")
+        self.limit = limit
+
+
+class RequestDeadlineError(Dhis2ClientError, TimeoutError):
+    """Raised when one request takes longer than the client's `deadline`, start to last byte."""
+
+    def __init__(self, *, method: str, path: str, deadline: float | None) -> None:
+        """Name the request and the deadline it passed."""
+        super().__init__(f"{method} {path} did not finish within {deadline} seconds")
+        self.deadline = deadline
+
+
 class AuthenticationError(Dhis2ClientError):
     """Raised when authentication fails or tokens are invalid."""
 

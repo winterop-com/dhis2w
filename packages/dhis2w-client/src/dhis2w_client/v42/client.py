@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import ipaddress
 import logging
@@ -15,6 +16,7 @@ from typing import Any, Self
 import httpx2
 from pydantic import BaseModel
 
+from dhis2w_client._bounded import read_capped, within_deadline
 from dhis2w_client._dispatch import rebind_accessors_for_version
 from dhis2w_client._streaming import StreamParams, StreamSink, stream_to_sink
 from dhis2w_client._tls import resolve_verify
@@ -87,6 +89,12 @@ _HTTP_LOG = logging.getLogger("dhis2w_client.http")
 # Domains a base URL's redirect may move within, between any two hosts under them.
 _ADOPTABLE_DOMAINS = frozenset({"dhis2.org"})
 
+# How many redirects the canonical-URL probe follows before keeping the configured URL.
+_PROBE_MAX_REDIRECTS = 20
+
+# The largest answer the DHIS2-shape probe parses.
+_PROBE_MAX_BYTES = 1024 * 1024
+
 
 def _body_message(body: object) -> str:
     """The `message` of a DHIS2 error envelope, or an empty string when the body carries none."""
@@ -132,6 +140,8 @@ class Dhis2Client:
         skip_version_probe: bool = False,
         follow_redirects_with_auth: bool = False,
         event_hooks: Mapping[str, list[Callable[..., Any]]] | None = None,
+        max_response_bytes: int | None = None,
+        deadline: float | None = None,
     ) -> None:
         """Build a client. Call connect() or use as an async context manager before API calls.
 
@@ -191,6 +201,17 @@ class Dhis2Client:
         `event_hooks` (default `None`) passes httpx2 event hooks straight to the
         internal `AsyncClient`; `None` leaves httpx2 defaults untouched. The
         security audit uses a `request` hook to enforce its read-only allowlist.
+
+        `max_response_bytes` (default `None`, no limit) refuses a buffered answer
+        with `ResponseTooLargeError` once it decodes past that many bytes,
+        however little arrived on the wire. `stream()` writes a body to its sink
+        and applies this only to the error body it buffers.
+
+        `deadline` (default `None`, no limit) is how many seconds one request may
+        take, start to last byte, and raises `RequestDeadlineError` past it;
+        `timeout` limits each read instead, so a slow drip never reaches it. It
+        applies to the two probes `connect()` runs as well, each of which then
+        falls back to the configured URL, and not to `stream()`.
         """
         self._base_url = base_url.rstrip("/")
         self._auth = auth
@@ -202,6 +223,8 @@ class Dhis2Client:
         self._skip_version_probe = skip_version_probe
         self._follow_redirects_with_auth = follow_redirects_with_auth
         self._event_hooks = event_hooks
+        self._max_response_bytes = max_response_bytes
+        self._deadline = deadline
         self._version_key: str | None = None
         self._raw_version: str | None = None
         self._generated: ModuleType | None = None
@@ -324,6 +347,7 @@ class Dhis2Client:
                 self._base_url,
                 verify=self._verify,
                 trust_target=self._follow_redirects_with_auth,
+                deadline=self._deadline,
             )
             if resolved != self._base_url:
                 self._base_url = resolved
@@ -393,6 +417,7 @@ class Dhis2Client:
         *,
         verify: bool | ssl.SSLContext = True,
         trust_target: bool = False,
+        deadline: float | None = None,
     ) -> str:
         """Follow redirects (without auth) to find the canonical DHIS2 base URL.
 
@@ -415,15 +440,28 @@ class Dhis2Client:
 
         With `trust_target`, the redirect target is adopted whatever its
         origin, without the DHIS2 probe.
+
+        Only each answer's status and headers are read. Its body never is, so a
+        large or compressed one costs nothing here.
         """
         candidate = base_url.rstrip("/")
         try:
-            async with httpx2.AsyncClient(
-                timeout=httpx2.Timeout(10.0, connect=10.0),
-                follow_redirects=True,
-                verify=verify,
-            ) as probe:
-                response = await probe.get(f"{candidate}/")
+            async with (
+                asyncio.timeout(deadline),
+                httpx2.AsyncClient(
+                    timeout=httpx2.Timeout(10.0, connect=10.0),
+                    verify=verify,
+                ) as probe,
+            ):
+                request = probe.build_request("GET", f"{candidate}/")
+                for _ in range(_PROBE_MAX_REDIRECTS):
+                    response = await probe.send(request, stream=True)
+                    await response.aclose()
+                    if response.next_request is None:
+                        break
+                    request = response.next_request
+                else:
+                    return candidate
         except Exception:  # noqa: BLE001 — probe is best-effort; fall back to original URL
             return candidate
         final = str(response.url).rstrip("/")
@@ -436,7 +474,7 @@ class Dhis2Client:
             return final
         if not Dhis2Client._cross_origin_target_is_trusted(candidate, final):
             return candidate
-        if await Dhis2Client._probe_looks_like_dhis2(final, verify=verify):
+        if await Dhis2Client._probe_looks_like_dhis2(final, verify=verify, deadline=deadline):
             return final
         return candidate
 
@@ -497,7 +535,9 @@ class Dhis2Client:
         return cleaned
 
     @staticmethod
-    async def _probe_looks_like_dhis2(base_url: str, *, verify: bool | ssl.SSLContext = True) -> bool:
+    async def _probe_looks_like_dhis2(
+        base_url: str, *, verify: bool | ssl.SSLContext = True, deadline: float | None = None
+    ) -> bool:
         """Return True if `<base_url>/api/system/info` answers with a DHIS2 body.
 
         The body is parsed, not sniffed: a content type is something any host
@@ -506,17 +546,28 @@ class Dhis2Client:
         locked-down instance, with its error envelope (`message` alongside
         `httpStatus` / `httpStatusCode`), which it sends only to a request carrying
         `X-Requested-With` and otherwise redirects to its login page. Any other JSON — an SSO IdP's login
-        descriptor, an unrelated API — is not DHIS2.
+        descriptor, an unrelated API — is not DHIS2. Neither is an answer past
+        `_PROBE_MAX_BYTES`.
         """
         try:
-            async with httpx2.AsyncClient(
-                timeout=httpx2.Timeout(5.0, connect=5.0),
-                follow_redirects=False,
-                verify=verify,
-            ) as probe:
-                response = await probe.get(
+            async with (
+                asyncio.timeout(deadline),
+                httpx2.AsyncClient(
+                    timeout=httpx2.Timeout(5.0, connect=5.0),
+                    follow_redirects=False,
+                    verify=verify,
+                ) as probe,
+            ):
+                request = probe.build_request(
+                    "GET",
                     f"{base_url}/api/system/info",
                     headers={"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"},
+                )
+                response = await read_capped(
+                    await probe.send(request, stream=True),
+                    _PROBE_MAX_BYTES,
+                    method="GET",
+                    path="/api/system/info",
                 )
         except Exception:  # noqa: BLE001 — probe is best-effort
             return False
@@ -769,15 +820,33 @@ class Dhis2Client:
         if extra_headers:
             headers = {**headers, **extra_headers}
         t0 = time.monotonic()
-        response = await self._http.request(
-            method,
-            path,
-            params=params,
-            json=json,
-            content=content,
-            files=files,
-            headers=headers,
-        )
+        async with within_deadline(self._deadline, method=method, path=path):
+            if self._max_response_bytes is None:
+                response = await self._http.request(
+                    method,
+                    path,
+                    params=params,
+                    json=json,
+                    content=content,
+                    files=files,
+                    headers=headers,
+                )
+            else:
+                request = self._http.build_request(
+                    method,
+                    path,
+                    params=params,
+                    json=json,
+                    content=content,
+                    files=files,
+                    headers=headers,
+                )
+                response = await read_capped(
+                    await self._http.send(request, stream=True),
+                    self._max_response_bytes,
+                    method=method,
+                    path=path,
+                )
         if _HTTP_LOG.isEnabledFor(logging.DEBUG):
             elapsed_ms = (time.monotonic() - t0) * 1000
             _HTTP_LOG.debug(
