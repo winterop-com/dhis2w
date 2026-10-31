@@ -722,7 +722,7 @@ wheels = [
 
 [[package]]
 name = "dhis2w-browser"
-version = "1.36.0"
+version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dhis2w-client" },
@@ -733,9 +733,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/df/3b35b3053885c2db8604d3fb7e08e994de6e515e2a65d236ef678f7f5612/dhis2w_browser-1.36.0.tar.gz", hash = "sha256:030b50120b8fc641201f8d6fd7dfb7583e9ef6ed245102570a51fd57cc0ae1c0", size = 45407, upload-time = "2026-10-31T10:28:43.656Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/01/539db6523f033aeaba0f276be8f8a53227c47be7627ca470ea574a77a936/dhis2w_browser-1.37.0.tar.gz", hash = "sha256:06255e08a0323ecb8dabd71e40355748165ea389b7d7d3dcfd19ab8f039c95a0", size = 45392, upload-time = "2026-10-31T16:43:09.247Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/5e/c46de7cdd6d291f54e21615b0815ba154860a1edcd9f83f2811792545951/dhis2w_browser-1.36.0-py3-none-any.whl", hash = "sha256:bacadfbf6cc1756e63955b56a08644d0c4de9cdff62810fa77f8707c9f14ecb5", size = 56697, upload-time = "2026-10-31T10:28:42.38Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/92/561762c9f6415b69b9edb0de9d2af93d1ce588f56f4e7d584485d4e26421/dhis2w_browser-1.37.0-py3-none-any.whl", hash = "sha256:4561cfdb8ae312b78ef4f8cca30bda0de196eb16ea40619566d8ef565fcdbfdc", size = 56701, upload-time = "2026-10-31T16:43:07.97Z" },
 ]
 
 [[package]]
@@ -854,7 +854,7 @@ provides-extras = ["testing"]
 
 [[package]]
 name = "dhis2w-fhir"
-version = "1.36.0"
+version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dhis2w-client" },
@@ -867,14 +867,14 @@ dependencies = [
     { name = "tomli-w" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/f0/acd96aa63c8cd5db98eb52ed0bcf9e425a8dade2afc7bbdb6f4841a76d25/dhis2w_fhir-1.36.0.tar.gz", hash = "sha256:83e12770a8fb31ddacd3b33f1b5c4fbb3abcd8d5a6d738ec3178276076ca4f5a", size = 1870160, upload-time = "2026-10-31T10:29:06.282Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fc/27/d52e4bbeda24cef007e0f55cbe68bbf73fb37bb6689c324fe485b2cbb1a7/dhis2w_fhir-1.37.0.tar.gz", hash = "sha256:ba04bcb244be980e9859eb85bd9a709e985f7932ed46c139bc82234aa298b4cf", size = 1870118, upload-time = "2026-10-31T16:43:29.485Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/66/78650b7496b996f11b7f74bd343f50a28d6e08e641ec71a92d7b7ec5cd65/dhis2w_fhir-1.36.0-py3-none-any.whl", hash = "sha256:f7c94d083d1ce3c61f32dfd63f1e8afdaa788cdc8b70c63bf7b980fe34f92939", size = 2468464, upload-time = "2026-10-31T10:29:00.123Z" },
+    { url = "https://files.pythonhosted.org/packages/86/ac/c6b21f0b994ccc21690deb1ed5aa262c32fb9b53d04ad1d5bea619dbe146/dhis2w_fhir-1.37.0-py3-none-any.whl", hash = "sha256:f48a64ce6eca908b7dddf1e62033c7e77b3c00f2333e9540f2e6c3069219fe37", size = 2468506, upload-time = "2026-10-31T16:43:23.657Z" },
 ]
 
 [[package]]
 name = "dhis2w-fhir-engine"
-version = "1.36.0"
+version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "antlr4-python3-runtime" },
@@ -884,14 +884,14 @@ dependencies = [
     { name = "pydantic" },
     { name = "tomli-w" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/fe/345d75bf36ede103e1cbdf9b0e7db093914e6e3715384a21d3e2d2c0b3e8/dhis2w_fhir_engine-1.36.0.tar.gz", hash = "sha256:b2389b72b1aeb28ea9edf211639c4196cf80f390bafe6873bd8ddee425cb0c4b", size = 951420, upload-time = "2026-10-31T10:29:08.139Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/8c/7ad4243dbc2d348cc5c2b0d5586dd898ff5aad11af80ab4bfd466cba4099/dhis2w_fhir_engine-1.37.0.tar.gz", hash = "sha256:f1a956d637ea9b3a739f3001e5d3458f67d9daa24380ec36b39316ac4188e27d", size = 954105, upload-time = "2026-10-31T16:43:30.911Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/d1/9a4a660dc3fb156cbfb1c64217f6c33277a8c6c465fadb17554bca9c192c/dhis2w_fhir_engine-1.36.0-py3-none-any.whl", hash = "sha256:e39998587d9d77dbfc1587a506a19bfae92315179968e5b175984722ff1a712b", size = 1078201, upload-time = "2026-10-31T10:29:02.212Z" },
+    { url = "https://files.pythonhosted.org/packages/19/cc/8de740ba082c59c50b8b126bd9b222b42c90594bceefb21fb6d34782d7f1/dhis2w_fhir_engine-1.37.0-py3-none-any.whl", hash = "sha256:d3d6888b69433ae4a9a94b1d9391197284b351a13c3d038e4d631add41df12dc", size = 1080741, upload-time = "2026-10-31T16:43:25.649Z" },
 ]
 
 [[package]]
 name = "dhis2w-fhir-serve"
-version = "1.36.0"
+version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiosqlite" },
@@ -904,14 +904,14 @@ dependencies = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/f7/15a2737c9826cb107f8c7a617fd8a5476d7c308542386d7bdc6f5a9ec33f/dhis2w_fhir_serve-1.36.0.tar.gz", hash = "sha256:97e9aafb3e70d63a2e63fd4c96ddda508c463d086f30b2ea86681a77831b579e", size = 1314560, upload-time = "2026-10-31T10:29:09.593Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/3b/2c42751394f4ba6f823a8f6f80e298725a01f53d5c5e17434b537367528a/dhis2w_fhir_serve-1.37.0.tar.gz", hash = "sha256:5bcfa1e80d72f7f96ca474d853215207d0f0936ee80ac3263825de868881cd33", size = 1314531, upload-time = "2026-10-31T16:43:32.361Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/43/be73e052ab81fd573c844be646bba7dcacba40ed719e360a3234da34def1/dhis2w_fhir_serve-1.36.0-py3-none-any.whl", hash = "sha256:a8ae032a6c3028392bcccad0a88c09e317b02c04deb93ee426e6795c08765890", size = 1340854, upload-time = "2026-10-31T10:29:04.378Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/57/24fc20df7c388e97d6316b8974c4ce39f6ab049006f1aa7ddd3cb9db1255/dhis2w_fhir_serve-1.37.0-py3-none-any.whl", hash = "sha256:8f76d1be3323d700693bb6e2adfda601b3ed5e3a29eb35cc9374a58489d2a5bf", size = 1340851, upload-time = "2026-10-31T16:43:27.877Z" },
 ]
 
 [[package]]
 name = "dhis2w-security"
-version = "1.36.0"
+version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dhis2w-client" },
@@ -922,9 +922,9 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/65/ed279e46a0b2b2dc857482872b9d70daaa1e3d709bd815acc158740663bf/dhis2w_security-1.36.0.tar.gz", hash = "sha256:176b4370ef0c7f63aa3ed159b07fb8434142b55f9832a5002550f2578234ae13", size = 324149, upload-time = "2026-10-31T10:29:10.219Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/72/573a94f5a479fe3cb95953b36b519b0619036e034c16d738c0104882d8b0/dhis2w_security-1.37.0.tar.gz", hash = "sha256:5639cc0f03f604cfd2f656f239d4d7d286dce68cf70a8b3552ced78ffc222f36", size = 324173, upload-time = "2026-10-31T16:43:33.487Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/29/52604abd29ca6cbed5613a8d43db5ba764ed96b8ef0d269eb9ec0b9fc13e/dhis2w_security-1.36.0-py3-none-any.whl", hash = "sha256:10171f55f0430b829dc7c181eb9404ecf81483f8f7de2ce6f5b26dc9ad464043", size = 350352, upload-time = "2026-10-31T10:29:08.638Z" },
+    { url = "https://files.pythonhosted.org/packages/59/21/fa6ed78782dc11f17497218a51c385e664fa3bd8e4c7369f21a8c55bb79d/dhis2w_security-1.37.0-py3-none-any.whl", hash = "sha256:9539d712ba175766ebf17bd02d61cc6b9523d15a5603fb2bf3c3e682c18f2070", size = 350352, upload-time = "2026-10-31T16:43:31.366Z" },
 ]
 
 [[package]]
