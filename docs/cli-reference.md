@@ -2046,10 +2046,11 @@ $ d2w fhir [OPTIONS] COMMAND [ARGS]...
 * `validate`: Check the instance&#x27;s codes for...
 * `check-artifacts`: Refuse the build before it begins: scan...
 * `serve`: Serve the project&#x27;s IG as a FHIR read and...
-* `forward`: Drain the capture spool into DHIS2 -...
+* `forward`: Repair the capture queue: send what a...
 * `spool`: List the capture spool - how many receipts...
 * `sync`: Fill this project&#x27;s materialized...
 * `requeue`: Move receipts DHIS2 refused back into the...
+* `discard`: Take queued receipts out of the queue for...
 * `withdraw`: Retract from DHIS2 the events named...
 * `doctor`: Run the whole FHIR toolchain against this...
 * `generate`: Generate the whole IG source from DHIS2...
@@ -2187,7 +2188,8 @@ Two APIs answer. FHIR is at the base URL and its contract is the CapabilityState
 the vocabularies, the register listings - are at `/facade`, described by the OpenAPI document at
 `/facade/openapi.json` and browsable at `/facade/docs`.
 
-Received QuestionnaireResponses are stored as receipts, so reading one back says what was submitted.
+A received QuestionnaireResponse goes to DHIS2 where this run is asked to send it: see `--delivery`.
+What it became is stored as a receipt, so reading one back says what was submitted.
 
 `--live` builds the store from the instance at startup, as the profile `d2w -p` names.
 
@@ -2221,6 +2223,7 @@ $ d2w fhir serve [OPTIONS] [directory]
 * `--host <str>`: Interface to bind, overriding `[serve] host`. The default is loopback. Binding anything else while neither --auth nor `[serve] auth` states a posture is refused: who reaches this facade and who it answers are one decision.
 * `--port <int>`: Port to listen on, overriding `[serve] port` (default 8080).
 * `--auth <none|token|dhis2|jwt>`: Who this facade serves, overriding `[serve] auth`. `none` serves every caller; `token` takes a static bearer token out of D2W_FHIR_SERVE_TOKENS; `dhis2` takes the caller&#x27;s own DHIS2 credentials and checks them against the instance this run reads, which needs --live; `jwt` takes a token from the OpenID Connect issuer named in `[serve.jwt] issuer`, verified against that issuer&#x27;s published keys. Binding an interface other than loopback while neither this flag nor fhir.toml states a posture is refused.
+* `--delivery <at-once|validate-only|hold>`: When a capture goes to DHIS2, overriding `[serve] delivery`. `at-once` posts while the submitter waits, so they hear DHIS2&#x27;s answer, and keeps trying a capture DHIS2 was away for; `validate-only` has DHIS2 grade it and writes nothing; `hold` keeps it here until `d2w fhir forward` runs. Unstated, a capture stays here, because `profile` says which DHIS2 to read and not that it may be written to. A caller presenting their own account under `--auth dhis2` posts at once.
 * `--auth-scope <write|all>`: How much of the surface the posture covers, overriding `[serve] auth_scope`. `write` asks for credentials on `POST /QuestionnaireResponse` and leaves every read open; `all` asks for them everywhere except `/metadata`, which stays open so a client can read the posture it has to meet.
 * `--registry-package <path>`: The organisation-unit registry package to serve this guide&#x27;s units from - the `package.tgz` the registry project&#x27;s `make build` wrote, or a directory it was extracted into. Only for a guide naming `[generate.organisation_units.registry]`, and only when no `path` checkout answers: the checkout is read first.
 * `--strict-codes / --no-strict-codes`: Refuse a received answer whose code is outside the served terminology, overriding `[serve] strict_codes`. The default records the drift as a warning and stores the submission, because an option added to the instance since the IG was built is a fact about the instance, not a client mistake.
@@ -2230,7 +2233,11 @@ $ d2w fhir serve [OPTIONS] [directory]
 
 ### `d2w fhir forward`
 
-Drain the capture spool into DHIS2 - translate every received response and post it.
+Repair the capture queue: send what a server is still holding, and read what became of it.
+
+A running `d2w fhir serve` posts captures at once and retries the ones DHIS2 was away for, so this is for what
+remains: captures held under `--delivery hold`, or by a server with no connection, and a refused receipt
+`d2w fhir requeue` has put back.
 
 DRY RUN IS THE DEFAULT. Every payload is posted to the real instance under the endpoint&#x27;s own
 validate-only mode, so DHIS2&#x27;s rules decide the answer and nothing is written; `--import` commits.
@@ -2403,6 +2410,34 @@ $ d2w fhir requeue [OPTIONS] [response_ids]...
 
 * `--directory <directory>`: Project directory (default: current directory).  [default: .]
 * `--all-rejected`: Move every receipt DHIS2 refused back into the queue.
+* `--help`: Show this message and exit.
+
+### `d2w fhir discard`
+
+Take queued receipts out of the queue for good, filing them to rejected/ with the reason stated.
+
+For a receipt the forward keeps refusing whose fix will never come - a code nobody will add to the
+guide, an organisation unit the instance will never hold. Every drain retries a queued receipt, so
+without this it stays in received/ and is refused again on every run. The record beside it in
+rejected/ names the discard, the reason, and the last refusal a drain recorded.
+
+Only a queued receipt can be discarded. `d2w fhir requeue` puts one back in the queue. Needs no
+DHIS2 connection and no profile - it is a rename inside the project directory.
+
+**Usage**:
+
+```console
+$ d2w fhir discard [OPTIONS] {response_ids}...
+```
+
+**Arguments**:
+
+* `response_ids...`: Ids of the queued receipts to take out of the queue.  [required]
+
+**Options**:
+
+* `--reason <str>`: Why these responses are not sent; written beside each receipt.  [required]
+* `--directory <directory>`: Project directory (default: current directory).  [default: .]
 * `--help`: Show this message and exit.
 
 ### `d2w fhir withdraw`
