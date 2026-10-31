@@ -323,6 +323,67 @@ async def test_resolve_canonical_base_url_rejects_non_dhis2_json_on_same_domain(
     assert resolved == "https://dhis2.example.org"
 
 
+@respx.mock
+@pytest.mark.parametrize(
+    ("configured", "target"),
+    [
+        ("https://dhis2.health.co.uk", "https://attacker.co.uk"),
+        ("https://health.co.uk", "https://attacker.co.uk"),
+        ("https://one.azurewebsites.net", "https://other.azurewebsites.net"),
+        ("https://one.github.io", "https://other.github.io"),
+        ("https://dhis2.example.org", "https://hmis.example.org"),
+        ("https://dhis2.example.org", "https://example.org"),
+        ("https://evil-dhis2.org", "https://play.im.dhis2.org"),
+    ],
+)
+async def test_resolve_canonical_base_url_keeps_a_host_that_only_shares_its_last_labels(
+    configured: str, target: str
+) -> None:
+    """A target answering like DHIS2 under the same last two labels is not adopted, and is not even probed."""
+    respx.get(f"{configured}/").mock(return_value=httpx.Response(302, headers={"location": f"{target}/"}))
+    respx.get(f"{target}/").mock(return_value=httpx.Response(200, text="<html></html>"))
+    probe = respx.get(f"{target}/api/system/info").mock(return_value=httpx.Response(200, json={"version": "2.43.0"}))
+    resolved = await Dhis2Client._resolve_canonical_base_url(configured)
+    assert resolved == configured
+    assert probe.call_count == 0
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    ("configured", "target"),
+    [
+        ("https://example.org", "https://dhis2.example.org"),
+        ("https://dhis2.example.org", "https://eu.dhis2.example.org"),
+        ("https://play.dhis2.org", "https://play.im.dhis2.org"),
+    ],
+)
+async def test_resolve_canonical_base_url_adopts_a_host_the_configured_host_answers_for(
+    configured: str, target: str
+) -> None:
+    respx.get(f"{configured}/").mock(return_value=httpx.Response(302, headers={"location": f"{target}/"}))
+    respx.get(f"{target}/").mock(return_value=httpx.Response(200, text="<html></html>"))
+    probe = respx.get(f"{target}/api/system/info").mock(return_value=httpx.Response(200, json={"version": "2.43.0"}))
+    resolved = await Dhis2Client._resolve_canonical_base_url(configured)
+    assert resolved == target
+    assert probe.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("configured", "target"),
+    [
+        ("http://127.0.0.1:8080", "http://127.0.0.1:9090"),
+        ("http://localhost:8080", "http://localhost:9090"),
+        ("http://localhost:8080", "http://a.localhost:8080"),
+    ],
+)
+def test_an_ip_or_single_label_host_is_not_trusted_across_origins(configured: str, target: str) -> None:
+    assert Dhis2Client._cross_origin_target_is_trusted(configured, target) is False
+
+
+def test_the_configured_host_on_another_port_is_trusted() -> None:
+    assert Dhis2Client._cross_origin_target_is_trusted("https://dhis2.example.org", "https://dhis2.example.org:8443")
+
+
 def _mock_play_alias() -> respx.Route:
     """Mock the play demo's version alias: a redirect to another host, which sends anonymous reads to login."""
     respx.get("http://play.dhis2.org/2.43/").mock(
@@ -394,14 +455,13 @@ async def test_follow_redirects_with_auth_sends_the_credential_to_the_redirect_t
     assert info.calls.last.request.headers["authorization"].startswith("Basic ")
 
 
-def test_registrable_domain_reduces_to_last_two_labels() -> None:
-    """The registrable-domain approximation folds sibling hosts together and rejects IP literals."""
-    assert Dhis2Client._registrable_domain("play.dhis2.org") == "dhis2.org"
-    assert Dhis2Client._registrable_domain("play.im.dhis2.org") == "dhis2.org"
-    assert Dhis2Client._registrable_domain("localhost") is None
-    assert Dhis2Client._registrable_domain("127.0.0.1") is None
-    assert Dhis2Client._registrable_domain("::1") is None
-    assert Dhis2Client._registrable_domain(None) is None
+def test_dns_name_reads_a_named_host_and_rejects_ip_literals() -> None:
+    """A name of two labels or more is lower-cased; an IP literal or a single label is not a name."""
+    assert Dhis2Client._dns_name("Play.DHIS2.org.") == "play.dhis2.org"
+    assert Dhis2Client._dns_name("localhost") is None
+    assert Dhis2Client._dns_name("127.0.0.1") is None
+    assert Dhis2Client._dns_name("::1") is None
+    assert Dhis2Client._dns_name(None) is None
 
 
 # ---------- verify (TLS) ----------
