@@ -1142,7 +1142,7 @@ async def test_bug_23_live_verifier(local_url: str) -> None:
     would generate it. Until that lands, this verifier stays skipped.
 
     Shape when implemented: POST the bundle as a single
-    `/api/metadata?importStrategy=CREATE_AND_UPDATE&atomicMode=OBJECT`
+    `/api/metadata?importStrategy=CREATE_AND_UPDATE&atomicMode=ALL`
     request against a freshly-reset DHIS2, assert 409 with the
     `org.hibernate.PropertyValueException: DataSet.periodType` message
     in the body. Two-pass workaround in

@@ -544,7 +544,7 @@ async def build_workspace_fixtures(client: Dhis2Client) -> int:
     await client.post_raw(
         "/api/metadata",
         body=metadata_bundle,
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     # Attach SNOMED codes — read-merge-write via the typed accessor.
     await client.attribute_values.set_value("options", OPTION_BCG_UID, ATTRIBUTE_SNOMED_UID, "77656005")

@@ -260,7 +260,7 @@ async def seed_anc_program(client: Dhis2Client) -> int:
     await client.post_raw(
         "/api/metadata",
         body=metadata_bundle,
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     tracker_body = {
         "trackedEntities": [

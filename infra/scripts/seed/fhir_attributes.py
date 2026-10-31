@@ -144,7 +144,7 @@ async def seed_fhir_attributes(client: Dhis2Client) -> int:
     await client.post_raw(
         "/api/metadata",
         body=metadata_bundle,
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     await client.attribute_values.set_value(
         "optionSets", TARGET_OPTION_SET_UID, ATTRIBUTE_OPTION_SET_UID, OPTION_SET_ATTRIBUTE_VALUE

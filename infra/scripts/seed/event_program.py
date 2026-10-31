@@ -269,7 +269,7 @@ async def build_event_program(client: Dhis2Client) -> str:
     await client.post_raw(
         "/api/metadata",
         body=payload,
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     # The event viz ships in a second call because it references the program
     # and stage — DHIS2 resolves those the moment they're on disk, but
@@ -278,7 +278,7 @@ async def build_event_program(client: Dhis2Client) -> str:
     await client.post_raw(
         "/api/metadata",
         body={"eventVisualizations": [viz.model_dump(by_alias=True, exclude_none=True, mode="json")]},
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     await _seed_sample_events(client, org_units)
     await _attach_event_viz_to_dashboard(client)

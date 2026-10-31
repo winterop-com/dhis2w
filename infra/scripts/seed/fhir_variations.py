@@ -312,7 +312,7 @@ async def seed_fhir_variations(client: Dhis2Client) -> int:
     await client.post_raw(
         "/api/metadata",
         body=bundle,
-        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+        params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
     )
     return sum(len(objects) for objects in bundle.values())
 
