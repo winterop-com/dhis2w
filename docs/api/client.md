@@ -73,6 +73,9 @@ The defaults (`verify=True`, full version probe on `connect()`, raise on 4xx/5xx
 
 - `follow_redirects_with_auth: bool = False` — when `True`, `connect()` adopts whatever URL the base URL redirects to, on any host or scheme, without the DHIS2-shape probe, and every authenticated call goes there. Suits a redirect the default refuses, such as `http://play.dhis2.org/2.43` landing on the `https://` demo; `https://play.dhis2.org/2.43` is adopted without it. Turn it on only for a URL whose redirect you trust.
 
+- `max_response_bytes: int | None = None` — refuses a buffered answer with `ResponseTooLargeError` once it decodes past that many bytes, counted as it is decoded rather than trusted from a header, so a small compressed answer cannot expand in memory. `stream()` writes a body to its sink and applies this only to the error body it buffers. The canonical-URL probe never reads a body, and the DHIS2-shape probe parses at most 1 MiB, with or without this.
+- `deadline: float | None = None` — how many seconds one request may take, start to last byte, raising `RequestDeadlineError` past it, which is a `TimeoutError`. `timeout` limits each read, so a server dripping bytes never reaches it. The two probes `connect()` runs fall back to the configured URL past it. `stream()` is left out.
+
 See `examples/client/health_check.py` for the full health-checker pattern.
 
 ::: dhis2w_client.v43.client
