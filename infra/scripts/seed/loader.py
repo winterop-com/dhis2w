@@ -688,7 +688,7 @@ async def _post_metadata(
                 payload,
                 params={
                     "importStrategy": "CREATE_AND_UPDATE",
-                    "atomicMode": "OBJECT",
+                    "atomicMode": "ALL",
                     "flushMode": "OBJECT",
                     # Match existing metadata by CODE rather than UID during
                     # the preheat — fixes the "default" Category /

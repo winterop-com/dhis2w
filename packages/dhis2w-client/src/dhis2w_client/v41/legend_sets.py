@@ -155,7 +155,7 @@ class LegendSetsAccessor:
         raw = await self._client.post_raw(
             "/api/metadata",
             body=bundle,
-            params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "OBJECT"},
+            params={"importStrategy": "CREATE_AND_UPDATE", "atomicMode": "ALL"},
         )
         envelope = WebMessageResponse.model_validate(raw)
         if envelope.status and envelope.status.upper() not in ("OK", "SUCCESS"):
