@@ -21,13 +21,13 @@ overrides = [
 
 [manifest.dependency-groups]
 dev = [
-    { name = "coverage", extras = ["toml"], specifier = ">=7.16.2" },
+    { name = "coverage", extras = ["toml"], specifier = ">=7.17.0" },
     { name = "httpx2", specifier = ">=2.12.0" },
     { name = "hypothesis", specifier = ">=6.168.0" },
     { name = "mkdocs", specifier = ">=1.6" },
     { name = "mkdocs-material", specifier = ">=9.7.7" },
     { name = "mkdocs-redirects", specifier = ">=1.2.3" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.6" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.8" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "pyright", specifier = ">=1.1.413" },
@@ -846,7 +846,7 @@ requires-dist = [
     { name = "questionary", specifier = ">=2.1.1" },
     { name = "respx", marker = "extra == 'testing'", specifier = ">=0.23" },
     { name = "rich", specifier = ">=15" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1.1" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1.6" },
     { name = "tomli-w", specifier = ">=1.2" },
     { name = "typer", specifier = ">=0.26.8" },
 ]
