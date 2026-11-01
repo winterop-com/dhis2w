@@ -215,6 +215,44 @@ async def test_resolve_canonical_base_url_follows_cross_host_redirect() -> None:
     assert resolved == "https://play.im.dhis2.org/dev"
 
 
+@pytest.mark.parametrize("version", ["v41", "v42", "v43", "v44"])
+@pytest.mark.parametrize(
+    ("landed", "root"),
+    [
+        ("https://play.im.dhis2.org/stable-2-41-10-1/dhis-web-login", "https://play.im.dhis2.org/stable-2-41-10-1"),
+        ("https://play.im.dhis2.org/stable-2-43-2-1/login/", "https://play.im.dhis2.org/stable-2-43-2-1"),
+        ("https://dhis2.example.org/dhis-web-commons/security/login.action", "https://dhis2.example.org"),
+        (
+            "https://play.im.dhis2.org/stable-2-41-10-1/dhis-web-dashboard/",
+            "https://play.im.dhis2.org/stable-2-41-10-1",
+        ),
+        ("https://play.im.dhis2.org/dev/apps/dashboard", "https://play.im.dhis2.org/dev"),
+        ("https://dhis2.example.org/hmis/api/apps/capture/index.html", "https://dhis2.example.org/hmis"),
+        ("https://dhis2.example.org/hmis/login/?redirect=%2Fapps", "https://dhis2.example.org/hmis"),
+        ("https://dhis2.example.org/hmis", "https://dhis2.example.org/hmis"),
+        ("http://localhost:8080/", "http://localhost:8080"),
+    ],
+)
+def test_instance_root_is_what_precedes_the_login_page_or_the_app(version: str, landed: str, root: str) -> None:
+    """A root redirect ends on a login page without a session and inside an app with one; the instance precedes it."""
+    client_module = importlib.import_module(f"dhis2w_client.{version}.client")
+    assert client_module.Dhis2Client._instance_root(httpx2.URL(landed)) == root
+
+
+@respx.mock
+async def test_resolve_canonical_base_url_with_a_session_keeps_the_instance_not_the_app() -> None:
+    """A gateway that adds a session makes 2.41 redirect the root into the dashboard app, which is not the base URL."""
+    base = "http://dhis2.example.org"
+    respx.get(f"{base}/").mock(
+        return_value=httpx.Response(302, headers={"location": f"{base}/dhis-web-commons-about/redirect.action"}),
+    )
+    respx.get(f"{base}/dhis-web-commons-about/redirect.action").mock(
+        return_value=httpx.Response(302, headers={"location": f"{base}/dhis-web-dashboard/"}),
+    )
+    respx.get(f"{base}/dhis-web-dashboard/").mock(return_value=httpx.Response(200, text="<html>dashboard</html>"))
+    assert await Dhis2Client._resolve_canonical_base_url(base) == base
+
+
 @respx.mock
 async def test_resolve_canonical_base_url_rejects_sso_idp_redirect() -> None:
     """Cross-origin redirect to an SSO IdP must not be adopted as canonical."""
