@@ -92,6 +92,13 @@ _ADOPTABLE_DOMAINS = frozenset({"dhis2.org"})
 # How many redirects the canonical-URL probe follows before keeping the configured URL.
 _PROBE_MAX_REDIRECTS = 20
 
+#: Where a root redirect has gone past the instance: into an app (`/dhis-web-dashboard/`, `/apps/dashboard`,
+#: `/api/apps/<installed app>/`) or a login page under `dhis-web-*`. The instance's base URL is what precedes it.
+_APP_PATH = re.compile(r"/(?:dhis-web-[^/]*|apps(?=/|$)|api/apps(?=/|$))")
+
+#: The login app 2.43 serves at the instance root.
+_LOGIN_PATH = "/login"
+
 # The largest answer the DHIS2-shape probe parses.
 _PROBE_MAX_BYTES = 1024 * 1024
 
@@ -464,12 +471,7 @@ class Dhis2Client:
                     return candidate
         except Exception:  # noqa: BLE001 — probe is best-effort; fall back to original URL
             return candidate
-        final = str(response.url).rstrip("/")
-        # Strip common DHIS2 login-page trailing paths so we land on the root.
-        for suffix in ("/dhis-web-login", "/login", "/dhis-web-commons/security/login.action"):
-            if final.endswith(suffix):
-                final = final[: -len(suffix)].rstrip("/")
-                break
+        final = Dhis2Client._instance_root(response.url)
         if trust_target or Dhis2Client._same_origin(candidate, final):
             return final
         if not Dhis2Client._cross_origin_target_is_trusted(candidate, final):
@@ -477,6 +479,22 @@ class Dhis2Client:
         if await Dhis2Client._probe_looks_like_dhis2(final, verify=verify, deadline=deadline):
             return final
         return candidate
+
+    @staticmethod
+    def _instance_root(landed: httpx2.URL) -> str:
+        """The base URL a root redirect's landing names: what precedes the login page or the app it opened.
+
+        A root redirect without a session ends on a login page. One that carries a session, which a gateway or a
+        proxy in front of DHIS2 can add, ends inside an app instead: `/dhis-web-dashboard/` on 2.41 and 2.42,
+        `/apps/dashboard` from 2.43. Either way the instance is what comes before it.
+        """
+        path = landed.path.rstrip("/")
+        app = _APP_PATH.search(path)
+        if app is not None:
+            path = path[: app.start()]
+        elif path.endswith(_LOGIN_PATH):
+            path = path[: -len(_LOGIN_PATH)]
+        return str(landed.copy_with(path=path or "/", query=None, fragment=None)).rstrip("/")
 
     @staticmethod
     def _same_origin(left: str, right: str) -> bool:

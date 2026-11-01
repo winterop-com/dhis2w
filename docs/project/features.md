@@ -531,7 +531,7 @@ async with Dhis2Client(base_url, auth=PatAuth(token)) as client:
 `connect()` follows the base URL's redirects once, without credentials, and adopts the
 destination when it is same-origin, or a same-scheme subdomain of the configured host, or
 a same-scheme host under `dhis2.org`, that answers like DHIS2, so
-`https://play.dhis2.org/2.43` reaches the current 2.43 demo. `follow_redirects_with_auth=True` adopts any destination, across host and scheme.
+`https://play.dhis2.org/2.43` reaches the current 2.43 demo. `follow_redirects_with_auth=True` adopts any destination, across host and scheme. The destination is cut back to the instance at its login page or at the app a session opened (`/dhis-web-*`, `/apps/`, `/api/apps/`), so a gateway that adds a session cannot make an app's path the base URL.
 
 ### Response Limits
 

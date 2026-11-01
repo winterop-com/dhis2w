@@ -149,6 +149,13 @@ is never adopted across origins), and answers
 envelope for an anonymous caller. Anything else keeps the URL you configured, so
 an open redirect or an SSO identity provider never receives your credentials.
 
+The destination is cut back to the instance first. Without a session the chain ends
+on a login page (`/dhis-web-login`, `/login`); with one, which a gateway or proxy in
+front of DHIS2 can add, it ends inside an app (`/dhis-web-dashboard/` on 2.41 and
+2.42, `/apps/dashboard` from 2.43). Whatever precedes the first such segment is the
+base URL, so `https://dhis2.example.org/hmis/apps/dashboard` is read as
+`https://dhis2.example.org/hmis`.
+
 A version alias such as `https://play.dhis2.org/2.43` redirects to the current
 demo of that major and is adopted this way: the DHIS2 check sends
 `X-Requested-With`, without which DHIS2 answers an anonymous API read with its
