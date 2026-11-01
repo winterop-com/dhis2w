@@ -539,7 +539,7 @@ a same-scheme host under `dhis2.org`, that answers like DHIS2, so
 once it decodes past that many bytes, counted as it decodes, so a small compressed answer
 never expands in memory. `Dhis2Client(deadline=...)` bounds one request from start to last
 byte with `RequestDeadlineError`, which `timeout` cannot, since it limits each read. Both
-default to no limit. Whatever the caller sets, the canonical-URL probe reads no body and the
+default to no limit, and `open_client(profile, ...)` passes both through. Whatever the caller sets, the canonical-URL probe reads no body and the
 DHIS2-shape probe parses at most 1 MiB.
 
 ### Three-Surface Plugin Model

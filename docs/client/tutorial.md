@@ -777,12 +777,19 @@ See `examples/client/retry_policy.py` for a runnable demo across default / aggre
 
 ## Bounding one answer
 
-An instance you do not control can answer with more than a script means to hold, or send bytes slowly enough that no single read times out. `Dhis2Client` takes two limits, both off by default:
+An instance you do not control can answer with more than a script means to hold, or send bytes slowly enough that no single read times out. `open_client` and `Dhis2Client` take the same two limits, both off by default:
 
 ```python
 from dhis2w_client import Dhis2Client, RequestDeadlineError, ResponseTooLargeError
 
-async with Dhis2Client(base_url, auth=auth, max_response_bytes=64 * 1024 * 1024, deadline=120.0) as client:
+limits = {"max_response_bytes": 64 * 1024 * 1024, "deadline": 120.0}
+
+# Profile-based (preferred):
+async with open_client(profile_from_env(), **limits) as client:
+    ...
+
+# Direct-client path (no dhis2w-core):
+async with Dhis2Client(base_url, auth=auth, **limits) as client:
     try:
         info = await client.system.info()
     except ResponseTooLargeError as exc:
