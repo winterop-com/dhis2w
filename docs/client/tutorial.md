@@ -781,6 +781,8 @@ An instance you do not control can answer with more than a script means to hold,
 
 ```python
 from dhis2w_client import Dhis2Client, RequestDeadlineError, ResponseTooLargeError
+from dhis2w_core.client_context import open_client
+from dhis2w_core.profile import profile_from_env
 
 limits = {"max_response_bytes": 64 * 1024 * 1024, "deadline": 120.0}
 
